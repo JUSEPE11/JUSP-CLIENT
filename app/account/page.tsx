@@ -2,11 +2,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import {
-  COOKIE_AT,
-  COOKIE_PROFILE,
-  verifyAccessToken,
-} from "@/lib/auth";
+import { COOKIE_AT, COOKIE_PROFILE, verifyAccessToken } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,6 +27,28 @@ async function readProfileCookie() {
   }
 }
 
+/**
+ * ✅ Logout "local" (mismo host) vía Server Action
+ * - Evita navegar a /api/auth/logout (pantalla JSON)
+ * - Borra cookies HttpOnly en el host actual
+ * - Redirige a /login
+ */
+async function logoutAction() {
+  "use server";
+  const store = await cookies();
+
+  // Borrado explícito (más fiable que delete en algunos casos)
+  // Importante: path "/" para que coincida con la cookie original.
+  store.set(COOKIE_AT, "", { path: "/", maxAge: 0 });
+  store.set(COOKIE_PROFILE, "", { path: "/", maxAge: 0 });
+
+  // Por si tu cookie fue seteada con "expires" y no respeta maxAge (extra hardening)
+  store.set(COOKIE_AT, "", { path: "/", expires: new Date(0) });
+  store.set(COOKIE_PROFILE, "", { path: "/", expires: new Date(0) });
+
+  redirect("/login");
+}
+
 export default async function AccountPage() {
   const store = await cookies();
 
@@ -49,14 +67,8 @@ export default async function AccountPage() {
   const profile = await readProfileCookie();
   if (!profile) redirect("/onboarding");
 
-  const email = profile?.email ? String(profile.email) : null;
   const role = profile?.role ? String(profile.role) : "User";
   const userId = profile?.id ? String(profile.id) : null;
-
-  const segment = profile?.segment ? String(profile.segment) : "—";
-  const size = profile?.size ? String(profile.size) : "—";
-  const vibe = profile?.vibe ? String(profile.vibe) : "—";
-  const interests = Array.isArray(profile?.interests) ? profile.interests.map(String) : [];
 
   const completion = (() => {
     let done = 0;
@@ -183,7 +195,8 @@ export default async function AccountPage() {
                 Ver pedidos
               </Link>
 
-              <form action="/api/auth/logout" method="POST">
+              {/* ✅ Server Action: no navega al JSON, borra cookies y redirige */}
+              <form action={logoutAction}>
                 <button
                   type="submit"
                   style={{
