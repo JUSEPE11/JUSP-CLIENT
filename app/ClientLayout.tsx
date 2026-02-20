@@ -1,6 +1,6 @@
 "use client";
 
-import React, { ReactNode, useEffect, useMemo, useRef, useState, useCallback } from "react";
+import React, { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -77,6 +77,32 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const hideHeader = false;
 
   const isCartOpen = state.ui.panel === "cart";
+
+  // =========================
+  // ✅ FIX CRÍTICO: Host canónico
+  // =========================
+  useEffect(() => {
+    try {
+      if (typeof window === "undefined") return;
+
+      const host = window.location.hostname;
+      // no tocar dev
+      if (host === "localhost" || host === "127.0.0.1") return;
+
+      // ✅ Fuerza SIEMPRE www (porque tu Vercel está redirigiendo a www)
+      const CANONICAL = "www.juspco.com";
+
+      if (host !== CANONICAL) {
+        const url = new URL(window.location.href);
+        url.hostname = CANONICAL;
+
+        // replace para no ensuciar historial
+        window.location.replace(url.toString());
+      }
+    } catch {
+      // no-op
+    }
+  }, []);
 
   // =========================
   // ✅ PRO MAX: Toast + Auto-open (solo producto)
