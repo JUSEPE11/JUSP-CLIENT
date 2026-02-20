@@ -24,6 +24,8 @@ async function safeJson(res: Response) {
 export default function VerifyClient() {
   const sp = useSearchParams();
   const emailFromUrl = clean(sp.get("email") || "");
+  const emailLocked = !!emailFromUrl;
+
   const [email, setEmail] = useState(emailFromUrl);
 
   const [code, setCode] = useState("");
@@ -31,27 +33,78 @@ export default function VerifyClient() {
   const [err, setErr] = useState<string | null>(null);
   const [okMsg, setOkMsg] = useState<string | null>(null);
 
+  // ⏱️ 60s para ingresar el código
+  const [secondsLeft, setSecondsLeft] = useState<number>(60);
+
   const codeRef = useRef<HTMLInputElement | null>(null);
   const mounted = useRef(true);
+  const timerRef = useRef<number | null>(null);
 
   const codeOk = useMemo(() => (code ? onlyDigits6(code).length === 6 : true), [code]);
+
+  const timeUp = secondsLeft <= 0;
 
   const canSubmit = useMemo(() => {
     const e = clean(email);
     const c = onlyDigits6(code);
     if (!e) return false;
     if (c.length !== 6) return false;
+    if (timeUp) return false;
     return status !== "loading";
-  }, [email, code, status]);
+  }, [email, code, status, timeUp]);
 
+  // Reset cuando cambia el email por URL (y bloquearlo)
   useEffect(() => {
     mounted.current = true;
+
     setEmail(emailFromUrl || "");
+    setCode("");
+    setErr(null);
+    setOkMsg(null);
+    setStatus("idle");
+    setSecondsLeft(60);
+
+    // focus code
     setTimeout(() => codeRef.current?.focus(), 50);
+
     return () => {
       mounted.current = false;
     };
   }, [emailFromUrl]);
+
+  // Timer de 60s (corre siempre que no estemos en success)
+  useEffect(() => {
+    // limpiar interval anterior
+    if (timerRef.current) {
+      window.clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    if (status === "success") return;
+
+    timerRef.current = window.setInterval(() => {
+      setSecondsLeft((s) => {
+        if (s <= 0) return 0;
+        return s - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) {
+        window.clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [status]);
+
+  // Cuando se acaba el tiempo, avisar
+  useEffect(() => {
+    if (!mounted.current) return;
+    if (timeUp && status !== "success" && status !== "loading") {
+      setErr("Tiempo agotado. Reenvía el código.");
+      setOkMsg(null);
+    }
+  }, [timeUp, status]);
 
   async function onVerify(e: React.FormEvent) {
     e.preventDefault();
@@ -64,6 +117,7 @@ export default function VerifyClient() {
     const c1 = onlyDigits6(code);
 
     if (!e1) return setErr("Escribe tu correo.");
+    if (timeUp) return setErr("Tiempo agotado. Reenvía el código.");
     if (c1.length !== 6) return setErr("Escribe el código de 6 dígitos.");
 
     setStatus("loading");
@@ -93,7 +147,6 @@ export default function VerifyClient() {
         setOkMsg("Correo verificado ✅ Ahora personalizamos tu cuenta.");
       }
 
-      // ✅ Ir al onboarding (paso 1/3)
       setTimeout(() => {
         window.location.assign("/onboarding");
       }, 700);
@@ -124,6 +177,7 @@ export default function VerifyClient() {
         credentials: "include",
         cache: "no-store",
       });
+
       const data = await safeJson(res);
 
       if (!res.ok) {
@@ -138,7 +192,9 @@ export default function VerifyClient() {
       if (mounted.current) {
         setOkMsg("Código reenviado ✅ Revisa tu correo.");
         setStatus("idle");
-        codeRef.current?.focus();
+        setCode("");
+        setSecondsLeft(60);
+        setTimeout(() => codeRef.current?.focus(), 50);
       }
     } catch {
       if (mounted.current) {
@@ -204,31 +260,46 @@ export default function VerifyClient() {
             <label className="field">
               <span className="field-label">Correo</span>
               <input
-                className="field-input"
+                className={`field-input ${emailLocked ? "locked" : ""}`}
                 type="email"
                 inputMode="email"
                 autoComplete="email"
                 placeholder="tu@email.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={status === "loading"}
+                onChange={(e) => {
+                  if (emailLocked) return;
+                  setEmail(e.target.value);
+                }}
+                disabled={status === "loading" || emailLocked}
+                readOnly={emailLocked}
               />
-              <span className="field-hint">Usa el mismo correo con el que te registraste.</span>
+              <span className="field-hint">
+                {emailLocked ? "Este correo está bloqueado (viene del registro)." : "Usa el mismo correo con el que te registraste."}
+              </span>
             </label>
 
             <label className="field">
-              <span className="field-label">Código</span>
+              <span className="field-label" style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                <span>Código</span>
+                <span className={`timer ${timeUp ? "bad" : ""}`} aria-live="polite">
+                  {timeUp ? "00:00" : `00:${String(secondsLeft).padStart(2, "0")}`}
+                </span>
+              </span>
+
               <input
                 ref={codeRef}
-                className={`field-input ${!codeOk ? "bad" : ""}`}
+                className={`field-input ${!codeOk || timeUp ? "bad" : ""}`}
                 type="text"
                 inputMode="numeric"
                 placeholder="000000"
                 value={code}
                 onChange={(e) => setCode(onlyDigits6(e.target.value))}
-                disabled={status === "loading"}
+                disabled={status === "loading" || timeUp}
               />
-              {!codeOk ? (
+
+              {timeUp ? (
+                <span className="field-hint bad">Tiempo agotado. Reenvía el código.</span>
+              ) : !codeOk ? (
                 <span className="field-hint bad">El código debe tener 6 dígitos.</span>
               ) : (
                 <span className="field-hint">Ej: 123456</span>
@@ -421,6 +492,14 @@ export default function VerifyClient() {
           font-weight: 900;
           color: rgba(0, 0, 0, 0.78);
         }
+        .timer {
+          font-size: 12px;
+          font-weight: 950;
+          color: rgba(0, 0, 0, 0.55);
+        }
+        .timer.bad {
+          color: rgba(198, 31, 31, 0.9);
+        }
         .field-input {
           width: 100%;
           border-radius: 14px;
@@ -429,6 +508,11 @@ export default function VerifyClient() {
           padding: 12px 12px;
           font-size: 14px;
           outline: none;
+        }
+        .field-input.locked {
+          background: rgba(0, 0, 0, 0.03);
+          color: rgba(0, 0, 0, 0.72);
+          cursor: not-allowed;
         }
         .field-input:focus {
           border-color: rgba(0, 0, 0, 0.34);
