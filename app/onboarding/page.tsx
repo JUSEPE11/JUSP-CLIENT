@@ -1,4 +1,4 @@
-// app/onboarding/page.tsx
+// src/app/onboarding/page.tsx
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -99,7 +99,6 @@ const USE_CASES_BY_SEGMENT: Record<Segment, Array<{ key: string; label: string; 
   ],
 };
 
-// ✅ 20 marcas originales (máx 8)
 const BRANDS_TOP20: Array<{ key: string; label: string }> = [
   { key: "nike", label: "Nike" },
   { key: "adidas", label: "Adidas" },
@@ -172,7 +171,7 @@ type Persisted = {
   brands: string[];
   sizes: Size[];
   colors: string[];
-  vibe: string; // compat: aquí significa "Uso principal"
+  vibe: string;
 };
 
 function safeParse<T>(s: string | null): T | null {
@@ -189,25 +188,17 @@ export default function OnboardingPage() {
 
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
 
-  // Paso 1
   const [segment, setSegment] = useState<Segment>("hombre");
-
-  // Paso 2
   const [interests, setInterests] = useState<string[]>(["Fútbol"]);
-  const [brands, setBrands] = useState<string[]>([]); // Top 20, máx 8
-
-  // Paso 3
-  const [sizes, setSizes] = useState<Size[]>(["41"]); // máx 3
-  const [colors, setColors] = useState<string[]>(["Negro"]); // máx 3
-
-  // Paso 4
-  const [vibe, setVibe] = useState<string>(""); // "Uso principal"
+  const [brands, setBrands] = useState<string[]>([]);
+  const [sizes, setSizes] = useState<Size[]>(["41"]);
+  const [colors, setColors] = useState<string[]>(["Negro"]);
+  const [vibe, setVibe] = useState<string>("");
 
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string>("");
   const [msgTone, setMsgTone] = useState<"idle" | "ok" | "warn">("idle");
 
-  // ---------- LocalStorage: load once ----------
   const didHydrate = useRef(false);
   useEffect(() => {
     if (didHydrate.current) return;
@@ -239,7 +230,6 @@ export default function OnboardingPage() {
     setVibe(clamp(String(parsed.vibe || ""), 40));
   }, []);
 
-  // ---------- LocalStorage: autosave ----------
   useEffect(() => {
     if (!didHydrate.current) return;
 
@@ -282,13 +272,10 @@ export default function OnboardingPage() {
     return {
       segment,
       interests: (interests || []).slice(0, 7),
-      // compat backend: mantiene "size"
       size: primarySize,
-      // extras: no rompe si backend ignora
       sizes: sizesUpTo3.length ? sizesUpTo3 : undefined,
       colors: colorsUpTo3.length ? colorsUpTo3 : undefined,
       brands: brandsUpTo8.length ? brandsUpTo8 : undefined,
-      // compat: "vibe" (aquí es uso principal)
       vibe: clamp(vibe, 40) || undefined,
     };
   }, [segment, interests, sizes, colors, brands, vibe]);
@@ -355,13 +342,8 @@ export default function OnboardingPage() {
     const first = interestsBySeg[0]?.label;
     setInterests(first ? [first] : []);
 
-    // marcas: limpio para evitar mezcla mental entre segmentos
     setBrands([]);
-
-    // uso principal vacío
     setVibe("");
-
-    // colores: mantenemos si ya eligió, si no Negro
     setColors((prev) => (prev && prev.length ? prev.slice(0, 3) : ["Negro"]));
 
     setMsg("");
@@ -457,17 +439,15 @@ export default function OnboardingPage() {
       setMsg("Guardado ✅");
       setMsgTone("ok");
 
-      // ✅ UI-only: marca onboarding completo para que el Header no muestre "Falta completar perfil"
       try {
         window.localStorage.setItem("jusp_onboarding_done", "1");
       } catch {}
 
       clearLocal();
 
-      // ✅ Mantén sesión y manda al home (más compras)
-      router.replace("/");
-      router.refresh();
-} catch (e: any) {
+      // ✅ FIX REAL: navegación dura para resetear header/layout y leer cookies/DB sin estado viejo
+      window.location.assign("/");
+    } catch (e: any) {
       setMsg(`Ups: ${e?.message || "Error inesperado"}`);
       setMsgTone("warn");
       setSaving(false);
@@ -505,7 +485,6 @@ export default function OnboardingPage() {
       }}
     >
       <div style={{ maxWidth: 1040, margin: "0 auto" }}>
-        {/* Top progress */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <Pill done={step > 1} active={step === 1} label="Segmento" stepNum={1} />
@@ -534,7 +513,6 @@ export default function OnboardingPage() {
           </button>
         </div>
 
-        {/* Title */}
         <div style={{ marginTop: 16 }}>
           <div
             style={{
@@ -565,7 +543,6 @@ export default function OnboardingPage() {
           </p>
         </div>
 
-        {/* Premium Card */}
         <div
           style={{
             marginTop: 18,
@@ -585,7 +562,6 @@ export default function OnboardingPage() {
           />
 
           <div style={{ padding: 20 }}>
-            {/* Head */}
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
               <div>
                 <div style={{ fontSize: 20, fontWeight: 980, color: "#0B0B0C" }}>
@@ -628,7 +604,6 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            {/* CONTENT */}
             {step === 1 ? (
               <div
                 style={{
@@ -659,7 +634,6 @@ export default function OnboardingPage() {
                   padding: 16,
                 }}
               >
-                {/* Interests */}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
                   <div style={{ fontSize: 12, fontWeight: 950, color: "rgba(0,0,0,0.75)" }}>
                     Intereses <span style={{ opacity: 0.7 }}>({titleCase(segment)})</span>
@@ -731,7 +705,6 @@ export default function OnboardingPage() {
                   Intereses = catálogo más exacto. Menos scroll, más compras.
                 </div>
 
-                {/* Brands */}
                 <div style={{ marginTop: 16, height: 1, background: "rgba(0,0,0,0.06)" }} />
 
                 <div style={{ marginTop: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
@@ -813,12 +786,9 @@ export default function OnboardingPage() {
                   padding: 16,
                 }}
               >
-                {/* Sizes */}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                    <div style={{ fontSize: 12, fontWeight: 950, color: "rgba(0,0,0,0.75)" }}>
-                      Talla ({segMeta.label})
-                    </div>
+                    <div style={{ fontSize: 12, fontWeight: 950, color: "rgba(0,0,0,0.75)" }}>Talla ({segMeta.label})</div>
                     <div
                       style={{
                         borderRadius: 999,
@@ -885,7 +855,6 @@ export default function OnboardingPage() {
                   Puedes elegir hasta <b style={{ color: "#111" }}>3 tallas</b>. {segMeta.guide}
                 </div>
 
-                {/* Colors */}
                 <div style={{ marginTop: 16, height: 1, background: "rgba(0,0,0,0.06)" }} />
 
                 <div style={{ marginTop: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
@@ -1063,7 +1032,6 @@ export default function OnboardingPage() {
                 </div>
               </div>
             ) : (
-              // step 5: Resumen final
               <div
                 style={{
                   marginTop: 14,
@@ -1128,7 +1096,6 @@ export default function OnboardingPage() {
               </div>
             )}
 
-            {/* Message */}
             <div
               style={{
                 marginTop: 14,
@@ -1189,7 +1156,6 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            {/* Actions */}
             <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", gap: 10 }}>
               <button
                 type="button"
