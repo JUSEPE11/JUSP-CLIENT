@@ -1,0 +1,20 @@
+{
+  "users": [
+    {
+      "id": "u_67327044bd49e2fd49ce27ad",
+      "email": "jussepe2003@gmail.com",
+      "role": "user",
+      "passHash": "fb3b59644455c83fa89322cc78f535ff19d725c7b937fbf1bb3b550f845ee221b9703414344a654863674b159a9554e5e5d78331663e8d66bcce760c09ee0e4d",
+      "passSalt": "6965f494db547f45460c99a14807785c",
+      "createdAt": "2026-01-28T16:31:37.039Z"
+    },
+    {
+      "id": "u_e20701996716eb40dea66ee1",
+      "email": "jusp@yopmail.com",
+      "role": "user",
+      "passHash": "867fd7de088c1b5e90250504606bbf44809da4895a3e611ee1b72e07f02f4803325e866798ba0b956598f03d98a5659cc4abefd5f4bf455df7075f3098affdd2",
+      "passSalt": "d5ef146c9e803a3448195c779e1fc20c",
+      "createdAt": "2026-01-28T16:58:30.107Z"
+    }
+  ]
+}

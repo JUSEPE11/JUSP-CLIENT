@@ -1,0 +1,85 @@
+{
+  "users": [
+    {
+      "id": "ce310ad74e2680b69a1d74742b1b9886",
+      "name": "Breiner Jusep Paz",
+      "email": "jusepe2003@gmail.com",
+      "role": "user",
+      "passwordHash": "lsgxTjm5TFImIP2+lDPCtIDSnce23nIWJ0b9ANBLh4iyCUrlk+lZ3bDYRLcHzxnbPJN+AJ42BzPs8pFx6EJ5mg==",
+      "passwordSalt": "pE6WNiji2Y4Z+oSRkeiWBg==",
+      "createdAt": "2026-01-29T01:03:45.612Z"
+    },
+    {
+      "id": "1881d115186d089f806cc1b3f985d844",
+      "name": "Breiner Jusep Paz",
+      "email": "jusepe2003@yopmail.com",
+      "role": "user",
+      "passwordHash": "AJrlmPFAJbx+T7rToLrTtzObHjvx52wKTJBp+jFoFNSU2MaYMpAi4IyqKv8mQnoiIytzh9gfBk0sOE9iNRoU6w==",
+      "passwordSalt": "b7Uu8lXGPcQ8e3cof+72YA==",
+      "createdAt": "2026-01-29T01:07:16.511Z"
+    },
+    {
+      "id": "75971c9eae944a92e56fc555e9be7282",
+      "name": "Breiner Jusep Paz",
+      "email": "jusep@yomail.com",
+      "role": "user",
+      "passwordHash": "LG3AQHFmM0WGK8CfMPlRyDKyTbnt3jPhwzmFfAAOV/o+e88Sfa/7peKXZOfZf8hb+vAOdqzywz3qIhrGXyLGOA==",
+      "passwordSalt": "UL8jHzTRgvXpX5nk6ItjrA==",
+      "createdAt": "2026-01-29T01:13:10.527Z"
+    },
+    {
+      "id": "6c2df67c099327fad45230edf7dd10b7",
+      "name": "Breiner Jusep Paz",
+      "email": "jusepe@yopmail.com",
+      "role": "user",
+      "passwordHash": "x/p7TVY8XByL/3S5BjKD6UrIBcoSjsRJkeA7hcn9kB7H1NInnwCvi7LM0Sz49KQU8XjcNyMStrl9GmEqkP2oPA==",
+      "passwordSalt": "uicg5X5Wda6hqrcihKsEsQ==",
+      "createdAt": "2026-01-29T01:49:00.394Z"
+    },
+    {
+      "id": "caa63265a3638acd2831e77baef89982",
+      "name": "Breiner Jusep Paz",
+      "email": "jusep@yopmail.com",
+      "role": "user",
+      "passwordHash": "AtmOyqmXDaGVgpKR7hJXl654Yp6viZnMkHfF4SyYqBnubf4ZXO2zPeZFlKPshy6GzzcjZxMjUW2Ahzt2QChqzw==",
+      "passwordSalt": "pZNLc/haiMy73g72Iu0MJg==",
+      "createdAt": "2026-01-29T02:07:14.897Z"
+    },
+    {
+      "id": "24203fb5916f6eb03699dccfaab93d63",
+      "name": "Breiner Jusep Paz",
+      "email": "juan@yopmail.com",
+      "role": "user",
+      "passwordHash": "RqbHwaJe3BYzQL/YeJpzJ6WaoSPVVWP/mwV3yjd4Tkh6WnOgH+13s6k8w2hcZlwCVvMnja7YeIhcuKaL5JaJZg==",
+      "passwordSalt": "0zd5lmwnD7OP8jO/eGUEdg==",
+      "createdAt": "2026-01-29T04:21:57.140Z"
+    },
+    {
+      "id": "62850271cc953cc14886e80136684d9c",
+      "name": "Breiner Jusep Paz",
+      "email": "bjpa2003@gmail.com",
+      "role": "user",
+      "passwordHash": "gE7YLrQZ13XriaYUlhOvUM1gr1b/Um/7K0D+UEtYBPzmwcBRQjpLu4W2HZqJ/vl0BCZgzIyFIIFTm4j3NALekQ==",
+      "passwordSalt": "O8Yd88VUMHbwDhrGimQb0Q==",
+      "createdAt": "2026-01-29T04:22:17.072Z"
+    },
+    {
+      "id": "61b330180e7638f49d26b42b9b0324c6",
+      "name": "Breiner Jusep Paz",
+      "email": "ju@yopmail.com",
+      "role": "user",
+      "passwordHash": "6zBJncgd0ETK74tJ2EX43m2gcJCo1wRi/c1nPBrjCZ4mcq5LgZ+dNMEAXaDnRjIr/K5OfZluHchrW8TRoEw5dA==",
+      "passwordSalt": "akhulnX/ftYoH+obCtJ2Gw==",
+      "createdAt": "2026-01-29T04:50:36.829Z"
+    },
+    {
+      "id": "5725c53baa2a377824a8f4912a43986a",
+      "name": "Breiner Jusep Paz",
+      "email": "jusepe20@yopmail.com",
+      "role": "user",
+      "passwordHash": "iFdco9CnZGr8OBC+ssNPmAjQmoRvX1bxIoyQJNlR8/tONxyUNMTqSFsbaMBt85q1Njvwkyqr+02BUFqNC8uS0A==",
+      "passwordSalt": "COFkxGRzxWozwQrYS0Y+AQ==",
+      "createdAt": "2026-01-29T20:11:44.938Z"
+    }
+  ]
+}
