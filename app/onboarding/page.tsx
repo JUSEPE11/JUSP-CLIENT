@@ -1,38 +1,112 @@
 // app/onboarding/page.tsx
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Segment = "hombre" | "mujer" | "niños";
+
+// ✅ Expandimos tallas para soportar Mujer + Kids (sin romper: siguen siendo strings controlados)
 type Size =
   | "XS"
   | "S"
   | "M"
   | "L"
   | "XL"
+  // Hombre (EU)
   | "38"
   | "39"
   | "40"
   | "41"
   | "42"
   | "43"
-  | "44";
+  | "44"
+  // Mujer (EU)
+  | "35"
+  | "36"
+  | "37"
+  // Kids (EU)
+  | "28"
+  | "29"
+  | "30"
+  | "31"
+  | "32"
+  | "33"
+  | "34"
+  // Kids ropa (edad)
+  | "2"
+  | "4"
+  | "6"
+  | "8"
+  | "10"
+  | "12"
+  | "14";
 
-const SIZES: Size[] = ["XS", "S", "M", "L", "XL", "38", "39", "40", "41", "42", "43", "44"];
+type Interest = { key: string; label: string };
 
-const INTERESTS: Array<{ key: string; label: string }> = [
-  { key: "futbol", label: "Fútbol" },
-  { key: "gym", label: "Gym" },
-  { key: "street", label: "Street" },
-  { key: "running", label: "Running" },
-  { key: "basket", label: "Basket" },
-  { key: "skate", label: "Skate" },
-  { key: "outdoor", label: "Outdoor" },
-  { key: "lux", label: "Premium" },
-  { key: "retro", label: "Retro" },
-  { key: "techwear", label: "Techwear" },
-];
+const INTERESTS_BY_SEGMENT: Record<Segment, Interest[]> = {
+  hombre: [
+    { key: "futbol", label: "Fútbol" },
+    { key: "gym", label: "Gym" },
+    { key: "street", label: "Street" },
+    { key: "running", label: "Running" },
+    { key: "basket", label: "Basket" },
+    { key: "skate", label: "Skate" },
+    { key: "outdoor", label: "Outdoor" },
+    { key: "retro", label: "Retro" },
+    { key: "techwear", label: "Techwear" },
+    { key: "lux", label: "Premium" },
+  ],
+  mujer: [
+    { key: "gym", label: "Gym" },
+    { key: "running", label: "Running" },
+    { key: "yoga", label: "Yoga" },
+    { key: "street", label: "Street" },
+    { key: "lifestyle", label: "Lifestyle" },
+    { key: "fashion", label: "Fashion" },
+    { key: "outdoor", label: "Outdoor" },
+    { key: "retro", label: "Retro" },
+    { key: "techwear", label: "Techwear" },
+    { key: "lux", label: "Premium" },
+  ],
+  niños: [
+    { key: "futbol", label: "Fútbol" },
+    { key: "running", label: "Running" },
+    { key: "basket", label: "Basket" },
+    { key: "school", label: "Colegio" },
+    { key: "street", label: "Street" },
+    { key: "outdoor", label: "Outdoor" },
+    { key: "skate", label: "Skate" },
+    { key: "gaming", label: "Gaming" },
+    { key: "retro", label: "Retro" },
+    { key: "premium", label: "Premium" },
+  ],
+};
+
+const SIZES_BY_SEGMENT: Record<Segment, Size[]> = {
+  hombre: ["XS", "S", "M", "L", "XL", "38", "39", "40", "41", "42", "43", "44"],
+  mujer: ["XS", "S", "M", "L", "XL", "35", "36", "37", "38", "39", "40", "41"],
+  // Kids: mezcla práctica (ropa por edad + calzado EU kids)
+  niños: ["2", "4", "6", "8", "10", "12", "14", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37"],
+};
+
+const DEFAULT_INTERESTS: Record<Segment, string[]> = {
+  hombre: ["Fútbol"],
+  mujer: ["Gym"],
+  niños: ["Colegio"],
+};
+
+const DEFAULT_SIZES: Record<Segment, Size[]> = {
+  hombre: ["41"],
+  mujer: ["38"],
+  niños: ["8"],
+};
+
+const SIZE_GUIDE_COPY: Record<Segment, string> = {
+  hombre: "Guía: calzado EU (38–44) y ropa (XS–XL).",
+  mujer: "Guía: calzado EU mujer (35–41) y ropa (XS–XL).",
+  niños: "Guía: ropa por edad (2–14) y calzado kids EU (28–37).",
+};
 
 function cx(...a: Array<string | false | null | undefined>) {
   return a.filter(Boolean).join(" ");
@@ -56,10 +130,10 @@ export default function OnboardingPage() {
   const [segment, setSegment] = useState<Segment>("hombre");
 
   // Paso 2
-  const [interests, setInterests] = useState<string[]>(["Fútbol"]);
+  const [interests, setInterests] = useState<string[]>(DEFAULT_INTERESTS.hombre);
 
   // Paso 3
-  const [sizes, setSizes] = useState<Size[]>(["41"]); // ✅ hasta 3 tallas
+  const [sizes, setSizes] = useState<Size[]>(DEFAULT_SIZES.hombre); // ✅ hasta 3 tallas
   const [vibe, setVibe] = useState<string>("");
 
   const [saving, setSaving] = useState(false);
@@ -67,6 +141,20 @@ export default function OnboardingPage() {
   const [msgTone, setMsgTone] = useState<"idle" | "ok" | "warn">("idle");
 
   const vibeSuggestions = ["minimal", "street", "gym", "runner", "techwear", "retro", "lux", "all-black"];
+
+  // ✅ LISTAS dinámicas por segmento
+  const INTERESTS = useMemo(() => INTERESTS_BY_SEGMENT[segment], [segment]);
+  const SIZES = useMemo(() => SIZES_BY_SEGMENT[segment], [segment]);
+  const sizeGuide = useMemo(() => SIZE_GUIDE_COPY[segment], [segment]);
+
+  // ✅ Cuando cambie el segmento: recalcular pasos 2 y 3 (intereses + tallas)
+  useEffect(() => {
+    setInterests(DEFAULT_INTERESTS[segment] || []);
+    setSizes(DEFAULT_SIZES[segment] || []);
+    setMsg("");
+    setMsgTone("idle");
+    // vibe lo dejamos (es estilo personal, no depende del segmento)
+  }, [segment]);
 
   const profilePayload = useMemo(() => {
     const cleanVibe = clamp(vibe, 60);
@@ -99,7 +187,6 @@ export default function OnboardingPage() {
   function next() {
     if (saving) return;
 
-    // Validaciones suaves por paso (UX premium, sin bloquear por gusto)
     if (step === 1) {
       setMsg("");
       setMsgTone("idle");
@@ -124,7 +211,6 @@ export default function OnboardingPage() {
     setInterests((prev) => {
       const has = prev.some((x) => x.toLowerCase() === label.toLowerCase());
       if (has) return prev.filter((x) => x.toLowerCase() !== label.toLowerCase());
-      // límite razonable para no saturar
       if (prev.length >= 7) return prev;
       return [...prev, label];
     });
@@ -135,8 +221,7 @@ export default function OnboardingPage() {
       const has = prev.includes(s);
       if (has) return prev.filter((x) => x !== s);
       if (prev.length >= 3) {
-        // UX premium: reemplaza el más antiguo (FIFO) para que sea rápido
-        const [, ...rest] = prev;
+        const [, ...rest] = prev; // FIFO
         return [...rest, s];
       }
       return [...prev, s];
@@ -284,7 +369,7 @@ export default function OnboardingPage() {
             {step === 1
               ? "Esto ordena la experiencia desde el inicio. Puedes cambiarlo después."
               : step === 2
-                ? "Elegimos drops, outfits y sugerencias con más precisión. Si no quieres, lo saltas y listo."
+                ? `Elegimos drops, outfits y sugerencias con más precisión para ${titleCase(segment)}.`
                 : "Afinamos recomendaciones para que lo que ves se sienta más personal. Si no quieres, lo saltas y listo."}
           </p>
         </div>
@@ -320,7 +405,7 @@ export default function OnboardingPage() {
                   {step === 1
                     ? "Elige una base para personalizar JUSP."
                     : step === 2
-                      ? "Elige 1–7 intereses (rápido)."
+                      ? `Elige 1–7 intereses para ${titleCase(segment)} (rápido).`
                       : "15 segundos. Recomendaciones más precisas. "}
                   {step === 3 ? <b style={{ color: "#111" }}>Opcional.</b> : null}
                 </div>
@@ -374,7 +459,7 @@ export default function OnboardingPage() {
                 </div>
 
                 <div style={{ marginTop: 12, fontSize: 12, color: "rgba(0,0,0,0.55)", lineHeight: 1.6 }}>
-                  Seleccionado: <b style={{ color: "#111" }}>{titleCase(segment)}</b>. Esto ajusta orden y sugerencias.
+                  Seleccionado: <b style={{ color: "#111" }}>{titleCase(segment)}</b>. Esto ajusta intereses y tallas.
                 </div>
               </div>
             ) : step === 2 ? (
@@ -388,7 +473,9 @@ export default function OnboardingPage() {
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-                  <div style={{ fontSize: 12, fontWeight: 950, color: "rgba(0,0,0,0.75)" }}>Elige tus intereses</div>
+                  <div style={{ fontSize: 12, fontWeight: 950, color: "rgba(0,0,0,0.75)" }}>
+                    Elige tus intereses ({titleCase(segment)})
+                  </div>
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                     <div
                       style={{
@@ -453,7 +540,7 @@ export default function OnboardingPage() {
                 </div>
 
                 <div style={{ marginTop: 12, fontSize: 12, color: "rgba(0,0,0,0.55)", lineHeight: 1.6 }}>
-                  Tus intereses ayudan a mostrarte drops y sugerencias más precisas. Puedes editar esto luego.
+                  Tus intereses ayudan a mostrarte drops y sugerencias más precisas para <b style={{ color: "#111" }}>{titleCase(segment)}</b>.
                 </div>
               </div>
             ) : (
@@ -471,7 +558,9 @@ export default function OnboardingPage() {
                   <div>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={{ fontSize: 12, fontWeight: 950, color: "rgba(0,0,0,0.75)" }}>Talla</div>
+                        <div style={{ fontSize: 12, fontWeight: 950, color: "rgba(0,0,0,0.75)" }}>
+                          Talla ({titleCase(segment)})
+                        </div>
                         <div
                           style={{
                             borderRadius: 999,
@@ -537,7 +626,7 @@ export default function OnboardingPage() {
                     </div>
 
                     <div style={{ marginTop: 10, fontSize: 12, color: "rgba(0,0,0,0.55)", lineHeight: 1.6 }}>
-                      Puedes elegir hasta <b style={{ color: "#111" }}>3 tallas</b> (por ejemplo: casual, running, bota).
+                      Puedes elegir hasta <b style={{ color: "#111" }}>3 tallas</b>. {sizeGuide}
                     </div>
                   </div>
 
@@ -597,7 +686,8 @@ export default function OnboardingPage() {
                     </div>
 
                     <div style={{ marginTop: 10, fontSize: 12, color: "rgba(0,0,0,0.55)", lineHeight: 1.6 }}>
-                      Escribe tu estilo en 2–3 palabras. Esto ayuda a que JUSP se vea más <b style={{ color: "#111" }}>tuyo</b>.
+                      Escribe tu estilo en 2–3 palabras. Esto ayuda a que JUSP se vea más{" "}
+                      <b style={{ color: "#111" }}>tuyo</b>.
                     </div>
                   </div>
                 </div>
@@ -656,8 +746,8 @@ export default function OnboardingPage() {
                   : step === 1
                     ? "Tip: esto solo ordena tu experiencia. Puedes cambiarlo después."
                     : step === 2
-                      ? "Tip: elige tus intereses para ver mejores drops (o salta si no quieres)."
-                      : "Tip: si cambias tu talla o vibe, lo guardamos para recomendarte mejor (y lo puedes editar luego)."}
+                      ? `Tip: tus intereses cambian según tu foco (${titleCase(segment)}).`
+                      : `Tip: tus tallas también se ajustan por foco. ${sizeGuide}`}
               </div>
             </div>
 
@@ -842,7 +932,14 @@ function ChoiceCard({
           {active ? "✓" : "•"}
         </div>
       </div>
-      <div style={{ marginTop: 6, fontSize: 12, lineHeight: 1.55, color: active ? "rgba(255,255,255,0.78)" : "rgba(0,0,0,0.62)" }}>
+      <div
+        style={{
+          marginTop: 6,
+          fontSize: 12,
+          lineHeight: 1.55,
+          color: active ? "rgba(255,255,255,0.78)" : "rgba(0,0,0,0.62)",
+        }}
+      >
         {sub}
       </div>
     </button>
