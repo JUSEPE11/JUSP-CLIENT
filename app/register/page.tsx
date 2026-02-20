@@ -6,13 +6,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 type Status = "idle" | "loading" | "success" | "error";
 
+function clean(v: string) {
+  return (v || "").trim();
+}
+function normalizeEmail(v: string) {
+  return clean(v).toLowerCase();
+}
 function isEmailLike(v: string) {
-  const s = v.trim();
+  const s = clean(v);
   if (!s) return false;
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
-}
-function clean(v: string) {
-  return v.trim();
 }
 async function safeJson(res: Response) {
   try {
@@ -21,19 +24,86 @@ async function safeJson(res: Response) {
     return null;
   }
 }
-function strength(pw: string) {
+
+const DISPOSABLE_BLOCKLIST = new Set([
+  // yopmail family
+  "yopmail.com",
+  "yopmail.fr",
+  "yopmail.net",
+  "cool.fr.nf",
+  "jetable.fr.nf",
+  "courriel.fr.nf",
+  "moncourrier.fr.nf",
+  // common temp mail
+  "tempmail.com",
+  "temp-mail.org",
+  "temp-mail.io",
+  "10minutemail.com",
+  "10minutemail.net",
+  "guerrillamail.com",
+  "guerrillamail.net",
+  "guerrillamail.org",
+  "mailinator.com",
+  "maildrop.cc",
+  "getnada.com",
+  "dropmail.me",
+  "dispostable.com",
+  "trashmail.com",
+  "sharklasers.com",
+]);
+
+function getEmailDomain(email: string) {
+  const e = normalizeEmail(email);
+  const at = e.lastIndexOf("@");
+  if (at < 0) return "";
+  return e.slice(at + 1);
+}
+function isDisposableEmail(email: string) {
+  const d = getEmailDomain(email);
+  if (!d) return false;
+  if (DISPOSABLE_BLOCKLIST.has(d)) return true;
+
+  // bloqueos por patrón (sin ser agresivos con correos reales)
+  if (d.endsWith(".mailinator.com")) return true;
+  if (d.includes("tempmail")) return true;
+  if (d.includes("temp-mail")) return true;
+  if (d.includes("10minutemail")) return true;
+
+  return false;
+}
+
+// Password rules (PRO): 12+ y mezcla real
+function passwordRules(pw: string) {
   const s = pw || "";
+  return {
+    len: s.length >= 12,
+    upper: /[A-Z]/.test(s),
+    lower: /[a-z]/.test(s),
+    num: /[0-9]/.test(s),
+    sym: /[^A-Za-z0-9]/.test(s),
+  };
+}
+function passwordStrong(pw: string) {
+  const r = passwordRules(pw);
+  return r.len && r.upper && r.lower && r.num && r.sym;
+}
+function strengthScore(pw: string) {
+  const r = passwordRules(pw);
   let score = 0;
-  if (s.length >= 8) score += 1;
-  if (/[A-Z]/.test(s)) score += 1;
-  if (/[0-9]/.test(s)) score += 1;
-  if (/[^A-Za-z0-9]/.test(s)) score += 1;
-  return score; // 0..4
+  if (r.len) score += 1;
+  if (r.upper) score += 1;
+  if (r.lower) score += 1;
+  if (r.num) score += 1;
+  if (r.sym) score += 1;
+  // 0..5
+  return score;
 }
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
+
   const [email, setEmail] = useState("");
+  const [email2, setEmail2] = useState("");
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -48,19 +118,37 @@ export default function RegisterPage() {
   const mounted = useRef(true);
 
   const emailOk = useMemo(() => (email ? isEmailLike(email) : true), [email]);
-  const pwOk = useMemo(() => (password ? password.length >= 8 : true), [password]);
+  const email2Ok = useMemo(() => (email2 ? isEmailLike(email2) : true), [email2]);
+
+  const emailMatchOk = useMemo(() => {
+    if (!email2) return true;
+    return normalizeEmail(email) === normalizeEmail(email2);
+  }, [email, email2]);
+
+  const emailDisposable = useMemo(() => {
+    if (!email) return false;
+    if (!isEmailLike(email)) return false;
+    return isDisposableEmail(email);
+  }, [email]);
+
+  const pwStrong = useMemo(() => (password ? passwordStrong(password) : true), [password]);
   const matchOk = useMemo(() => (confirm ? confirm === password : true), [confirm, password]);
-  const pwScore = useMemo(() => strength(password), [password]);
+  const pwScore = useMemo(() => strengthScore(password), [password]);
+  const pwR = useMemo(() => passwordRules(password), [password]);
 
   const canSubmit = useMemo(() => {
     const n = clean(name);
-    const e = clean(email);
-    if (!n || !e || !password || !confirm) return false;
-    if (!isEmailLike(e)) return false;
-    if (password.length < 8) return false;
+    const e1 = normalizeEmail(email);
+    const e2 = normalizeEmail(email2);
+
+    if (!n || !e1 || !e2 || !password || !confirm) return false;
+    if (!isEmailLike(e1) || !isEmailLike(e2)) return false;
+    if (e1 !== e2) return false;
+    if (isDisposableEmail(e1)) return false;
+    if (!passwordStrong(password)) return false;
     if (password !== confirm) return false;
     return status !== "loading";
-  }, [name, email, password, confirm, status]);
+  }, [name, email, email2, password, confirm, status]);
 
   useEffect(() => {
     mounted.current = true;
@@ -77,25 +165,32 @@ export default function RegisterPage() {
     setErr(null);
 
     const n = clean(name);
-    const e1 = clean(email);
+    const e1 = normalizeEmail(email);
+    const e2 = normalizeEmail(email2);
     const p1 = password;
     const c1 = confirm;
 
     if (!n) return setErr("Escribe tu nombre.");
     if (!e1) return setErr("Escribe tu correo.");
     if (!isEmailLike(e1)) return setErr("Ese correo no parece válido.");
-    if (!p1 || p1.length < 8) return setErr("Tu contraseña debe tener mínimo 8 caracteres.");
+    if (!e2) return setErr("Confirma tu correo.");
+    if (!isEmailLike(e2)) return setErr("El correo de confirmación no parece válido.");
+    if (e1 !== e2) return setErr("Los correos no coinciden.");
+    if (isDisposableEmail(e1)) return setErr("No se permiten correos temporales. Usa un correo real (Gmail/Outlook/etc).");
+
+    if (!p1) return setErr("Escribe tu contraseña.");
+    if (!passwordStrong(p1))
+      return setErr("Contraseña débil: usa 12+ caracteres con mayúscula, minúscula, número y símbolo.");
     if (p1 !== c1) return setErr("Las contraseñas no coinciden.");
 
     setStatus("loading");
 
     try {
-      // Registro + envío OTP real (6 dígitos) al correo
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "content-type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ name: n, email: e1, password: p1 }),
+        body: JSON.stringify({ name: n, email: e1, emailConfirm: e2, password: p1 }),
         cache: "no-store",
       });
 
@@ -114,7 +209,6 @@ export default function RegisterPage() {
 
       if (mounted.current) setStatus("success");
 
-      // Ir a verificación por código
       const url = `/verify?email=${encodeURIComponent(e1)}`;
       window.location.assign(url);
     } catch {
@@ -168,6 +262,17 @@ export default function RegisterPage() {
             </div>
           ) : null}
 
+          {emailDisposable ? (
+            <div className="auth-alert warn" role="alert" aria-live="polite">
+              <div className="auth-alert-ico warn" aria-hidden="true">
+                !
+              </div>
+              <div className="auth-alert-text">
+                Correo temporal detectado. Para proteger JUSP, solo permitimos correos reales.
+              </div>
+            </div>
+          ) : null}
+
           <form className="auth-form" onSubmit={onSubmit}>
             <label className="field">
               <span className="field-label">Nombre</span>
@@ -187,7 +292,7 @@ export default function RegisterPage() {
             <label className="field">
               <span className="field-label">Correo</span>
               <input
-                className={`field-input ${!emailOk ? "bad" : ""}`}
+                className={`field-input ${(!emailOk || emailDisposable) ? "bad" : ""}`}
                 type="email"
                 inputMode="email"
                 autoComplete="email"
@@ -196,17 +301,44 @@ export default function RegisterPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={status === "loading"}
               />
-              {!emailOk ? <span className="field-hint bad">Revisa el formato del correo.</span> : <span className="field-hint" />}
+              {!emailOk ? (
+                <span className="field-hint bad">Revisa el formato del correo.</span>
+              ) : emailDisposable ? (
+                <span className="field-hint bad">No se permiten correos temporales.</span>
+              ) : (
+                <span className="field-hint" />
+              )}
+            </label>
+
+            <label className="field">
+              <span className="field-label">Confirmar correo</span>
+              <input
+                className={`field-input ${(!email2Ok || !emailMatchOk) ? "bad" : ""}`}
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                placeholder="repite tu correo"
+                value={email2}
+                onChange={(e) => setEmail2(e.target.value)}
+                disabled={status === "loading"}
+              />
+              {!email2Ok ? (
+                <span className="field-hint bad">Revisa el formato del correo.</span>
+              ) : !emailMatchOk ? (
+                <span className="field-hint bad">Los correos no coinciden.</span>
+              ) : (
+                <span className="field-hint" />
+              )}
             </label>
 
             <label className="field">
               <span className="field-label">Contraseña</span>
-              <div className={`field-row ${!pwOk ? "bad" : ""}`}>
+              <div className={`field-row ${!pwStrong ? "bad" : ""}`}>
                 <input
                   className="field-input row"
                   type={showPw ? "text" : "password"}
                   autoComplete="new-password"
-                  placeholder="Mínimo 8 caracteres"
+                  placeholder="12+ con mayúscula, número y símbolo"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={status === "loading"}
@@ -221,9 +353,23 @@ export default function RegisterPage() {
                 <div className={`pw-bar ${pwScore >= 2 ? "on" : ""}`} />
                 <div className={`pw-bar ${pwScore >= 3 ? "on" : ""}`} />
                 <div className={`pw-bar ${pwScore >= 4 ? "on" : ""}`} />
+                <div className={`pw-bar ${pwScore >= 5 ? "on" : ""}`} />
               </div>
 
-              {!pwOk ? <span className="field-hint bad">Recomendado: 8+ caracteres.</span> : <span className="field-hint">Tip: mezcla mayúscula, número y símbolo.</span>}
+              <div className="pw-rules">
+                <Rule ok={pwR.len} text="12+ caracteres" />
+                <Rule ok={pwR.upper} text="1 mayúscula" />
+                <Rule ok={pwR.lower} text="1 minúscula" />
+                <Rule ok={pwR.num} text="1 número" />
+                <Rule ok={pwR.sym} text="1 símbolo" />
+              </div>
+
+              {/* ✅ Aquí quitamos el texto “Perfecta. Seguridad PRO ✅” */}
+              {!pwStrong ? (
+                <span className="field-hint bad">Debe cumplir TODAS las reglas.</span>
+              ) : (
+                <span className="field-hint" />
+              )}
             </label>
 
             <label className="field">
@@ -280,7 +426,7 @@ export default function RegisterPage() {
       <style jsx global>{`
         body {
           background: radial-gradient(1200px 600px at 20% 0%, rgba(0, 0, 0, 0.06), transparent 55%),
-            radial-gradient(900px 520px at 90% 15%, rgba(0, 0, 0, 0.04), transparent 60%),
+            radial-gradient(900px 520px at 90% 15%, rgba(255, 214, 0, 0.08), transparent 60%),
             #f7f7f7;
         }
       `}</style>
@@ -352,7 +498,7 @@ export default function RegisterPage() {
           height: 8px;
           border-radius: 999px;
           background: rgba(255, 214, 0, 0.9);
-          border: 1px solid rgba(0, 0, 0, 0.08);
+          border: 1px solid rgba(0,  0, 0, 0.08);
           flex: 0 0 auto;
         }
         .auth-card {
@@ -405,6 +551,14 @@ export default function RegisterPage() {
           background: rgba(198, 31, 31, 0.18);
           font-weight: 900;
           flex: 0 0 auto;
+        }
+        .auth-alert.warn {
+          background: rgba(0, 0, 0, 0.04);
+          border: 1px solid rgba(0, 0, 0, 0.12);
+          color: rgba(0, 0, 0, 0.78);
+        }
+        .auth-alert-ico.warn {
+          background: rgba(0, 0, 0, 0.10);
         }
         .auth-form {
           padding: 10px;
@@ -466,7 +620,7 @@ export default function RegisterPage() {
         }
         .pw-meter {
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
+          grid-template-columns: repeat(5, 1fr);
           gap: 8px;
           margin-top: 8px;
         }
@@ -479,6 +633,41 @@ export default function RegisterPage() {
         .pw-bar.on {
           background: rgba(255, 214, 0, 0.8);
           border-color: rgba(0, 0, 0, 0.08);
+        }
+        .pw-rules {
+          margin-top: 10px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .rule {
+          border-radius: 999px;
+          padding: 7px 10px;
+          border: 1px solid rgba(0, 0, 0, 0.10);
+          background: rgba(0, 0, 0, 0.02);
+          font-size: 12px;
+          font-weight: 900;
+          color: rgba(0, 0, 0, 0.70);
+          display: inline-flex;
+          gap: 8px;
+          align-items: center;
+        }
+        .rule .dot {
+          width: 18px;
+          height: 18px;
+          border-radius: 999px;
+          display: grid;
+          place-items: center;
+          background: rgba(0, 0, 0, 0.08);
+          font-size: 12px;
+        }
+        .rule.ok {
+          border-color: rgba(0, 0, 0, 0.16);
+          background: rgba(0, 0, 0, 0.03);
+          color: rgba(0, 0, 0, 0.82);
+        }
+        .rule.ok .dot {
+          background: rgba(0, 0, 0, 0.10);
         }
         .btn {
           border: 0;
@@ -569,5 +758,16 @@ export default function RegisterPage() {
         }
       `}</style>
     </main>
+  );
+}
+
+function Rule({ ok, text }: { ok: boolean; text: string }) {
+  return (
+    <span className={`rule ${ok ? "ok" : ""}`}>
+      <span className="dot" aria-hidden="true">
+        {ok ? "✓" : "•"}
+      </span>
+      {text}
+    </span>
   );
 }
