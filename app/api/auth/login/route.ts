@@ -17,6 +17,24 @@ function clean(v: any) {
   return String(v || "").trim();
 }
 
+async function fetchProfileByUserId(userId: string) {
+  // ✅ Intentamos varias tablas comunes sin romper si no existen
+  // (si una no existe, Supabase devuelve error y seguimos)
+  const admin = supabaseAdmin();
+  const tables = ["profiles", "user_profiles", "customer_profiles", "user_profile", "users_profile"];
+
+  for (const table of tables) {
+    try {
+      const { data, error } = await admin.from(table).select("*").eq("id", userId).maybeSingle();
+      if (!error && data) return data;
+    } catch {
+      // ignore
+    }
+  }
+
+  return null;
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
@@ -24,7 +42,10 @@ export async function POST(req: Request) {
     const password = clean(body?.password);
 
     if (!email || !password) {
-      return NextResponse.json({ ok: false, error: "Email y password requeridos" }, { status: 400, headers: { "Cache-Control": "no-store" } });
+      return NextResponse.json(
+        { ok: false, error: "Email y password requeridos" },
+        { status: 400, headers: { "Cache-Control": "no-store" } }
+      );
     }
 
     // 0) Bloqueo por verificación
@@ -32,14 +53,16 @@ export async function POST(req: Request) {
       const admin = supabaseAdmin();
       const { data: reg } = await admin.from("user_registry").select("email_verified").eq("email", email).maybeSingle();
       if (reg && reg.email_verified === false) {
-        return NextResponse.json({ ok: false, error: "Debes verificar tu correo primero." }, { status: 403, headers: { "Cache-Control": "no-store" } });
+        return NextResponse.json(
+          { ok: false, error: "Debes verificar tu correo primero." },
+          { status: 403, headers: { "Cache-Control": "no-store" } }
+        );
       }
     } catch {
-      // si falla lookup, no tumbamos login (pero en PROD debería estar bien configurado)
+      // si falla lookup, no tumbamos login
     }
 
     const supabase = await createSupabaseServerClient();
-
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error || !data?.user) {
@@ -55,12 +78,15 @@ export async function POST(req: Request) {
     const at = await signAccessToken({ sub: user.id, email: user.email });
     const rt = await signRefreshToken({ sub: user.id, email: user.email });
 
+    // ✅ Cargar perfil real desde DB si existe (para que quede "para siempre")
+    const dbProfile = await fetchProfileByUserId(user.id);
+
     // IMPORTANTE: tu UI espera me.user.profile
     const profile = {
       id: user.id,
       email: user.email,
       name: (user.user_metadata as any)?.name || null,
-      profile: null,
+      profile: dbProfile ? dbProfile : null,
     };
 
     const res = NextResponse.json({ ok: true }, { status: 200, headers: { "Cache-Control": "no-store" } });
@@ -71,6 +97,9 @@ export async function POST(req: Request) {
 
     return res;
   } catch {
-    return NextResponse.json({ ok: false, error: "Login error" }, { status: 500, headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json(
+      { ok: false, error: "Login error" },
+      { status: 500, headers: { "Cache-Control": "no-store" } }
+    );
   }
 }

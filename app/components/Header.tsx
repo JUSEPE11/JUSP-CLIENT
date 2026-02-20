@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "./store";
 
 type MegaKey =
@@ -135,20 +134,10 @@ export default function Header() {
   const [sessionLoading, setSessionLoading] = useState(true);
   const [user, setUser] = useState<SessionUser | null>(null);
 
-  // ✅ FIX: authed = hay user real (no depende de profile)
-  const isAuthed = !!(user && (user.id || user.email));
-
-  const hasProfile =
-    (!!user && user?.profile != null) ||
-    (typeof window !== "undefined" && window.localStorage.getItem("jusp_profile_done_v1") === "1");
+  const isAuthed = !!user && user?.profile !== undefined; // user existe => sesión válida (me ok)
+  const hasProfile = !!user && user?.profile != null;
 
   const accountTitle = useMemo(() => pickAccountLabel(user), [user]);
-
-  // ✅ FIX: mantener el último user bueno para NO “auto-desloguear” por errores transitorios
-  const lastGoodUserRef = useRef<SessionUser | null>(null);
-  useEffect(() => {
-    if (isAuthed && user) lastGoodUserRef.current = user;
-  }, [isAuthed, user]);
 
   // Keep account mega open while moving the mouse into it (no instant close)
   const accountCloseT = useRef<number | null>(null);
@@ -585,89 +574,48 @@ export default function Header() {
   }
 
   // ✅ Session bootstrap (Header PRO)
-  // - Refresca en mount
-  // - Refresca en cada cambio de ruta (Header vive en layout y no se remonta)
-  // - Refresca cuando onboarding dispare un evento o cambie un flag en localStorage
-  const pathname = usePathname();
-
-  const refreshSession = useCallback(async () => {
-    setSessionLoading(true);
-    try {
-      const res = await fetch("/api/auth/me", { credentials: "include", cache: "no-store" });
-
-      const data = (await safeJson(res)) as any;
-
-      // ✅ SOLO limpiamos user si el server confirma “no autorizado”
-      if (res.status === 401 || res.status === 403 || data?.ok === false) {
-        setUser(null);
-        return;
-      }
-
-      // ✅ OK real
-      if (res.ok && data?.ok) {
-        const nextUser = (data.user || null) as SessionUser | null;
-        setUser(nextUser);
-
-        // cache local hint: perfil completo
-        try {
-          if (nextUser?.profile !== undefined && nextUser?.profile !== null) {
-            window.localStorage.setItem("jusp_profile_done_v1", "1");
-          }
-        } catch {}
-        return;
-      }
-
-      // ✅ errores transitorios => NO desloguear UI
-      if (lastGoodUserRef.current) setUser(lastGoodUserRef.current);
-    } catch {
-      // ✅ network error => NO desloguear UI
-      if (lastGoodUserRef.current) setUser(lastGoodUserRef.current);
-    } finally {
-      setSessionLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
     let alive = true;
+    const ctrl = new AbortController();
 
-    const run = async () => {
-      if (!alive) return;
-      await refreshSession();
-    };
+    (async () => {
+      setSessionLoading(true);
+      try {
+        const res = await fetch("/api/auth/me", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+          signal: ctrl.signal,
+        });
+        const json = await safeJson(res);
 
-    // mount + route change
-    run();
+        if (!alive) return;
 
-    // custom event (onboarding -> header)
-    const onProfileUpdated = () => {
-      void run();
-    };
-
-    // localStorage flag (otra pestaña o señal local)
-    const onStorage = (ev: StorageEvent) => {
-      if (!ev) return;
-      if (ev.key === "jusp_profile_done_v1" || ev.key === "jusp_onboarding_v1") void run();
-    };
-
-    // focus/visibility: estabiliza luego de login/register
-    const onFocus = () => void run();
-    const onVis = () => {
-      if (document.visibilityState === "visible") void run();
-    };
-
-    window.addEventListener("jusp:profile-updated", onProfileUpdated as any);
-    window.addEventListener("storage", onStorage);
-    window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onVis);
+        if (res.ok && json?.ok === true) {
+          const u = (json?.user ?? {}) as SessionUser;
+          setUser({
+            id: u?.id,
+            email: u?.email,
+            role: u?.role,
+            profile: u?.profile ?? null,
+          });
+        } else {
+          setUser(null);
+        }
+      } catch {
+        if (!alive) return;
+        setUser(null);
+      } finally {
+        if (!alive) return;
+        setSessionLoading(false);
+      }
+    })();
 
     return () => {
       alive = false;
-      window.removeEventListener("jusp:profile-updated", onProfileUpdated as any);
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onVis);
+      ctrl.abort();
     };
-  }, [pathname, refreshSession]);
+  }, []);
 
   async function doLogout() {
     try {
