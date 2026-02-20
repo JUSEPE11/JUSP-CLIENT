@@ -2,7 +2,13 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { signAccessToken, signRefreshToken, accessCookie, refreshCookie, profileCookie } from "@/lib/auth";
+import {
+  signAccessToken,
+  signRefreshToken,
+  accessCookie,
+  refreshCookie,
+  profileCookie,
+} from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,6 +21,14 @@ function encodeProfileForCookie(payload: any) {
   return encodeURIComponent(JSON.stringify(payload ?? {}));
 }
 
+function isEmailConfirmed(user: any): boolean {
+  // Supabase suele exponer email_confirmed_at (v2)
+  // y algunos proyectos antiguos usan confirmed_at
+  const a = user?.email_confirmed_at;
+  const b = user?.confirmed_at;
+  return !!(a || b);
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
@@ -22,20 +36,13 @@ export async function POST(req: Request) {
     const password = clean(body?.password);
 
     if (!email || !password) {
-      return NextResponse.json({ ok: false, error: "Email y password requeridos" }, { status: 400, headers: { "Cache-Control": "no-store" } });
+      return NextResponse.json(
+        { ok: false, error: "Email y password requeridos" },
+        { status: 400, headers: { "Cache-Control": "no-store" } }
+      );
     }
 
-    // 0) Bloqueo por verificación (tu lógica actual)
-    try {
-      const admin = supabaseAdmin();
-      const { data: reg } = await admin.from("user_registry").select("email_verified").eq("email", email).maybeSingle();
-      if (reg && reg.email_verified === false) {
-        return NextResponse.json({ ok: false, error: "Debes verificar tu correo primero." }, { status: 403, headers: { "Cache-Control": "no-store" } });
-      }
-    } catch {
-      // no tumbamos login si falla lookup
-    }
-
+    // ✅ 1) Primero autenticamos con Supabase
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
@@ -48,7 +55,36 @@ export async function POST(req: Request) {
 
     const user = data.user;
 
-    // ✅ Tokens propios HttpOnly (como ya haces)
+    // ✅ 2) Gate REAL: si Supabase NO confirma correo => bloqueamos
+    const confirmed = isEmailConfirmed(user);
+    if (!confirmed) {
+      return NextResponse.json(
+        { ok: false, error: "Debes verificar tu correo primero." },
+        { status: 403, headers: { "Cache-Control": "no-store" } }
+      );
+    }
+
+    // ✅ 3) Si Supabase SÍ confirma, sincronizamos user_registry.email_verified = true
+    try {
+      const admin = supabaseAdmin();
+
+      // upsert para asegurar row; NO rompe si ya existe
+      await admin
+        .from("user_registry")
+        .upsert(
+          {
+            user_id: user.id,
+            email,
+            email_verified: true,
+            verified_at: new Date().toISOString(),
+          },
+          { onConflict: "email" }
+        );
+    } catch {
+      // si falla sync, no tumbamos el login
+    }
+
+    // ✅ Tokens propios HttpOnly
     const at = await signAccessToken({ sub: user.id, email: user.email });
     const rt = await signRefreshToken({ sub: user.id, email: user.email });
 
@@ -67,7 +103,7 @@ export async function POST(req: Request) {
       if (reg?.profile) dbProfile = reg.profile;
       if (typeof reg?.name === "string") dbName = reg.name;
     } catch {
-      // si falla, seguimos sin romper login
+      // seguimos sin romper login
     }
 
     // ✅ Shape que tu UI espera en /api/auth/me => me.user.profile
@@ -78,13 +114,20 @@ export async function POST(req: Request) {
       profile: dbProfile || null,
     };
 
-    const res = NextResponse.json({ ok: true }, { status: 200, headers: { "Cache-Control": "no-store" } });
+    const res = NextResponse.json(
+      { ok: true },
+      { status: 200, headers: { "Cache-Control": "no-store" } }
+    );
+
     res.cookies.set(accessCookie(at));
     res.cookies.set(refreshCookie(rt));
     res.cookies.set(profileCookie(encodeProfileForCookie(profilePayload)));
 
     return res;
   } catch {
-    return NextResponse.json({ ok: false, error: "Login error" }, { status: 500, headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json(
+      { ok: false, error: "Login error" },
+      { status: 500, headers: { "Cache-Control": "no-store" } }
+    );
   }
 }
