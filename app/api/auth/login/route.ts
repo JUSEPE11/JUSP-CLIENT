@@ -17,24 +17,6 @@ function clean(v: any) {
   return String(v || "").trim();
 }
 
-async function fetchProfileByUserId(userId: string) {
-  // ✅ Intentamos varias tablas comunes sin romper si no existen
-  // (si una no existe, Supabase devuelve error y seguimos)
-  const admin = supabaseAdmin();
-  const tables = ["profiles", "user_profiles", "customer_profiles", "user_profile", "users_profile"];
-
-  for (const table of tables) {
-    try {
-      const { data, error } = await admin.from(table).select("*").eq("id", userId).maybeSingle();
-      if (!error && data) return data;
-    } catch {
-      // ignore
-    }
-  }
-
-  return null;
-}
-
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
@@ -48,10 +30,15 @@ export async function POST(req: Request) {
       );
     }
 
-    // 0) Bloqueo por verificación
+    // 0) Bloqueo por verificación (tu tabla real usa email)
     try {
       const admin = supabaseAdmin();
-      const { data: reg } = await admin.from("user_registry").select("email_verified").eq("email", email).maybeSingle();
+      const { data: reg } = await admin
+        .from("user_registry")
+        .select("email_verified")
+        .eq("email", email)
+        .maybeSingle();
+
       if (reg && reg.email_verified === false) {
         return NextResponse.json(
           { ok: false, error: "Debes verificar tu correo primero." },
@@ -59,7 +46,7 @@ export async function POST(req: Request) {
         );
       }
     } catch {
-      // si falla lookup, no tumbamos login
+      // no tumbar login por un lookup fallido
     }
 
     const supabase = await createSupabaseServerClient();
@@ -74,22 +61,40 @@ export async function POST(req: Request) {
 
     const user = data.user;
 
-    // Cookies HttpOnly propias (compatibles con /api/auth/me actual)
+    // ✅ Tokens propios (compat /api/auth/me)
     const at = await signAccessToken({ sub: user.id, email: user.email });
     const rt = await signRefreshToken({ sub: user.id, email: user.email });
 
-    // ✅ Cargar perfil real desde DB si existe (para que quede "para siempre")
-    const dbProfile = await fetchProfileByUserId(user.id);
+    // ✅ Traer profile real desde DB (user_registry usa user_id)
+    let dbProfile: any = null;
+    let dbName: string | null = null;
 
-    // IMPORTANTE: tu UI espera me.user.profile
+    try {
+      const admin = supabaseAdmin();
+      const { data: reg } = await admin
+        .from("user_registry")
+        .select("profile,name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      dbProfile = reg?.profile ?? null;
+      dbName = (reg?.name ?? null) as any;
+    } catch {
+      // si falla, seguimos igual (pero NO bloquea login)
+    }
+
+    // ✅ Cookie profile: AHORA sí puede venir completo
     const profile = {
       id: user.id,
       email: user.email,
-      name: (user.user_metadata as any)?.name || null,
-      profile: dbProfile ? dbProfile : null,
+      name: dbName || (user.user_metadata as any)?.name || null,
+      profile: dbProfile, // <- clave: ya no queda null si ya completó onboarding
     };
 
-    const res = NextResponse.json({ ok: true }, { status: 200, headers: { "Cache-Control": "no-store" } });
+    const res = NextResponse.json(
+      { ok: true },
+      { status: 200, headers: { "Cache-Control": "no-store" } }
+    );
 
     res.cookies.set(accessCookie(at));
     res.cookies.set(refreshCookie(rt));
