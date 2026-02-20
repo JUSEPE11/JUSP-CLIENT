@@ -724,7 +724,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          border-bottom: 1px solid rgba(0,  0,  0,  0.08);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
         }
         .dTitle {
           font-weight: 950;

@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "./store";
 
 type MegaKey =
@@ -136,9 +135,7 @@ export default function Header() {
   const [user, setUser] = useState<SessionUser | null>(null);
 
   const isAuthed = !!user && user?.profile !== undefined; // user existe => sesión válida (me ok)
-  const hasProfile =
-    (!!user && user?.profile != null) ||
-    (typeof window !== "undefined" && window.localStorage.getItem("jusp_profile_done_v1") === "1");
+  const hasProfile = !!user && user?.profile != null;
 
   const accountTitle = useMemo(() => pickAccountLabel(user), [user]);
 
@@ -577,70 +574,48 @@ export default function Header() {
   }
 
   // ✅ Session bootstrap (Header PRO)
-  // - Refresca en mount
-  // - Refresca en cada cambio de ruta (Header vive en layout y no se remonta)
-  // - Refresca cuando onboarding dispare un evento o cambie un flag en localStorage
-  const pathname = usePathname();
-
-  const refreshSession = useCallback(async () => {
-    try {
-      setSessionLoading(true);
-      const res = await fetch("/api/auth/me", { credentials: "include", cache: "no-store" });
-      const data = await res.json().catch(() => ({} as any));
-      if (!res.ok || !data?.ok) {
-        setUser(null);
-        return;
-      }
-      setUser(data.user || null);
-
-      // cache local hint: perfil completo
-      try {
-        if (data?.user?.profile !== undefined && data?.user?.profile !== null) {
-          window.localStorage.setItem("jusp_profile_done_v1", "1");
-        }
-      } catch {}
-    } catch {
-      setUser(null);
-    } finally {
-      setSessionLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
     let alive = true;
+    const ctrl = new AbortController();
 
-    const run = async () => {
-      if (!alive) return;
-      await refreshSession();
-    };
+    (async () => {
+      setSessionLoading(true);
+      try {
+        const res = await fetch("/api/auth/me", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+          signal: ctrl.signal,
+        });
+        const json = await safeJson(res);
 
-    // mount
-    run();
+        if (!alive) return;
 
-    // route change (debounced)
-    const t = window.setTimeout(run, 120);
-
-    // custom event (onboarding -> header)
-    const onProfileUpdated = () => {
-      run();
-    };
-
-    // localStorage flag (otra pestaña o señal local)
-    const onStorage = (ev: StorageEvent) => {
-      if (!ev) return;
-      if (ev.key === "jusp_profile_done_v1" || ev.key === "jusp_onboarding_v1") run();
-    };
-
-    window.addEventListener("jusp:profile-updated", onProfileUpdated as any);
-    window.addEventListener("storage", onStorage);
+        if (res.ok && json?.ok === true) {
+          const u = (json?.user ?? {}) as SessionUser;
+          setUser({
+            id: u?.id,
+            email: u?.email,
+            role: u?.role,
+            profile: u?.profile ?? null,
+          });
+        } else {
+          setUser(null);
+        }
+      } catch {
+        if (!alive) return;
+        setUser(null);
+      } finally {
+        if (!alive) return;
+        setSessionLoading(false);
+      }
+    })();
 
     return () => {
       alive = false;
-      window.clearTimeout(t);
-      window.removeEventListener("jusp:profile-updated", onProfileUpdated as any);
-      window.removeEventListener("storage", onStorage);
+      ctrl.abort();
     };
-  }, [pathname, refreshSession]);
+  }, []);
 
   async function doLogout() {
     try {
