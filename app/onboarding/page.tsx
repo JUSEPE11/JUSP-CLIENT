@@ -457,11 +457,17 @@ export default function OnboardingPage() {
       setMsg("Guardado ✅");
       setMsgTone("ok");
 
+      // ✅ UI-only: marca onboarding completo para que el Header no muestre "Falta completar perfil"
+      try {
+        window.localStorage.setItem("jusp_onboarding_done", "1");
+      } catch {}
+
       clearLocal();
 
-      router.replace("/account");
+      // ✅ Mantén sesión y manda al home (más compras)
+      router.replace("/");
       router.refresh();
-    } catch (e: any) {
+} catch (e: any) {
       setMsg(`Ups: ${e?.message || "Error inesperado"}`);
       setMsgTone("warn");
       setSaving(false);

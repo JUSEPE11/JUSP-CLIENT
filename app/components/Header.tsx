@@ -134,6 +134,24 @@ export default function Header() {
   const [sessionLoading, setSessionLoading] = useState(true);
   const [user, setUser] = useState<SessionUser | null>(null);
 
+  const [profileDoneLocal, setProfileDoneLocal] = useState(false);
+
+  useEffect(() => {
+    // UI-only override: si onboarding ya se completó, no muestres "Falta completar perfil"
+    try {
+      const v = window.localStorage.getItem("jusp_onboarding_done");
+      setProfileDoneLocal(v === "1");
+    } catch {}
+    // sync si otra pestaña cambia
+    function onStorage(ev: StorageEvent) {
+      if (ev.key === "jusp_onboarding_done") {
+        setProfileDoneLocal(ev.newValue === "1");
+      }
+    }
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
   const isAuthed = !!user && user?.profile !== undefined; // user existe => sesión válida (me ok)
   const hasProfile = !!user && user?.profile != null;
 
