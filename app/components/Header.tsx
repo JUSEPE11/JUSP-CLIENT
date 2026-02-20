@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "./store";
 
 type MegaKey =
@@ -134,26 +135,10 @@ export default function Header() {
   const [sessionLoading, setSessionLoading] = useState(true);
   const [user, setUser] = useState<SessionUser | null>(null);
 
-  const [profileDoneLocal, setProfileDoneLocal] = useState(false);
-
-  useEffect(() => {
-    // UI-only override: si onboarding ya se completó, no muestres "Falta completar perfil"
-    try {
-      const v = window.localStorage.getItem("jusp_onboarding_done");
-      setProfileDoneLocal(v === "1");
-    } catch {}
-    // sync si otra pestaña cambia
-    function onStorage(ev: StorageEvent) {
-      if (ev.key === "jusp_onboarding_done") {
-        setProfileDoneLocal(ev.newValue === "1");
-      }
-    }
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
-
   const isAuthed = !!user && user?.profile !== undefined; // user existe => sesión válida (me ok)
-  const hasProfile = !!user && user?.profile != null;
+  const hasProfile =
+    (!!user && user?.profile != null) ||
+    (typeof window !== "undefined" && window.localStorage.getItem("jusp_profile_done_v1") === "1");
 
   const accountTitle = useMemo(() => pickAccountLabel(user), [user]);
 
@@ -592,48 +577,70 @@ export default function Header() {
   }
 
   // ✅ Session bootstrap (Header PRO)
+  // - Refresca en mount
+  // - Refresca en cada cambio de ruta (Header vive en layout y no se remonta)
+  // - Refresca cuando onboarding dispare un evento o cambie un flag en localStorage
+  const pathname = usePathname();
+
+  const refreshSession = useCallback(async () => {
+    try {
+      setSessionLoading(true);
+      const res = await fetch("/api/auth/me", { credentials: "include", cache: "no-store" });
+      const data = await res.json().catch(() => ({} as any));
+      if (!res.ok || !data?.ok) {
+        setUser(null);
+        return;
+      }
+      setUser(data.user || null);
+
+      // cache local hint: perfil completo
+      try {
+        if (data?.user?.profile !== undefined && data?.user?.profile !== null) {
+          window.localStorage.setItem("jusp_profile_done_v1", "1");
+        }
+      } catch {}
+    } catch {
+      setUser(null);
+    } finally {
+      setSessionLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     let alive = true;
-    const ctrl = new AbortController();
 
-    (async () => {
-      setSessionLoading(true);
-      try {
-        const res = await fetch("/api/auth/me", {
-          method: "GET",
-          credentials: "include",
-          cache: "no-store",
-          signal: ctrl.signal,
-        });
-        const json = await safeJson(res);
+    const run = async () => {
+      if (!alive) return;
+      await refreshSession();
+    };
 
-        if (!alive) return;
+    // mount
+    run();
 
-        if (res.ok && json?.ok === true) {
-          const u = (json?.user ?? {}) as SessionUser;
-          setUser({
-            id: u?.id,
-            email: u?.email,
-            role: u?.role,
-            profile: u?.profile ?? null,
-          });
-        } else {
-          setUser(null);
-        }
-      } catch {
-        if (!alive) return;
-        setUser(null);
-      } finally {
-        if (!alive) return;
-        setSessionLoading(false);
-      }
-    })();
+    // route change (debounced)
+    const t = window.setTimeout(run, 120);
+
+    // custom event (onboarding -> header)
+    const onProfileUpdated = () => {
+      run();
+    };
+
+    // localStorage flag (otra pestaña o señal local)
+    const onStorage = (ev: StorageEvent) => {
+      if (!ev) return;
+      if (ev.key === "jusp_profile_done_v1" || ev.key === "jusp_onboarding_v1") run();
+    };
+
+    window.addEventListener("jusp:profile-updated", onProfileUpdated as any);
+    window.addEventListener("storage", onStorage);
 
     return () => {
       alive = false;
-      ctrl.abort();
+      window.clearTimeout(t);
+      window.removeEventListener("jusp:profile-updated", onProfileUpdated as any);
+      window.removeEventListener("storage", onStorage);
     };
-  }, []);
+  }, [pathname, refreshSession]);
 
   async function doLogout() {
     try {
