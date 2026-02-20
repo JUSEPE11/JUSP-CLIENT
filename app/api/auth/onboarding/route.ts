@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     }
 
     const payload: any = await verifyAccessToken(at);
-    const userId = String(payload?.sub || "").trim();
+    const userId = payload?.sub ?? null;
     const email = payload?.email ?? null;
 
     if (!userId) {
@@ -39,11 +39,11 @@ export async function POST(req: Request) {
 
     const admin = supabaseAdmin();
 
-    // ✅ Guardar onboarding REAL en DB
+    // ✅ GUARDADO CORRECTO (tabla real usa user_id)
     const { error } = await admin
       .from("user_registry")
       .update({ profile: incomingProfile })
-      .eq("id", userId);
+      .eq("user_id", userId);
 
     if (error) {
       return NextResponse.json(
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Actualizar cookie para que Header lo detecte inmediato
+    // ✅ Actualiza cookie
     const sessionUser = {
       id: userId,
       email,
