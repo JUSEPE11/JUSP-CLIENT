@@ -2,86 +2,93 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { COOKIE_AT, verifyAccessToken, profileCookie } from "@/lib/auth";
+import { COOKIE_AT, COOKIE_PROFILE, verifyAccessToken, profileCookie } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function encodeProfile(profile: any) {
-  return encodeURIComponent(JSON.stringify(profile ?? {}));
+function safeJson(v: any) {
+  try {
+    return JSON.parse(typeof v === "string" ? v : JSON.stringify(v));
+  } catch {
+    return null;
+  }
+}
+
+function encodeProfileCookieShape(opts: { id?: string; email?: string; name?: string | null; profile: any }) {
+  // ✅ La UI espera: me.user.profile
+  const payload = {
+    id: opts.id ?? null,
+    email: opts.email ?? null,
+    name: opts.name ?? null,
+    profile: opts.profile ?? null,
+  };
+  return encodeURIComponent(JSON.stringify(payload));
 }
 
 export async function POST(req: Request) {
   try {
-    // ✅ Gate: requiere sesión (cookie HttpOnly)
     const store = await cookies();
     const at = store.get(COOKIE_AT)?.value;
 
     if (!at) {
-      return NextResponse.json(
-        { ok: false, error: "No session" },
-        { status: 401, headers: { "Cache-Control": "no-store" } }
-      );
+      return NextResponse.json({ ok: false, error: "No session" }, { status: 401, headers: { "Cache-Control": "no-store" } });
     }
 
-    // ✅ Valida token y extrae identidad
-    const payload: any = await verifyAccessToken(at);
-    const userId = payload?.sub || null;
-    const email = payload?.email || null;
+    // ✅ Decodifica token para obtener sub/email
+    const decoded: any = await verifyAccessToken(at);
+    const userId = decoded?.sub ? String(decoded.sub) : null;
+    const email = decoded?.email ? String(decoded.email).toLowerCase() : null;
 
-    if (!userId) {
-      return NextResponse.json(
-        { ok: false, error: "Invalid session" },
-        { status: 401, headers: { "Cache-Control": "no-store" } }
-      );
+    if (!userId || !email) {
+      return NextResponse.json({ ok: false, error: "Invalid session" }, { status: 401, headers: { "Cache-Control": "no-store" } });
     }
 
     const body = await req.json().catch(() => ({}));
     const incomingProfile = body?.profile ?? body ?? {};
+    const normalizedProfile = safeJson(incomingProfile) ?? {};
 
-    // ✅ 1) Persistir en BD: user_registry.profile (jsonb)
-    // Tu tabla real: user_registry(user_id uuid, email text, profile jsonb, ...)
+    // ✅ Persistir en DB: user_registry.profile (JSONB)
+    // La tabla que mostraste tiene: user_id (uuid), email (text), name (text), profile (jsonb)
     try {
       const admin = supabaseAdmin();
-
-      // Intento #1: update por user_id
-      const { data: updated, error: updErr } = await admin
+      const { error: upsertErr } = await admin
         .from("user_registry")
-        .update({ profile: incomingProfile })
-        .eq("user_id", userId)
-        .select("user_id")
-        .maybeSingle();
+        .upsert(
+          {
+            user_id: userId,
+            email,
+            profile: normalizedProfile,
+            // name lo dejamos como está si existe; si no existe, no forzamos null
+          },
+          { onConflict: "email" }
+        );
 
-      // Si no existe fila (o update no afectó nada), insertamos
-      if (updErr || !updated?.user_id) {
-        await admin.from("user_registry").insert({
-          user_id: userId,
-          email: email,
-          profile: incomingProfile,
-        });
+      if (upsertErr) {
+        return NextResponse.json({ ok: false, error: upsertErr.message }, { status: 500, headers: { "Cache-Control": "no-store" } });
       }
-    } catch {
-      // Si falla BD, NO bloqueamos el onboarding (pero lo normal es que funcione)
-      // Igual dejamos cookie para que el usuario no quede bloqueado
+    } catch (e: any) {
+      return NextResponse.json(
+        { ok: false, error: e?.message || "DB error" },
+        { status: 500, headers: { "Cache-Control": "no-store" } }
+      );
     }
 
-    // ✅ 2) Setear cookie profile para que /api/auth/me lo vea ya
-    const value = encodeProfile({
+    // ✅ También actualizar cookie de profile con el shape correcto
+    const res = NextResponse.json({ ok: true }, { status: 200, headers: { "Cache-Control": "no-store" } });
+
+    const cookieValue = encodeProfileCookieShape({
       id: userId,
-      email: email ?? null,
-      // name no es crítico aquí (si quieres, luego lo rellenamos)
+      email,
       name: null,
-      profile: incomingProfile,
+      profile: normalizedProfile,
     });
 
-    const res = NextResponse.json({ ok: true }, { status: 200 });
-    res.cookies.set(profileCookie(value));
-    res.headers.set("Cache-Control", "no-store");
+    res.cookies.set(profileCookie(cookieValue));
     return res;
   } catch (e: any) {
-    const msg = typeof e?.message === "string" ? e.message : "Onboarding error";
     return NextResponse.json(
-      { ok: false, error: msg },
+      { ok: false, error: typeof e?.message === "string" ? e.message : "Onboarding error" },
       { status: 500, headers: { "Cache-Control": "no-store" } }
     );
   }
