@@ -1,10 +1,9 @@
-// app/ClientLayout.tsx
 "use client";
 
-import type { ReactNode } from "react";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { ReactNode, useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+
 import Header from "./components/Header";
 import { useStore } from "./components/store";
 
@@ -193,7 +192,10 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           lastAddedRef.current = { id: found.id, color: found.color ?? null, size: found.size ?? null };
           showToast({
             title: "Agregado al carrito",
-            sub: found.size || found.color ? `• ${found.size ? `Talla ${found.size}` : ""}${found.size && found.color ? " · " : ""}${found.color ? found.color : ""}` : undefined,
+            sub:
+              found.size || found.color
+                ? `• ${found.size ? `Talla ${found.size}` : ""}${found.size && found.color ? " · " : ""}${found.color ? found.color : ""}`
+                : undefined,
             canUndo: true,
           });
         } else {
@@ -722,7 +724,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+          border-bottom: 1px solid rgba(0,  0,  0,  0.08);
         }
         .dTitle {
           font-weight: 950;
