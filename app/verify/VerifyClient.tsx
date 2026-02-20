@@ -1,5 +1,3 @@
-"use client";
-
 // app/verify/VerifyClient.tsx
 "use client";
 
@@ -92,12 +90,12 @@ export default function VerifyClient() {
 
       if (mounted.current) {
         setStatus("success");
-        setOkMsg("Correo verificado. Ya puedes iniciar sesión.");
+        setOkMsg("Correo verificado ✅ Ahora personalizamos tu cuenta.");
       }
 
-      // Ir a login
+      // ✅ Ir al onboarding (paso 1/3)
       setTimeout(() => {
-        window.location.assign("/login");
+        window.location.assign("/onboarding");
       }, 700);
     } catch {
       if (mounted.current) {
@@ -138,7 +136,7 @@ export default function VerifyClient() {
       }
 
       if (mounted.current) {
-        setOkMsg("Código reenviado. Revisa tu correo.");
+        setOkMsg("Código reenviado ✅ Revisa tu correo.");
         setStatus("idle");
         codeRef.current?.focus();
       }
@@ -230,7 +228,11 @@ export default function VerifyClient() {
                 onChange={(e) => setCode(onlyDigits6(e.target.value))}
                 disabled={status === "loading"}
               />
-              {!codeOk ? <span className="field-hint bad">El código debe tener 6 dígitos.</span> : <span className="field-hint">Ej: 123456</span>}
+              {!codeOk ? (
+                <span className="field-hint bad">El código debe tener 6 dígitos.</span>
+              ) : (
+                <span className="field-hint">Ej: 123456</span>
+              )}
             </label>
 
             <button className="btn" type="submit" disabled={!canSubmit} aria-busy={status === "loading"}>
