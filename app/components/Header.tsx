@@ -97,6 +97,10 @@ function pickAccountLabel(user: SessionUser | null) {
   return "Mi cuenta";
 }
 
+function cx(...xs: Array<string | false | null | undefined>) {
+  return xs.filter(Boolean).join(" ");
+}
+
 export default function Header() {
   // ✅ STORE (conteo + abrir carrito) — ahora viene de Zustand + persist
   const { cartCount, openCart } = useStore();
@@ -579,7 +583,6 @@ export default function Header() {
       return;
     }
 
-    // ✅ abort request anterior
     if (searchAbortRef.current) searchAbortRef.current.abort();
     const ctrl = new AbortController();
     searchAbortRef.current = ctrl;
@@ -667,7 +670,8 @@ export default function Header() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "/" && !searchOpen) {
         const t = e.target as HTMLElement | null;
-        const isInput = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || (t as any).isContentEditable);
+        const isInput =
+          t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || (t as any).isContentEditable);
         if (isInput) return;
         e.preventDefault();
         openSearch();
@@ -696,6 +700,36 @@ export default function Header() {
       if (searchAbortRef.current) searchAbortRef.current.abort();
     };
   }, []);
+
+  // ===== MOBILE MENU “NIKE PANEL” =====
+  const mobileItems = useMemo(
+    () =>
+      menus.map((m) => ({
+        key: m.key,
+        label: m.label,
+        href: m.href,
+        highlight: !!m.highlight,
+        icon:
+          m.key === "hombre"
+            ? "♂"
+            : m.key === "mujer"
+            ? "♀"
+            : m.key === "ninos"
+            ? "★"
+            : m.key === "jordan"
+            ? "◼"
+            : m.key === "snkrs"
+            ? "⟡"
+            : m.key === "accesorios"
+            ? "◦"
+            : m.key === "exclusivo"
+            ? "◆"
+            : m.key === "ofertas"
+            ? "%"
+            : "•",
+      })),
+    [menus]
+  );
 
   return (
     <header className="jusp-header" onMouseEnter={cancelHoverClose} onMouseLeave={scheduleHoverClose}>
@@ -901,7 +935,11 @@ export default function Header() {
         </div>
       </div>
 
-      <div className={activeMenu ? "jusp-mega open" : "jusp-mega"} onMouseEnter={cancelHoverClose} onMouseLeave={scheduleHoverClose}>
+      <div
+        className={activeMenu ? "jusp-mega open" : "jusp-mega"}
+        onMouseEnter={cancelHoverClose}
+        onMouseLeave={scheduleHoverClose}
+      >
         {activeMenu ? (
           <div className="jusp-mega-inner">
             <div className="jusp-mega-top">
@@ -964,7 +1002,10 @@ export default function Header() {
             <div className="jusp-search-body">
               <div className="jusp-search-cols nike">
                 <div className="jusp-search-col">
-                  <div className="jusp-search-coltitle">{q.trim() ? "Sugerencias" : recents.length ? "Recientes" : "Sugerencias"}</div>
+                  <div className="jusp-search-coltitle">
+                    {q.trim() ? "Sugerencias" : recents.length ? "Recientes" : "Sugerencias"}
+                  </div>
+
                   <div className="jusp-search-list">
                     {suggestions.map((s) => (
                       <Link
@@ -1066,7 +1107,7 @@ export default function Header() {
         </div>
       ) : null}
 
-      {/* MOBILE drawer */}
+      {/* MOBILE drawer (NIKE PANEL) */}
       {mobileOpen ? (
         <div className="jusp-mdrawer-wrap" role="dialog" aria-modal="true">
           <button className="jusp-mdrawer-backdrop" onClick={() => setMobileOpen(false)} aria-label="Cerrar" type="button" />
@@ -1078,66 +1119,92 @@ export default function Header() {
               </button>
             </div>
 
-            <button className="jusp-mdrawer-search" onClick={openSearch} type="button">
-              <span className="jusp-mdrawer-linktext">Buscar</span>
-            </button>
-
-            <div className="jusp-mdrawer-links">
-              {menus.map((m) => (
-                <Link
-                  key={m.key}
-                  href={m.href}
-                  className={m.highlight ? "jusp-mdrawer-link jusp-nav-sale" : "jusp-mdrawer-link"}
-                  onClick={() => setMobileOpen(false)}
-                >
-                  <span className="jusp-mdrawer-linktext">{m.label}</span>
-                </Link>
-              ))}
+            <div className="jusp-mdrawer-searchwrap">
+              <button className="jusp-mdrawer-search" onClick={openSearch} type="button">
+                <span className="jusp-mdrawer-searchico" aria-hidden="true">
+                  ⌕
+                </span>
+                <span className="jusp-mdrawer-searchtext">Buscar</span>
+                <span className="jusp-mdrawer-searchhint" aria-hidden="true">
+                  /
+                </span>
+              </button>
             </div>
 
-            <div className="jusp-mdrawer-actions">
-              <Link href="/favorites" onClick={() => setMobileOpen(false)}>
-                Favoritos
-              </Link>
+            <div className="jusp-mdrawer-section">
+              <div className="jusp-mdrawer-sec-title">Categorías</div>
 
-              <button
-                type="button"
-                className="jusp-mdrawer-cartbtn"
-                onClick={() => {
-                  setMobileOpen(false);
-                  openCart();
-                }}
-              >
-                Carrito
-                {cartCount > 0 ? <span className="jusp-mdrawer-cartbadge">{cartCount}</span> : null}
-              </button>
+              <div className="jusp-mdrawer-list" role="navigation" aria-label="Menú móvil">
+                {mobileItems.map((m) => (
+                  <Link
+                    key={m.key}
+                    href={m.href}
+                    className={cx("jusp-mdrawer-row", m.highlight && "sale")}
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <span className="jusp-mdrawer-ic" aria-hidden="true">
+                      {m.icon}
+                    </span>
+                    <span className="jusp-mdrawer-label">{m.label}</span>
+                    <span className="jusp-mdrawer-arrow" aria-hidden="true">
+                      →
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
 
-              {!sessionLoading && isAuthed ? (
+            <div className="jusp-mdrawer-footer">
+              <div className="jusp-mdrawer-footrow">
+                <Link className="jusp-mdrawer-footlink" href="/favorites" onClick={() => setMobileOpen(false)}>
+                  Favoritos
+                </Link>
+
                 <button
-                  className="jusp-mdrawer-logout"
                   type="button"
+                  className="jusp-mdrawer-footbtn"
                   onClick={() => {
                     setMobileOpen(false);
-                    void doLogout();
+                    openCart();
                   }}
                 >
-                  Cerrar sesión
+                  Carrito
+                  {cartCount > 0 ? <span className="jusp-mdrawer-cartbadge">{cartCount}</span> : null}
                 </button>
-              ) : (
-                <Link href="/login" onClick={() => setMobileOpen(false)}>
-                  Iniciar sesión
-                </Link>
-              )}
+              </div>
 
-              {!sessionLoading && isAuthed ? (
-                <Link href="/account" onClick={() => setMobileOpen(false)}>
-                  Mi cuenta
-                </Link>
-              ) : (
-                <Link href="/register" onClick={() => setMobileOpen(false)}>
-                  Registrarse
-                </Link>
-              )}
+              <div className="jusp-mdrawer-footrow">
+                {!sessionLoading && isAuthed ? (
+                  <>
+                    <Link className="jusp-mdrawer-footlink" href="/account" onClick={() => setMobileOpen(false)}>
+                      Mi cuenta
+                    </Link>
+                    <button
+                      className="jusp-mdrawer-logout"
+                      type="button"
+                      onClick={() => {
+                        setMobileOpen(false);
+                        void doLogout();
+                      }}
+                    >
+                      Cerrar sesión
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link className="jusp-mdrawer-footlink" href="/login" onClick={() => setMobileOpen(false)}>
+                      Iniciar sesión
+                    </Link>
+                    <Link className="jusp-mdrawer-footlink" href="/register" onClick={() => setMobileOpen(false)}>
+                      Registrarse
+                    </Link>
+                  </>
+                )}
+              </div>
+
+              <div className="jusp-mdrawer-brandline" aria-hidden="true">
+                JUSP • ORIGINALES • PREMIUM
+              </div>
             </div>
           </div>
         </div>
@@ -1151,7 +1218,6 @@ export default function Header() {
           --jusp-mid: 220ms;
         }
 
-        /* ✅ Offset automático del layout por header fijo */
         body {
           padding-top: var(--jusp-header-h);
         }
@@ -1194,7 +1260,7 @@ export default function Header() {
         }
 
         .jusp-logo {
-          font-weight: 800;
+          font-weight: 900;
           letter-spacing: 0.12em;
           text-decoration: none;
           color: #111;
@@ -1229,7 +1295,7 @@ export default function Header() {
 
         .jusp-nav-sale {
           color: #c61f1f;
-          font-weight: 700;
+          font-weight: 800;
         }
 
         .jusp-actions {
@@ -1299,15 +1365,9 @@ export default function Header() {
         }
 
         @keyframes juspCartBump {
-          0% {
-            transform: scale(1);
-          }
-          35% {
-            transform: scale(1.08);
-          }
-          100% {
-            transform: scale(1);
-          }
+          0% { transform: scale(1); }
+          35% { transform: scale(1.08); }
+          100% { transform: scale(1); }
         }
 
         .jusp-account-ico {
@@ -1336,9 +1396,7 @@ export default function Header() {
           border: 2px solid #fff;
         }
 
-        .jusp-account-wrap {
-          position: relative;
-        }
+        .jusp-account-wrap { position: relative; }
 
         .jusp-account-mega {
           position: absolute;
@@ -1356,14 +1414,8 @@ export default function Header() {
         }
 
         @keyframes juspPop {
-          from {
-            opacity: 0;
-            transform: translateY(-6px) scale(0.985);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
+          from { opacity: 0; transform: translateY(-6px) scale(0.985); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         .jusp-account-mega::before {
@@ -1410,10 +1462,7 @@ export default function Header() {
           transition: opacity var(--jusp-fast) var(--jusp-ease), transform var(--jusp-fast) var(--jusp-ease);
         }
 
-        .jusp-account-close:hover {
-          opacity: 1;
-          transform: scale(1.05);
-        }
+        .jusp-account-close:hover { opacity: 1; transform: scale(1.05); }
 
         .jusp-account-sub {
           display: flex;
@@ -1426,7 +1475,7 @@ export default function Header() {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          border: 1px solid rgba(0, 0, 0, 0.1);
+          border: 1px solid rgba(0, 0, 0, 0.10);
           background: rgba(0, 0, 0, 0.03);
           border-radius: 999px;
           padding: 6px 10px;
@@ -1436,7 +1485,7 @@ export default function Header() {
         }
 
         .jusp-account-chip.ok {
-          background: rgba(34, 197, 94, 0.1);
+          background: rgba(34, 197, 94, 0.10);
           border-color: rgba(34, 197, 94, 0.22);
           color: rgba(0, 0, 0, 0.78);
         }
@@ -1447,9 +1496,7 @@ export default function Header() {
           color: rgba(0, 0, 0, 0.78);
         }
 
-        .jusp-account-chip.muted {
-          opacity: 0.75;
-        }
+        .jusp-account-chip.muted { opacity: 0.75; }
 
         .jusp-account-grid {
           display: grid;
@@ -1458,9 +1505,7 @@ export default function Header() {
         }
 
         @media (max-width: 520px) {
-          .jusp-account-grid {
-            grid-template-columns: 1fr;
-          }
+          .jusp-account-grid { grid-template-columns: 1fr; }
         }
 
         .jusp-account-coltitle {
@@ -1485,24 +1530,11 @@ export default function Header() {
           transition: background var(--jusp-fast) var(--jusp-ease), transform var(--jusp-fast) var(--jusp-ease);
         }
 
-        .jusp-account-link:hover {
-          background: rgba(0, 0, 0, 0.04);
-          transform: translateY(-1px);
-        }
+        .jusp-account-link:hover { background: rgba(0, 0, 0, 0.04); transform: translateY(-1px); }
+        .jusp-account-link.strong { font-weight: 800; }
+        .jusp-account-link.danger { color: rgba(198, 31, 31, 0.95); font-weight: 900; }
 
-        .jusp-account-link.strong {
-          font-weight: 800;
-        }
-
-        .jusp-account-link.danger {
-          color: rgba(198, 31, 31, 0.95);
-          font-weight: 900;
-        }
-
-        .jusp-account-benefits {
-          display: grid;
-          gap: 8px;
-        }
+        .jusp-account-benefits { display: grid; gap: 8px; }
 
         .jusp-benefit {
           font-size: 13px;
@@ -1512,9 +1544,7 @@ export default function Header() {
           transition: transform var(--jusp-fast) var(--jusp-ease);
         }
 
-        .jusp-benefit:hover {
-          transform: translateY(-1px);
-        }
+        .jusp-benefit:hover { transform: translateY(-1px); }
 
         .jusp-account-skel {
           display: block;
@@ -1535,11 +1565,7 @@ export default function Header() {
           animation: juspShimmer 1.1s linear infinite;
         }
 
-        @keyframes juspShimmer {
-          to {
-            transform: translateX(60%);
-          }
-        }
+        @keyframes juspShimmer { to { transform: translateX(60%); } }
 
         .jusp-burger {
           display: none;
@@ -1552,9 +1578,7 @@ export default function Header() {
           transition: transform var(--jusp-fast) var(--jusp-ease);
         }
 
-        .jusp-burger:active {
-          transform: scale(0.985);
-        }
+        .jusp-burger:active { transform: scale(0.985); }
 
         .jusp-mega {
           position: absolute;
@@ -1600,10 +1624,7 @@ export default function Header() {
           margin-bottom: 10px;
         }
 
-        .jusp-mega-title {
-          font-weight: 800;
-          font-size: 16px;
-        }
+        .jusp-mega-title { font-weight: 800; font-size: 16px; }
 
         .jusp-mega-viewall {
           text-decoration: none;
@@ -1613,15 +1634,9 @@ export default function Header() {
           transition: opacity var(--jusp-fast) var(--jusp-ease), transform var(--jusp-fast) var(--jusp-ease);
         }
 
-        .jusp-mega-viewall:hover {
-          opacity: 1;
-          transform: translateY(-1px);
-        }
+        .jusp-mega-viewall:hover { opacity: 1; transform: translateY(-1px); }
 
-        .jusp-mega-grid {
-          display: grid;
-          gap: 14px;
-        }
+        .jusp-mega-grid { display: grid; gap: 14px; }
 
         .jusp-mega-col-title {
           font-size: 12px;
@@ -1640,151 +1655,10 @@ export default function Header() {
           transition: background var(--jusp-fast) var(--jusp-ease), transform var(--jusp-fast) var(--jusp-ease);
         }
 
-        .jusp-mega-link:hover {
-          background: rgba(0, 0, 0, 0.04);
-          transform: translateY(-1px);
-        }
+        .jusp-mega-link:hover { background: rgba(0, 0, 0, 0.04); transform: translateY(-1px); }
 
-        .jusp-search-overlay {
-          position: fixed;
-          inset: 0;
-          z-index: 80;
-        }
-
-        .jusp-search-backdrop {
-          position: absolute;
-          inset: 0;
-          background: rgba(255, 255, 255, 0.72);
-          backdrop-filter: blur(10px);
-          border: 0;
-          opacity: 0;
-          animation: juspFadeIn var(--jusp-fast) var(--jusp-ease) forwards;
-        }
-
-        .jusp-search-panel {
-          position: relative;
-          z-index: 2;
-          background: #fff;
-          height: 100%;
-          display: flex;
-          flex-direction: column;
-          transform: translateY(10px) scale(0.995);
-          opacity: 0;
-          animation: juspPanelIn var(--jusp-fast) var(--jusp-ease) forwards;
-          will-change: transform, opacity;
-        }
-
-        @keyframes juspFadeIn {
-          to {
-            opacity: 1;
-          }
-        }
-
-        @keyframes juspPanelIn {
-          0% {
-            opacity: 0;
-            transform: translateY(10px) scale(0.995);
-          }
-          100% {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .jusp-mega,
-          .jusp-search-panel,
-          .jusp-search-backdrop,
-          .jusp-mdrawer,
-          .jusp-mdrawer-backdrop {
-            transition: none !important;
-            animation: none !important;
-            transform: none !important;
-            opacity: 1 !important;
-          }
-        }
-
-        .jusp-search-top {
-          display: grid;
-          grid-template-columns: auto 1fr auto;
-          align-items: center;
-          gap: 12px;
-          padding: 14px 18px;
-          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-        }
-
-        .jusp-search-brand {
-          font-weight: 900;
-          letter-spacing: 0.12em;
-        }
-
-        .jusp-search-inputwrap {
-          position: relative;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          border: 1px solid rgba(0, 0, 0, 0.14);
-          border-radius: 999px;
-          padding: 10px 14px 10px 38px;
-          transition: box-shadow var(--jusp-fast) var(--jusp-ease), border-color var(--jusp-fast) var(--jusp-ease);
-        }
-
-        .jusp-search-inputwrap:focus-within {
-          border-color: rgba(0, 0, 0, 0.22);
-          box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
-        }
-
-        .jusp-search-ico {
-          position: absolute;
-          left: 14px;
-          top: 50%;
-          transform: translateY(-50%);
-          opacity: 0.65;
-        }
-
-        .jusp-search-input {
-          width: 100%;
-          border: 0;
-          outline: none;
-          font-size: 14px;
-          background: transparent;
-        }
-
-        .jusp-search-cancel {
-          border: 0;
-          background: transparent;
-          cursor: pointer;
-          font-weight: 700;
-          opacity: 0.8;
-          transition: opacity var(--jusp-fast) var(--jusp-ease), transform var(--jusp-fast) var(--jusp-ease);
-        }
-
-        .jusp-search-cancel:hover {
-          opacity: 1;
-          transform: translateY(-1px);
-        }
-
-        .jusp-search-body {
-          padding: 18px;
-          padding-top: calc(18px + var(--jusp-header-h));
-          flex: 1;
-          overflow: auto;
-        }
-
-        .jusp-search-cols.nike {
-          max-width: 1180px;
-          margin: 0 auto;
-          display: grid;
-          grid-template-columns: 320px 1fr;
-          gap: 22px;
-        }
-
-        /* ===== MOBILE DRAWER (NIVEL DIOS: SOLIDO REAL + BACKDROP OSCURO REAL) ===== */
-        .jusp-mdrawer-wrap {
-          position: fixed;
-          inset: 0;
-          z-index: 90;
-        }
+        /* ===== MOBILE DRAWER (NIKE PANEL) ===== */
+        .jusp-mdrawer-wrap { position: fixed; inset: 0; z-index: 90; }
 
         .jusp-mdrawer-backdrop {
           position: absolute;
@@ -1802,191 +1676,252 @@ export default function Header() {
           top: 0;
           right: 0;
           bottom: 0;
-          width: min(360px, 92vw);
-
-          /* ✅ SOLIDO REAL */
+          width: min(380px, 92vw);
           background: #0b0b0e !important;
           backdrop-filter: none !important;
           -webkit-backdrop-filter: none !important;
-
-          border-left: 1px solid rgba(255, 255, 255, 0.1);
+          border-left: 1px solid rgba(255, 255, 255, 0.10);
           box-shadow: -28px 0 90px rgba(0, 0, 0, 0.65);
-
-          padding: 12px 14px 16px;
+          padding: 14px 14px 16px;
           transform: translateX(12px) scale(0.995);
           opacity: 0;
           animation: juspDrawerIn var(--jusp-fast) var(--jusp-ease) forwards;
           will-change: transform, opacity;
           isolation: isolate;
           color: rgba(255, 255, 255, 0.92);
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
         }
+
+        @keyframes juspFadeIn { to { opacity: 1; } }
 
         @keyframes juspDrawerIn {
-          0% {
-            opacity: 0;
-            transform: translateX(12px) scale(0.995);
-          }
-          100% {
-            opacity: 1;
-            transform: translateX(0) scale(1);
-          }
+          0% { opacity: 0; transform: translateX(12px) scale(0.995); }
+          100% { opacity: 1; transform: translateX(0) scale(1); }
         }
 
-        .jusp-mdrawer-top {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .jusp-mdrawer-title {
-          font-weight: 950;
-          letter-spacing: 0.02em;
-          color: rgba(255, 255, 255, 0.92);
-        }
+        .jusp-mdrawer-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        .jusp-mdrawer-title { font-weight: 950; letter-spacing: 0.02em; color: rgba(255,255,255,0.92); }
 
         .jusp-mdrawer-close {
-          border: 0;
-          background: transparent;
+          border: 1px solid rgba(255,255,255,0.12);
+          background: rgba(255,255,255,0.06);
           cursor: pointer;
-          font-size: 18px;
-          color: rgba(255, 255, 255, 0.85);
-        }
-
-        .jusp-mdrawer-close:hover {
-          color: rgba(255, 255, 255, 1);
-        }
-
-        .jusp-mdrawer-search {
-          margin-top: 10px;
-          width: 100%;
-          border: 1px solid rgba(255, 255, 255, 0.14) !important;
-          border-radius: 16px;
-          padding: 12px;
-          background: rgba(255, 255, 255, 0.06) !important;
-          cursor: pointer;
-          font-weight: 900;
-          color: rgba(255, 255, 255, 0.92);
+          font-size: 16px;
+          color: rgba(255,255,255,0.92);
+          width: 38px;
+          height: 38px;
+          border-radius: 14px;
+          display: grid;
+          place-items: center;
           transition: transform var(--jusp-fast) var(--jusp-ease), background var(--jusp-fast) var(--jusp-ease);
         }
 
-        .jusp-mdrawer-search:active {
-          transform: translateY(1px);
-        }
+        .jusp-mdrawer-close:active { transform: scale(0.98); }
+        .jusp-mdrawer-close:hover { background: rgba(255,255,255,0.10); }
 
-        .jusp-mdrawer-linktext {
-          display: inline-flex;
+        .jusp-mdrawer-searchwrap { margin-top: 2px; }
+
+        .jusp-mdrawer-search {
+          width: 100%;
+          display: grid;
+          grid-template-columns: auto 1fr auto;
           align-items: center;
-          padding: 8px 12px;
-          border-radius: 999px;
-          background: rgba(255, 255, 255, 0.08) !important;
-          border: 1px solid rgba(255, 255, 255, 0.14) !important;
-          color: rgba(255, 255, 255, 0.92);
+          gap: 10px;
+          padding: 14px 14px;
+          border-radius: 18px;
+          border: 1px solid rgba(255,255,255,0.14);
+          background: rgba(255,255,255,0.06);
+          cursor: pointer;
+          color: rgba(255,255,255,0.94);
           font-weight: 950;
           letter-spacing: 0.01em;
-          box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35) !important;
-          backdrop-filter: none !important;
-          -webkit-backdrop-filter: none !important;
+          transition: transform var(--jusp-fast) var(--jusp-ease), background var(--jusp-fast) var(--jusp-ease);
         }
 
-        .jusp-mdrawer-links {
-          margin-top: 12px;
+        .jusp-mdrawer-search:active { transform: translateY(1px); }
+        .jusp-mdrawer-search:hover { background: rgba(255,255,255,0.08); }
+
+        .jusp-mdrawer-searchico { opacity: 0.9; }
+        .jusp-mdrawer-searchtext { font-size: 14px; }
+        .jusp-mdrawer-searchhint {
+          opacity: 0.8;
+          font-weight: 950;
+          border: 1px solid rgba(255,255,255,0.14);
+          background: rgba(255,255,255,0.06);
+          border-radius: 10px;
+          padding: 3px 8px;
+          font-size: 12px;
+        }
+
+        .jusp-mdrawer-section {
+          margin-top: 2px;
+          padding-top: 6px;
+          border-top: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .jusp-mdrawer-sec-title {
+          font-size: 11px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          font-weight: 950;
+          opacity: 0.72;
+          margin: 10px 2px 10px;
+        }
+
+        .jusp-mdrawer-list {
           display: grid;
           gap: 10px;
         }
 
-        .jusp-mdrawer-link {
-          padding: 10px 10px;
-          border-radius: 16px;
+        /* ✅ FULL-WIDTH “NIKE ROW” */
+        .jusp-mdrawer-row {
+          width: 100%;
+          display: grid;
+          grid-template-columns: 34px 1fr 22px;
+          align-items: center;
+          gap: 10px;
+          padding: 14px 14px;
+          border-radius: 18px;
           text-decoration: none;
-          border: 1px solid rgba(255, 255, 255, 0.12) !important;
-          background: rgba(255, 255, 255, 0.05) !important;
+          border: 1px solid rgba(255,255,255,0.10);
+          background: rgba(255,255,255,0.04);
+          color: rgba(255,255,255,0.94);
           transition: transform var(--jusp-fast) var(--jusp-ease), background var(--jusp-fast) var(--jusp-ease),
             border-color var(--jusp-fast) var(--jusp-ease);
         }
 
-        .jusp-mdrawer-link:hover {
-          background: rgba(255, 255, 255, 0.07) !important;
-          border-color: rgba(255, 255, 255, 0.16) !important;
+        .jusp-mdrawer-row:hover {
+          background: rgba(255,255,255,0.06);
+          border-color: rgba(255,255,255,0.14);
           transform: translateY(-1px);
         }
 
-        .jusp-mdrawer-link.jusp-nav-sale {
-          border-color: rgba(255, 60, 60, 0.22) !important;
+        .jusp-mdrawer-row:active { transform: translateY(1px); }
+
+        .jusp-mdrawer-ic {
+          width: 34px;
+          height: 34px;
+          border-radius: 14px;
+          display: grid;
+          place-items: center;
+          background: rgba(255,255,255,0.06);
+          border: 1px solid rgba(255,255,255,0.12);
+          font-weight: 950;
+          opacity: 0.95;
         }
 
-        .jusp-mdrawer-link.jusp-nav-sale .jusp-mdrawer-linktext {
-          background: rgba(255, 60, 60, 0.12) !important;
-          border-color: rgba(255, 60, 60, 0.24) !important;
-          color: rgba(255, 255, 255, 0.95);
+        .jusp-mdrawer-label {
+          font-size: 16px;
+          font-weight: 950;
+          letter-spacing: 0.01em;
         }
 
-        .jusp-mdrawer-actions {
-          margin-top: 16px;
+        .jusp-mdrawer-arrow {
+          opacity: 0.8;
+          font-weight: 950;
+          justify-self: end;
+        }
+
+        .jusp-mdrawer-row.sale {
+          border-color: rgba(255, 60, 60, 0.22);
+          background: rgba(255, 60, 60, 0.06);
+        }
+
+        .jusp-mdrawer-row.sale .jusp-mdrawer-ic {
+          border-color: rgba(255, 60, 60, 0.28);
+          background: rgba(255, 60, 60, 0.10);
+        }
+
+        .jusp-mdrawer-footer {
+          margin-top: auto;
+          padding-top: 14px;
+          border-top: 1px solid rgba(255,255,255,0.08);
+          display: grid;
+          gap: 10px;
+        }
+
+        .jusp-mdrawer-footrow {
           display: flex;
-          gap: 12px;
           justify-content: space-between;
+          gap: 12px;
           flex-wrap: wrap;
           align-items: center;
         }
 
-        .jusp-mdrawer-actions a {
+        .jusp-mdrawer-footlink {
           text-decoration: none;
-          color: rgba(255, 255, 255, 0.92);
-          font-weight: 900;
+          color: rgba(255,255,255,0.92);
+          font-weight: 950;
+          padding: 10px 12px;
+          border-radius: 14px;
+          border: 1px solid rgba(255,255,255,0.10);
+          background: rgba(255,255,255,0.04);
+          transition: background var(--jusp-fast) var(--jusp-ease), transform var(--jusp-fast) var(--jusp-ease);
         }
 
-        .jusp-mdrawer-actions a:hover {
-          color: rgba(255, 255, 255, 1);
-        }
+        .jusp-mdrawer-footlink:hover { background: rgba(255,255,255,0.06); transform: translateY(-1px); }
+        .jusp-mdrawer-footlink:active { transform: translateY(1px); }
 
-        .jusp-mdrawer-cartbtn {
-          border: 0;
-          background: transparent;
+        .jusp-mdrawer-footbtn {
+          border: 1px solid rgba(255,255,255,0.10);
+          background: rgba(255,255,255,0.04);
           font-weight: 950;
           cursor: pointer;
-          padding: 0;
+          padding: 10px 12px;
+          border-radius: 14px;
           display: inline-flex;
           align-items: center;
-          gap: 8px;
-          color: rgba(255, 255, 255, 0.92);
+          gap: 10px;
+          color: rgba(255,255,255,0.92);
+          transition: background var(--jusp-fast) var(--jusp-ease), transform var(--jusp-fast) var(--jusp-ease);
         }
+
+        .jusp-mdrawer-footbtn:hover { background: rgba(255,255,255,0.06); transform: translateY(-1px); }
+        .jusp-mdrawer-footbtn:active { transform: translateY(1px); }
 
         .jusp-mdrawer-cartbadge {
           min-width: 18px;
           height: 18px;
           padding: 0 6px;
           border-radius: 999px;
-          background: rgba(255, 255, 255, 0.92);
-          color: rgba(10, 10, 12, 0.92);
+          background: rgba(255,255,255,0.92);
+          color: rgba(10,10,12,0.92);
           font-weight: 950;
           font-size: 11px;
           display: grid;
           place-items: center;
-          border: 1px solid rgba(0, 0, 0, 0.2);
+          border: 1px solid rgba(0,0,0,0.20);
         }
 
         .jusp-mdrawer-logout {
-          border: 0;
-          background: transparent;
-          color: rgba(255, 90, 90, 0.95);
+          border: 1px solid rgba(255, 90, 90, 0.18);
+          background: rgba(255, 90, 90, 0.06);
+          color: rgba(255, 140, 140, 0.98);
           font-weight: 950;
           cursor: pointer;
-          padding: 0;
+          padding: 10px 12px;
+          border-radius: 14px;
+          transition: background var(--jusp-fast) var(--jusp-ease), transform var(--jusp-fast) var(--jusp-ease);
         }
 
-        .jusp-mdrawer-logout:hover {
-          color: rgba(255, 120, 120, 1);
+        .jusp-mdrawer-logout:hover { background: rgba(255, 90, 90, 0.10); transform: translateY(-1px); }
+        .jusp-mdrawer-logout:active { transform: translateY(1px); }
+
+        .jusp-mdrawer-brandline {
+          margin-top: 2px;
+          font-size: 11px;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          opacity: 0.62;
+          text-align: center;
+          padding-top: 4px;
         }
 
         @media (max-width: 920px) {
-          .jusp-nav {
-            display: none;
-          }
-          .jusp-burger {
-            display: inline-grid;
-            place-items: center;
-          }
+          .jusp-nav { display: none; }
+          .jusp-burger { display: inline-grid; place-items: center; }
         }
       `}</style>
     </header>
