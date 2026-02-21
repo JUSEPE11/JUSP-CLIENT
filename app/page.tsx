@@ -1012,7 +1012,7 @@ export default function Page() {
         </div>
       </section>
 
-      {/* BLOQUE 3 · STORIES (SOLO "EDITORIAL" + SIN "VER COLECCIÓN") */}
+      {/* BLOQUE 3 · STORIES (SOLO "HISTORIA" + SIN "VER COLECCIÓN") */}
       <section
         ref={(el) => {
           storySectionRef.current = el;
@@ -1029,7 +1029,7 @@ export default function Page() {
         <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px" }}>
           <div style={{ display: "flex", alignItems: "end", justifyContent: "space-between", gap: 12 }}>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.2, opacity: 0.7 }}>EDITORIAL</div>
+              <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.2, opacity: 0.7 }}>HISTORY</div>
               {/* ✅ (QUITADO) "Editorial JUSP · Nivel Dios" */}
             </div>
 
