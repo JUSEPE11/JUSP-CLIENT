@@ -147,7 +147,6 @@ export default function Header() {
       mq.addEventListener("change", apply);
       return () => mq.removeEventListener("change", apply);
     } catch {
-      // Safari viejo
       mq.addListener(apply);
       return () => mq.removeListener(apply);
     }
@@ -621,7 +620,6 @@ export default function Header() {
     try {
       await fetch("/api/auth/logout", { method: "POST", credentials: "include", cache: "no-store" });
     } catch {
-      // aunque falle fetch, seguimos con hard redirect para cortar sesión en UI
     } finally {
       setUser(null);
       setAccountOpen(false);
@@ -679,7 +677,6 @@ export default function Header() {
         </nav>
 
         <div className="jusp-actions">
-          {/* ✅ LUPA PARA SIEMPRE */}
           <button className="jusp-icon jusp-search-ico-btn" onClick={openSearch} aria-label="Buscar (/)">
             ⌕
             <span className="sr-only">Buscar</span>
@@ -689,7 +686,6 @@ export default function Header() {
             ♡
           </Link>
 
-          {/* ✅ Carrito */}
           <button
             type="button"
             className={`jusp-icon jusp-cart-ico ${cartBump ? "bump" : ""}`}
@@ -701,7 +697,6 @@ export default function Header() {
             {cartCount > 0 ? <span className="jusp-cart-badge">{cartCount}</span> : null}
           </button>
 
-          {/* ✅ Cuenta: negro + verde cuando authed/activa */}
           <div
             className="jusp-account-wrap"
             onMouseEnter={() => {
@@ -863,11 +858,7 @@ export default function Header() {
         </div>
       </div>
 
-      <div
-        className={activeMenu ? "jusp-mega open" : "jusp-mega"}
-        onMouseEnter={cancelHoverClose}
-        onMouseLeave={scheduleHoverClose}
-      >
+      <div className={activeMenu ? "jusp-mega open" : "jusp-mega"} onMouseEnter={cancelHoverClose} onMouseLeave={scheduleHoverClose}>
         {activeMenu ? (
           <div className="jusp-mega-inner">
             <div className="jusp-mega-top">
@@ -898,7 +889,7 @@ export default function Header() {
         ) : null}
       </div>
 
-      {/* SEARCH full screen (Nike-like) */}
+      {/* SEARCH full screen */}
       {searchOpen ? (
         <div className="jusp-search-overlay" role="dialog" aria-modal="true">
           <div className="jusp-search-panel">
@@ -1031,7 +1022,7 @@ export default function Header() {
         </div>
       ) : null}
 
-      {/* MOBILE drawer (derecha) */}
+      {/* MOBILE drawer */}
       {mobileOpen ? (
         <div className="jusp-mdrawer-wrap" role="dialog" aria-modal="true">
           <button className="jusp-mdrawer-backdrop" onClick={() => setMobileOpen(false)} aria-label="Cerrar" type="button" />
@@ -1180,11 +1171,7 @@ export default function Header() {
           position: relative;
         }
         .jusp-icon:hover { background: rgba(0, 0, 0, 0.04); }
-        /* ✅ Lupa: botón cuadrado igual a los otros */
-        .jusp-search-ico-btn{
-          font-size: 16px;
-          line-height: 1;
-        }
+        .jusp-search-ico-btn{ font-size: 16px; line-height: 1; }
         .jusp-cart-ico { position: relative; border: 1px solid rgba(0,0,0,0.12); }
         .jusp-cart-badge{
           position: absolute;
@@ -1208,19 +1195,13 @@ export default function Header() {
           35% { transform: scale(1.08); }
           100% { transform: scale(1); }
         }
-        /* ✅ Cuenta NEGRA (no azul) + ring verde cuando está abierta */
-        .jusp-account-ico{
-          color: #111 !important;
-          border-color: rgba(0,0,0,0.12);
-        }
+
+        .jusp-account-ico{ color: #111 !important; border-color: rgba(0,0,0,0.12); }
         .jusp-account-ico.active{
           border-color: rgba(34,197,94,0.55);
           box-shadow: 0 0 0 3px rgba(34,197,94,0.16);
         }
-        .jusp-ico-glyph{
-          color:#111 !important;
-          filter: saturate(0) brightness(0.1);
-        }
+        .jusp-ico-glyph{ color:#111 !important; filter: saturate(0) brightness(0.1); }
         .jusp-dot {
           position: absolute;
           right: 6px;
@@ -1231,6 +1212,7 @@ export default function Header() {
           background: rgba(34, 197, 94, 0.95);
           border: 2px solid #fff;
         }
+
         .jusp-account-wrap { position: relative; }
         .jusp-account-mega {
           position: absolute;
@@ -1264,32 +1246,13 @@ export default function Header() {
             box-shadow: 0 22px 60px rgba(0,0,0,0.18);
           }
         }
-        .jusp-account-head {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 10px;
-          margin-bottom: 10px;
-        }
+        .jusp-account-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
         .jusp-account-title { font-weight: 800; font-size: 16px; }
-        .jusp-account-close {
-          border: 0;
-          background: transparent;
-          cursor: pointer;
-          font-size: 14px;
-          opacity: 0.7;
-        }
+        .jusp-account-close { border: 0; background: transparent; cursor: pointer; font-size: 14px; opacity: 0.7; }
         .jusp-account-close:hover { opacity: 1; }
-        .jusp-account-sub {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-          margin-bottom: 10px;
-        }
+        .jusp-account-sub { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
         .jusp-account-chip {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
+          display: inline-flex; align-items: center; gap: 8px;
           border: 1px solid rgba(0,0,0,0.10);
           background: rgba(0,0,0,0.03);
           border-radius: 999px;
@@ -1302,18 +1265,10 @@ export default function Header() {
         .jusp-account-chip.warn { background: rgba(255,214,0,0.18); border-color: rgba(255,214,0,0.35); color: rgba(0,0,0,0.78); }
         .jusp-account-chip.muted { opacity: 0.75; }
         .jusp-account-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        @media (max-width: 520px) {
-          .jusp-account-grid { grid-template-columns: 1fr; }
-        }
-        .jusp-account-coltitle {
-          font-size: 12px;
-          opacity: 0.7;
-          margin-bottom: 8px;
-          font-weight: 700;
-        }
+        @media (max-width: 520px) { .jusp-account-grid { grid-template-columns: 1fr; } }
+        .jusp-account-coltitle { font-size: 12px; opacity: 0.7; margin-bottom: 8px; font-weight: 700; }
         .jusp-account-link {
-          display: block;
-          width: 100%;
+          display: block; width: 100%;
           text-align: left;
           text-decoration: none;
           color: #111;
@@ -1328,21 +1283,9 @@ export default function Header() {
         .jusp-account-link.strong { font-weight: 800; }
         .jusp-account-link.danger { color: rgba(198,31,31,0.95); font-weight: 900; }
         .jusp-account-benefits { display: grid; gap: 8px; }
-        .jusp-benefit {
-          font-size: 13px;
-          padding: 8px 10px;
-          border-radius: 12px;
-          background: rgba(0, 0, 0, 0.03);
-        }
-        .jusp-account-skel {
-          display: block;
-          height: 36px;
-          border-radius: 12px;
-          background: rgba(0,0,0,0.05);
-          margin-bottom: 8px;
-          position: relative;
-          overflow: hidden;
-        }
+        .jusp-benefit { font-size: 13px; padding: 8px 10px; border-radius: 12px; background: rgba(0, 0, 0, 0.03); }
+
+        .jusp-account-skel { display: block; height: 36px; border-radius: 12px; background: rgba(0,0,0,0.05); margin-bottom: 8px; position: relative; overflow: hidden; }
         .jusp-account-skel::after{
           content:"";
           position:absolute;
@@ -1362,6 +1305,7 @@ export default function Header() {
           height: 40px;
           cursor: pointer;
         }
+
         .jusp-mega {
           position: absolute;
           left: 0;
@@ -1375,11 +1319,7 @@ export default function Header() {
           transition: opacity 140ms ease, transform 160ms ease;
           will-change: opacity, transform;
         }
-        .jusp-mega.open {
-          pointer-events: auto;
-          opacity: 1;
-          transform: translateY(0);
-        }
+        .jusp-mega.open { pointer-events: auto; opacity: 1; transform: translateY(0); }
         .jusp-mega-inner {
           max-width: 1180px;
           margin: 0 auto;
@@ -1395,13 +1335,7 @@ export default function Header() {
           overscroll-behavior: contain;
           -webkit-overflow-scrolling: touch;
         }
-        .jusp-mega-top {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 10px;
-          margin-bottom: 10px;
-        }
+        .jusp-mega-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
         .jusp-mega-title { font-weight: 800; font-size: 16px; }
         .jusp-mega-viewall { text-decoration: none; font-size: 13px; opacity: 0.75; color: #111; }
         .jusp-mega-viewall:hover { opacity: 1; }
@@ -1467,11 +1401,12 @@ export default function Header() {
         .jusp-search-body { padding: 18px; padding-top: calc(18px + var(--jusp-header-h)); flex: 1; overflow: auto; }
         .jusp-search-cols.nike { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 320px 1fr; gap: 22px; }
 
+        /* ===== MOBILE DRAWER NIVEL DIOS (solo drawer) ===== */
         .jusp-mdrawer-wrap { position: fixed; inset: 0; z-index: 90; }
         .jusp-mdrawer-backdrop {
           position: absolute;
           inset: 0;
-          background: rgba(0, 0, 0, 0.28);
+          background: rgba(0, 0, 0, 0.42);
           border: 0;
           opacity: 0;
           animation: juspFadeIn 160ms ease forwards;
@@ -1482,92 +1417,112 @@ export default function Header() {
           right: 0;
           bottom: 0;
           width: min(360px, 92vw);
-          background: #fff;
-          border-left: 1px solid rgba(0,0,0,0.10);
-          box-shadow: -18px 0 48px rgba(0,0,0,0.18);
+          background: rgba(10,10,12,0.92);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border-left: 1px solid rgba(255,255,255,0.10);
+          box-shadow: -18px 0 60px rgba(0,0,0,0.42);
           padding: 12px 14px 16px;
           transform: translateX(12px);
           opacity: 0;
           animation: juspDrawerIn 180ms cubic-bezier(.2,.8,.2,1) forwards;
           will-change: transform, opacity;
           isolation: isolate;
+          color: rgba(255,255,255,0.92);
         }
         @keyframes juspDrawerIn {
           0% { opacity: 0; transform: translateX(12px); }
           100% { opacity: 1; transform: translateX(0); }
         }
-
         .jusp-mdrawer-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-        .jusp-mdrawer-title { font-weight: 900; }
-        .jusp-mdrawer-close { border: 0; background: transparent; cursor: pointer; font-size: 18px; }
+        .jusp-mdrawer-title { font-weight: 950; letter-spacing: 0.02em; color: rgba(255,255,255,0.92); }
+        .jusp-mdrawer-close { border: 0; background: transparent; cursor: pointer; font-size: 18px; color: rgba(255,255,255,0.85); }
+        .jusp-mdrawer-close:hover { color: rgba(255,255,255,1); }
 
         .jusp-mdrawer-search {
           margin-top: 10px;
           width: 100%;
-          border: 1px solid rgba(0, 0, 0, 0.14);
-          border-radius: 14px;
+          border: 1px solid rgba(255,255,255,0.14);
+          border-radius: 16px;
           padding: 12px;
-          background: #fff;
+          background: rgba(255,255,255,0.06);
           cursor: pointer;
           font-weight: 900;
+          color: rgba(255,255,255,0.92);
         }
+        .jusp-mdrawer-search:active { transform: translateY(1px); }
 
-        /* ✅ NUEVO: fondo SOLO detrás del texto del menú móvil (para que se lea sobre cualquier fondo) */
+        /* ✅ Fondo SOLO detrás del texto (chip glass premium) */
         .jusp-mdrawer-linktext{
           display: inline-flex;
           align-items: center;
-          padding: 6px 10px;
+          padding: 8px 12px;
           border-radius: 999px;
-          background: rgba(255,255,255,0.92);
-          border: 1px solid rgba(0,0,0,0.06);
-          color: #111;
-          font-weight: 900;
+          background: rgba(255,255,255,0.08);
+          border: 1px solid rgba(255,255,255,0.14);
+          color: rgba(255,255,255,0.92);
+          font-weight: 950;
           letter-spacing: 0.01em;
-          box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+          box-shadow: 0 10px 26px rgba(0,0,0,0.25);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
         }
 
-        .jusp-mdrawer-links { margin-top: 10px; display: grid; gap: 8px; }
+        .jusp-mdrawer-links { margin-top: 12px; display: grid; gap: 10px; }
         .jusp-mdrawer-link {
-          padding: 12px 12px;
-          border-radius: 14px;
+          padding: 10px 10px;
+          border-radius: 16px;
           text-decoration: none;
-          color: #111;
-          border: 1px solid rgba(0, 0, 0, 0.08);
-          font-weight: 800;
-          background: transparent;
+          border: 1px solid rgba(255,255,255,0.10);
+          background: rgba(255,255,255,0.04);
         }
-        /* Si es OFERTAS (rojo), mantenemos el rojo pero el chip sigue legible */
+        .jusp-mdrawer-link:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.14); }
+
+        /* OFERTAS: acento rojo premium + chip legible */
+        .jusp-mdrawer-link.jusp-nav-sale { border-color: rgba(255, 60, 60, 0.22); }
         .jusp-mdrawer-link.jusp-nav-sale .jusp-mdrawer-linktext{
-          border-color: rgba(198,31,31,0.14);
+          background: rgba(255, 60, 60, 0.12);
+          border-color: rgba(255, 60, 60, 0.24);
+          color: rgba(255,255,255,0.95);
         }
 
-        .jusp-mdrawer-actions { margin-top: 14px; display: flex; gap: 12px; justify-content: space-between; flex-wrap: wrap; align-items: center; }
-        .jusp-mdrawer-actions a { text-decoration: none; color: #111; font-weight: 800; }
+        .jusp-mdrawer-actions {
+          margin-top: 16px;
+          display: flex;
+          gap: 12px;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          align-items: center;
+        }
+        .jusp-mdrawer-actions a { text-decoration: none; color: rgba(255,255,255,0.92); font-weight: 900; }
+        .jusp-mdrawer-actions a:hover { color: rgba(255,255,255,1); }
+
         .jusp-mdrawer-cartbtn{
           border:0;
           background:transparent;
-          font-weight: 900;
+          font-weight: 950;
           cursor:pointer;
           padding:0;
           display:inline-flex;
           align-items:center;
           gap:8px;
-          color:#111;
+          color: rgba(255,255,255,0.92);
         }
         .jusp-mdrawer-cartbadge{
           min-width: 18px;
           height: 18px;
           padding: 0 6px;
           border-radius: 999px;
-          background: rgba(17, 17, 17, 0.92);
-          color: rgba(255, 255, 255, 0.95);
+          background: rgba(255,255,255,0.92);
+          color: rgba(10,10,12,0.92);
           font-weight: 950;
           font-size: 11px;
           display: grid;
           place-items: center;
-          border: 1px solid rgba(255,255,255,0.18);
+          border: 1px solid rgba(0,0,0,0.20);
         }
-        .jusp-mdrawer-logout { border:0; background:transparent; color: rgba(198,31,31,0.95); font-weight: 900; cursor:pointer; padding:0; }
+        .jusp-mdrawer-logout { border:0; background:transparent; color: rgba(255, 90, 90, 0.95); font-weight: 950; cursor:pointer; padding:0; }
+        .jusp-mdrawer-logout:hover { color: rgba(255, 120, 120, 1); }
 
         @media (max-width: 920px) {
           .jusp-nav { display: none; }
