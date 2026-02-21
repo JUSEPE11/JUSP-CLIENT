@@ -96,7 +96,7 @@ function pickAccountLabel(user: SessionUser | null) {
 }
 
 export default function Header() {
-  // ✅ STORE (conteo + abrir carrito)
+  // ✅ STORE (conteo + abrir carrito) — ahora viene de Zustand + persist
   const { cartCount, openCart } = useStore();
 
   // ✅ micro-animación cuando sube el conteo
@@ -126,13 +126,16 @@ export default function Header() {
   const [products, setProducts] = useState<SearchProduct[]>([]);
   const lastReq = useRef(0);
 
+  // ✅ Abort controller real (por request)
+  const searchAbortRef = useRef<AbortController | null>(null);
+
   // ACCOUNT mega
   const [accountOpen, setAccountOpen] = useState(false);
 
   // SESSION (PRO)
   const [sessionLoading, setSessionLoading] = useState(true);
   const [user, setUser] = useState<SessionUser | null>(null);
-  const isAuthed = !!user && user?.profile !== undefined; // user existe => sesión válida (me ok)
+  const isAuthed = !!user && user?.profile !== undefined;
   const hasProfile = !!user && user?.profile != null;
   const accountTitle = useMemo(() => pickAccountLabel(user), [user]);
 
@@ -152,7 +155,7 @@ export default function Header() {
     }
   }, []);
 
-  // Keep account mega open while moving the mouse into it (no instant close)
+  // Keep account mega open while moving the mouse into it
   const accountCloseT = useRef<number | null>(null);
   const cancelAccountClose = () => {
     if (accountCloseT.current) {
@@ -167,7 +170,7 @@ export default function Header() {
     }, 220);
   };
 
-  // HOVER SAFE CLOSE (prevents mega menu from closing when moving into it)
+  // HOVER SAFE CLOSE
   const closeTimerRef = useRef<number | null>(null);
   const cancelHoverClose = () => {
     if (closeTimerRef.current) {
@@ -542,6 +545,11 @@ export default function Header() {
     setSearchOpen(false);
     setQ("");
     setProducts([]);
+    setLoading(false);
+    if (searchAbortRef.current) {
+      searchAbortRef.current.abort();
+      searchAbortRef.current = null;
+    }
   }
 
   function submitSearch(text: string) {
@@ -556,27 +564,47 @@ export default function Header() {
     const s = query.trim();
     if (!s) {
       setProducts([]);
+      setLoading(false);
+      if (searchAbortRef.current) {
+        searchAbortRef.current.abort();
+        searchAbortRef.current = null;
+      }
       return;
     }
+
+    // ✅ abort request anterior
+    if (searchAbortRef.current) searchAbortRef.current.abort();
+    const ctrl = new AbortController();
+    searchAbortRef.current = ctrl;
+
     const reqId = Date.now();
     lastReq.current = reqId;
     setLoading(true);
+
     try {
-      const res = await fetch(`/api/products/search?q=${encodeURIComponent(s)}`, { cache: "no-store" });
+      const res = await fetch(`/api/products/search?q=${encodeURIComponent(s)}`, {
+        cache: "no-store",
+        signal: ctrl.signal,
+      });
       if (!res.ok) throw new Error("bad");
+
       const json = await res.json();
       const items: SearchProduct[] = Array.isArray(json?.items) ? json.items : Array.isArray(json) ? json : [];
+
+      if (ctrl.signal.aborted) return;
       if (lastReq.current !== reqId) return;
+
       setProducts(items.slice(0, 12));
-    } catch {
+    } catch (err: any) {
+      if (ctrl.signal.aborted) return;
       if (lastReq.current !== reqId) return;
       setProducts([]);
     } finally {
-      if (lastReq.current === reqId) setLoading(false);
+      if (!ctrl.signal.aborted && lastReq.current === reqId) setLoading(false);
     }
   }
 
-  // ✅ Session bootstrap (Header PRO)
+  // Session bootstrap
   useEffect(() => {
     let alive = true;
     const ctrl = new AbortController();
@@ -658,6 +686,13 @@ export default function Header() {
     }, clamp(q.trim().length ? 140 : 220, 120, 260));
     return () => clearTimeout(t);
   }, [q]);
+
+  // ✅ cleanup: abort al desmontar
+  useEffect(() => {
+    return () => {
+      if (searchAbortRef.current) searchAbortRef.current.abort();
+    };
+  }, []);
 
   return (
     <header className="jusp-header" onMouseEnter={cancelHoverClose} onMouseLeave={scheduleHoverClose}>
@@ -858,7 +893,11 @@ export default function Header() {
         </div>
       </div>
 
-      <div className={activeMenu ? "jusp-mega open" : "jusp-mega"} onMouseEnter={cancelHoverClose} onMouseLeave={scheduleHoverClose}>
+      <div
+        className={activeMenu ? "jusp-mega open" : "jusp-mega"}
+        onMouseEnter={cancelHoverClose}
+        onMouseLeave={scheduleHoverClose}
+      >
         {activeMenu ? (
           <div className="jusp-mega-inner">
             <div className="jusp-mega-top">
@@ -934,7 +973,9 @@ export default function Header() {
                           setSearchOpen(false);
                         }}
                       >
-                        <span className="jusp-search-itemkind">{s.kind === "recent" ? "↻" : s.kind === "quick" ? "★" : "→"}</span>
+                        <span className="jusp-search-itemkind">
+                          {s.kind === "recent" ? "↻" : s.kind === "quick" ? "★" : "→"}
+                        </span>
                         <span className="jusp-search-itemlabel">{s.label}</span>
                       </Link>
                     ))}
@@ -1099,25 +1140,45 @@ export default function Header() {
         </div>
       ) : null}
 
-      <style jsx global>{`:root{--jusp-header-h:64px;}
-        .sr-only{
-          position:absolute;
-          width:1px;height:1px;
-          padding:0;margin:-1px;
-          overflow:hidden;clip:rect(0,0,0,0);
-          white-space:nowrap;border:0;
+      <style jsx global>{`
+        :root {
+          --jusp-header-h: 64px;
+          --jusp-ease: cubic-bezier(0.16, 1, 0.3, 1);
+          --jusp-fast: 160ms;
+          --jusp-mid: 220ms;
         }
+
+        /* ✅ Offset automático del layout por header fijo */
+        body {
+          padding-top: var(--jusp-header-h);
+        }
+
+        .sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
+        }
+
         .jusp-header {
           position: fixed;
           top: 0;
           left: 0;
           right: 0;
           z-index: 2000;
-          background: rgba(255,255,255,0.88);
+          background: rgba(255, 255, 255, 0.88);
           backdrop-filter: blur(10px);
           -webkit-backdrop-filter: blur(10px);
-          border-bottom: 1px solid rgba(0,0,0,0.06);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+          transition: background var(--jusp-mid) var(--jusp-ease), box-shadow var(--jusp-mid) var(--jusp-ease);
+          will-change: background, box-shadow;
         }
+
         .jusp-header-inner {
           height: var(--jusp-header-h);
           max-width: 1180px;
@@ -1128,12 +1189,14 @@ export default function Header() {
           align-items: center;
           gap: 12px;
         }
+
         .jusp-logo {
           font-weight: 800;
           letter-spacing: 0.12em;
           text-decoration: none;
           color: #111;
         }
+
         .jusp-nav {
           display: flex;
           gap: 14px;
@@ -1141,22 +1204,38 @@ export default function Header() {
           justify-content: center;
           overflow: hidden;
         }
-        .jusp-nav-item { position: relative; }
+
+        .jusp-nav-item {
+          position: relative;
+        }
+
         .jusp-nav-link {
           font-size: 13px;
           text-decoration: none;
           color: #111;
           padding: 6px 8px;
           border-radius: 10px;
+          transition: background var(--jusp-fast) var(--jusp-ease), transform var(--jusp-fast) var(--jusp-ease),
+            opacity var(--jusp-fast) var(--jusp-ease);
         }
-        .jusp-nav-link:hover { background: rgba(0, 0, 0, 0.04); }
-        .jusp-nav-sale { color: #c61f1f; font-weight: 700; }
+
+        .jusp-nav-link:hover {
+          background: rgba(0, 0, 0, 0.04);
+          transform: translateY(-1px);
+        }
+
+        .jusp-nav-sale {
+          color: #c61f1f;
+          font-weight: 700;
+        }
+
         .jusp-actions {
           display: flex;
           align-items: center;
           gap: 10px;
           justify-self: end;
         }
+
         .jusp-icon {
           width: 34px;
           height: 34px;
@@ -1169,11 +1248,33 @@ export default function Header() {
           color: #111;
           cursor: pointer;
           position: relative;
+          transition: transform var(--jusp-fast) var(--jusp-ease), background var(--jusp-fast) var(--jusp-ease),
+            box-shadow var(--jusp-fast) var(--jusp-ease), border-color var(--jusp-fast) var(--jusp-ease),
+            opacity var(--jusp-fast) var(--jusp-ease);
+          will-change: transform, box-shadow, opacity;
         }
-        .jusp-icon:hover { background: rgba(0, 0, 0, 0.04); }
-        .jusp-search-ico-btn{ font-size: 16px; line-height: 1; }
-        .jusp-cart-ico { position: relative; border: 1px solid rgba(0,0,0,0.12); }
-        .jusp-cart-badge{
+
+        .jusp-icon:hover {
+          background: rgba(0, 0, 0, 0.04);
+          transform: scale(1.03);
+          box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        .jusp-icon:active {
+          transform: scale(0.985);
+        }
+
+        .jusp-search-ico-btn {
+          font-size: 16px;
+          line-height: 1;
+        }
+
+        .jusp-cart-ico {
+          position: relative;
+          border: 1px solid rgba(0, 0, 0, 0.12);
+        }
+
+        .jusp-cart-badge {
           position: absolute;
           top: -6px;
           right: -6px;
@@ -1187,21 +1288,34 @@ export default function Header() {
           font-size: 11px;
           display: grid;
           place-items: center;
-          border: 1px solid rgba(255,255,255,0.18);
+          border: 1px solid rgba(255, 255, 255, 0.18);
         }
-        .jusp-cart-ico.bump { animation: juspCartBump 240ms ease; }
+
+        .jusp-cart-ico.bump {
+          animation: juspCartBump 240ms var(--jusp-ease);
+        }
+
         @keyframes juspCartBump {
           0% { transform: scale(1); }
           35% { transform: scale(1.08); }
           100% { transform: scale(1); }
         }
 
-        .jusp-account-ico{ color: #111 !important; border-color: rgba(0,0,0,0.12); }
-        .jusp-account-ico.active{
-          border-color: rgba(34,197,94,0.55);
-          box-shadow: 0 0 0 3px rgba(34,197,94,0.16);
+        .jusp-account-ico {
+          color: #111 !important;
+          border-color: rgba(0, 0, 0, 0.12);
         }
-        .jusp-ico-glyph{ color:#111 !important; filter: saturate(0) brightness(0.1); }
+
+        .jusp-account-ico.active {
+          border-color: rgba(34, 197, 94, 0.55);
+          box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.16);
+        }
+
+        .jusp-ico-glyph {
+          color: #111 !important;
+          filter: saturate(0) brightness(0.1);
+        }
+
         .jusp-dot {
           position: absolute;
           right: 6px;
@@ -1213,7 +1327,10 @@ export default function Header() {
           border: 2px solid #fff;
         }
 
-        .jusp-account-wrap { position: relative; }
+        .jusp-account-wrap {
+          position: relative;
+        }
+
         .jusp-account-mega {
           position: absolute;
           top: 100%;
@@ -1225,7 +1342,15 @@ export default function Header() {
           box-shadow: 0 18px 40px rgba(0, 0, 0, 0.12);
           padding: 14px;
           margin-top: 10px;
+          transform-origin: top right;
+          animation: juspPop var(--jusp-fast) var(--jusp-ease) both;
         }
+
+        @keyframes juspPop {
+          from { opacity: 0; transform: translateY(-6px) scale(0.985); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
         .jusp-account-mega::before {
           content: "";
           position: absolute;
@@ -1234,6 +1359,7 @@ export default function Header() {
           top: -10px;
           height: 10px;
         }
+
         @media (max-width: 920px) {
           .jusp-account-mega {
             position: fixed;
@@ -1243,32 +1369,95 @@ export default function Header() {
             width: auto;
             margin-top: 0;
             z-index: 2100;
-            box-shadow: 0 22px 60px rgba(0,0,0,0.18);
+            box-shadow: 0 22px 60px rgba(0, 0, 0, 0.18);
           }
         }
-        .jusp-account-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
-        .jusp-account-title { font-weight: 800; font-size: 16px; }
-        .jusp-account-close { border: 0; background: transparent; cursor: pointer; font-size: 14px; opacity: 0.7; }
-        .jusp-account-close:hover { opacity: 1; }
-        .jusp-account-sub { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+
+        .jusp-account-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          margin-bottom: 10px;
+        }
+
+        .jusp-account-title {
+          font-weight: 800;
+          font-size: 16px;
+        }
+
+        .jusp-account-close {
+          border: 0;
+          background: transparent;
+          cursor: pointer;
+          font-size: 14px;
+          opacity: 0.7;
+          transition: opacity var(--jusp-fast) var(--jusp-ease), transform var(--jusp-fast) var(--jusp-ease);
+        }
+
+        .jusp-account-close:hover {
+          opacity: 1;
+          transform: scale(1.05);
+        }
+
+        .jusp-account-sub {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          margin-bottom: 10px;
+        }
+
         .jusp-account-chip {
-          display: inline-flex; align-items: center; gap: 8px;
-          border: 1px solid rgba(0,0,0,0.10);
-          background: rgba(0,0,0,0.03);
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          border: 1px solid rgba(0, 0, 0, 0.10);
+          background: rgba(0, 0, 0, 0.03);
           border-radius: 999px;
           padding: 6px 10px;
           font-size: 12px;
           font-weight: 900;
-          color: rgba(0,0,0,0.75);
+          color: rgba(0, 0, 0, 0.75);
         }
-        .jusp-account-chip.ok { background: rgba(34,197,94,0.10); border-color: rgba(34,197,94,0.22); color: rgba(0,0,0,0.78); }
-        .jusp-account-chip.warn { background: rgba(255,214,0,0.18); border-color: rgba(255,214,0,0.35); color: rgba(0,0,0,0.78); }
-        .jusp-account-chip.muted { opacity: 0.75; }
-        .jusp-account-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        @media (max-width: 520px) { .jusp-account-grid { grid-template-columns: 1fr; } }
-        .jusp-account-coltitle { font-size: 12px; opacity: 0.7; margin-bottom: 8px; font-weight: 700; }
+
+        .jusp-account-chip.ok {
+          background: rgba(34, 197, 94, 0.10);
+          border-color: rgba(34, 197, 94, 0.22);
+          color: rgba(0, 0, 0, 0.78);
+        }
+
+        .jusp-account-chip.warn {
+          background: rgba(255, 214, 0, 0.18);
+          border-color: rgba(255, 214, 0, 0.35);
+          color: rgba(0, 0, 0, 0.78);
+        }
+
+        .jusp-account-chip.muted {
+          opacity: 0.75;
+        }
+
+        .jusp-account-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 14px;
+        }
+
+        @media (max-width: 520px) {
+          .jusp-account-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        .jusp-account-coltitle {
+          font-size: 12px;
+          opacity: 0.7;
+          margin-bottom: 8px;
+          font-weight: 700;
+        }
+
         .jusp-account-link {
-          display: block; width: 100%;
+          display: block;
+          width: 100%;
           text-align: left;
           text-decoration: none;
           color: #111;
@@ -1278,23 +1467,62 @@ export default function Header() {
           border: 0;
           cursor: pointer;
           font: inherit;
+          transition: background var(--jusp-fast) var(--jusp-ease), transform var(--jusp-fast) var(--jusp-ease);
         }
-        .jusp-account-link:hover { background: rgba(0, 0, 0, 0.04); }
-        .jusp-account-link.strong { font-weight: 800; }
-        .jusp-account-link.danger { color: rgba(198,31,31,0.95); font-weight: 900; }
-        .jusp-account-benefits { display: grid; gap: 8px; }
-        .jusp-benefit { font-size: 13px; padding: 8px 10px; border-radius: 12px; background: rgba(0, 0, 0, 0.03); }
 
-        .jusp-account-skel { display: block; height: 36px; border-radius: 12px; background: rgba(0,0,0,0.05); margin-bottom: 8px; position: relative; overflow: hidden; }
-        .jusp-account-skel::after{
-          content:"";
-          position:absolute;
-          inset:0;
+        .jusp-account-link:hover {
+          background: rgba(0, 0, 0, 0.04);
+          transform: translateY(-1px);
+        }
+
+        .jusp-account-link.strong {
+          font-weight: 800;
+        }
+
+        .jusp-account-link.danger {
+          color: rgba(198, 31, 31, 0.95);
+          font-weight: 900;
+        }
+
+        .jusp-account-benefits {
+          display: grid;
+          gap: 8px;
+        }
+
+        .jusp-benefit {
+          font-size: 13px;
+          padding: 8px 10px;
+          border-radius: 12px;
+          background: rgba(0, 0, 0, 0.03);
+          transition: transform var(--jusp-fast) var(--jusp-ease);
+        }
+
+        .jusp-benefit:hover {
+          transform: translateY(-1px);
+        }
+
+        .jusp-account-skel {
+          display: block;
+          height: 36px;
+          border-radius: 12px;
+          background: rgba(0, 0, 0, 0.05);
+          margin-bottom: 8px;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .jusp-account-skel::after {
+          content: "";
+          position: absolute;
+          inset: 0;
           transform: translateX(-60%);
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
           animation: juspShimmer 1.1s linear infinite;
         }
-        @keyframes juspShimmer { to { transform: translateX(60%);} }
+
+        @keyframes juspShimmer {
+          to { transform: translateX(60%); }
+        }
 
         .jusp-burger {
           display: none;
@@ -1304,6 +1532,11 @@ export default function Header() {
           width: 40px;
           height: 40px;
           cursor: pointer;
+          transition: transform var(--jusp-fast) var(--jusp-ease);
+        }
+
+        .jusp-burger:active {
+          transform: scale(0.985);
         }
 
         .jusp-mega {
@@ -1315,11 +1548,17 @@ export default function Header() {
           z-index: 60;
           pointer-events: none;
           opacity: 0;
-          transform: translateY(-6px);
-          transition: opacity 140ms ease, transform 160ms ease;
+          transform: translateY(-6px) scale(0.995);
+          transition: opacity var(--jusp-fast) var(--jusp-ease), transform var(--jusp-fast) var(--jusp-ease);
           will-change: opacity, transform;
         }
-        .jusp-mega.open { pointer-events: auto; opacity: 1; transform: translateY(0); }
+
+        .jusp-mega.open {
+          pointer-events: auto;
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+
         .jusp-mega-inner {
           max-width: 1180px;
           margin: 0 auto;
@@ -1335,12 +1574,45 @@ export default function Header() {
           overscroll-behavior: contain;
           -webkit-overflow-scrolling: touch;
         }
-        .jusp-mega-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
-        .jusp-mega-title { font-weight: 800; font-size: 16px; }
-        .jusp-mega-viewall { text-decoration: none; font-size: 13px; opacity: 0.75; color: #111; }
-        .jusp-mega-viewall:hover { opacity: 1; }
-        .jusp-mega-grid { display: grid; gap: 14px; }
-        .jusp-mega-col-title { font-size: 12px; font-weight: 800; opacity: 0.7; margin-bottom: 8px; }
+
+        .jusp-mega-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          margin-bottom: 10px;
+        }
+
+        .jusp-mega-title {
+          font-weight: 800;
+          font-size: 16px;
+        }
+
+        .jusp-mega-viewall {
+          text-decoration: none;
+          font-size: 13px;
+          opacity: 0.75;
+          color: #111;
+          transition: opacity var(--jusp-fast) var(--jusp-ease), transform var(--jusp-fast) var(--jusp-ease);
+        }
+
+        .jusp-mega-viewall:hover {
+          opacity: 1;
+          transform: translateY(-1px);
+        }
+
+        .jusp-mega-grid {
+          display: grid;
+          gap: 14px;
+        }
+
+        .jusp-mega-col-title {
+          font-size: 12px;
+          font-weight: 800;
+          opacity: 0.7;
+          margin-bottom: 8px;
+        }
+
         .jusp-mega-link {
           display: block;
           text-decoration: none;
@@ -1348,10 +1620,20 @@ export default function Header() {
           padding: 6px 8px;
           border-radius: 12px;
           font-size: 13px;
+          transition: background var(--jusp-fast) var(--jusp-ease), transform var(--jusp-fast) var(--jusp-ease);
         }
-        .jusp-mega-link:hover { background: rgba(0, 0, 0, 0.04); }
 
-        .jusp-search-overlay { position: fixed; inset: 0; z-index: 80; }
+        .jusp-mega-link:hover {
+          background: rgba(0, 0, 0, 0.04);
+          transform: translateY(-1px);
+        }
+
+        .jusp-search-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 80;
+        }
+
         .jusp-search-backdrop {
           position: absolute;
           inset: 0;
@@ -1359,8 +1641,9 @@ export default function Header() {
           backdrop-filter: blur(10px);
           border: 0;
           opacity: 0;
-          animation: juspFadeIn 160ms ease forwards;
+          animation: juspFadeIn var(--jusp-fast) var(--jusp-ease) forwards;
         }
+
         .jusp-search-panel {
           position: relative;
           z-index: 2;
@@ -1368,16 +1651,21 @@ export default function Header() {
           height: 100%;
           display: flex;
           flex-direction: column;
-          transform: translateY(10px);
+          transform: translateY(10px) scale(0.995);
           opacity: 0;
-          animation: juspPanelIn 180ms cubic-bezier(.2,.8,.2,1) forwards;
+          animation: juspPanelIn var(--jusp-fast) var(--jusp-ease) forwards;
           will-change: transform, opacity;
         }
-        @keyframes juspFadeIn { to { opacity: 1; } }
-        @keyframes juspPanelIn {
-          0% { opacity: 0; transform: translateY(10px); }
-          100% { opacity: 1; transform: translateY(0); }
+
+        @keyframes juspFadeIn {
+          to { opacity: 1; }
         }
+
+        @keyframes juspPanelIn {
+          0% { opacity: 0; transform: translateY(10px) scale(0.995); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
         @media (prefers-reduced-motion: reduce) {
           .jusp-mega,
           .jusp-search-panel,
@@ -1391,17 +1679,82 @@ export default function Header() {
           }
         }
 
-        .jusp-search-top { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid rgba(0, 0, 0, 0.08); }
-        .jusp-search-brand { font-weight: 900; letter-spacing: 0.12em; }
-        .jusp-search-inputwrap { position: relative; display: flex; align-items: center; gap: 10px; border: 1px solid rgba(0, 0, 0, 0.14); border-radius: 999px; padding: 10px 14px 10px 38px; }
-        .jusp-search-ico { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); opacity: 0.65; }
-        .jusp-search-input { width: 100%; border: 0; outline: none; font-size: 14px; background: transparent; }
-        .jusp-search-cancel { border: 0; background: transparent; cursor: pointer; font-weight: 700; opacity: 0.8; }
-        .jusp-search-cancel:hover { opacity: 1; }
-        .jusp-search-body { padding: 18px; padding-top: calc(18px + var(--jusp-header-h)); flex: 1; overflow: auto; }
-        .jusp-search-cols.nike { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 320px 1fr; gap: 22px; }
+        .jusp-search-top {
+          display: grid;
+          grid-template-columns: auto 1fr auto;
+          align-items: center;
+          gap: 12px;
+          padding: 14px 18px;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        }
 
-        /* ===== MOBILE DRAWER NIVEL DIOS (solo drawer) ===== */
+        .jusp-search-brand {
+          font-weight: 900;
+          letter-spacing: 0.12em;
+        }
+
+        .jusp-search-inputwrap {
+          position: relative;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          border: 1px solid rgba(0, 0, 0, 0.14);
+          border-radius: 999px;
+          padding: 10px 14px 10px 38px;
+          transition: box-shadow var(--jusp-fast) var(--jusp-ease), border-color var(--jusp-fast) var(--jusp-ease);
+        }
+
+        .jusp-search-inputwrap:focus-within {
+          border-color: rgba(0, 0, 0, 0.22);
+          box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+        }
+
+        .jusp-search-ico {
+          position: absolute;
+          left: 14px;
+          top: 50%;
+          transform: translateY(-50%);
+          opacity: 0.65;
+        }
+
+        .jusp-search-input {
+          width: 100%;
+          border: 0;
+          outline: none;
+          font-size: 14px;
+          background: transparent;
+        }
+
+        .jusp-search-cancel {
+          border: 0;
+          background: transparent;
+          cursor: pointer;
+          font-weight: 700;
+          opacity: 0.8;
+          transition: opacity var(--jusp-fast) var(--jusp-ease), transform var(--jusp-fast) var(--jusp-ease);
+        }
+
+        .jusp-search-cancel:hover {
+          opacity: 1;
+          transform: translateY(-1px);
+        }
+
+        .jusp-search-body {
+          padding: 18px;
+          padding-top: calc(18px + var(--jusp-header-h));
+          flex: 1;
+          overflow: auto;
+        }
+
+        .jusp-search-cols.nike {
+          max-width: 1180px;
+          margin: 0 auto;
+          display: grid;
+          grid-template-columns: 320px 1fr;
+          gap: 22px;
+        }
+
+        /* ===== MOBILE DRAWER (tu versión ya pro, solo mantengo) ===== */
         .jusp-mdrawer-wrap { position: fixed; inset: 0; z-index: 90; }
         .jusp-mdrawer-backdrop {
           position: absolute;
@@ -1409,7 +1762,7 @@ export default function Header() {
           background: rgba(0, 0, 0, 0.42);
           border: 0;
           opacity: 0;
-          animation: juspFadeIn 160ms ease forwards;
+          animation: juspFadeIn var(--jusp-fast) var(--jusp-ease) forwards;
         }
         .jusp-mdrawer {
           position: absolute;
@@ -1423,16 +1776,16 @@ export default function Header() {
           border-left: 1px solid rgba(255,255,255,0.10);
           box-shadow: -18px 0 60px rgba(0,0,0,0.42);
           padding: 12px 14px 16px;
-          transform: translateX(12px);
+          transform: translateX(12px) scale(0.995);
           opacity: 0;
-          animation: juspDrawerIn 180ms cubic-bezier(.2,.8,.2,1) forwards;
+          animation: juspDrawerIn var(--jusp-fast) var(--jusp-ease) forwards;
           will-change: transform, opacity;
           isolation: isolate;
           color: rgba(255,255,255,0.92);
         }
         @keyframes juspDrawerIn {
-          0% { opacity: 0; transform: translateX(12px); }
-          100% { opacity: 1; transform: translateX(0); }
+          0% { opacity: 0; transform: translateX(12px) scale(0.995); }
+          100% { opacity: 1; transform: translateX(0) scale(1); }
         }
         .jusp-mdrawer-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
         .jusp-mdrawer-title { font-weight: 950; letter-spacing: 0.02em; color: rgba(255,255,255,0.92); }
@@ -1449,10 +1802,9 @@ export default function Header() {
           cursor: pointer;
           font-weight: 900;
           color: rgba(255,255,255,0.92);
+          transition: transform var(--jusp-fast) var(--jusp-ease), background var(--jusp-fast) var(--jusp-ease);
         }
         .jusp-mdrawer-search:active { transform: translateY(1px); }
-
-        /* ✅ Fondo SOLO detrás del texto (chip glass premium) */
         .jusp-mdrawer-linktext{
           display: inline-flex;
           align-items: center;
@@ -1467,7 +1819,6 @@ export default function Header() {
           backdrop-filter: blur(10px);
           -webkit-backdrop-filter: blur(10px);
         }
-
         .jusp-mdrawer-links { margin-top: 12px; display: grid; gap: 10px; }
         .jusp-mdrawer-link {
           padding: 10px 10px;
@@ -1475,10 +1826,10 @@ export default function Header() {
           text-decoration: none;
           border: 1px solid rgba(255,255,255,0.10);
           background: rgba(255,255,255,0.04);
+          transition: transform var(--jusp-fast) var(--jusp-ease), background var(--jusp-fast) var(--jusp-ease), border-color var(--jusp-fast) var(--jusp-ease);
         }
-        .jusp-mdrawer-link:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.14); }
+        .jusp-mdrawer-link:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.14); transform: translateY(-1px); }
 
-        /* OFERTAS: acento rojo premium + chip legible */
         .jusp-mdrawer-link.jusp-nav-sale { border-color: rgba(255, 60, 60, 0.22); }
         .jusp-mdrawer-link.jusp-nav-sale .jusp-mdrawer-linktext{
           background: rgba(255, 60, 60, 0.12);
@@ -1496,7 +1847,6 @@ export default function Header() {
         }
         .jusp-mdrawer-actions a { text-decoration: none; color: rgba(255,255,255,0.92); font-weight: 900; }
         .jusp-mdrawer-actions a:hover { color: rgba(255,255,255,1); }
-
         .jusp-mdrawer-cartbtn{
           border:0;
           background:transparent;
