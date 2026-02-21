@@ -1,116 +1,36 @@
-import Jusp360Viewer from "./Jusp360Viewer";
-import { build360Frames } from "./build360Frames";
+"use client";
 
-export default function Page() {
-  const slug = "nike-bra-black";
+import Sprite360Viewer from "../360-sprite/Sprite360Viewer";
 
-  // Según tu carpeta: 01-05 .jpeg y 06-12 .jpg
-  const extByIndex: Record<number, "jpeg" | "jpg"> = {
-    1: "jpeg",
-    2: "jpeg",
-    3: "jpeg",
-    4: "jpeg",
-    5: "jpeg",
-    6: "jpg",
-    7: "jpg",
-    8: "jpg",
-    9: "jpg",
-    10: "jpg",
-    11: "jpg",
-    12: "jpg",
-  };
-
-  const frames = build360Frames({
-    slug,
-    count: 12,
-    filePrefix: "",
-    pad: 2,
-    extByIndex,
-    defaultExt: "jpg",
-  });
-
+export default function Demo360Page() {
   return (
     <main
       style={{
-        minHeight: "100vh",
-        background: "#f4f4f5",
-        padding: "32px 16px",
+        maxWidth: 900,
+        margin: "0 auto",
+        padding: "40px 20px",
       }}
     >
-      {/* Wrapper que SIEMPRE centra y limita */}
-      <div
+      <h1
         style={{
-          width: "100%",
-          display: "flex",
-          justifyContent: "center",
+          fontSize: 32,
+          fontWeight: 600,
+          marginBottom: 30,
         }}
       >
-        {/* Contenedor con ancho forzado (clamp) */}
-        <div
-          style={{
-            width: "clamp(280px, 92vw, 440px)",
-            maxWidth: "440px",
-          }}
-        >
-          <h1
-            style={{
-              fontSize: 26,
-              fontWeight: 800,
-              textAlign: "center",
-              margin: "0 0 18px 0",
-              color: "#111827",
-            }}
-          >
-            360° Viewer — JUSP
-          </h1>
+        360° Viewer — JUSP
+      </h1>
 
-          {/* Card */}
-          <div
-            style={{
-              background: "#ffffff",
-              borderRadius: 20,
-              padding: 14,
-              boxShadow: "0 18px 50px rgba(0,0,0,0.10)",
-              overflow: "hidden", // 👈 corta cualquier desborde sí o sí
-            }}
-          >
-            {/* Wrapper extra para forzar ancho */}
-            <div
-              style={{
-                width: "100%",
-                maxWidth: "100%",
-                margin: "0 auto",
-                overflow: "hidden",
-                borderRadius: 16,
-              }}
-            >
-              <Jusp360Viewer
-                frames={frames}
-                alt="Producto 360"
-                aspectRatio="4/5" // vertical
-                sensitivity={8}
-                loop
-                enableWheel
-                showHint
-                brandLabel="JUSP"
-                brandTagline="Originales. Directo."
-              />
-            </div>
-          </div>
-
-          {/* Nota */}
-          <div
-            style={{
-              marginTop: 12,
-              fontSize: 12,
-              color: "#6b7280",
-              textAlign: "center",
-            }}
-          >
-            Frames: <b>{frames.length}</b> — ejemplo: <b>{frames[0]}</b>
-          </div>
-        </div>
-      </div>
+      <Sprite360Viewer
+        spriteUrl="/360/nike-bra-black/sprite.jpeg"
+        frames={12}
+        aspectRatio="1/1"
+        sensitivity={8}
+        loop
+        enableWheel
+        label="JUSP"
+        tagline="Originales. Directo."
+      />
     </main>
   );
 }
