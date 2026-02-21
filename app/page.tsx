@@ -26,11 +26,6 @@ const TOP_ITEMS: TopItem[] = [
 ];
 
 type CardItem = {
-  /**
-   * Algunos módulos usan "cards" y otros usan "grupos de links".
-   * Para evitar errores de TypeScript al mezclar estructuras, hacemos campos opcionales
-   * y renderizamos según existan.
-   */
   id?: string;
   kicker?: string;
   title: string;
@@ -58,10 +53,8 @@ export default function Page() {
   const scrollToTopPicks = () => {
     const section = document.getElementById("top-picks");
     if (!section) return;
-    // Scroll with a small offset to account for the sticky header
     const y = section.getBoundingClientRect().top + window.scrollY - 96;
     window.scrollTo({ top: y, behavior: "smooth" });
-    // Never leave a hash in the URL (so refresh doesn't jump)
     if (typeof window !== "undefined" && window.location.hash) {
       try {
         window.history.replaceState(null, "", window.location.pathname + window.location.search);
@@ -69,7 +62,6 @@ export default function Page() {
     }
   };
 
-  // Always start at the top on refresh/navigation (prevents browser scroll restoration)
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
@@ -91,12 +83,9 @@ export default function Page() {
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
-
     const tryPlay = () => v.play().catch(() => {});
-    // Ensure the new source starts playing after swap
     v.load();
     tryPlay();
-    // Some browsers need a ready event after swapping sources
     v.addEventListener("loadeddata", tryPlay);
     v.addEventListener("canplay", tryPlay);
     return () => {
@@ -107,19 +96,11 @@ export default function Page() {
 
   /* ==========================================
      BLOQUE 2 · LO MÁS TOP (CARRUSEL PRO MAX)
-     ✅ 10 productos
-     ✅ 1 producto por pantalla
-     ✅ Auto-rotación
-     ✅ Swipe Nike-like (resistencia + snap)
-     ✅ FIX PC: no “bloquea” el scroll de la página
-        - Drag SOLO en touch/pen
-        - Mouse solo hover/click (sin pointer capture / preventDefault)
      ========================================== */
   const topItems = TOP_ITEMS;
 
   /* ==========================================
-     SEARCH PRO MAX (predictivo + resultados con imágenes)
-     + Auth (login/registro) con onboarding premium (front-only)
+     SEARCH PRO MAX
      ========================================== */
   const SEARCH_RECENTS_KEY = "jusp_home_search_recents_v1";
   const USER_KEY = "jusp_user_v1";
@@ -131,6 +112,7 @@ export default function Page() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const cacheRef = useRef<Map<string, SearchItem[]>>(new Map());
   const lastQueryRef = useRef<string>("");
+
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [user, setUser] = useState<UserSession | null>(null);
@@ -138,18 +120,13 @@ export default function Page() {
   const [authEmail, setAuthEmail] = useState("");
   const [authErr, setAuthErr] = useState<string | null>(null);
 
-  // onboarding
   const [onboardingStep, setOnboardingStep] = useState<0 | 1 | 2>(0);
   const [prefFocus, setPrefFocus] = useState<PrefFocus>("mix");
   const [prefSizes, setPrefSizes] = useState<string[]>([]);
   const [prefInterests, setPrefInterests] = useState<string[]>([]);
 
   /* ==========================================
-     NEWSLETTER (Nike-style) — modal "carta" (UX premium)
-     - Aparece SOLO a usuarios nuevos (por dispositivo)
-     - Se puede cerrar con X sin dejar correo (no vuelve por 30 días)
-     - Si se suscribe, se marca como suscrito y no vuelve a aparecer
-     - POST /api/marketing/subscribe  { email, source, ts }
+     NEWSLETTER (Nike-style)
      ========================================== */
   const NL_HIDE_KEY = "jusp_newsletter_hide_until_v1";
   const NL_SUB_KEY = "jusp_newsletter_subscribed_v1";
@@ -189,7 +166,6 @@ export default function Page() {
   }
 
   useEffect(() => {
-    // Decide si mostrar el modal (solo usuarios nuevos)
     try {
       const isSub = localStorage.getItem(NL_SUB_KEY) === "1";
       setNlSubscribed(isSub);
@@ -200,7 +176,6 @@ export default function Page() {
         return () => window.clearTimeout(t);
       }
     } catch {
-      // Si localStorage falla, igual mostramos (pero sin persistencia)
       const t = window.setTimeout(() => setNlOpen(true), 900);
       return () => window.clearTimeout(t);
     }
@@ -210,7 +185,6 @@ export default function Page() {
     setNlOpen(false);
     setNlMsg("");
     setNlStatus("idle");
-    // No volver a mostrar por 30 días
     writeHideDays(30);
   }
 
@@ -239,7 +213,6 @@ export default function Page() {
       setNlEmail("");
       setNlSubscribed(true);
       writeSubscribed();
-      // Cierra automáticamente después de un momento
       window.setTimeout(() => setNlOpen(false), 900);
     } catch {
       setNlStatus("error");
@@ -301,7 +274,6 @@ export default function Page() {
   }, []);
 
   const searchIndex: SearchItem[] = useMemo(() => {
-    // Índice simple (local) para resultados con imagen. Puedes expandir esto cuando tengas catálogo real.
     const base: SearchItem[] = topItems.slice(0, 10).map((t) => ({
       id: t.id,
       name: t.name,
@@ -339,7 +311,6 @@ export default function Page() {
     window.location.href = `/products?q=${encodeURIComponent(s)}`;
   };
 
-  // Predictivo + cache: si repite patrón (prefijo), reducimos el debounce a 0.
   useEffect(() => {
     if (!searchOpen) return;
     const trimmed = q.trim();
@@ -379,7 +350,6 @@ export default function Page() {
           if (name.startsWith(lower)) score += 6;
           if (name.includes(lower)) score += 3;
           if (brand.includes(lower)) score += 2;
-          // micro-boost por usuario recurrente / logueado (prioridad, no diseño)
           if (user?.email) score += 0.2;
           return { p, score };
         })
@@ -395,7 +365,6 @@ export default function Page() {
     return () => window.clearTimeout(t);
   }, [q, searchOpen, searchIndex, searchRecents, user?.email]);
 
-  // Shortcut: "/" para buscar, ESC para cerrar
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "/" && !searchOpen) {
@@ -442,7 +411,6 @@ export default function Page() {
     }
     const existing = safeLoadUser();
     if (authMode === "login") {
-      // Login rápido (front-only)
       const u: UserSession =
         existing?.email === email
           ? { ...existing, lastSeenAt: Date.now() }
@@ -450,7 +418,6 @@ export default function Page() {
       completeLogin(u);
       return;
     }
-    // Signup + onboarding premium
     const u: UserSession = {
       email,
       name: authName.trim() || undefined,
@@ -488,16 +455,10 @@ export default function Page() {
     const io = new IntersectionObserver(
       (entries) => {
         const en = entries[0];
-        // en.isIntersecting suele ser suficiente; añadimos ratio para evitar flapping.
         const ok = !!en?.isIntersecting && (en.intersectionRatio ?? 0) > 0.12;
         setTopInView(ok);
-        // Si el usuario ya se fue del bloque, pausa para que no “jale” la página.
-        if (!ok) {
-          setTopPaused(true);
-        } else {
-          // Al volver, permitimos auto-rotación (si no está arrastrando).
-          setTopPaused(false);
-        }
+        if (!ok) setTopPaused(true);
+        else setTopPaused(false);
       },
       { root: null, threshold: [0, 0.12, 0.2, 0.4, 0.8] }
     );
@@ -516,12 +477,7 @@ export default function Page() {
     pointerId: number | null;
     startX: number;
     startScrollLeft: number;
-  }>({
-    down: false,
-    pointerId: null,
-    startX: 0,
-    startScrollLeft: 0,
-  });
+  }>({ down: false, pointerId: null, startX: 0, startScrollLeft: 0 });
 
   const [rubberX, setRubberX] = useState(0);
   const rubberXRef = useRef(0);
@@ -537,7 +493,6 @@ export default function Page() {
     return { max };
   };
 
-  // ✅ FIX CLAVE: scroll horizontal PURO (NO usa scrollIntoView porque eso mueve el scroll vertical)
   const scrollTopCardHorizontallyToIndex = (idx: number, behavior: ScrollBehavior = "smooth") => {
     const vp = topViewportRef.current;
     const el = topCardRefs.current[idx];
@@ -583,8 +538,6 @@ export default function Page() {
 
   useEffect(() => {
     if (topPaused || !topInView) return;
-    // ✅ antes: scrollIntoView() (jalaba la página)
-    // ✅ ahora: scroll horizontal puro
     scrollTopCardHorizontallyToIndex(topActive, "smooth");
   }, [topActive, topPaused, topInView]);
 
@@ -600,7 +553,6 @@ export default function Page() {
     if (resume) window.setTimeout(() => setTopPaused(false), 450);
   };
 
-  // ✅ FIX “se queda pegado”: si el pointerup ocurre fuera, igual cerramos
   useEffect(() => {
     if (!isDragging) return;
     const onUp = () => endDrag(true);
@@ -615,7 +567,6 @@ export default function Page() {
     };
   }, [isDragging]);
 
-  // ✅ Drag solo en touch/pen (en PC mouse NO captura y NO bloquea el scroll vertical)
   const onTopPointerDown: React.PointerEventHandler<HTMLDivElement> = (e) => {
     const vp = topViewportRef.current;
     if (!vp) return;
@@ -631,7 +582,6 @@ export default function Page() {
     try {
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     } catch {}
-    // en touch sí evitamos selección/gestos raros; en mouse no entramos aquí
     e.preventDefault();
   };
 
@@ -673,37 +623,29 @@ export default function Page() {
     endDrag(true);
   };
 
-  // ✅ FIX PC (wheel / trackpad):
-  // En contenedores con overflow-x, el scroll vertical suele convertirse en scroll horizontal
-  // (y parece que la página “se queda pegada” en el carrusel). Aquí enviamos el deltaY al window.
   const onTopWheel: React.WheelEventHandler<HTMLDivElement> = (e) => {
     const vp = topViewportRef.current;
     if (!vp) return;
-    // Si el usuario está usando horizontal real (trackpad) o SHIFT, no interferimos.
     const absX = Math.abs(e.deltaX);
     const absY = Math.abs(e.deltaY);
     if (e.shiftKey || absX > absY) return;
-    // Si estás arrastrando, no re-enviamos (para no pelear con el drag).
     if (dragRef.current.down) return;
-    // Evita que el carrusel “consuma” el scroll.
     e.preventDefault();
     window.scrollBy({ top: e.deltaY, left: 0, behavior: "auto" });
   };
 
-  // ✅ si sales del carrusel mientras arrastras (touch), cerramos drag
   const onTopPointerLeave: React.PointerEventHandler<HTMLDivElement> = () => {
     if (!dragRef.current.down) return;
     endDrag(true);
   };
 
   /* ==========================================
-     BLOQUE 3 · SELECCIÓN CURADA (iPhone Photos)
-     ✅ Solo imágenes
-     ✅ Deslizar horizontal (touch + mouse)
-     ✅ Snap suave (iOS feeling)
-     ✅ FIX PC: el wheel vertical NO se queda pegado
+     BLOQUE 3 · STORIES (FIX VISUAL)
+     ✅ Cards verticales 9:16
+     ✅ Varias visibles (se ve premium)
+     ✅ Snap suave y sombra limpia
+     ✅ Wheel vertical no se pega
      ========================================== */
-  // ✅ AQUÍ VAN TUS IMÁGENES: public/home/stories/story-01.jpeg ... story-11.jpeg
   const curatedSlides = useMemo(
     () => [
       { id: "st01", href: "/products?tag=curated", img: "/home/stories/story-01.jpeg", alt: "JUSP Story 01" },
@@ -728,9 +670,7 @@ export default function Page() {
     if (!vp) return;
     const absX = Math.abs(e.deltaX);
     const absY = Math.abs(e.deltaY);
-    // Si el gesto es horizontal (o SHIFT), dejamos que el carrusel lo use.
     if (e.shiftKey || absX > absY) return;
-    // Si es vertical, lo re-enviamos al window para que la página no se "pegue".
     e.preventDefault();
     window.scrollBy({ top: e.deltaY, left: 0, behavior: "auto" });
   };
@@ -793,9 +733,7 @@ export default function Page() {
     []
   );
 
-  const isCard = (
-    c: CardItem
-  ): c is Required<Pick<CardItem, "id" | "kicker" | "desc" | "href" | "img">> & { title: string } => {
+  const isCard = (c: CardItem): c is Required<Pick<CardItem, "id" | "kicker" | "desc" | "href" | "img">> & { title: string } => {
     return Boolean(c && c.id && c.kicker && c.desc && c.href && c.img);
   };
 
@@ -810,7 +748,7 @@ export default function Page() {
 
   return (
     <main style={{ overflowX: "hidden", background: "#fff", color: "#000" }}>
-      {/* ✅ Newsletter modal tipo Nike (solo usuarios nuevos por dispositivo) */}
+      {/* ✅ Newsletter modal tipo Nike */}
       {nlOpen ? (
         <div
           role="dialog"
@@ -965,6 +903,27 @@ export default function Page() {
             >
               Ver lo más top
             </button>
+
+            {/* acceso rápido al buscador (esto NO es el header global) */}
+            <button
+              type="button"
+              onClick={openSearch}
+              style={{
+                borderRadius: 999,
+                height: 46,
+                width: 54,
+                fontWeight: 1000,
+                background: "rgba(255,255,255,0.12)",
+                color: "white",
+                border: "1px solid rgba(255,255,255,0.18)",
+                boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+                cursor: "pointer",
+              }}
+              aria-label="Buscar"
+              title="Buscar"
+            >
+              🔍
+            </button>
           </div>
         </div>
       </section>
@@ -982,7 +941,9 @@ export default function Page() {
             <div>
               <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.2, opacity: 0.7 }}>LO MÁS TOP</div>
               <div style={{ fontSize: 22, fontWeight: 1000, marginTop: 6 }}>Top picks (10)</div>
-              <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75 }}>Swipe Nike-like + snap. Auto-rotación se pausa al interactuar.</div>
+              <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75 }}>
+                Swipe Nike-like + snap. Auto-rotación se pausa al interactuar.
+              </div>
             </div>
             <Link href="/products?tag=top" style={{ fontSize: 13, fontWeight: 900, textDecoration: "none", color: "#000", opacity: 0.85 }}>
               Ver todo →
@@ -1044,7 +1005,9 @@ export default function Page() {
                       overflow: "hidden",
                       border: "1px solid rgba(0,0,0,0.08)",
                       boxShadow: isActive ? "0 22px 80px rgba(0,0,0,0.18)" : "0 10px 30px rgba(0,0,0,0.10)",
-                      transform: isActive ? "perspective(1200px) translateZ(0) scale(1.01)" : "perspective(1200px) translateZ(0) scale(0.985)",
+                      transform: isActive
+                        ? "perspective(1200px) translateZ(0) scale(1.01)"
+                        : "perspective(1200px) translateZ(0) scale(0.985)",
                       transition: "transform 420ms cubic-bezier(.2,.9,.2,1), box-shadow 420ms cubic-bezier(.2,.9,.2,1)",
                       background: "#fff",
                     }}
@@ -1102,33 +1065,46 @@ export default function Page() {
         </div>
       </section>
 
-      {/* BLOQUE 3 (NUEVO) */}
+      {/* BLOQUE 3 · STORIES (ARREGLADO) */}
       <section
         ref={(el) => {
           storySectionRef.current = el;
         }}
         style={{
-          padding: "18px 0 26px",
+          padding: "22px 0 30px",
           borderTop: "1px solid rgba(0,0,0,0.06)",
+          background: "linear-gradient(180deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.00) 100%)",
           opacity: storyInView ? 1 : 0,
           transform: storyInView ? "translateY(0px)" : "translateY(10px)",
           transition: "opacity 680ms cubic-bezier(.2,.9,.2,1), transform 680ms cubic-bezier(.2,.9,.2,1)",
         }}
       >
         <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px" }}>
+          <div style={{ display: "flex", alignItems: "end", justifyContent: "space-between", gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.2, opacity: 0.7 }}>STORIES</div>
+              <div style={{ fontSize: 22, fontWeight: 1000, marginTop: 6 }}>Curaduría JUSP</div>
+              <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75 }}>Formato vertical premium (9:16). Varias visibles, snap suave.</div>
+            </div>
+            <Link href="/products?tag=curated" style={{ fontSize: 13, fontWeight: 900, textDecoration: "none", color: "#000", opacity: 0.85 }}>
+              Ver colección →
+            </Link>
+          </div>
+
           <div
             ref={curatedViewportRef}
             onWheel={onCuratedWheel}
             style={{
+              marginTop: 14,
               overflowX: "auto",
               scrollSnapType: "x mandatory",
               WebkitOverflowScrolling: "touch",
               overscrollBehaviorX: "contain",
               scrollbarWidth: "none",
-              padding: "8px 2px 6px",
+              padding: "8px 2px 10px",
             }}
           >
-            <div style={{ display: "flex", gap: 14, alignItems: "stretch" }}>
+            <div style={{ display: "flex", gap: 12, alignItems: "stretch" }}>
               {curatedSlides.map((s) => (
                 <Link
                   key={s.id}
@@ -1136,68 +1112,76 @@ export default function Page() {
                   aria-label={s.alt}
                   style={{
                     flex: "0 0 auto",
-                    width: "min(86vw, 920px)",
-                    height: "min(62vh, 520px)",
-                    minHeight: 320,
-                    scrollSnapAlign: "center",
-                    borderRadius: 26,
-                    overflow: "hidden",
-                    border: "1px solid rgba(0,0,0,0.10)",
-                    boxShadow: "0 22px 80px rgba(0,0,0,0.16)",
-                    background: "#f4f4f4",
+                    scrollSnapAlign: "start",
                     textDecoration: "none",
-                    transform: "translateZ(0)",
-                    position: "relative",
-                    cursor: "grab",
-                  }}
-                  onMouseDown={(e) => {
-                    // feel iOS/Photos: grab feedback only
-                    (e.currentTarget as HTMLElement).style.cursor = "grabbing";
-                  }}
-                  onMouseUp={(e) => {
-                    (e.currentTarget as HTMLElement).style.cursor = "grab";
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "translateY(-1px) scale(1.01)";
-                    e.currentTarget.style.boxShadow = "0 30px 110px rgba(0,0,0,0.18)";
-                  }}
-                  onMouseLeave={(e) => {
-                    // ✅ UN SOLO onMouseLeave (antes estaba duplicado)
-                    (e.currentTarget as HTMLElement).style.cursor = "grab";
-                    e.currentTarget.style.transform = "translateY(0px) scale(1)";
-                    e.currentTarget.style.boxShadow = "0 22px 80px rgba(0,0,0,0.16)";
+                    color: "#000",
                   }}
                 >
-                  <img
-                    src={s.img}
-                    alt={s.alt}
-                    draggable={false}
-                    loading="lazy"
-                    decoding="async"
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      userSelect: "none",
-                      pointerEvents: "none",
-                    }}
-                  />
-                  {/* overlay ultra sutil para cine */}
                   <div
                     style={{
-                      position: "absolute",
-                      inset: 0,
-                      background:
-                        "radial-gradient(900px 520px at 55% 55%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.0) 55%), linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.16) 100%)",
-                      pointerEvents: "none",
-                      mixBlendMode: "soft-light",
+                      width: "min(64vw, 260px)", // ✅ varias visibles en desktop, grandes en mobile
+                      aspectRatio: "9 / 16",
+                      borderRadius: 22,
+                      overflow: "hidden",
+                      border: "1px solid rgba(0,0,0,0.10)",
+                      background: "#f2f2f2",
+                      boxShadow: "0 18px 55px rgba(0,0,0,0.14)",
+                      transform: "translateZ(0)",
+                      position: "relative",
                     }}
-                  />
+                  >
+                    <img
+                      src={s.img}
+                      alt={s.alt}
+                      draggable={false}
+                      loading="lazy"
+                      decoding="async"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        userSelect: "none",
+                        pointerEvents: "none",
+                      }}
+                    />
+                    {/* overlay cine */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        background:
+                          "linear-gradient(180deg, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.0) 40%, rgba(0,0,0,0.30) 100%)",
+                        pointerEvents: "none",
+                      }}
+                    />
+                    {/* chip */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        left: 10,
+                        top: 10,
+                        padding: "6px 10px",
+                        borderRadius: 999,
+                        background: "rgba(0,0,0,0.50)",
+                        color: "#fff",
+                        fontSize: 11,
+                        fontWeight: 1000,
+                        letterSpacing: 0.6,
+                        border: "1px solid rgba(255,255,255,0.18)",
+                        backdropFilter: "blur(10px)",
+                      }}
+                    >
+                      JUSP
+                    </div>
+                  </div>
                 </Link>
               ))}
-              {/* pequeño “peek” final sin nada */}
-              <div style={{ flex: "0 0 8px" }} />
+              <div style={{ flex: "0 0 6px" }} />
             </div>
+          </div>
+
+          <div style={{ marginTop: 6, fontSize: 12, opacity: 0.7 }}>
+            Tip PC: scroll vertical sigue funcionando (no se pega). Shift + rueda = horizontal.
           </div>
         </div>
       </section>
@@ -1286,7 +1270,7 @@ export default function Page() {
         </div>
       </section>
 
-      {/* SEARCH OVERLAY · Nike-like (full screen) */}
+      {/* SEARCH OVERLAY */}
       {searchOpen ? (
         <div
           role="dialog"
@@ -1299,12 +1283,10 @@ export default function Page() {
             backdropFilter: "blur(10px)",
           }}
           onMouseDown={(e) => {
-            // click fuera cierra
             if (e.target === e.currentTarget) closeSearch();
           }}
         >
           <div style={{ position: "absolute", inset: 0, background: "#fff", overflow: "auto" }}>
-            {/* top bar */}
             <div
               style={{
                 position: "sticky",
@@ -1338,7 +1320,7 @@ export default function Page() {
                       outline: "none",
                     }}
                   />
-                  {/* ✅ Botón Buscar → Lupa */}
+                  {/* ✅ Buscar → Lupa */}
                   <button
                     type="button"
                     onClick={() => submitSearch(q)}
@@ -1443,7 +1425,6 @@ export default function Page() {
                 ))}
               </div>
 
-              {/* micro-UX: clear recents */}
               {!q.trim() && searchRecents.length ? (
                 <button
                   type="button"
@@ -1471,7 +1452,7 @@ export default function Page() {
         </div>
       ) : null}
 
-      {/* AUTH MODAL · login/registro + onboarding */}
+      {/* AUTH MODAL (igual que antes) */}
       {authOpen ? (
         <div
           role="dialog"
