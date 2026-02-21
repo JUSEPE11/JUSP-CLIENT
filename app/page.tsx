@@ -383,19 +383,6 @@ export default function Page() {
     return () => window.removeEventListener("keydown", onKey);
   }, [searchOpen, authOpen]);
 
-  const openAuth = (mode: "login" | "signup" = "login") => {
-    setAuthMode(mode);
-    setAuthOpen(true);
-    setAuthErr(null);
-    setOnboardingStep(0);
-    setPrefFocus("mix");
-    setPrefSizes([]);
-    setPrefInterests([]);
-    setAuthName("");
-    setAuthEmail("");
-    setSearchOpen(false);
-  };
-
   const completeLogin = (u: UserSession) => {
     const next: UserSession = { ...u, lastSeenAt: Date.now() };
     setUser(next);
@@ -640,11 +627,7 @@ export default function Page() {
   };
 
   /* ==========================================
-     BLOQUE 3 · STORIES (FIX VISUAL)
-     ✅ Cards verticales 9:16
-     ✅ Varias visibles (se ve premium)
-     ✅ Snap suave y sombra limpia
-     ✅ Wheel vertical no se pega
+     BLOQUE 3 · STORIES (VISUAL PRO)
      ========================================== */
   const curatedSlides = useMemo(
     () => [
@@ -733,7 +716,9 @@ export default function Page() {
     []
   );
 
-  const isCard = (c: CardItem): c is Required<Pick<CardItem, "id" | "kicker" | "desc" | "href" | "img">> & { title: string } => {
+  const isCard = (
+    c: CardItem
+  ): c is Required<Pick<CardItem, "id" | "kicker" | "desc" | "href" | "img">> & { title: string } => {
     return Boolean(c && c.id && c.kicker && c.desc && c.href && c.img);
   };
 
@@ -884,47 +869,9 @@ export default function Page() {
           <div style={{ color: "#fff", opacity: 0.92, fontSize: 12, letterSpacing: 1.6, fontWeight: 800 }}>
             JUSP · ORIGINALES · PREMIUM
           </div>
-          <h1 style={{ color: "#fff", margin: "10px 0 10px", fontSize: 46, lineHeight: 1.05 }}>JUSP · DO MORE</h1>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 18 }}>
-            <button
-              type="button"
-              onClick={scrollToTopPicks}
-              style={{
-                borderRadius: 999,
-                padding: "14px 22px",
-                fontWeight: 700,
-                background: "white",
-                color: "black",
-                border: "1px solid rgba(255,255,255,0.06)",
-                boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
-                cursor: "pointer",
-                lineHeight: 1,
-              }}
-            >
-              Ver lo más top
-            </button>
+          <h1 style={{ color: "#fff", margin: "10px 0 0", fontSize: 46, lineHeight: 1.05 }}>JUSP · DO MORE</h1>
 
-            {/* acceso rápido al buscador (esto NO es el header global) */}
-            <button
-              type="button"
-              onClick={openSearch}
-              style={{
-                borderRadius: 999,
-                height: 46,
-                width: 54,
-                fontWeight: 1000,
-                background: "rgba(255,255,255,0.12)",
-                color: "white",
-                border: "1px solid rgba(255,255,255,0.18)",
-                boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
-                cursor: "pointer",
-              }}
-              aria-label="Buscar"
-              title="Buscar"
-            >
-              🔍
-            </button>
-          </div>
+          {/* ✅ (QUITADOS) Botón "Ver lo más top" y Botón lupa */}
         </div>
       </section>
 
@@ -1065,7 +1012,7 @@ export default function Page() {
         </div>
       </section>
 
-      {/* BLOQUE 3 · STORIES (ARREGLADO) */}
+      {/* BLOQUE 3 · STORIES (SOLO "EDITORIAL" + SIN "VER COLECCIÓN") */}
       <section
         ref={(el) => {
           storySectionRef.current = el;
@@ -1082,13 +1029,11 @@ export default function Page() {
         <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px" }}>
           <div style={{ display: "flex", alignItems: "end", justifyContent: "space-between", gap: 12 }}>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.2, opacity: 0.7 }}>STORIES</div>
-              <div style={{ fontSize: 22, fontWeight: 1000, marginTop: 6 }}>Curaduría JUSP</div>
-              <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75 }}>Formato vertical premium (9:16). Varias visibles, snap suave.</div>
+              <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.2, opacity: 0.7 }}>EDITORIAL</div>
+              {/* ✅ (QUITADO) "Editorial JUSP · Nivel Dios" */}
             </div>
-            <Link href="/products?tag=curated" style={{ fontSize: 13, fontWeight: 900, textDecoration: "none", color: "#000", opacity: 0.85 }}>
-              Ver colección →
-            </Link>
+
+            {/* ✅ (QUITADO) "Ver colección →" */}
           </div>
 
           <div
@@ -1119,7 +1064,7 @@ export default function Page() {
                 >
                   <div
                     style={{
-                      width: "min(64vw, 260px)", // ✅ varias visibles en desktop, grandes en mobile
+                      width: "min(64vw, 260px)",
                       aspectRatio: "9 / 16",
                       borderRadius: 22,
                       overflow: "hidden",
@@ -1144,7 +1089,6 @@ export default function Page() {
                         pointerEvents: "none",
                       }}
                     />
-                    {/* overlay cine */}
                     <div
                       style={{
                         position: "absolute",
@@ -1154,7 +1098,6 @@ export default function Page() {
                         pointerEvents: "none",
                       }}
                     />
-                    {/* chip */}
                     <div
                       style={{
                         position: "absolute",
@@ -1178,10 +1121,6 @@ export default function Page() {
               ))}
               <div style={{ flex: "0 0 6px" }} />
             </div>
-          </div>
-
-          <div style={{ marginTop: 6, fontSize: 12, opacity: 0.7 }}>
-            Tip PC: scroll vertical sigue funcionando (no se pega). Shift + rueda = horizontal.
           </div>
         </div>
       </section>
@@ -1270,7 +1209,7 @@ export default function Page() {
         </div>
       </section>
 
-      {/* SEARCH OVERLAY */}
+      {/* SEARCH OVERLAY (queda disponible por tecla "/" aunque quitamos botones del hero) */}
       {searchOpen ? (
         <div
           role="dialog"
@@ -1320,7 +1259,6 @@ export default function Page() {
                       outline: "none",
                     }}
                   />
-                  {/* ✅ Buscar → Lupa */}
                   <button
                     type="button"
                     onClick={() => submitSearch(q)}
@@ -1452,7 +1390,7 @@ export default function Page() {
         </div>
       ) : null}
 
-      {/* AUTH MODAL (igual que antes) */}
+      {/* AUTH MODAL */}
       {authOpen ? (
         <div
           role="dialog"
