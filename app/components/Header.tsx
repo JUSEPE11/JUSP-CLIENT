@@ -1,3 +1,4 @@
+// components/Header.tsx
 "use client";
 
 import Link from "next/link";
@@ -343,7 +344,7 @@ export default function Header() {
             ],
           },
           {
-            title: "Curaduría",
+            title: "Selección Nivel Dios",
             items: [
               { label: "Editor’s selection", href: "/products?tag=editors" },
               { label: "Lo más top de la semana", href: "/products?tag=top" },
@@ -718,9 +719,8 @@ export default function Header() {
         </nav>
 
         <div className="jusp-actions">
-          {/* ✅ ÚNICO CAMBIO: Buscar -> Lupa */}
           <button className="jusp-search-btn" onClick={openSearch} aria-label="Buscar (/)">
-            <span aria-hidden="true" style={{ display: "inline-flex", alignItems: "center" }}>
+            <span className="jusp-search-ico-btn" aria-hidden="true">
               <svg
                 width="18"
                 height="18"
@@ -789,7 +789,12 @@ export default function Header() {
               >
                 <div className="jusp-account-head">
                   <div className="jusp-account-title">Cuenta</div>
-                  <button className="jusp-account-close" onClick={() => setAccountOpen(false)} aria-label="Cerrar" type="button">
+                  <button
+                    className="jusp-account-close"
+                    onClick={() => setAccountOpen(false)}
+                    aria-label="Cerrar"
+                    type="button"
+                  >
                     ✕
                   </button>
                 </div>
@@ -897,7 +902,11 @@ export default function Header() {
         </div>
       </div>
 
-      <div className={activeMenu ? "jusp-mega open" : "jusp-mega"} onMouseEnter={cancelHoverClose} onMouseLeave={scheduleHoverClose}>
+      <div
+        className={activeMenu ? "jusp-mega open" : "jusp-mega"}
+        onMouseEnter={cancelHoverClose}
+        onMouseLeave={scheduleHoverClose}
+      >
         {activeMenu ? (
           <div className="jusp-mega-inner">
             <div className="jusp-mega-top">
@@ -960,7 +969,9 @@ export default function Header() {
             <div className="jusp-search-body">
               <div className="jusp-search-cols nike">
                 <div className="jusp-search-col">
-                  <div className="jusp-search-coltitle">{q.trim() ? "Sugerencias" : recents.length ? "Recientes" : "Sugerencias"}</div>
+                  <div className="jusp-search-coltitle">
+                    {q.trim() ? "Sugerencias" : recents.length ? "Recientes" : "Sugerencias"}
+                  </div>
 
                   <div className="jusp-search-list">
                     {suggestions.map((s) => (
@@ -1208,11 +1219,15 @@ export default function Header() {
           gap: 8px;
           border: 1px solid rgba(0, 0, 0, 0.14);
           background: #fff;
-          padding: 8px 10px;
+          padding: 8px 12px;
           border-radius: 999px;
           cursor: pointer;
         }
-        .jusp-search-btn-text { font-size: 13px; }
+        .jusp-search-ico-btn{
+          display:flex;
+          align-items:center;
+          justify-content:center;
+        }
         .jusp-kbd {
           font-size: 12px;
           padding: 2px 7px;
