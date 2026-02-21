@@ -13,19 +13,17 @@ type TopItem = {
 };
 
 const TOP_ITEMS: TopItem[] = [
-      { id: "t1", name: "Air Max", href: "/products?q=air%20max", img: "/home/files/top-01.jpg", brand: "Nike", price: "Desde $—" },
-      { id: "t2", name: "Superstar", href: "/products?q=superstar", img: "/home/files/top-02.jpg", brand: "Adidas", price: "Desde $—" },
-      { id: "t3", name: "550", href: "/products?q=550", img: "/home/files/top-03.jpg", brand: "New Balance", price: "Desde $—" },
-      { id: "t4", name: "Classic", href: "/products?q=classic", img: "/home/files/top-04.jpg", brand: "Reebok", price: "Desde $—" },
-      { id: "t5", name: "Dunk Low", href: "/products?q=dunk%20low", img: "/home/files/top-05.jpg", brand: "Nike", price: "Desde $—" },
-      { id: "t6", name: "Forum", href: "/products?q=forum", img: "/home/files/top-06.jpg", brand: "Adidas", price: "Desde $—" },
-      { id: "t7", name: "Suede", href: "/products?q=suede", img: "/home/files/top-07.jpg", brand: "Puma", price: "Desde $—" },
-      { id: "t8", name: "Gel", href: "/products?q=gel", img: "/home/files/top-08.jpg", brand: "ASICS", price: "Desde $—" },
-      { id: "t9", name: "Vans Old Skool", href: "/products?q=old%20skool", img: "/home/files/top-09.jpg", brand: "Vans", price: "Desde $—" },
-      { id: "t10", name: "Chuck 70", href: "/products?q=chuck%2070", img: "/home/files/top-10.jpg", brand: "Converse", price: "Desde $—" },
-    
+  { id: "t1", name: "Air Max", href: "/products?q=air%20max", img: "/home/files/top-01.jpg", brand: "Nike", price: "Desde $—" },
+  { id: "t2", name: "Superstar", href: "/products?q=superstar", img: "/home/files/top-02.jpg", brand: "Adidas", price: "Desde $—" },
+  { id: "t3", name: "550", href: "/products?q=550", img: "/home/files/top-03.jpg", brand: "New Balance", price: "Desde $—" },
+  { id: "t4", name: "Classic", href: "/products?q=classic", img: "/home/files/top-04.jpg", brand: "Reebok", price: "Desde $—" },
+  { id: "t5", name: "Dunk Low", href: "/products?q=dunk%20low", img: "/home/files/top-05.jpg", brand: "Nike", price: "Desde $—" },
+  { id: "t6", name: "Forum", href: "/products?q=forum", img: "/home/files/top-06.jpg", brand: "Adidas", price: "Desde $—" },
+  { id: "t7", name: "Suede", href: "/products?q=suede", img: "/home/files/top-07.jpg", brand: "Puma", price: "Desde $—" },
+  { id: "t8", name: "Gel", href: "/products?q=gel", img: "/home/files/top-08.jpg", brand: "ASICS", price: "Desde $—" },
+  { id: "t9", name: "Vans Old Skool", href: "/products?q=old%20skool", img: "/home/files/top-09.jpg", brand: "Vans", price: "Desde $—" },
+  { id: "t10", name: "Chuck 70", href: "/products?q=chuck%2070", img: "/home/files/top-10.jpg", brand: "Converse", price: "Desde $—" },
 ];
-
 
 type CardItem = {
   /**
@@ -42,7 +40,6 @@ type CardItem = {
   links?: Array<{ label: string; href: string }>;
 };
 
-
 type PrefFocus = "hombre" | "mujer" | "ninos" | "mix";
 
 type UserSession = {
@@ -57,41 +54,38 @@ type UserSession = {
 
 type SearchItem = { id: string; name: string; href: string; img: string; brand?: string };
 
-
 export default function Page() {
-const scrollToTopPicks = () => {
-  const section = document.getElementById("top-picks");
-  if (!section) return;
-
-  // Scroll with a small offset to account for the sticky header
-  const y = section.getBoundingClientRect().top + window.scrollY - 96;
-  window.scrollTo({ top: y, behavior: "smooth" });
-
-  // Never leave a hash in the URL (so refresh doesn't jump)
-  if (typeof window !== "undefined" && window.location.hash) {
-    try {
-      window.history.replaceState(null, "", window.location.pathname + window.location.search);
-    } catch {}
-  }
-};
-
-// Always start at the top on refresh/navigation (prevents browser scroll restoration)
-useEffect(() => {
-  if (typeof window === "undefined") return;
-  try {
-    if ("scrollRestoration" in window.history) {
-      window.history.scrollRestoration = "manual";
+  const scrollToTopPicks = () => {
+    const section = document.getElementById("top-picks");
+    if (!section) return;
+    // Scroll with a small offset to account for the sticky header
+    const y = section.getBoundingClientRect().top + window.scrollY - 96;
+    window.scrollTo({ top: y, behavior: "smooth" });
+    // Never leave a hash in the URL (so refresh doesn't jump)
+    if (typeof window !== "undefined" && window.location.hash) {
+      try {
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      } catch {}
     }
-  } catch {}
-  window.scrollTo(0, 0);
-}, []);
+  };
+
+  // Always start at the top on refresh/navigation (prevents browser scroll restoration)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      if ("scrollRestoration" in window.history) {
+        window.history.scrollRestoration = "manual";
+      }
+    } catch {}
+    window.scrollTo(0, 0);
+  }, []);
+
   /* ==========================
      BLOQUE 1 · HERO (2 VIDEOS)
      ========================= */
   const videos = ["/home/video/hero-1.mp4", "/home/video/hero-2.mp4"];
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [videoIndex, setVideoIndex] = useState(0);
-
   const onHeroEnded = () => setVideoIndex((prev) => (prev + 1) % videos.length);
 
   useEffect(() => {
@@ -99,21 +93,17 @@ useEffect(() => {
     if (!v) return;
 
     const tryPlay = () => v.play().catch(() => {});
-
     // Ensure the new source starts playing after swap
     v.load();
     tryPlay();
-
     // Some browsers need a ready event after swapping sources
     v.addEventListener("loadeddata", tryPlay);
     v.addEventListener("canplay", tryPlay);
-
     return () => {
       v.removeEventListener("loadeddata", tryPlay);
       v.removeEventListener("canplay", tryPlay);
     };
   }, [videoIndex]);
-
 
   /* ==========================================
      BLOQUE 2 · LO MÁS TOP (CARRUSEL PRO MAX)
@@ -133,21 +123,17 @@ useEffect(() => {
      ========================================== */
   const SEARCH_RECENTS_KEY = "jusp_home_search_recents_v1";
   const USER_KEY = "jusp_user_v1";
-
   const [searchOpen, setSearchOpen] = useState(false);
   const [q, setQ] = useState("");
   const [searchRecents, setSearchRecents] = useState<string[]>([]);
   const [searchResults, setSearchResults] = useState<SearchItem[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
-
   const cacheRef = useRef<Map<string, SearchItem[]>>(new Map());
   const lastQueryRef = useRef<string>("");
-
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [user, setUser] = useState<UserSession | null>(null);
-
   const [authName, setAuthName] = useState("");
   const [authEmail, setAuthEmail] = useState("");
   const [authErr, setAuthErr] = useState<string | null>(null);
@@ -158,7 +144,6 @@ useEffect(() => {
   const [prefSizes, setPrefSizes] = useState<string[]>([]);
   const [prefInterests, setPrefInterests] = useState<string[]>([]);
 
-
   /* ==========================================
      NEWSLETTER (Nike-style) — modal "carta" (UX premium)
      - Aparece SOLO a usuarios nuevos (por dispositivo)
@@ -168,7 +153,6 @@ useEffect(() => {
      ========================================== */
   const NL_HIDE_KEY = "jusp_newsletter_hide_until_v1";
   const NL_SUB_KEY = "jusp_newsletter_subscribed_v1";
-
   const [nlOpen, setNlOpen] = useState(false);
   const [nlEmail, setNlEmail] = useState("");
   const [nlStatus, setNlStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
@@ -209,10 +193,8 @@ useEffect(() => {
     try {
       const isSub = localStorage.getItem(NL_SUB_KEY) === "1";
       setNlSubscribed(isSub);
-
       const hideUntil = readHideUntil();
       const shouldHide = hideUntil && Date.now() < hideUntil;
-
       if (!isSub && !shouldHide) {
         const t = window.setTimeout(() => setNlOpen(true), 900);
         return () => window.clearTimeout(t);
@@ -224,7 +206,7 @@ useEffect(() => {
     }
   }, []);
 
-  function closeNewsletter(reason?: string) {
+  function closeNewsletter() {
     setNlOpen(false);
     setNlMsg("");
     setNlStatus("idle");
@@ -236,13 +218,11 @@ useEffect(() => {
     e.preventDefault();
     const email = nlEmail.trim();
     setNlMsg("");
-
     if (!isValidEmail(email)) {
       setNlStatus("error");
       setNlMsg("Escribe un correo válido (ej: hola@correo.com).");
       return;
     }
-
     setNlStatus("loading");
     try {
       const res = await fetch("/api/marketing/subscribe", {
@@ -250,12 +230,10 @@ useEffect(() => {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ email, source: "newsletter_modal", ts: Date.now() }),
       });
-
       if (!res.ok) {
         const txt = await res.text().catch(() => "");
         throw new Error(`HTTP ${res.status} ${txt}`.trim());
       }
-
       setNlStatus("ok");
       setNlMsg("Listo ✅ Te avisaremos cuando haya drops y descuentos.");
       setNlEmail("");
@@ -268,6 +246,7 @@ useEffect(() => {
       setNlMsg("No se pudo registrar ahora. Intenta de nuevo en unos segundos.");
     }
   }
+
   const safeLoadRecents = () => {
     try {
       const raw = localStorage.getItem(SEARCH_RECENTS_KEY);
@@ -330,7 +309,6 @@ useEffect(() => {
       img: t.img,
       brand: t.brand,
     }));
-
     const extra: SearchItem[] = [
       { id: "s1", name: "Exclusivo", href: "/products?tab=exclusivo", img: "/home/files/file-3b.jpg", brand: "JUSP" },
       { id: "s2", name: "Best of all time", href: "/products?tag=top", img: "/home/files/file-2a.jpg", brand: "Multi" },
@@ -339,13 +317,14 @@ useEffect(() => {
       { id: "s5", name: "Sport legends", href: "/products?tag=sport", img: "/home/files/file-3c.jpg", brand: "Sport" },
     ];
     return [...base, ...extra];
-  }, []);
+  }, [topItems]);
 
   const openSearch = () => {
     setSearchOpen(true);
     setAuthOpen(false);
     requestAnimationFrame(() => inputRef.current?.focus());
   };
+
   const closeSearch = () => {
     setSearchOpen(false);
     setQ("");
@@ -365,7 +344,6 @@ useEffect(() => {
     if (!searchOpen) return;
     const trimmed = q.trim();
     const lower = trimmed.toLowerCase();
-
     if (!trimmed) {
       const quick = [
         ...searchRecents.map((r, i) => ({
@@ -381,7 +359,6 @@ useEffect(() => {
       setSearchLoading(false);
       return;
     }
-
     const cached = cacheRef.current.get(lower);
     if (cached) {
       setSearchResults(cached);
@@ -389,13 +366,10 @@ useEffect(() => {
       lastQueryRef.current = lower;
       return;
     }
-
     setSearchLoading(true);
-
     const isRepeatPattern =
       lastQueryRef.current && (lower.startsWith(lastQueryRef.current) || lastQueryRef.current.startsWith(lower));
     const delay = isRepeatPattern ? 0 : 80;
-
     const t = window.setTimeout(() => {
       const hits = searchIndex
         .map((p) => {
@@ -413,13 +387,11 @@ useEffect(() => {
         .sort((a, b) => b.score - a.score)
         .slice(0, 10)
         .map((x) => x.p);
-
       cacheRef.current.set(lower, hits);
       setSearchResults(hits);
       setSearchLoading(false);
       lastQueryRef.current = lower;
     }, delay);
-
     return () => window.clearTimeout(t);
   }, [q, searchOpen, searchIndex, searchRecents, user?.email]);
 
@@ -428,8 +400,7 @@ useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "/" && !searchOpen) {
         const t = e.target as HTMLElement | null;
-        const isInput =
-          t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || (t as any).isContentEditable);
+        const isInput = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || (t as any).isContentEditable);
         if (isInput) return;
         e.preventDefault();
         openSearch();
@@ -469,18 +440,16 @@ useEffect(() => {
       setAuthErr("Escribe un correo válido.");
       return;
     }
-
     const existing = safeLoadUser();
     if (authMode === "login") {
       // Login rápido (front-only)
-      const u: UserSession = existing?.email === email
-        ? { ...existing, lastSeenAt: Date.now() }
-        : { email, name: authName.trim() || undefined, createdAt: Date.now(), lastSeenAt: Date.now() };
-
+      const u: UserSession =
+        existing?.email === email
+          ? { ...existing, lastSeenAt: Date.now() }
+          : { email, name: authName.trim() || undefined, createdAt: Date.now(), lastSeenAt: Date.now() };
       completeLogin(u);
       return;
     }
-
     // Signup + onboarding premium
     const u: UserSession = {
       email,
@@ -510,10 +479,6 @@ useEffect(() => {
     setAuthOpen(false);
   };
 
-
-
-
-
   const topSectionRef = useRef<HTMLElement | null>(null);
   const [topInView, setTopInView] = useState(false);
 
@@ -526,7 +491,7 @@ useEffect(() => {
         // en.isIntersecting suele ser suficiente; añadimos ratio para evitar flapping.
         const ok = !!en?.isIntersecting && (en.intersectionRatio ?? 0) > 0.12;
         setTopInView(ok);
-        // Si el usuario ya se fue del bloque, pausa para que no “jale” la página con scrollIntoView.
+        // Si el usuario ya se fue del bloque, pausa para que no “jale” la página.
         if (!ok) {
           setTopPaused(true);
         } else {
@@ -539,11 +504,11 @@ useEffect(() => {
     io.observe(el);
     return () => io.disconnect();
   }, []);
+
   const topViewportRef = useRef<HTMLDivElement | null>(null);
   const topCardRefs = useRef<Array<HTMLAnchorElement | null>>([]);
   const [topActive, setTopActive] = useState(0);
   const [topPaused, setTopPaused] = useState(false);
-
   const [isDragging, setIsDragging] = useState(false);
 
   const dragRef = useRef<{
@@ -572,10 +537,22 @@ useEffect(() => {
     return { max };
   };
 
+  // ✅ FIX CLAVE: scroll horizontal PURO (NO usa scrollIntoView porque eso mueve el scroll vertical)
+  const scrollTopCardHorizontallyToIndex = (idx: number, behavior: ScrollBehavior = "smooth") => {
+    const vp = topViewportRef.current;
+    const el = topCardRefs.current[idx];
+    if (!vp || !el) return;
+    const left = el.offsetLeft;
+    try {
+      vp.scrollTo({ left, behavior });
+    } catch {
+      vp.scrollLeft = left;
+    }
+  };
+
   const snapToNearest = () => {
     const vp = topViewportRef.current;
     if (!vp) return;
-
     const vpRect = vp.getBoundingClientRect();
     const vpCenter = vpRect.left + vpRect.width / 2;
 
@@ -595,7 +572,7 @@ useEffect(() => {
     }
 
     setTopActive(bestIdx);
-    topCardRefs.current[bestIdx]?.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
+    scrollTopCardHorizontallyToIndex(bestIdx, "smooth");
   };
 
   useEffect(() => {
@@ -606,21 +583,19 @@ useEffect(() => {
 
   useEffect(() => {
     if (topPaused || !topInView) return;
-    topCardRefs.current[topActive]?.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
+    // ✅ antes: scrollIntoView() (jalaba la página)
+    // ✅ ahora: scroll horizontal puro
+    scrollTopCardHorizontallyToIndex(topActive, "smooth");
   }, [topActive, topPaused, topInView]);
 
   const endDrag = (resume = true) => {
     const vp = topViewportRef.current;
     if (!vp) return;
-
     dragRef.current.down = false;
     dragRef.current.pointerId = null;
-
     if (rubberXRef.current !== 0) setRubber(0);
-
     vp.style.scrollBehavior = "smooth";
     snapToNearest();
-
     setIsDragging(false);
     if (resume) window.setTimeout(() => setTopPaused(false), 450);
   };
@@ -628,14 +603,11 @@ useEffect(() => {
   // ✅ FIX “se queda pegado”: si el pointerup ocurre fuera, igual cerramos
   useEffect(() => {
     if (!isDragging) return;
-
     const onUp = () => endDrag(true);
     const onCancel = () => endDrag(true);
-
     window.addEventListener("pointerup", onUp, { passive: true });
     window.addEventListener("pointercancel", onCancel, { passive: true });
     window.addEventListener("blur", onCancel);
-
     return () => {
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onCancel);
@@ -647,24 +619,18 @@ useEffect(() => {
   const onTopPointerDown: React.PointerEventHandler<HTMLDivElement> = (e) => {
     const vp = topViewportRef.current;
     if (!vp) return;
-
     const isTouchLike = e.pointerType === "touch" || e.pointerType === "pen";
     if (!isTouchLike) return;
-
     setTopPaused(true);
     setIsDragging(true);
-
     dragRef.current.down = true;
     dragRef.current.pointerId = e.pointerId;
     dragRef.current.startX = e.clientX;
     dragRef.current.startScrollLeft = vp.scrollLeft;
-
     vp.style.scrollBehavior = "auto";
-
     try {
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     } catch {}
-
     // en touch sí evitamos selección/gestos raros; en mouse no entramos aquí
     e.preventDefault();
   };
@@ -674,12 +640,9 @@ useEffect(() => {
     if (!vp) return;
     if (!dragRef.current.down) return;
     if (dragRef.current.pointerId !== e.pointerId) return;
-
     const dx = e.clientX - dragRef.current.startX;
     const rawTarget = dragRef.current.startScrollLeft - dx;
-
     const { max } = getBounds();
-
     if (rawTarget < 0) {
       setRubber(rawTarget * 0.22);
       vp.scrollLeft = 0;
@@ -695,22 +658,18 @@ useEffect(() => {
   const onTopPointerUp: React.PointerEventHandler<HTMLDivElement> = (e) => {
     if (!dragRef.current.down) return;
     if (dragRef.current.pointerId !== e.pointerId) return;
-
     try {
       (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
     } catch {}
-
     endDrag(true);
   };
 
   const onTopPointerCancel: React.PointerEventHandler<HTMLDivElement> = (e) => {
     if (!dragRef.current.down) return;
     if (dragRef.current.pointerId !== e.pointerId) return;
-
     try {
       (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
     } catch {}
-
     endDrag(true);
   };
 
@@ -720,23 +679,16 @@ useEffect(() => {
   const onTopWheel: React.WheelEventHandler<HTMLDivElement> = (e) => {
     const vp = topViewportRef.current;
     if (!vp) return;
-
     // Si el usuario está usando horizontal real (trackpad) o SHIFT, no interferimos.
     const absX = Math.abs(e.deltaX);
     const absY = Math.abs(e.deltaY);
     if (e.shiftKey || absX > absY) return;
-
     // Si estás arrastrando, no re-enviamos (para no pelear con el drag).
     if (dragRef.current.down) return;
-
     // Evita que el carrusel “consuma” el scroll.
     e.preventDefault();
     window.scrollBy({ top: e.deltaY, left: 0, behavior: "auto" });
   };
-
-  // ✅ Garantiza preventDefault en Chrome/React (wheel suele ser passive): listener nativo no-passive.
-  
-
 
   // ✅ si sales del carrusel mientras arrastras (touch), cerramos drag
   const onTopPointerLeave: React.PointerEventHandler<HTMLDivElement> = () => {
@@ -745,37 +697,50 @@ useEffect(() => {
   };
 
   /* ==========================================
-     BLOQUE 3 · SELECCIÓN CURADA (HISTORIA JUSP)
-     ✅ Entrada al hacer scroll
-     ✅ Hover premium
-     ✅ Parallax scroll suave
-     ✅ Parallax mouse PRO
-     ✅ Light-follow PRO MAX
+     BLOQUE 3 · SELECCIÓN CURADA (iPhone Photos)
+     ✅ Solo imágenes
+     ✅ Deslizar horizontal (touch + mouse)
+     ✅ Snap suave (iOS feeling)
+     ✅ FIX PC: el wheel vertical NO se queda pegado
      ========================================== */
-  const storyBullets = [
-    { title: "Curaduría real", desc: "No es catálogo infinito. Es selección con intención: lo que vale la pena, sin ruido." },
-    { title: "Originales o nada", desc: "Solo marcas originales. Trazabilidad y confianza como estándar, no como “extra”." },
-    { title: "Servicio pro", desc: "Comunicación clara, seguimiento y experiencia premium de inicio a fin." },
-  ];
+  // ✅ AQUÍ VAN TUS IMÁGENES: public/home/stories/story-01.jpeg ... story-11.jpeg
+  const curatedSlides = useMemo(
+    () => [
+      { id: "st01", href: "/products?tag=curated", img: "/home/stories/story-01.jpeg", alt: "JUSP Story 01" },
+      { id: "st02", href: "/products?tag=curated", img: "/home/stories/story-02.jpeg", alt: "JUSP Story 02" },
+      { id: "st03", href: "/products?tag=curated", img: "/home/stories/story-03.jpeg", alt: "JUSP Story 03" },
+      { id: "st04", href: "/products?tag=curated", img: "/home/stories/story-04.jpeg", alt: "JUSP Story 04" },
+      { id: "st05", href: "/products?tag=curated", img: "/home/stories/story-05.jpeg", alt: "JUSP Story 05" },
+      { id: "st06", href: "/products?tag=curated", img: "/home/stories/story-06.jpeg", alt: "JUSP Story 06" },
+      { id: "st07", href: "/products?tag=curated", img: "/home/stories/story-07.jpeg", alt: "JUSP Story 07" },
+      { id: "st08", href: "/products?tag=curated", img: "/home/stories/story-08.jpeg", alt: "JUSP Story 08" },
+      { id: "st09", href: "/products?tag=curated", img: "/home/stories/story-09.jpeg", alt: "JUSP Story 09" },
+      { id: "st10", href: "/products?tag=curated", img: "/home/stories/story-10.jpeg", alt: "JUSP Story 10" },
+      { id: "st11", href: "/products?tag=curated", img: "/home/stories/story-11.jpeg", alt: "JUSP Story 11" },
+    ],
+    []
+  );
+
+  const curatedViewportRef = useRef<HTMLDivElement | null>(null);
+
+  const onCuratedWheel: React.WheelEventHandler<HTMLDivElement> = (e) => {
+    const vp = curatedViewportRef.current;
+    if (!vp) return;
+    const absX = Math.abs(e.deltaX);
+    const absY = Math.abs(e.deltaY);
+    // Si el gesto es horizontal (o SHIFT), dejamos que el carrusel lo use.
+    if (e.shiftKey || absX > absY) return;
+    // Si es vertical, lo re-enviamos al window para que la página no se "pegue".
+    e.preventDefault();
+    window.scrollBy({ top: e.deltaY, left: 0, behavior: "auto" });
+  };
 
   const storySectionRef = useRef<HTMLElement | null>(null);
-  const storyCardRef = useRef<HTMLDivElement | null>(null);
-
   const [storyInView, setStoryInView] = useState(false);
-  const [storyParallax, setStoryParallax] = useState(0);
-
-  const mouseRef = useRef({ x: 0, y: 0, active: false, raf: 0 });
-  const [mouseTX, setMouseTX] = useState(0);
-  const [mouseTY, setMouseTY] = useState(0);
-  const [mouseRX, setMouseRX] = useState(0);
-  const [mouseRY, setMouseRY] = useState(0);
-  const [glowX, setGlowX] = useState(50);
-  const [glowY, setGlowY] = useState(50);
 
   useEffect(() => {
     const el = storySectionRef.current;
     if (!el) return;
-
     const io = new IntersectionObserver(
       (entries) => {
         const en = entries[0];
@@ -783,77 +748,9 @@ useEffect(() => {
       },
       { root: null, threshold: 0.14 }
     );
-
     io.observe(el);
     return () => io.disconnect();
   }, []);
-
-  useEffect(() => {
-    let raf = 0;
-    const onScroll = () => {
-      if (raf) return;
-      raf = window.requestAnimationFrame(() => {
-        raf = 0;
-        const el = storySectionRef.current;
-        if (!el) return;
-
-        const rect = el.getBoundingClientRect();
-        const vh = Math.max(1, window.innerHeight || 1);
-        const center = rect.top + rect.height * 0.5;
-        const t = (center - vh * 0.5) / (vh * 0.5);
-        const clamped = Math.max(-1, Math.min(1, t));
-        setStoryParallax(-clamped * 10);
-      });
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, []);
-
-  const scheduleMouseParallax = () => {
-    if (mouseRef.current.raf) return;
-    mouseRef.current.raf = window.requestAnimationFrame(() => {
-      mouseRef.current.raf = 0;
-      const card = storyCardRef.current;
-      if (!card || !mouseRef.current.active) return;
-
-      const rect = card.getBoundingClientRect();
-      const px = (mouseRef.current.x - rect.left) / Math.max(1, rect.width);
-      const py = (mouseRef.current.y - rect.top) / Math.max(1, rect.height);
-
-      const nx = (px - 0.5) * 2;
-      const ny = (py - 0.5) * 2;
-
-      setMouseTX(nx * 10);
-      setMouseTY(ny * 8);
-      setMouseRY(nx * 3.4);
-      setMouseRX(-ny * 2.6);
-
-      setGlowX(Math.round(px * 100));
-      setGlowY(Math.round(py * 100));
-    });
-  };
-
-  const onStoryMouseMove: React.MouseEventHandler<HTMLDivElement> = (e) => {
-    mouseRef.current.active = true;
-    mouseRef.current.x = e.clientX;
-    mouseRef.current.y = e.clientY;
-    scheduleMouseParallax();
-  };
-
-  const onStoryMouseLeave: React.MouseEventHandler<HTMLDivElement> = () => {
-    mouseRef.current.active = false;
-    setMouseTX(0);
-    setMouseTY(0);
-    setMouseRX(0);
-    setMouseRY(0);
-    setGlowX(50);
-    setGlowY(50);
-  };
 
   /* ==========================================
      BLOQUE 4 · COLECCIÓN (3D AUTO)
@@ -896,12 +793,14 @@ useEffect(() => {
     []
   );
 
-
-  const isCard = (c: CardItem): c is Required<Pick<CardItem, "id" | "kicker" | "desc" | "href" | "img">> & { title: string } => {
+  const isCard = (
+    c: CardItem
+  ): c is Required<Pick<CardItem, "id" | "kicker" | "desc" | "href" | "img">> & { title: string } => {
     return Boolean(c && c.id && c.kicker && c.desc && c.href && c.img);
   };
 
   const [colActive, setColActive] = useState(0);
+
   useEffect(() => {
     const t = setInterval(() => setColActive((i) => (i + 1) % Math.max(1, collectionCards.filter(isCard).length)), 3200);
     return () => clearInterval(t);
@@ -912,9 +811,115 @@ useEffect(() => {
   return (
     <main style={{ overflowX: "hidden", background: "#fff", color: "#000" }}>
       {/* ✅ Newsletter modal tipo Nike (solo usuarios nuevos por dispositivo) */}
-      
-
-
+      {nlOpen ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 90,
+            background: "rgba(0,0,0,0.48)",
+            backdropFilter: "blur(10px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 14,
+          }}
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) closeNewsletter();
+          }}
+        >
+          <div
+            style={{
+              width: "min(720px, 100%)",
+              borderRadius: 22,
+              overflow: "hidden",
+              background: "#fff",
+              border: "1px solid rgba(0,0,0,0.10)",
+              boxShadow: "0 28px 110px rgba(0,0,0,0.22)",
+            }}
+          >
+            <div
+              style={{
+                padding: "14px 14px",
+                borderBottom: "1px solid rgba(0,0,0,0.08)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.2, opacity: 0.7 }}>NEWSLETTER</div>
+                <div style={{ marginTop: 4, fontSize: 18, fontWeight: 1000 }}>Drops, ofertas y alertas</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => closeNewsletter()}
+                aria-label="Cerrar"
+                style={{
+                  height: 40,
+                  width: 40,
+                  borderRadius: 999,
+                  border: "1px solid rgba(0,0,0,0.14)",
+                  background: "#fff",
+                  cursor: "pointer",
+                  fontWeight: 1000,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ padding: 14 }}>
+              <form onSubmit={onNewsletterSubmit} style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                <input
+                  value={nlEmail}
+                  onChange={(e) => setNlEmail(e.target.value)}
+                  placeholder="Tu correo"
+                  inputMode="email"
+                  style={{
+                    flex: 1,
+                    height: 46,
+                    borderRadius: 999,
+                    border: "1px solid rgba(0,0,0,0.14)",
+                    padding: "0 16px",
+                    fontSize: 15,
+                    outline: "none",
+                  }}
+                />
+                <button
+                  type="submit"
+                  disabled={nlStatus === "loading"}
+                  style={{
+                    height: 46,
+                    width: 54,
+                    borderRadius: 999,
+                    border: "none",
+                    background: "#000",
+                    color: "#fff",
+                    fontWeight: 1000,
+                    cursor: "pointer",
+                    boxShadow: "0 16px 42px rgba(0,0,0,0.18)",
+                    opacity: nlStatus === "loading" ? 0.75 : 1,
+                  }}
+                >
+                  →
+                </button>
+              </form>
+              {nlMsg ? (
+                <div style={{ marginTop: 10, fontSize: 13, fontWeight: 900, color: nlStatus === "error" ? "#b00020" : "#0a7a2f" }}>
+                  {nlMsg}
+                </div>
+              ) : (
+                <div style={{ marginTop: 10, fontSize: 12, opacity: 0.72, lineHeight: 1.55 }}>
+                  Si cierras, no vuelve por 30 días. Si te suscribes, no vuelve a aparecer.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* HERO */}
       <section id="hero" style={{ width: "100vw", minHeight: "calc(100vh - 64px)", position: "relative", background: "#000" }}>
@@ -930,62 +935,55 @@ useEffect(() => {
         >
           <source src={videos[videoIndex]} type="video/mp4" />
         </video>
-
         <div
           style={{
             position: "absolute",
             inset: 0,
-            background:
-              "linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.18) 35%, rgba(0,0,0,0.55) 100%)",
+            background: "linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.18) 35%, rgba(0,0,0,0.55) 100%)",
           }}
         />
-
         <div style={{ position: "relative", zIndex: 2, padding: "120px 18px 56px", maxWidth: 1180, margin: "0 auto" }}>
           <div style={{ color: "#fff", opacity: 0.92, fontSize: 12, letterSpacing: 1.6, fontWeight: 800 }}>
             JUSP · ORIGINALES · PREMIUM
           </div>
-          <h1 style={{ color: "#fff", margin: "10px 0 10px", fontSize: 46, lineHeight: 1.05 }}>
-            JUSP · DO MORE
-          </h1>
-          <p style={{ color: "rgba(255,255,255,0.86)", maxWidth: 560, fontSize: 16, lineHeight: 1.6 }}>
-            Originales. Directo.</p>
-
+          <h1 style={{ color: "#fff", margin: "10px 0 10px", fontSize: 46, lineHeight: 1.05 }}>JUSP · DO MORE</h1>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 18 }}>
-                  <button
-                    type="button"
-                    onClick={scrollToTopPicks}
-                    style={{
-                      borderRadius: 999,
-                      padding: "14px 22px",
-                      fontWeight: 700,
-                      background: "white",
-                      color: "black",
-                      border: "1px solid rgba(255,255,255,0.06)",
-                      boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
-                      cursor: "pointer",
-                      lineHeight: 1,
-                    }}
-                  >
-                    Ver lo más top
-                  </button>
-                </div>
-
-
+            <button
+              type="button"
+              onClick={scrollToTopPicks}
+              style={{
+                borderRadius: 999,
+                padding: "14px 22px",
+                fontWeight: 700,
+                background: "white",
+                color: "black",
+                border: "1px solid rgba(255,255,255,0.06)",
+                boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
+                cursor: "pointer",
+                lineHeight: 1,
+              }}
+            >
+              Ver lo más top
+            </button>
+          </div>
         </div>
       </section>
 
       {/* BLOQUE 2 */}
-      <section id="top-picks" ref={(el) => { topSectionRef.current = el; }} style={{ padding: "26px 0 10px", borderTop: "1px solid rgba(0,0,0,0.06)" }}>
+      <section
+        id="top-picks"
+        ref={(el) => {
+          topSectionRef.current = el;
+        }}
+        style={{ padding: "26px 0 10px", borderTop: "1px solid rgba(0,0,0,0.06)" }}
+      >
         <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px" }}>
           <div style={{ display: "flex", alignItems: "end", justifyContent: "space-between", gap: 12 }}>
             <div>
               <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.2, opacity: 0.7 }}>LO MÁS TOP</div>
               <div style={{ fontSize: 22, fontWeight: 1000, marginTop: 6 }}>Top picks (10)</div>
-              <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75 }}>
-                Swipe Nike-like + snap. Auto-rotación se pausa al interactuar.
-              </div>
+              <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75 }}>Swipe Nike-like + snap. Auto-rotación se pausa al interactuar.</div>
             </div>
-
             <Link href="/products?tag=top" style={{ fontSize: 13, fontWeight: 900, textDecoration: "none", color: "#000", opacity: 0.85 }}>
               Ver todo →
             </Link>
@@ -1070,19 +1068,16 @@ useEffect(() => {
                           pointerEvents: "none",
                         }}
                       />
-
                       <div
                         style={{
                           position: "absolute",
                           inset: 0,
-                          background:
-                            "radial-gradient(1200px 520px at 50% 55%, rgba(0,0,0,0.0) 35%, rgba(0,0,0,0.38) 100%)",
+                          background: "radial-gradient(1200px 520px at 50% 55%, rgba(0,0,0,0.0) 35%, rgba(0,0,0,0.38) 100%)",
                           pointerEvents: "none",
                           opacity: isActive ? 1 : 0.72,
                           transition: "opacity 420ms ease",
                         }}
                       />
-
                       <div style={{ position: "absolute", left: 0, bottom: 0, height: 3, width: "100%", background: "rgba(255,255,255,0.16)" }}>
                         <div
                           style={{
@@ -1107,204 +1102,104 @@ useEffect(() => {
         </div>
       </section>
 
-      {/* BLOQUE 3 */}
+      {/* BLOQUE 3 (NUEVO) */}
       <section
         ref={(el) => {
           storySectionRef.current = el;
         }}
         style={{
-          padding: "26px 0",
+          padding: "18px 0 26px",
           borderTop: "1px solid rgba(0,0,0,0.06)",
           opacity: storyInView ? 1 : 0,
-          transform: storyInView ? "translateY(0px)" : "translateY(14px)",
-          transition: "opacity 780ms cubic-bezier(.2,.9,.2,1), transform 780ms cubic-bezier(.2,.9,.2,1)",
+          transform: storyInView ? "translateY(0px)" : "translateY(10px)",
+          transition: "opacity 680ms cubic-bezier(.2,.9,.2,1), transform 680ms cubic-bezier(.2,.9,.2,1)",
         }}
       >
         <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: 18, alignItems: "start" }}>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.2, opacity: 0.7 }}>SELECCIÓN CURADA</div>
-              <h2 style={{ fontSize: 30, lineHeight: 1.08, margin: "10px 0 10px", letterSpacing: -0.5 }}>
-                JUSP no es “más productos”.
-                <br />
-                Es <span style={{ textDecoration: "underline" }}>mejor selección</span>.
-              </h2>
-              <p style={{ fontSize: 15, lineHeight: 1.7, opacity: 0.78, maxWidth: 640 }}>
-                Nacimos para hacer lo difícil simple: encontrar originales, con estilo real, sin perder tiempo.
-                JUSP es curaduría premium: lo que se ve bien, se siente bien y vale la pena.
-              </p>
-
-              <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
-                {storyBullets.map((b, i) => (
-                  <div
-                    key={b.title}
-                    style={{
-                      border: "1px solid rgba(0,0,0,0.08)",
-                      borderRadius: 18,
-                      padding: 14,
-                      background: "#fff",
-                      boxShadow: "0 10px 24px rgba(0,0,0,0.06)",
-                      transform: storyInView ? "translateY(0px)" : "translateY(10px)",
-                      opacity: storyInView ? 1 : 0,
-                      transition:
-                        "opacity 720ms cubic-bezier(.2,.9,.2,1), transform 720ms cubic-bezier(.2,.9,.2,1), box-shadow 240ms ease, transform 240ms ease",
-                      transitionDelay: `${120 + i * 90}ms`,
-                      cursor: "default",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = "translateY(-2px)";
-                      e.currentTarget.style.boxShadow = "0 18px 52px rgba(0,0,0,0.10)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = "translateY(0px)";
-                      e.currentTarget.style.boxShadow = "0 10px 24px rgba(0,0,0,0.06)";
-                    }}
-                  >
-                    <div style={{ fontWeight: 1000, fontSize: 14 }}>{b.title}</div>
-                    <div style={{ marginTop: 6, fontSize: 13, opacity: 0.78, lineHeight: 1.6 }}>{b.desc}</div>
-                  </div>
-                ))}
-              </div>
-
-              <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <div
+            ref={curatedViewportRef}
+            onWheel={onCuratedWheel}
+            style={{
+              overflowX: "auto",
+              scrollSnapType: "x mandatory",
+              WebkitOverflowScrolling: "touch",
+              overscrollBehaviorX: "contain",
+              scrollbarWidth: "none",
+              padding: "8px 2px 6px",
+            }}
+          >
+            <div style={{ display: "flex", gap: 14, alignItems: "stretch" }}>
+              {curatedSlides.map((s) => (
                 <Link
-                  href="/products?tag=curated"
+                  key={s.id}
+                  href={s.href}
+                  aria-label={s.alt}
                   style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    height: 44,
-                    padding: "0 16px",
-                    borderRadius: 999,
-                    background: "#000",
-                    color: "#fff",
+                    flex: "0 0 auto",
+                    width: "min(86vw, 920px)",
+                    height: "min(62vh, 520px)",
+                    minHeight: 320,
+                    scrollSnapAlign: "center",
+                    borderRadius: 26,
+                    overflow: "hidden",
+                    border: "1px solid rgba(0,0,0,0.10)",
+                    boxShadow: "0 22px 80px rgba(0,0,0,0.16)",
+                    background: "#f4f4f4",
                     textDecoration: "none",
-                    fontWeight: 1000,
-                    transition: "transform 220ms ease, box-shadow 220ms ease",
-                    boxShadow: "0 12px 28px rgba(0,0,0,0.18)",
+                    transform: "translateZ(0)",
+                    position: "relative",
+                    cursor: "grab",
+                  }}
+                  onMouseDown={(e) => {
+                    // feel iOS/Photos: grab feedback only
+                    (e.currentTarget as HTMLElement).style.cursor = "grabbing";
+                  }}
+                  onMouseUp={(e) => {
+                    (e.currentTarget as HTMLElement).style.cursor = "grab";
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = "translateY(-1px) scale(1.01)";
-                    e.currentTarget.style.boxShadow = "0 18px 46px rgba(0,0,0,0.22)";
+                    e.currentTarget.style.boxShadow = "0 30px 110px rgba(0,0,0,0.18)";
                   }}
                   onMouseLeave={(e) => {
+                    // ✅ UN SOLO onMouseLeave (antes estaba duplicado)
+                    (e.currentTarget as HTMLElement).style.cursor = "grab";
                     e.currentTarget.style.transform = "translateY(0px) scale(1)";
-                    e.currentTarget.style.boxShadow = "0 12px 28px rgba(0,0,0,0.18)";
+                    e.currentTarget.style.boxShadow = "0 22px 80px rgba(0,0,0,0.16)";
                   }}
                 >
-                  Ver curaduría
-                </Link>
-
-                <Link
-                  href="/products?tab=exclusivo"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    height: 44,
-                    padding: "0 16px",
-                    borderRadius: 999,
-                    background: "#fff",
-                    color: "#000",
-                    textDecoration: "none",
-                    fontWeight: 1000,
-                    border: "1px solid rgba(0,0,0,0.12)",
-                    transition: "transform 220ms ease, box-shadow 220ms ease",
-                    boxShadow: "0 10px 22px rgba(0,0,0,0.06)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "translateY(-1px)";
-                    e.currentTarget.style.boxShadow = "0 16px 40px rgba(0,0,0,0.10)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "translateY(0px)";
-                    e.currentTarget.style.boxShadow = "0 10px 22px rgba(0,0,0,0.06)";
-                  }}
-                >
-                  Exclusivo
-                </Link>
-              </div>
-            </div>
-
-            <Link
-              href="/products?tab=exclusivo"
-              aria-label="Ver selección exclusiva"
-              style={{ display: "block", textDecoration: "none", color: "inherit" }}
-            >
+                  <img
+                    src={s.img}
+                    alt={s.alt}
+                    draggable={false}
+                    loading="lazy"
+                    decoding="async"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      userSelect: "none",
+                      pointerEvents: "none",
+                    }}
+                  />
+                  {/* overlay ultra sutil para cine */}
                   <div
-  ref={storyCardRef}
-  onMouseMove={onStoryMouseMove}
-  style={{
-    borderRadius: 26,
-    overflow: "hidden",
-    border: "1px solid rgba(0,0,0,0.08)",
-    boxShadow: "0 18px 60px rgba(0,0,0,0.12)",
-    background: "#f4f4f4",
-    minHeight: 420,
-    position: "relative",
-    perspective: 1200,
-    transition:
-      "transform 420ms cubic-bezier(.2,.9,.2,1), box-shadow 420ms cubic-bezier(.2,.9,.2,1)",
-  }}
-  onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-2px) scale(1.01)";
-                e.currentTarget.style.boxShadow = "0 26px 90px rgba(0,0,0,0.16)";
-              }}
-  onMouseLeave={(e) => {
-    onStoryMouseLeave(e);
-    e.currentTarget.style.transform = "translateY(0px) scale(1)";
-    e.currentTarget.style.boxShadow = "0 18px 60px rgba(0,0,0,0.12)";
-  }}
->
-              <img
-                src="/home/files/file-3b.jpg"
-                alt="Selección curada JUSP"
-                draggable={false}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  transform: `translateY(${storyParallax + mouseTY}px) translateX(${mouseTX}px) rotateX(${mouseRX}deg) rotateY(${mouseRY}deg) scale(1.06)`,
-                  transformOrigin: "50% 55%",
-                  transition: "transform 220ms ease",
-                  willChange: "transform",
-                  userSelect: "none",
-                  pointerEvents: "none",
-                }}
-              />
-
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  background: `radial-gradient(700px 380px at ${glowX}% ${glowY}%, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.0) 55%)`,
-                  pointerEvents: "none",
-                  opacity: mouseRef.current.active ? 1 : 0,
-                  transition: "opacity 240ms ease",
-                  mixBlendMode: "soft-light",
-                }}
-              />
-
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  background:
-                    "linear-gradient(180deg, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.18) 60%, rgba(0,0,0,0.62) 100%)",
-                }}
-              />
-
-              <div style={{ position: "absolute", left: 16, right: 16, bottom: 16, color: "#fff" }}>
-                <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.4, opacity: 0.9 }}>JUSP · DO MORE</div>
-                <div style={{ marginTop: 6, fontSize: 18, fontWeight: 1000 }}>Elegante, original y sin vueltas.</div>
-                <div style={{ marginTop: 6, fontSize: 13, opacity: 0.84, lineHeight: 1.55 }}>
-                  Selección lista para comprar con confianza.
-                </div>
-              </div>
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      background:
+                        "radial-gradient(900px 520px at 55% 55%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.0) 55%), linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.16) 100%)",
+                      pointerEvents: "none",
+                      mixBlendMode: "soft-light",
+                    }}
+                  />
+                </Link>
+              ))}
+              {/* pequeño “peek” final sin nada */}
+              <div style={{ flex: "0 0 8px" }} />
             </div>
-            </Link>
           </div>
-        </div> 
+        </div>
       </section>
 
       {/* BLOQUE 4 */}
@@ -1316,11 +1211,10 @@ useEffect(() => {
               <div style={{ fontSize: 26, fontWeight: 1000, marginTop: 8 }}>Lo mejor de todos los tiempos</div>
               <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75 }}>Multi-marca. Formato 3D automático.</div>
             </div>
-
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               {collectionCards.filter(isCard).map((c, idx) => (
                 <button
-                  key={c.id ?? c.title}
+                  key={(c.id ?? c.title) + String(idx)}
                   aria-label={`Ver ${c.title}`}
                   onClick={() => setColActive(idx)}
                   style={{
@@ -1337,7 +1231,7 @@ useEffect(() => {
           </div>
 
           <Link
-            href={activeCollection.href}
+            href={activeCollection.href!}
             style={{
               marginTop: 16,
               display: "grid",
@@ -1368,7 +1262,7 @@ useEffect(() => {
 
             <div style={{ position: "relative", minHeight: 340, background: "#f3f3f3" }}>
               <img
-                src={activeCollection.img}
+                src={activeCollection.img!}
                 alt={activeCollection.title}
                 style={{
                   width: "100%",
@@ -1392,9 +1286,7 @@ useEffect(() => {
         </div>
       </section>
 
-      {/* ========================================= */}
-      {/* SEARCH OVERLAY · Nike-like (full screen)   */}
-      {/* ========================================= */}
+      {/* SEARCH OVERLAY · Nike-like (full screen) */}
       {searchOpen ? (
         <div
           role="dialog"
@@ -1411,14 +1303,7 @@ useEffect(() => {
             if (e.target === e.currentTarget) closeSearch();
           }}
         >
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background: "#fff",
-              overflow: "auto",
-            }}
-          >
+          <div style={{ position: "absolute", inset: 0, background: "#fff", overflow: "auto" }}>
             {/* top bar */}
             <div
               style={{
@@ -1433,7 +1318,6 @@ useEffect(() => {
             >
               <div style={{ maxWidth: 1180, margin: "0 auto", display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ fontWeight: 1000, letterSpacing: 1.4, fontSize: 12, opacity: 0.75 }}>JUSP</div>
-
                 <div style={{ flex: 1, display: "flex", gap: 8, alignItems: "center" }}>
                   <input
                     ref={inputRef}
@@ -1454,25 +1338,32 @@ useEffect(() => {
                       outline: "none",
                     }}
                   />
+                  {/* ✅ Botón Buscar → Lupa */}
                   <button
                     type="button"
                     onClick={() => submitSearch(q)}
+                    aria-label="Buscar"
+                    title="Buscar"
                     style={{
                       height: 46,
-                      padding: "0 16px",
+                      width: 56,
                       borderRadius: 999,
                       border: "none",
                       background: "#000",
                       color: "#fff",
                       fontWeight: 1000,
                       cursor: "pointer",
-                      whiteSpace: "nowrap",
+                      boxShadow: "0 16px 42px rgba(0,0,0,0.18)",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 18,
+                      lineHeight: 1,
                     }}
                   >
-                    Buscar
+                    🔍
                   </button>
                 </div>
-
                 <button
                   type="button"
                   onClick={closeSearch}
@@ -1502,9 +1393,7 @@ useEffect(() => {
                 </div>
               </div>
 
-              {searchLoading ? (
-                <div style={{ marginTop: 16, fontSize: 13, opacity: 0.7 }}>Buscando…</div>
-              ) : null}
+              {searchLoading ? <div style={{ marginTop: 16, fontSize: 13, opacity: 0.7 }}>Buscando…</div> : null}
 
               <div
                 style={{
@@ -1543,25 +1432,10 @@ useEffect(() => {
                     }}
                   >
                     <div style={{ position: "relative", height: 220, background: "#f4f4f4" }}>
-                      <img
-                        src={p.img}
-                        alt={p.name}
-                        loading="lazy"
-                        decoding="async"
-                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                      />
-                      <div
-                        style={{
-                          position: "absolute",
-                          inset: 0,
-                          background:
-                            "linear-gradient(180deg, rgba(0,0,0,0.0) 55%, rgba(0,0,0,0.44) 100%)",
-                        }}
-                      />
+                      <img src={p.img} alt={p.name} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.0) 55%, rgba(0,0,0,0.44) 100%)" }} />
                       <div style={{ position: "absolute", left: 12, right: 12, bottom: 10, color: "#fff" }}>
-                        <div style={{ fontSize: 12, fontWeight: 1000, opacity: 0.9 }}>
-                          {p.brand ?? "Original"}
-                        </div>
+                        <div style={{ fontSize: 12, fontWeight: 1000, opacity: 0.9 }}>{p.brand ?? "Original"}</div>
                         <div style={{ marginTop: 4, fontSize: 16, fontWeight: 1000, lineHeight: 1.1 }}>{p.name}</div>
                       </div>
                     </div>
@@ -1570,11 +1444,13 @@ useEffect(() => {
               </div>
 
               {/* micro-UX: clear recents */}
-              {(!q.trim() && searchRecents.length) ? (
+              {!q.trim() && searchRecents.length ? (
                 <button
                   type="button"
                   onClick={() => {
-                    try { localStorage.removeItem(SEARCH_RECENTS_KEY); } catch {}
+                    try {
+                      localStorage.removeItem(SEARCH_RECENTS_KEY);
+                    } catch {}
                     setSearchRecents([]);
                   }}
                   style={{
@@ -1595,9 +1471,7 @@ useEffect(() => {
         </div>
       ) : null}
 
-      {/* ========================================= */}
-      {/* AUTH MODAL · login/registro + onboarding  */}
-      {/* ========================================= */}
+      {/* AUTH MODAL · login/registro + onboarding */}
       {authOpen ? (
         <div
           role="dialog"
@@ -1643,7 +1517,6 @@ useEffect(() => {
                   {authMode === "login" ? "Iniciar sesión" : "Crear cuenta"}
                 </div>
               </div>
-
               <button
                 type="button"
                 onClick={() => setAuthOpen(false)}
@@ -1733,11 +1606,7 @@ useEffect(() => {
                         if (e.key === "Enter") handleAuthSubmit();
                       }}
                     />
-
-                    {authErr ? (
-                      <div style={{ fontSize: 13, color: "#b00020", fontWeight: 900 }}>{authErr}</div>
-                    ) : null}
-
+                    {authErr ? <div style={{ fontSize: 13, color: "#b00020", fontWeight: 900 }}>{authErr}</div> : null}
                     <button
                       type="button"
                       onClick={handleAuthSubmit}
@@ -1754,7 +1623,6 @@ useEffect(() => {
                     >
                       {authMode === "login" ? "Entrar" : "Continuar"}
                     </button>
-
                     <div style={{ marginTop: 6, fontSize: 12, opacity: 0.7, lineHeight: 1.55 }}>
                       * Versión PRO MAX (sin backend): guardamos tu sesión en el navegador por ahora.
                     </div>
@@ -1765,10 +1633,7 @@ useEffect(() => {
               {onboardingStep === 1 ? (
                 <>
                   <div style={{ fontSize: 13, fontWeight: 1000, opacity: 0.78 }}>Onboarding premium</div>
-                  <div style={{ marginTop: 8, fontSize: 20, fontWeight: 1000, letterSpacing: -0.2 }}>
-                    ¿Qué te interesa más?
-                  </div>
-
+                  <div style={{ marginTop: 8, fontSize: 20, fontWeight: 1000, letterSpacing: -0.2 }}>¿Qué te interesa más?</div>
                   <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10 }}>
                     {[
                       { k: "hombre" as const, t: "Hombre" },
@@ -1846,10 +1711,7 @@ useEffect(() => {
               {onboardingStep === 2 ? (
                 <>
                   <div style={{ fontSize: 13, fontWeight: 1000, opacity: 0.78 }}>Último toque</div>
-                  <div style={{ marginTop: 8, fontSize: 20, fontWeight: 1000, letterSpacing: -0.2 }}>
-                    ¿Qué estilo quieres ver primero?
-                  </div>
-
+                  <div style={{ marginTop: 8, fontSize: 20, fontWeight: 1000, letterSpacing: -0.2 }}>¿Qué estilo quieres ver primero?</div>
                   <div style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 8 }}>
                     {["Minimal", "Street", "Premium", "Running", "Gym", "Outdoor"].map((s) => {
                       const on = prefInterests.includes(s);
@@ -1892,7 +1754,6 @@ useEffect(() => {
                     >
                       ← Atrás
                     </button>
-
                     <button
                       type="button"
                       onClick={finishOnboarding}
@@ -1921,7 +1782,6 @@ useEffect(() => {
           </div>
         </div>
       ) : null}
-
-</main>
+    </main>
   );
 }
