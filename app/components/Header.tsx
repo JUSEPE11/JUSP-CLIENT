@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "./store";
-
 type MegaKey =
   | "hombre"
   | "mujer"
@@ -14,7 +13,6 @@ type MegaKey =
   | "ofertas"
   | "exclusivo"
   | null;
-
 type MegaSection = { title: string; items: { label: string; href: string }[] };
 type MegaConfig = {
   label: string;
@@ -23,9 +21,7 @@ type MegaConfig = {
   highlight?: boolean;
   columns: MegaSection[];
 };
-
 type Suggestion = { label: string; href: string; kind: "suggest" | "recent" | "quick" };
-
 type SearchProduct = {
   id: string;
   title: string;
@@ -35,16 +31,13 @@ type SearchProduct = {
   compareAt?: number | string;
   href: string;
 };
-
 type SessionUser = {
   id?: string;
   email?: string;
   role?: string;
   profile?: any | null;
 };
-
 const RECENTS_KEY = "jusp_search_recents_v1";
-
 function safeLoadRecents(): string[] {
   try {
     const raw = localStorage.getItem(RECENTS_KEY);
@@ -56,7 +49,6 @@ function safeLoadRecents(): string[] {
     return [];
   }
 }
-
 function safeSaveRecent(q: string) {
   const s = q.trim();
   if (!s) return;
@@ -66,11 +58,9 @@ function safeSaveRecent(q: string) {
     localStorage.setItem(RECENTS_KEY, JSON.stringify(next));
   } catch {}
 }
-
 function clamp(n: number, a: number, b: number) {
   return Math.max(a, Math.min(b, n));
 }
-
 async function safeJson(res: Response) {
   try {
     return await res.json();
@@ -78,7 +68,6 @@ async function safeJson(res: Response) {
     return null;
   }
 }
-
 function pickAccountLabel(user: SessionUser | null) {
   const prof = user?.profile ?? null;
   const email = typeof user?.email === "string" ? user.email : "";
@@ -94,11 +83,9 @@ function pickAccountLabel(user: SessionUser | null) {
   if (email) return email.length > 22 ? `${email.slice(0, 20)}…` : email;
   return "Mi cuenta";
 }
-
 export default function Header() {
-  // ✅ STORE (conteo + abrir carrito)
+  // ✅ STORE (conteo + abrir carrito) — ahora viene de Zustand + persist
   const { cartCount, openCart } = useStore();
-
   // ✅ micro-animación cuando sube el conteo
   const prevCartCount = useRef<number>(cartCount);
   const [cartBump, setCartBump] = useState(false);
@@ -111,31 +98,27 @@ export default function Header() {
       return () => window.clearTimeout(t);
     }
   }, [cartCount]);
-
   // MEGA
   const [active, setActive] = useState<MegaKey>(null);
-
   // SEARCH (full screen)
   const [searchOpen, setSearchOpen] = useState(false);
   const [q, setQ] = useState("");
   const [recents, setRecents] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement | null>(null);
-
   // SEARCH results
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState<SearchProduct[]>([]);
   const lastReq = useRef(0);
-
+  // ✅ Abort controller real (por request)
+  const searchAbortRef = useRef<AbortController | null>(null);
   // ACCOUNT mega
   const [accountOpen, setAccountOpen] = useState(false);
-
   // SESSION (PRO)
   const [sessionLoading, setSessionLoading] = useState(true);
   const [user, setUser] = useState<SessionUser | null>(null);
-  const isAuthed = !!user && user?.profile !== undefined; // user existe => sesión válida (me ok)
+  const isAuthed = !!user && user?.profile !== undefined;
   const hasProfile = !!user && user?.profile != null;
   const accountTitle = useMemo(() => pickAccountLabel(user), [user]);
-
   // Detecta móvil/touch para no depender de hover
   const [isCoarsePointer, setIsCoarsePointer] = useState(false);
   useEffect(() => {
@@ -151,8 +134,7 @@ export default function Header() {
       return () => mq.removeListener(apply);
     }
   }, []);
-
-  // Keep account mega open while moving the mouse into it (no instant close)
+  // Keep account mega open while moving the mouse into it
   const accountCloseT = useRef<number | null>(null);
   const cancelAccountClose = () => {
     if (accountCloseT.current) {
@@ -166,8 +148,7 @@ export default function Header() {
       setAccountOpen(false);
     }, 220);
   };
-
-  // HOVER SAFE CLOSE (prevents mega menu from closing when moving into it)
+  // HOVER SAFE CLOSE
   const closeTimerRef = useRef<number | null>(null);
   const cancelHoverClose = () => {
     if (closeTimerRef.current) {
@@ -182,10 +163,8 @@ export default function Header() {
       setAccountOpen(false);
     }, 140);
   };
-
   // MOBILE PRO (drawer right)
   const [mobileOpen, setMobileOpen] = useState(false);
-
   const menus: MegaConfig[] = useMemo(
     () => [
       {
@@ -482,9 +461,7 @@ export default function Header() {
     ],
     []
   );
-
   const activeMenu = useMemo(() => menus.find((m) => m.key === active) || null, [menus, active]);
-
   const suggestions: Suggestion[] = useMemo(() => {
     const trimmed = q.trim();
     const lower = trimmed.toLowerCase();
@@ -501,7 +478,6 @@ export default function Header() {
       href: `/products?q=${encodeURIComponent(r)}`,
     }));
     if (!trimmed) return [...rec, ...quick].slice(0, 8);
-
     const tokens = [
       trimmed,
       `${trimmed} hombre`,
@@ -512,13 +488,11 @@ export default function Header() {
     ]
       .map((x) => x.trim())
       .filter((x, i, arr) => arr.findIndex((y) => y.toLowerCase() === x.toLowerCase()) === i);
-
     const sug: Suggestion[] = tokens.map((t) => ({
       kind: "suggest",
       label: t,
       href: `/products?q=${encodeURIComponent(t)}`,
     }));
-
     const recMatch = rec.filter((x) => x.label.toLowerCase().includes(lower));
     const merged = [...recMatch, ...sug, ...quick].slice(0, 10);
     const seen = new Set<string>();
@@ -529,7 +503,6 @@ export default function Header() {
       return true;
     });
   }, [q, recents]);
-
   function openSearch() {
     setSearchOpen(true);
     setActive(null);
@@ -537,13 +510,16 @@ export default function Header() {
     setMobileOpen(false);
     requestAnimationFrame(() => inputRef.current?.focus());
   }
-
   function closeSearch() {
     setSearchOpen(false);
     setQ("");
     setProducts([]);
+    setLoading(false);
+    if (searchAbortRef.current) {
+      searchAbortRef.current.abort();
+      searchAbortRef.current = null;
+    }
   }
-
   function submitSearch(text: string) {
     const s = text.trim();
     if (!s) return;
@@ -551,32 +527,44 @@ export default function Header() {
     setRecents(safeLoadRecents());
     window.location.href = `/products?q=${encodeURIComponent(s)}`;
   }
-
   async function fetchProducts(query: string) {
     const s = query.trim();
     if (!s) {
       setProducts([]);
+      setLoading(false);
+      if (searchAbortRef.current) {
+        searchAbortRef.current.abort();
+        searchAbortRef.current = null;
+      }
       return;
     }
+    // ✅ abort request anterior
+    if (searchAbortRef.current) searchAbortRef.current.abort();
+    const ctrl = new AbortController();
+    searchAbortRef.current = ctrl;
     const reqId = Date.now();
     lastReq.current = reqId;
     setLoading(true);
     try {
-      const res = await fetch(`/api/products/search?q=${encodeURIComponent(s)}`, { cache: "no-store" });
+      const res = await fetch(`/api/products/search?q=${encodeURIComponent(s)}`, {
+        cache: "no-store",
+        signal: ctrl.signal,
+      });
       if (!res.ok) throw new Error("bad");
       const json = await res.json();
       const items: SearchProduct[] = Array.isArray(json?.items) ? json.items : Array.isArray(json) ? json : [];
+      if (ctrl.signal.aborted) return;
       if (lastReq.current !== reqId) return;
       setProducts(items.slice(0, 12));
-    } catch {
+    } catch (err: any) {
+      if (ctrl.signal.aborted) return;
       if (lastReq.current !== reqId) return;
       setProducts([]);
     } finally {
-      if (lastReq.current === reqId) setLoading(false);
+      if (!ctrl.signal.aborted && lastReq.current === reqId) setLoading(false);
     }
   }
-
-  // ✅ Session bootstrap (Header PRO)
+  // Session bootstrap
   useEffect(() => {
     let alive = true;
     const ctrl = new AbortController();
@@ -615,7 +603,6 @@ export default function Header() {
       ctrl.abort();
     };
   }, []);
-
   async function doLogout() {
     try {
       await fetch("/api/auth/logout", { method: "POST", credentials: "include", cache: "no-store" });
@@ -629,7 +616,6 @@ export default function Header() {
       window.location.assign("/login");
     }
   }
-
   useEffect(() => {
     setRecents(safeLoadRecents());
     const onKey = (e: KeyboardEvent) => {
@@ -651,21 +637,24 @@ export default function Header() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [searchOpen, mobileOpen]);
-
   useEffect(() => {
     const t = setTimeout(() => {
       void fetchProducts(q);
     }, clamp(q.trim().length ? 140 : 220, 120, 260));
     return () => clearTimeout(t);
   }, [q]);
-
+  // ✅ cleanup: abort al desmontar
+  useEffect(() => {
+    return () => {
+      if (searchAbortRef.current) searchAbortRef.current.abort();
+    };
+  }, []);
   return (
     <header className="jusp-header" onMouseEnter={cancelHoverClose} onMouseLeave={scheduleHoverClose}>
       <div className="jusp-header-inner">
         <Link href="/" className="jusp-logo" aria-label="JUSP Home">
           JUSP
         </Link>
-
         <nav className="jusp-nav" aria-label="Main" onMouseEnter={cancelHoverClose} onMouseLeave={scheduleHoverClose}>
           {menus.map((m) => (
             <div key={m.key} className="jusp-nav-item" onMouseEnter={() => setActive(m.key)}>
@@ -675,17 +664,14 @@ export default function Header() {
             </div>
           ))}
         </nav>
-
         <div className="jusp-actions">
           <button className="jusp-icon jusp-search-ico-btn" onClick={openSearch} aria-label="Buscar (/)">
             ⌕
             <span className="sr-only">Buscar</span>
           </button>
-
           <Link href="/favorites" className="jusp-icon" aria-label="Favoritos">
             ♡
           </Link>
-
           <button
             type="button"
             className={`jusp-icon jusp-cart-ico ${cartBump ? "bump" : ""}`}
@@ -696,7 +682,6 @@ export default function Header() {
             🛒
             {cartCount > 0 ? <span className="jusp-cart-badge">{cartCount}</span> : null}
           </button>
-
           <div
             className="jusp-account-wrap"
             onMouseEnter={() => {
@@ -730,7 +715,6 @@ export default function Header() {
               </span>
               {!sessionLoading && isAuthed ? <span className="jusp-dot" aria-hidden="true" /> : null}
             </button>
-
             {accountOpen ? (
               <div
                 className="jusp-account-mega"
@@ -758,7 +742,6 @@ export default function Header() {
                     ✕
                   </button>
                 </div>
-
                 <div className="jusp-account-sub">
                   {sessionLoading ? (
                     <span className="jusp-account-chip muted">Verificando sesión…</span>
@@ -771,11 +754,9 @@ export default function Header() {
                     <span className="jusp-account-chip warn">Falta completar perfil</span>
                   ) : null}
                 </div>
-
                 <div className="jusp-account-grid">
                   <div className="jusp-account-col">
                     <div className="jusp-account-coltitle">Acceso</div>
-
                     {!sessionLoading && !isAuthed ? (
                       <>
                         <Link className="jusp-account-link strong" href="/login" onClick={() => setAccountOpen(false)}>
@@ -789,7 +770,6 @@ export default function Header() {
                         </Link>
                       </>
                     ) : null}
-
                     {!sessionLoading && isAuthed ? (
                       <>
                         <Link className="jusp-account-link strong" href="/account" onClick={() => setAccountOpen(false)}>
@@ -817,7 +797,6 @@ export default function Header() {
                         </button>
                       </>
                     ) : null}
-
                     {sessionLoading ? (
                       <>
                         <span className="jusp-account-skel" />
@@ -826,7 +805,6 @@ export default function Header() {
                       </>
                     ) : null}
                   </div>
-
                   <div className="jusp-account-col">
                     <div className="jusp-account-coltitle">Ventajas JUSP</div>
                     <div className="jusp-account-benefits">
@@ -840,7 +818,6 @@ export default function Header() {
               </div>
             ) : null}
           </div>
-
           <button
             className="jusp-burger"
             onClick={() => {
@@ -857,7 +834,6 @@ export default function Header() {
           </button>
         </div>
       </div>
-
       <div
         className={activeMenu ? "jusp-mega open" : "jusp-mega"}
         onMouseEnter={cancelHoverClose}
@@ -871,7 +847,6 @@ export default function Header() {
                 Ver todo
               </Link>
             </div>
-
             <div
               className="jusp-mega-grid"
               style={{ gridTemplateColumns: `repeat(${Math.min(activeMenu.columns.length, 4)}, minmax(0, 1fr))` }}
@@ -919,7 +894,6 @@ export default function Header() {
                 Cancelar
               </button>
             </div>
-
             <div className="jusp-search-body">
               <div className="jusp-search-cols nike">
                 <div className="jusp-search-col">
@@ -945,7 +919,6 @@ export default function Header() {
                       </Link>
                     ))}
                   </div>
-
                   {recents.length ? (
                     <button
                       className="jusp-search-clear"
@@ -961,7 +934,6 @@ export default function Header() {
                     </button>
                   ) : null}
                 </div>
-
                 <div className="jusp-search-col">
                   <div className="jusp-search-coltitle">Resultados</div>
                   <div className="jusp-search-results">
@@ -980,9 +952,7 @@ export default function Header() {
                             {p.subtitle ? <div className="jusp-prod-sub">{p.subtitle}</div> : null}
                             {p.price != null ? (
                               <div className="jusp-prod-price">
-                                {p.compareAt != null ? (
-                                  <span className="jusp-prod-compare">${String(p.compareAt)}</span>
-                                ) : null}
+                                {p.compareAt != null ? <span className="jusp-prod-compare">${String(p.compareAt)}</span> : null}
                                 <span className="jusp-prod-now">${String(p.price)}</span>
                               </div>
                             ) : null}
@@ -993,14 +963,12 @@ export default function Header() {
                         </Link>
                       ))}
                     </div>
-
                     {q.trim() ? (
                       <button className="jusp-search-viewall" onClick={() => submitSearch(q)} type="button">
                         Ver todos los resultados
                       </button>
                     ) : null}
                   </div>
-
                   <div className="jusp-search-quickrow">
                     <div className="jusp-search-coltitle small">Rápido</div>
                     <div className="jusp-search-chips">
@@ -1018,15 +986,13 @@ export default function Header() {
                       ))}
                     </div>
                     <div className="jusp-search-hint">
-                      Tip: presiona <span className="jusp-kbd">/</span> para buscar,{" "}
-                      <span className="jusp-kbd">ESC</span> para cerrar.
+                      Tip: presiona <span className="jusp-kbd">/</span> para buscar, <span className="jusp-kbd">ESC</span> para cerrar.
                     </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-
           <button className="jusp-search-backdrop" aria-label="Cerrar búsqueda" onClick={closeSearch} type="button" />
         </div>
       ) : null}
@@ -1042,11 +1008,9 @@ export default function Header() {
                 ✕
               </button>
             </div>
-
             <button className="jusp-mdrawer-search" onClick={openSearch} type="button">
               <span className="jusp-mdrawer-linktext">Buscar</span>
             </button>
-
             <div className="jusp-mdrawer-links">
               {menus.map((m) => (
                 <Link
@@ -1059,12 +1023,10 @@ export default function Header() {
                 </Link>
               ))}
             </div>
-
             <div className="jusp-mdrawer-actions">
               <Link href="/favorites" onClick={() => setMobileOpen(false)}>
                 Favoritos
               </Link>
-
               <button
                 type="button"
                 className="jusp-mdrawer-cartbtn"
@@ -1076,7 +1038,6 @@ export default function Header() {
                 Carrito
                 {cartCount > 0 ? <span className="jusp-mdrawer-cartbadge">{cartCount}</span> : null}
               </button>
-
               {!sessionLoading && isAuthed ? (
                 <button
                   className="jusp-mdrawer-logout"
@@ -1093,7 +1054,6 @@ export default function Header() {
                   Iniciar sesión
                 </Link>
               )}
-
               {!sessionLoading && isAuthed ? (
                 <Link href="/account" onClick={() => setMobileOpen(false)}>
                   Mi cuenta
@@ -1108,13 +1068,27 @@ export default function Header() {
         </div>
       ) : null}
 
-      <style jsx global>{`:root{--jusp-header-h:64px;}
-        .sr-only{
-          position:absolute;
-          width:1px;height:1px;
-          padding:0;margin:-1px;
-          overflow:hidden;clip:rect(0,0,0,0);
-          white-space:nowrap;border:0;
+      <style jsx global>{`
+        :root {
+          --jusp-header-h: 64px;
+          --jusp-ease: cubic-bezier(0.16, 1, 0.3, 1);
+          --jusp-fast: 160ms;
+          --jusp-mid: 220ms;
+        }
+        /* ✅ Offset automático del layout por header fijo */
+        body {
+          padding-top: var(--jusp-header-h);
+        }
+        .sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
         }
         .jusp-header {
           position: fixed;
@@ -1122,10 +1096,12 @@ export default function Header() {
           left: 0;
           right: 0;
           z-index: 2000;
-          background: rgba(255,255,255,0.88);
+          background: rgba(255, 255, 255, 0.88);
           backdrop-filter: blur(10px);
           -webkit-backdrop-filter: blur(10px);
-          border-bottom: 1px solid rgba(0,0,0,0.06);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+          transition: background var(--jusp-mid) var(--jusp-ease), box-shadow var(--jusp-mid) var(--jusp-ease);
+          will-change: background, box-shadow;
         }
         .jusp-header-inner {
           height: var(--jusp-header-h);
@@ -1150,16 +1126,26 @@ export default function Header() {
           justify-content: center;
           overflow: hidden;
         }
-        .jusp-nav-item { position: relative; }
+        .jusp-nav-item {
+          position: relative;
+        }
         .jusp-nav-link {
           font-size: 13px;
           text-decoration: none;
           color: #111;
           padding: 6px 8px;
           border-radius: 10px;
+          transition: background var(--jusp-fast) var(--jusp-ease), transform var(--jusp-fast) var(--jusp-ease),
+            opacity var(--jusp-fast) var(--jusp-ease);
         }
-        .jusp-nav-link:hover { background: rgba(0, 0, 0, 0.04); }
-        .jusp-nav-sale { color: #c61f1f; font-weight: 700; }
+        .jusp-nav-link:hover {
+          background: rgba(0, 0, 0, 0.04);
+          transform: translateY(-1px);
+        }
+        .jusp-nav-sale {
+          color: #c61f1f;
+          font-weight: 700;
+        }
         .jusp-actions {
           display: flex;
           align-items: center;
@@ -1178,11 +1164,28 @@ export default function Header() {
           color: #111;
           cursor: pointer;
           position: relative;
+          transition: transform var(--jusp-fast) var(--jusp-ease), background var(--jusp-fast) var(--jusp-ease),
+            box-shadow var(--jusp-fast) var(--jusp-ease), border-color var(--jusp-fast) var(--jusp-ease),
+            opacity var(--jusp-fast) var(--jusp-ease);
+          will-change: transform, box-shadow, opacity;
         }
-        .jusp-icon:hover { background: rgba(0, 0, 0, 0.04); }
-        .jusp-search-ico-btn{ font-size: 16px; line-height: 1; }
-        .jusp-cart-ico { position: relative; border: 1px solid rgba(0,0,0,0.12); }
-        .jusp-cart-badge{
+        .jusp-icon:hover {
+          background: rgba(0, 0, 0, 0.04);
+          transform: scale(1.03);
+          box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+        }
+        .jusp-icon:active {
+          transform: scale(0.985);
+        }
+        .jusp-search-ico-btn {
+          font-size: 16px;
+          line-height: 1;
+        }
+        .jusp-cart-ico {
+          position: relative;
+          border: 1px solid rgba(0, 0, 0, 0.12);
+        }
+        .jusp-cart-badge {
           position: absolute;
           top: -6px;
           right: -6px;
@@ -1196,21 +1199,28 @@ export default function Header() {
           font-size: 11px;
           display: grid;
           place-items: center;
-          border: 1px solid rgba(255,255,255,0.18);
+          border: 1px solid rgba(255, 255, 255, 0.18);
         }
-        .jusp-cart-ico.bump { animation: juspCartBump 240ms ease; }
+        .jusp-cart-ico.bump {
+          animation: juspCartBump 240ms var(--jusp-ease);
+        }
         @keyframes juspCartBump {
           0% { transform: scale(1); }
           35% { transform: scale(1.08); }
           100% { transform: scale(1); }
         }
-
-        .jusp-account-ico{ color: #111 !important; border-color: rgba(0,0,0,0.12); }
-        .jusp-account-ico.active{
-          border-color: rgba(34,197,94,0.55);
-          box-shadow: 0 0 0 3px rgba(34,197,94,0.16);
+        .jusp-account-ico {
+          color: #111 !important;
+          border-color: rgba(0, 0, 0, 0.12);
         }
-        .jusp-ico-glyph{ color:#111 !important; filter: saturate(0) brightness(0.1); }
+        .jusp-account-ico.active {
+          border-color: rgba(34, 197, 94, 0.55);
+          box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.16);
+        }
+        .jusp-ico-glyph {
+          color: #111 !important;
+          filter: saturate(0) brightness(0.1);
+        }
         .jusp-dot {
           position: absolute;
           right: 6px;
@@ -1221,8 +1231,9 @@ export default function Header() {
           background: rgba(34, 197, 94, 0.95);
           border: 2px solid #fff;
         }
-
-        .jusp-account-wrap { position: relative; }
+        .jusp-account-wrap {
+          position: relative;
+        }
         .jusp-account-mega {
           position: absolute;
           top: 100%;
@@ -1234,6 +1245,12 @@ export default function Header() {
           box-shadow: 0 18px 40px rgba(0, 0, 0, 0.12);
           padding: 14px;
           margin-top: 10px;
+          transform-origin: top right;
+          animation: juspPop var(--jusp-fast) var(--jusp-ease) both;
+        }
+        @keyframes juspPop {
+          from { opacity: 0; transform: translateY(-6px) scale(0.985); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
         }
         .jusp-account-mega::before {
           content: "";
@@ -1252,32 +1269,82 @@ export default function Header() {
             width: auto;
             margin-top: 0;
             z-index: 2100;
-            box-shadow: 0 22px 60px rgba(0,0,0,0.18);
+            box-shadow: 0 22px 60px rgba(0, 0, 0, 0.18);
           }
         }
-        .jusp-account-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
-        .jusp-account-title { font-weight: 800; font-size: 16px; }
-        .jusp-account-close { border: 0; background: transparent; cursor: pointer; font-size: 14px; opacity: 0.7; }
-        .jusp-account-close:hover { opacity: 1; }
-        .jusp-account-sub { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+        .jusp-account-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          margin-bottom: 10px;
+        }
+        .jusp-account-title {
+          font-weight: 800;
+          font-size: 16px;
+        }
+        .jusp-account-close {
+          border: 0;
+          background: transparent;
+          cursor: pointer;
+          font-size: 14px;
+          opacity: 0.7;
+          transition: opacity var(--jusp-fast) var(--jusp-ease), transform var(--jusp-fast) var(--jusp-ease);
+        }
+        .jusp-account-close:hover {
+          opacity: 1;
+          transform: scale(1.05);
+        }
+        .jusp-account-sub {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          margin-bottom: 10px;
+        }
         .jusp-account-chip {
-          display: inline-flex; align-items: center; gap: 8px;
-          border: 1px solid rgba(0,0,0,0.10);
-          background: rgba(0,0,0,0.03);
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          border: 1px solid rgba(0, 0, 0, 0.10);
+          background: rgba(0, 0, 0, 0.03);
           border-radius: 999px;
           padding: 6px 10px;
           font-size: 12px;
           font-weight: 900;
-          color: rgba(0,0,0,0.75);
+          color: rgba(0, 0, 0, 0.75);
         }
-        .jusp-account-chip.ok { background: rgba(34,197,94,0.10); border-color: rgba(34,197,94,0.22); color: rgba(0,0,0,0.78); }
-        .jusp-account-chip.warn { background: rgba(255,214,0,0.18); border-color: rgba(255,214,0,0.35); color: rgba(0,0,0,0.78); }
-        .jusp-account-chip.muted { opacity: 0.75; }
-        .jusp-account-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        @media (max-width: 520px) { .jusp-account-grid { grid-template-columns: 1fr; } }
-        .jusp-account-coltitle { font-size: 12px; opacity: 0.7; margin-bottom: 8px; font-weight: 700; }
+        .jusp-account-chip.ok {
+          background: rgba(34, 197, 94, 0.10);
+          border-color: rgba(34, 197, 94, 0.22);
+          color: rgba(0, 0, 0, 0.78);
+        }
+        .jusp-account-chip.warn {
+          background: rgba(255, 214, 0, 0.18);
+          border-color: rgba(255, 214, 0, 0.35);
+          color: rgba(0, 0, 0, 0.78);
+        }
+        .jusp-account-chip.muted {
+          opacity: 0.75;
+        }
+        .jusp-account-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 14px;
+        }
+        @media (max-width: 520px) {
+          .jusp-account-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+        .jusp-account-coltitle {
+          font-size: 12px;
+          opacity: 0.7;
+          margin-bottom: 8px;
+          font-weight: 700;
+        }
         .jusp-account-link {
-          display: block; width: 100%;
+          display: block;
+          width: 100%;
           text-align: left;
           text-decoration: none;
           color: #111;
@@ -1287,24 +1354,53 @@ export default function Header() {
           border: 0;
           cursor: pointer;
           font: inherit;
+          transition: background var(--jusp-fast) var(--jusp-ease), transform var(--jusp-fast) var(--jusp-ease);
         }
-        .jusp-account-link:hover { background: rgba(0, 0, 0, 0.04); }
-        .jusp-account-link.strong { font-weight: 800; }
-        .jusp-account-link.danger { color: rgba(198,31,31,0.95); font-weight: 900; }
-        .jusp-account-benefits { display: grid; gap: 8px; }
-        .jusp-benefit { font-size: 13px; padding: 8px 10px; border-radius: 12px; background: rgba(0, 0, 0, 0.03); }
-
-        .jusp-account-skel { display: block; height: 36px; border-radius: 12px; background: rgba(0,0,0,0.05); margin-bottom: 8px; position: relative; overflow: hidden; }
-        .jusp-account-skel::after{
-          content:"";
-          position:absolute;
-          inset:0;
+        .jusp-account-link:hover {
+          background: rgba(0, 0, 0, 0.04);
+          transform: translateY(-1px);
+        }
+        .jusp-account-link.strong {
+          font-weight: 800;
+        }
+        .jusp-account-link.danger {
+          color: rgba(198, 31, 31, 0.95);
+          font-weight: 900;
+        }
+        .jusp-account-benefits {
+          display: grid;
+          gap: 8px;
+        }
+        .jusp-benefit {
+          font-size: 13px;
+          padding: 8px 10px;
+          border-radius: 12px;
+          background: rgba(0, 0, 0, 0.03);
+          transition: transform var(--jusp-fast) var(--jusp-ease);
+        }
+        .jusp-benefit:hover {
+          transform: translateY(-1px);
+        }
+        .jusp-account-skel {
+          display: block;
+          height: 36px;
+          border-radius: 12px;
+          background: rgba(0, 0, 0, 0.05);
+          margin-bottom: 8px;
+          position: relative;
+          overflow: hidden;
+        }
+        .jusp-account-skel::after {
+          content: "";
+          position: absolute;
+          inset: 0;
           transform: translateX(-60%);
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
           animation: juspShimmer 1.1s linear infinite;
         }
-        @keyframes juspShimmer { to { transform: translateX(60%);} }
-
+        @keyframes juspShimmer {
+          to { transform: translateX(60%); }
+        }
         .jusp-burger {
           display: none;
           border: 1px solid rgba(0, 0, 0, 0.14);
@@ -1313,8 +1409,11 @@ export default function Header() {
           width: 40px;
           height: 40px;
           cursor: pointer;
+          transition: transform var(--jusp-fast) var(--jusp-ease);
         }
-
+        .jusp-burger:active {
+          transform: scale(0.985);
+        }
         .jusp-mega {
           position: absolute;
           left: 0;
@@ -1324,11 +1423,15 @@ export default function Header() {
           z-index: 60;
           pointer-events: none;
           opacity: 0;
-          transform: translateY(-6px);
-          transition: opacity 140ms ease, transform 160ms ease;
+          transform: translateY(-6px) scale(0.995);
+          transition: opacity var(--jusp-fast) var(--jusp-ease), transform var(--jusp-fast) var(--jusp-ease);
           will-change: opacity, transform;
         }
-        .jusp-mega.open { pointer-events: auto; opacity: 1; transform: translateY(0); }
+        .jusp-mega.open {
+          pointer-events: auto;
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
         .jusp-mega-inner {
           max-width: 1180px;
           margin: 0 auto;
@@ -1344,12 +1447,38 @@ export default function Header() {
           overscroll-behavior: contain;
           -webkit-overflow-scrolling: touch;
         }
-        .jusp-mega-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
-        .jusp-mega-title { font-weight: 800; font-size: 16px; }
-        .jusp-mega-viewall { text-decoration: none; font-size: 13px; opacity: 0.75; color: #111; }
-        .jusp-mega-viewall:hover { opacity: 1; }
-        .jusp-mega-grid { display: grid; gap: 14px; }
-        .jusp-mega-col-title { font-size: 12px; font-weight: 800; opacity: 0.7; margin-bottom: 8px; }
+        .jusp-mega-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          margin-bottom: 10px;
+        }
+        .jusp-mega-title {
+          font-weight: 800;
+          font-size: 16px;
+        }
+        .jusp-mega-viewall {
+          text-decoration: none;
+          font-size: 13px;
+          opacity: 0.75;
+          color: #111;
+          transition: opacity var(--jusp-fast) var(--jusp-ease), transform var(--jusp-fast) var(--jusp-ease);
+        }
+        .jusp-mega-viewall:hover {
+          opacity: 1;
+          transform: translateY(-1px);
+        }
+        .jusp-mega-grid {
+          display: grid;
+          gap: 14px;
+        }
+        .jusp-mega-col-title {
+          font-size: 12px;
+          font-weight: 800;
+          opacity: 0.7;
+          margin-bottom: 8px;
+        }
         .jusp-mega-link {
           display: block;
           text-decoration: none;
@@ -1357,10 +1486,17 @@ export default function Header() {
           padding: 6px 8px;
           border-radius: 12px;
           font-size: 13px;
+          transition: background var(--jusp-fast) var(--jusp-ease), transform var(--jusp-fast) var(--jusp-ease);
         }
-        .jusp-mega-link:hover { background: rgba(0, 0, 0, 0.04); }
-
-        .jusp-search-overlay { position: fixed; inset: 0; z-index: 80; }
+        .jusp-mega-link:hover {
+          background: rgba(0, 0, 0, 0.04);
+          transform: translateY(-1px);
+        }
+        .jusp-search-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 80;
+        }
         .jusp-search-backdrop {
           position: absolute;
           inset: 0;
@@ -1368,7 +1504,7 @@ export default function Header() {
           backdrop-filter: blur(10px);
           border: 0;
           opacity: 0;
-          animation: juspFadeIn 160ms ease forwards;
+          animation: juspFadeIn var(--jusp-fast) var(--jusp-ease) forwards;
         }
         .jusp-search-panel {
           position: relative;
@@ -1377,15 +1513,17 @@ export default function Header() {
           height: 100%;
           display: flex;
           flex-direction: column;
-          transform: translateY(10px);
+          transform: translateY(10px) scale(0.995);
           opacity: 0;
-          animation: juspPanelIn 180ms cubic-bezier(.2,.8,.2,1) forwards;
+          animation: juspPanelIn var(--jusp-fast) var(--jusp-ease) forwards;
           will-change: transform, opacity;
         }
-        @keyframes juspFadeIn { to { opacity: 1; } }
+        @keyframes juspFadeIn {
+          to { opacity: 1; }
+        }
         @keyframes juspPanelIn {
-          0% { opacity: 0; transform: translateY(10px); }
-          100% { opacity: 1; transform: translateY(0); }
+          0% { opacity: 0; transform: translateY(10px) scale(0.995); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
         }
         @media (prefers-reduced-motion: reduce) {
           .jusp-mega,
@@ -1399,105 +1537,117 @@ export default function Header() {
             opacity: 1 !important;
           }
         }
-
-        .jusp-search-top { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid rgba(0, 0, 0, 0.08); }
-        .jusp-search-brand { font-weight: 900; letter-spacing: 0.12em; }
-        .jusp-search-inputwrap { position: relative; display: flex; align-items: center; gap: 10px; border: 1px solid rgba(0, 0, 0, 0.14); border-radius: 999px; padding: 10px 14px 10px 38px; }
-        .jusp-search-ico { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); opacity: 0.65; }
-        .jusp-search-input { width: 100%; border: 0; outline: none; font-size: 14px; background: transparent; }
-        .jusp-search-cancel { border: 0; background: transparent; cursor: pointer; font-weight: 700; opacity: 0.8; }
-        .jusp-search-cancel:hover { opacity: 1; }
-        .jusp-search-body { padding: 18px; padding-top: calc(18px + var(--jusp-header-h)); flex: 1; overflow: auto; }
-        .jusp-search-cols.nike { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 320px 1fr; gap: 22px; }
-
-        /* ===== MOBILE DRAWER ULTRA PREMIUM (Opción C) ===== */
-        .jusp-mdrawer-wrap { position: fixed; inset: 0; z-index: 90; }
-
-        /* ✅ Backdrop mucho más dominante: oscurece + blur + desatura (foco total en el menú) */
-        .jusp-mdrawer-backdrop {
-          position: absolute;
-          inset: 0;
-          background: rgba(0, 0, 0, 0.72);
-          backdrop-filter: blur(22px) saturate(0.75);
-          -webkit-backdrop-filter: blur(22px) saturate(0.75);
-          border: 0;
-          opacity: 0;
-          animation: juspFadeIn 160ms ease forwards;
+        .jusp-search-top {
+          display: grid;
+          grid-template-columns: auto 1fr auto;
+          align-items: center;
+          gap: 12px;
+          padding: 14px 18px;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
         }
-        /* ✅ “viñeta” sutil para matar el ruido del hero detrás */
-        .jusp-mdrawer-wrap::before{
-          content:"";
+        .jusp-search-brand {
+          font-weight: 900;
+          letter-spacing: 0.12em;
+        }
+        .jusp-search-inputwrap {
+          position: relative;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          border: 1px solid rgba(0, 0, 0, 0.14);
+          border-radius: 999px;
+          padding: 10px 14px 10px 38px;
+          transition: box-shadow var(--jusp-fast) var(--jusp-ease), border-color var(--jusp-fast) var(--jusp-ease);
+        }
+        .jusp-search-inputwrap:focus-within {
+          border-color: rgba(0, 0, 0, 0.22);
+          box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+        }
+        .jusp-search-ico {
+          position: absolute;
+          left: 14px;
+          top: 50%;
+          transform: translateY(-50%);
+          opacity: 0.65;
+        }
+        .jusp-search-input {
+          width: 100%;
+          border: 0;
+          outline: none;
+          font-size: 14px;
+          background: transparent;
+        }
+        .jusp-search-cancel {
+          border: 0;
+          background: transparent;
+          cursor: pointer;
+          font-weight: 700;
+          opacity: 0.8;
+          transition: opacity var(--jusp-fast) var(--jusp-ease), transform var(--jusp-fast) var(--jusp-ease);
+        }
+        .jusp-search-cancel:hover {
+          opacity: 1;
+          transform: translateY(-1px);
+        }
+        .jusp-search-body {
+          padding: 18px;
+          padding-top: calc(18px + var(--jusp-header-h));
+          flex: 1;
+          overflow: auto;
+        }
+        .jusp-search-cols.nike {
+          max-width: 1180px;
+          margin: 0 auto;
+          display: grid;
+          grid-template-columns: 320px 1fr;
+          gap: 22px;
+        }
+
+        /* ===== MOBILE DRAWER (FIX PREMIUM SOLIDO) ===== */
+        .jusp-mdrawer-wrap { position: fixed; inset: 0; z-index: 90; }
+        .jusp-mdrawer-backdrop{
           position:absolute;
           inset:0;
-          pointer-events:none;
-          background: radial-gradient(1200px 700px at 30% 20%, rgba(0,0,0,0.18), transparent 55%),
-                      radial-gradient(900px 600px at 70% 70%, rgba(0,0,0,0.22), transparent 55%);
-          opacity: 1;
+          background: rgba(0,0,0,0.86);
+          backdrop-filter: blur(28px) saturate(0.6);
+          -webkit-backdrop-filter: blur(28px) saturate(0.6);
+          border:0;
+          opacity:0;
+          animation: juspFadeIn 160ms ease forwards;
         }
-
-        .jusp-mdrawer {
-          position: absolute;
-          top: 0;
-          right: 0;
-          bottom: 0;
+        .jusp-mdrawer{
+          position:absolute;
+          top:0;
+          right:0;
+          bottom:0;
           width: min(360px, 92vw);
 
-          /* ✅ cuerpo ultra premium: negro profundo + gradiente */
-          background: linear-gradient(180deg, rgba(10,10,12,0.98) 0%, rgba(6,6,8,0.96) 55%, rgba(10,10,12,0.98) 100%);
-          backdrop-filter: blur(18px);
-          -webkit-backdrop-filter: blur(18px);
+          /* ✅ PANEL SÓLIDO (premium) */
+          background: rgba(8,8,10,0.98);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
 
-          /* ✅ borde y sombra “peso de marca” */
-          border-left: 1px solid rgba(255,255,255,0.12);
-          box-shadow: -28px 0 90px rgba(0,0,0,0.55);
+          border-left: 1px solid rgba(255,255,255,0.10);
+          box-shadow: -28px 0 90px rgba(0,0,0,0.60);
 
           padding: 12px 14px 16px;
           transform: translateX(14px);
-          opacity: 0;
+          opacity:0;
           animation: juspDrawerIn 180ms cubic-bezier(.2,.8,.2,1) forwards;
-          will-change: transform, opacity;
 
-          isolation: isolate;
+          isolation:isolate;
           color: rgba(255,255,255,0.92);
         }
-
-        /* ✅ “shine” premium arriba, como vidrio oscuro */
-        .jusp-mdrawer::before{
-          content:"";
-          position:absolute;
-          top:0; left:0; right:0;
-          height: 180px;
-          pointer-events:none;
-          background: radial-gradient(600px 160px at 20% 0%, rgba(255,255,255,0.10), transparent 60%),
-                      linear-gradient(180deg, rgba(255,255,255,0.06), transparent 70%);
-          opacity: 0.9;
-        }
-        /* ✅ “grain” sutil para lujo (no se nota, pero se siente) */
-        .jusp-mdrawer::after{
-          content:"";
-          position:absolute;
-          inset:0;
-          pointer-events:none;
-          background-image:
-            radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
-          background-size: 22px 22px;
-          opacity: 0.04;
-          mix-blend-mode: overlay;
-        }
-
         @keyframes juspDrawerIn {
           0% { opacity: 0; transform: translateX(14px); }
           100% { opacity: 1; transform: translateX(0); }
         }
 
-        .jusp-mdrawer-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; position: relative; z-index: 1; }
+        .jusp-mdrawer-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
         .jusp-mdrawer-title { font-weight: 950; letter-spacing: 0.02em; color: rgba(255,255,255,0.92); }
         .jusp-mdrawer-close { border: 0; background: transparent; cursor: pointer; font-size: 18px; color: rgba(255,255,255,0.85); }
         .jusp-mdrawer-close:hover { color: rgba(255,255,255,1); }
-
         .jusp-mdrawer-search {
-          position: relative;
-          z-index: 1;
           margin-top: 10px;
           width: 100%;
           border: 1px solid rgba(255,255,255,0.14);
@@ -1507,9 +1657,9 @@ export default function Header() {
           cursor: pointer;
           font-weight: 900;
           color: rgba(255,255,255,0.92);
+          transition: transform var(--jusp-fast) var(--jusp-ease), background var(--jusp-fast) var(--jusp-ease);
         }
         .jusp-mdrawer-search:active { transform: translateY(1px); }
-
         .jusp-mdrawer-linktext{
           display: inline-flex;
           align-items: center;
@@ -1520,31 +1670,27 @@ export default function Header() {
           color: rgba(255,255,255,0.92);
           font-weight: 950;
           letter-spacing: 0.01em;
-          box-shadow: 0 14px 34px rgba(0,0,0,0.35);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
+          box-shadow: 0 10px 26px rgba(0,0,0,0.25);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
         }
-
-        .jusp-mdrawer-links { position: relative; z-index: 1; margin-top: 12px; display: grid; gap: 10px; }
+        .jusp-mdrawer-links { margin-top: 12px; display: grid; gap: 10px; }
         .jusp-mdrawer-link {
           padding: 10px 10px;
           border-radius: 16px;
           text-decoration: none;
           border: 1px solid rgba(255,255,255,0.10);
           background: rgba(255,255,255,0.04);
+          transition: transform var(--jusp-fast) var(--jusp-ease), background var(--jusp-fast) var(--jusp-ease), border-color var(--jusp-fast) var(--jusp-ease);
         }
-        .jusp-mdrawer-link:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.14); }
-
+        .jusp-mdrawer-link:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.14); transform: translateY(-1px); }
         .jusp-mdrawer-link.jusp-nav-sale { border-color: rgba(255, 60, 60, 0.22); }
         .jusp-mdrawer-link.jusp-nav-sale .jusp-mdrawer-linktext{
           background: rgba(255, 60, 60, 0.12);
           border-color: rgba(255, 60, 60, 0.24);
           color: rgba(255,255,255,0.95);
         }
-
         .jusp-mdrawer-actions {
-          position: relative;
-          z-index: 1;
           margin-top: 16px;
           display: flex;
           gap: 12px;
@@ -1554,7 +1700,6 @@ export default function Header() {
         }
         .jusp-mdrawer-actions a { text-decoration: none; color: rgba(255,255,255,0.92); font-weight: 900; }
         .jusp-mdrawer-actions a:hover { color: rgba(255,255,255,1); }
-
         .jusp-mdrawer-cartbtn{
           border:0;
           background:transparent;
