@@ -1,3 +1,4 @@
+// components/Header.tsx
 "use client";
 
 import Link from "next/link";
@@ -139,6 +140,23 @@ export default function Header() {
 
   const accountTitle = useMemo(() => pickAccountLabel(user), [user]);
 
+  // Detecta móvil/touch para no depender de hover
+  const [isCoarsePointer, setIsCoarsePointer] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(pointer: coarse)");
+    const apply = () => setIsCoarsePointer(!!mq.matches);
+    apply();
+    try {
+      mq.addEventListener("change", apply);
+      return () => mq.removeEventListener("change", apply);
+    } catch {
+      // Safari viejo
+      mq.addListener(apply);
+      return () => mq.removeListener(apply);
+    }
+  }, []);
+
   // Keep account mega open while moving the mouse into it (no instant close)
   const accountCloseT = useRef<number | null>(null);
   const cancelAccountClose = () => {
@@ -170,14 +188,8 @@ export default function Header() {
     }, 140);
   };
 
-  // MOBILE PRO (bottom sheet)
+  // MOBILE PRO (drawer right)
   const [mobileOpen, setMobileOpen] = useState(false);
-  const sheetRef = useRef<HTMLDivElement | null>(null);
-  const drag = useRef<{ startY: number; currentY: number; dragging: boolean }>({
-    startY: 0,
-    currentY: 0,
-    dragging: false,
-  });
 
   const menus: MegaConfig[] = useMemo(
     () => [
@@ -661,46 +673,6 @@ export default function Header() {
     return () => clearTimeout(t);
   }, [q]);
 
-  useEffect(() => {
-    const el = sheetRef.current;
-    if (!el) return;
-
-    const onTouchStart = (e: TouchEvent) => {
-      drag.current.dragging = true;
-      drag.current.startY = e.touches[0]?.clientY ?? 0;
-      drag.current.currentY = drag.current.startY;
-      el.style.transition = "none";
-    };
-    const onTouchMove = (e: TouchEvent) => {
-      if (!drag.current.dragging) return;
-      drag.current.currentY = e.touches[0]?.clientY ?? drag.current.currentY;
-      const dy = Math.max(0, drag.current.currentY - drag.current.startY);
-      el.style.transform = `translateY(${dy}px)`;
-    };
-    const onTouchEnd = () => {
-      if (!drag.current.dragging) return;
-      drag.current.dragging = false;
-      const dy = Math.max(0, drag.current.currentY - drag.current.startY);
-      el.style.transition = "transform 180ms ease";
-      if (dy > 110) {
-        setMobileOpen(false);
-        el.style.transform = "";
-      } else {
-        el.style.transform = "translateY(0)";
-      }
-    };
-
-    el.addEventListener("touchstart", onTouchStart, { passive: true });
-    el.addEventListener("touchmove", onTouchMove, { passive: true });
-    el.addEventListener("touchend", onTouchEnd);
-
-    return () => {
-      el.removeEventListener("touchstart", onTouchStart);
-      el.removeEventListener("touchmove", onTouchMove);
-      el.removeEventListener("touchend", onTouchEnd);
-    };
-  }, [mobileOpen]);
-
   return (
     <header className="jusp-header" onMouseEnter={cancelHoverClose} onMouseLeave={scheduleHoverClose}>
       <div className="jusp-header-inner">
@@ -719,17 +691,17 @@ export default function Header() {
         </nav>
 
         <div className="jusp-actions">
-          {/* ✅ SOLO LUPA (sin texto Buscar) */}
-          <button className="jusp-search-btn" onClick={openSearch} aria-label="Buscar (/)">
-            <span className="jusp-search-btn-ico" aria-hidden="true">⌕</span>
-            <span className="jusp-kbd">/</span>
+          {/* ✅ LUPA PARA SIEMPRE */}
+          <button className="jusp-icon jusp-search-ico-btn" onClick={openSearch} aria-label="Buscar (/)">
+            ⌕
+            <span className="sr-only">Buscar</span>
           </button>
 
           <Link href="/favorites" className="jusp-icon" aria-label="Favoritos">
             ♡
           </Link>
 
-          {/* ✅ Carrito: abre el drawer (no navega) + badge + bump */}
+          {/* ✅ Carrito */}
           <button
             type="button"
             className={`jusp-icon jusp-cart-ico ${cartBump ? "bump" : ""}`}
@@ -741,16 +713,18 @@ export default function Header() {
             {cartCount > 0 ? <span className="jusp-cart-badge">{cartCount}</span> : null}
           </button>
 
-          {/* Cuenta (hover) */}
+          {/* ✅ Cuenta: negro + verde cuando authed/activa */}
           <div
             className="jusp-account-wrap"
             onMouseEnter={() => {
+              if (isCoarsePointer) return;
               cancelHoverClose();
               cancelAccountClose();
               setAccountOpen(true);
               setActive(null);
             }}
             onMouseLeave={() => {
+              if (isCoarsePointer) return;
               scheduleAccountClose();
               scheduleHoverClose();
             }}
@@ -759,8 +733,18 @@ export default function Header() {
               className={`jusp-icon jusp-account-ico ${accountOpen ? "active" : ""}`}
               aria-label="Mi cuenta"
               type="button"
+              onClick={() => {
+                if (isCoarsePointer) {
+                  setAccountOpen((v) => !v);
+                  setActive(null);
+                  setMobileOpen(false);
+                  setSearchOpen(false);
+                }
+              }}
             >
-              👤
+              <span className="jusp-ico-glyph" aria-hidden="true">
+                👤
+              </span>
               {!sessionLoading && isAuthed ? <span className="jusp-dot" aria-hidden="true" /> : null}
             </button>
 
@@ -770,10 +754,12 @@ export default function Header() {
                 role="dialog"
                 aria-label="Cuenta"
                 onMouseEnter={() => {
+                  if (isCoarsePointer) return;
                   cancelHoverClose();
                   cancelAccountClose();
                 }}
                 onMouseLeave={() => {
+                  if (isCoarsePointer) return;
                   scheduleAccountClose();
                   scheduleHoverClose();
                 }}
@@ -956,9 +942,7 @@ export default function Header() {
             <div className="jusp-search-body">
               <div className="jusp-search-cols nike">
                 <div className="jusp-search-col">
-                  <div className="jusp-search-coltitle">
-                    {q.trim() ? "Sugerencias" : recents.length ? "Recientes" : "Sugerencias"}
-                  </div>
+                  <div className="jusp-search-coltitle">{q.trim() ? "Sugerencias" : recents.length ? "Recientes" : "Sugerencias"}</div>
 
                   <div className="jusp-search-list">
                     {suggestions.map((s) => (
@@ -1064,29 +1048,28 @@ export default function Header() {
         </div>
       ) : null}
 
-      {/* MOBILE sheet */}
+      {/* MOBILE drawer (derecha) */}
       {mobileOpen ? (
-        <div className="jusp-sheet-wrap" role="dialog" aria-modal="true">
-          <button className="jusp-sheet-backdrop" onClick={() => setMobileOpen(false)} aria-label="Cerrar" type="button" />
-          <div className="jusp-sheet" ref={sheetRef}>
-            <div className="jusp-sheet-handle" />
-            <div className="jusp-sheet-top">
-              <div className="jusp-sheet-title">Menú</div>
-              <button className="jusp-sheet-close" onClick={() => setMobileOpen(false)} aria-label="Cerrar" type="button">
+        <div className="jusp-mdrawer-wrap" role="dialog" aria-modal="true">
+          <button className="jusp-mdrawer-backdrop" onClick={() => setMobileOpen(false)} aria-label="Cerrar" type="button" />
+          <div className="jusp-mdrawer">
+            <div className="jusp-mdrawer-top">
+              <div className="jusp-mdrawer-title">Menú</div>
+              <button className="jusp-mdrawer-close" onClick={() => setMobileOpen(false)} aria-label="Cerrar" type="button">
                 ✕
               </button>
             </div>
 
-            <button className="jusp-sheet-search" onClick={openSearch} type="button">
+            <button className="jusp-mdrawer-search" onClick={openSearch} type="button">
               Buscar
             </button>
 
-            <div className="jusp-sheet-links">
+            <div className="jusp-mdrawer-links">
               {menus.map((m) => (
                 <Link
                   key={m.key}
                   href={m.href}
-                  className={m.highlight ? "jusp-sheet-link jusp-nav-sale" : "jusp-sheet-link"}
+                  className={m.highlight ? "jusp-mdrawer-link jusp-nav-sale" : "jusp-mdrawer-link"}
                   onClick={() => setMobileOpen(false)}
                 >
                   {m.label}
@@ -1094,27 +1077,26 @@ export default function Header() {
               ))}
             </div>
 
-            <div className="jusp-sheet-actions">
+            <div className="jusp-mdrawer-actions">
               <Link href="/favorites" onClick={() => setMobileOpen(false)}>
                 Favoritos
               </Link>
 
-              {/* ✅ En móvil: también abrimos el drawer */}
               <button
                 type="button"
-                className="jusp-sheet-cartbtn"
+                className="jusp-mdrawer-cartbtn"
                 onClick={() => {
                   setMobileOpen(false);
                   openCart();
                 }}
               >
                 Carrito
-                {cartCount > 0 ? <span className="jusp-sheet-cartbadge">{cartCount}</span> : null}
+                {cartCount > 0 ? <span className="jusp-mdrawer-cartbadge">{cartCount}</span> : null}
               </button>
 
               {!sessionLoading && isAuthed ? (
                 <button
-                  className="jusp-sheet-logout"
+                  className="jusp-mdrawer-logout"
                   type="button"
                   onClick={() => {
                     setMobileOpen(false);
@@ -1139,13 +1121,19 @@ export default function Header() {
                 </Link>
               )}
             </div>
-
-            <div className="jusp-sheet-footnote">Desliza hacia abajo para cerrar.</div>
           </div>
         </div>
       ) : null}
 
       <style jsx global>{`:root{--jusp-header-h:64px;}
+        .sr-only{
+          position:absolute;
+          width:1px;height:1px;
+          padding:0;margin:-1px;
+          overflow:hidden;clip:rect(0,0,0,0);
+          white-space:nowrap;border:0;
+        }
+
         .jusp-header {
           position: fixed;
           top: 0;
@@ -1200,34 +1188,6 @@ export default function Header() {
           justify-self: end;
         }
 
-        /* ✅ Search button = SOLO lupa */
-        .jusp-search-btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          border: 1px solid rgba(0, 0, 0, 0.14);
-          background: #fff;
-          padding: 8px 10px;
-          border-radius: 999px;
-          cursor: pointer;
-          color: #111;
-        }
-        .jusp-search-btn-ico{
-          font-size: 16px;
-          line-height: 1;
-          transform: translateY(-0.5px);
-          color: #111;
-        }
-
-        .jusp-kbd {
-          font-size: 12px;
-          padding: 2px 7px;
-          border-radius: 8px;
-          border: 1px solid rgba(0, 0, 0, 0.14);
-          background: rgba(0, 0, 0, 0.02);
-          color: #111;
-        }
-
         .jusp-icon {
           width: 34px;
           height: 34px;
@@ -1243,22 +1203,12 @@ export default function Header() {
         }
         .jusp-icon:hover { background: rgba(0, 0, 0, 0.04); }
 
-        /* ✅ Asegurar cuenta NO azul */
-        .jusp-account-ico{
-          color: #111 !important;
-        }
-        /* ✅ Cuando cuenta está activa: marca verde premium */
-        .jusp-account-ico.active{
-          border-color: rgba(34, 197, 94, 0.55) !important;
-          box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
-        }
-        .jusp-account-ico:focus { outline: none; }
-        .jusp-account-ico:focus-visible{
-          outline: 2px solid rgba(34,197,94,0.55);
-          outline-offset: 2px;
+        /* ✅ Lupa: botón cuadrado igual a los otros */
+        .jusp-search-ico-btn{
+          font-size: 16px;
+          line-height: 1;
         }
 
-        /* ✅ Badge carrito */
         .jusp-cart-ico { position: relative; border: 1px solid rgba(0,0,0,0.12); }
         .jusp-cart-badge{
           position: absolute;
@@ -1277,12 +1227,25 @@ export default function Header() {
           border: 1px solid rgba(255,255,255,0.18);
         }
 
-        /* ✅ micro bump premium */
         .jusp-cart-ico.bump { animation: juspCartBump 240ms ease; }
         @keyframes juspCartBump {
           0% { transform: scale(1); }
           35% { transform: scale(1.08); }
           100% { transform: scale(1); }
+        }
+
+        /* ✅ Cuenta NEGRA (no azul) + ring verde cuando está abierta */
+        .jusp-account-ico{
+          color: #111 !important;
+          border-color: rgba(0,0,0,0.12);
+        }
+        .jusp-account-ico.active{
+          border-color: rgba(34,197,94,0.55);
+          box-shadow: 0 0 0 3px rgba(34,197,94,0.16);
+        }
+        .jusp-ico-glyph{
+          color:#111 !important;
+          filter: saturate(0) brightness(0.1);
         }
 
         .jusp-dot {
@@ -1308,14 +1271,7 @@ export default function Header() {
           box-shadow: 0 18px 40px rgba(0, 0, 0, 0.12);
           padding: 14px;
           margin-top: 10px;
-          animation: juspPopIn 200ms cubic-bezier(.2,.8,.2,1) both;
-          transform-origin: top right;
         }
-        @keyframes juspPopIn{
-          from { opacity: 0; transform: translateY(-6px) scale(0.98); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
         .jusp-account-mega::before {
           content: "";
           position: absolute;
@@ -1324,6 +1280,20 @@ export default function Header() {
           top: -10px;
           height: 10px;
         }
+
+        @media (max-width: 920px) {
+          .jusp-account-mega {
+            position: fixed;
+            top: calc(var(--jusp-header-h) + 10px);
+            left: 12px;
+            right: 12px;
+            width: auto;
+            margin-top: 0;
+            z-index: 2100;
+            box-shadow: 0 22px 60px rgba(0,0,0,0.18);
+          }
+        }
+
         .jusp-account-head {
           display: flex;
           align-items: center;
@@ -1364,6 +1334,9 @@ export default function Header() {
         .jusp-account-chip.muted { opacity: 0.75; }
 
         .jusp-account-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        @media (max-width: 520px) {
+          .jusp-account-grid { grid-template-columns: 1fr; }
+        }
         .jusp-account-coltitle {
           font-size: 12px;
           opacity: 0.7;
@@ -1393,6 +1366,7 @@ export default function Header() {
           border-radius: 12px;
           background: rgba(0, 0, 0, 0.03);
         }
+
         .jusp-account-skel {
           display: block;
           height: 36px;
@@ -1420,7 +1394,6 @@ export default function Header() {
           width: 40px;
           height: 40px;
           cursor: pointer;
-          color:#111;
         }
 
         .jusp-mega {
@@ -1430,7 +1403,20 @@ export default function Header() {
           top: 100%;
           padding: 0 16px;
           z-index: 60;
+
+          pointer-events: none;
+          opacity: 0;
+          transform: translateY(-6px);
+          transition: opacity 140ms ease, transform 160ms ease;
+          will-change: opacity, transform;
         }
+
+        .jusp-mega.open {
+          pointer-events: auto;
+          opacity: 1;
+          transform: translateY(0);
+        }
+
         .jusp-mega-inner {
           max-width: 1180px;
           margin: 0 auto;
@@ -1445,15 +1431,6 @@ export default function Header() {
           overflow-x: hidden;
           overscroll-behavior: contain;
           -webkit-overflow-scrolling: touch;
-        }
-        /* ✅ Animación premium entrada mega */
-        .jusp-mega.open .jusp-mega-inner{
-          animation: juspMegaIn 220ms cubic-bezier(.2,.85,.2,1) both;
-          transform-origin: top center;
-        }
-        @keyframes juspMegaIn{
-          from { opacity: 0; transform: translateY(-8px) scale(0.99); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         .jusp-mega-top {
@@ -1485,11 +1462,10 @@ export default function Header() {
           background: rgba(255, 255, 255, 0.72);
           backdrop-filter: blur(10px);
           border: 0;
-          animation: juspFadeIn 180ms ease both;
-        }
-        @keyframes juspFadeIn { from{opacity:0} to{opacity:1} }
 
-        /* ✅ Animación premium entrada search panel */
+          opacity: 0;
+          animation: juspFadeIn 160ms ease forwards;
+        }
         .jusp-search-panel {
           position: relative;
           z-index: 2;
@@ -1497,65 +1473,100 @@ export default function Header() {
           height: 100%;
           display: flex;
           flex-direction: column;
-          animation: juspSearchIn 220ms cubic-bezier(.2,.9,.2,1) both;
+
+          transform: translateY(10px);
+          opacity: 0;
+          animation: juspPanelIn 180ms cubic-bezier(.2,.8,.2,1) forwards;
+          will-change: transform, opacity;
         }
-        @keyframes juspSearchIn{
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
+        @keyframes juspFadeIn { to { opacity: 1; } }
+        @keyframes juspPanelIn {
+          0% { opacity: 0; transform: translateY(10px); }
+          100% { opacity: 1; transform: translateY(0); }
         }
 
-        .jusp-search-top {
-          display: grid;
-          grid-template-columns: auto 1fr auto;
-          align-items: center;
-          gap: 12px;
-          padding: 14px 18px;
-          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        @media (prefers-reduced-motion: reduce) {
+          .jusp-mega,
+          .jusp-search-panel,
+          .jusp-search-backdrop,
+          .jusp-mdrawer,
+          .jusp-mdrawer-backdrop {
+            transition: none !important;
+            animation: none !important;
+            transform: none !important;
+            opacity: 1 !important;
+          }
         }
+
+        .jusp-search-top { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid rgba(0, 0, 0, 0.08); }
         .jusp-search-brand { font-weight: 900; letter-spacing: 0.12em; }
         .jusp-search-inputwrap { position: relative; display: flex; align-items: center; gap: 10px; border: 1px solid rgba(0, 0, 0, 0.14); border-radius: 999px; padding: 10px 14px 10px 38px; }
         .jusp-search-ico { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); opacity: 0.65; }
         .jusp-search-input { width: 100%; border: 0; outline: none; font-size: 14px; background: transparent; }
-        .jusp-search-cancel { border: 0; background: transparent; cursor: pointer; font-weight: 700; opacity: 0.8; color:#111; }
+        .jusp-search-cancel { border: 0; background: transparent; cursor: pointer; font-weight: 700; opacity: 0.8; }
         .jusp-search-cancel:hover { opacity: 1; }
         .jusp-search-body { padding: 18px; padding-top: calc(18px + var(--jusp-header-h)); flex: 1; overflow: auto; }
         .jusp-search-cols.nike { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 320px 1fr; gap: 22px; }
 
-        .jusp-sheet-wrap { position: fixed; inset: 0; z-index: 90; }
-        /* ✅ FONDO BLANCO para que sea visible (no se ve el hero detrás) */
-        .jusp-sheet-backdrop {
+        .jusp-mdrawer-wrap { position: fixed; inset: 0; z-index: 90; }
+        .jusp-mdrawer-backdrop {
           position: absolute;
           inset: 0;
-          background: rgba(255, 255, 255, 0.92);
+          background: rgba(0, 0, 0, 0.28);
           border: 0;
+          opacity: 0;
+          animation: juspFadeIn 160ms ease forwards;
         }
-        .jusp-sheet {
+        .jusp-mdrawer {
           position: absolute;
-          left: 0;
+          top: 0;
           right: 0;
           bottom: 0;
+          width: min(360px, 92vw);
           background: #fff;
-          border-radius: 18px 18px 0 0;
+          border-left: 1px solid rgba(0,0,0,0.10);
+          box-shadow: -18px 0 48px rgba(0,0,0,0.18);
           padding: 12px 14px 16px;
-          transform: translateY(0);
-          box-shadow: 0 -18px 50px rgba(0,0,0,0.08);
-          animation: juspSheetIn 200ms cubic-bezier(.2,.9,.2,1) both;
+
+          transform: translateX(12px);
+          opacity: 0;
+          animation: juspDrawerIn 180ms cubic-bezier(.2,.8,.2,1) forwards;
+          will-change: transform, opacity;
         }
-        @keyframes juspSheetIn{
-          from { opacity: 0; transform: translateY(18px); }
-          to { opacity: 1; transform: translateY(0); }
+        @keyframes juspDrawerIn {
+          0% { opacity: 0; transform: translateX(12px); }
+          100% { opacity: 1; transform: translateX(0); }
         }
 
-        .jusp-sheet-handle { width: 52px; height: 5px; border-radius: 999px; background: rgba(0, 0, 0, 0.16); margin: 6px auto 10px; }
-        .jusp-sheet-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-        .jusp-sheet-title { font-weight: 900; }
-        .jusp-sheet-close { border: 0; background: transparent; cursor: pointer; font-size: 16px; color:#111; }
-        .jusp-sheet-search { margin-top: 10px; width: 100%; border: 1px solid rgba(0, 0, 0, 0.14); border-radius: 14px; padding: 12px; background: #fff; cursor: pointer; font-weight: 900; color:#111; }
-        .jusp-sheet-links { margin-top: 10px; display: grid; gap: 6px; }
-        .jusp-sheet-link { padding: 10px 12px; border-radius: 14px; text-decoration: none; color: #111; border: 1px solid rgba(0, 0, 0, 0.08); background:#fff; }
-        .jusp-sheet-actions { margin-top: 12px; display: flex; gap: 12px; justify-content: space-between; flex-wrap: wrap; align-items: center; }
-        .jusp-sheet-actions a { text-decoration: none; color: #111; font-weight: 800; }
-        .jusp-sheet-cartbtn{
+        .jusp-mdrawer-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        .jusp-mdrawer-title { font-weight: 900; }
+        .jusp-mdrawer-close { border: 0; background: transparent; cursor: pointer; font-size: 18px; }
+
+        .jusp-mdrawer-search {
+          margin-top: 10px;
+          width: 100%;
+          border: 1px solid rgba(0, 0, 0, 0.14);
+          border-radius: 14px;
+          padding: 12px;
+          background: #fff;
+          cursor: pointer;
+          font-weight: 900;
+        }
+
+        .jusp-mdrawer-links { margin-top: 10px; display: grid; gap: 8px; }
+        .jusp-mdrawer-link {
+          padding: 12px 12px;
+          border-radius: 14px;
+          text-decoration: none;
+          color: #111;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          font-weight: 800;
+        }
+
+        .jusp-mdrawer-actions { margin-top: 14px; display: flex; gap: 12px; justify-content: space-between; flex-wrap: wrap; align-items: center; }
+        .jusp-mdrawer-actions a { text-decoration: none; color: #111; font-weight: 800; }
+
+        .jusp-mdrawer-cartbtn{
           border:0;
           background:transparent;
           font-weight: 900;
@@ -1566,7 +1577,7 @@ export default function Header() {
           gap:8px;
           color:#111;
         }
-        .jusp-sheet-cartbadge{
+        .jusp-mdrawer-cartbadge{
           min-width: 18px;
           height: 18px;
           padding: 0 6px;
@@ -1579,8 +1590,7 @@ export default function Header() {
           place-items: center;
           border: 1px solid rgba(255,255,255,0.18);
         }
-        .jusp-sheet-logout { border:0; background:transparent; color: rgba(198,31,31,0.95); font-weight: 900; cursor:pointer; padding:0; }
-        .jusp-sheet-footnote { margin-top: 12px; font-size: 12px; opacity: 0.7; text-align: center; }
+        .jusp-mdrawer-logout { border:0; background:transparent; color: rgba(198,31,31,0.95); font-weight: 900; cursor:pointer; padding:0; }
 
         @media (max-width: 920px) {
           .jusp-nav { display: none; }
