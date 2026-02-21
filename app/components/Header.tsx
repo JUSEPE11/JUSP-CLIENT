@@ -204,24 +204,43 @@ function DrawerIcon({ name }: { name: string }) {
           />
         </svg>
       );
+
+    /* ✅ FIX: “Colecciones” ahora es una CAJA premium (no lista) */
     case "colecciones":
       return (
         <svg {...common} aria-hidden="true">
           <path
-            d="M7 6h14M7 12h14M7 18h14"
+            d="M12 2.8 20 7.1v9.8L12 21.2 4 16.9V7.1L12 2.8Z"
             stroke="currentColor"
             strokeWidth="1.9"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
           <path
-            d="M3.5 6h.01M3.5 12h.01M3.5 18h.01"
+            d="M4 7.1l8 4.4 8-4.4"
             stroke="currentColor"
-            strokeWidth="3.2"
+            strokeWidth="1.9"
             strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M12 11.5v9.7"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M8.6 5.1 15.4 8.8"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity="0.65"
           />
         </svg>
       );
+
     case "snkrs":
       return (
         <svg {...common} aria-hidden="true">
@@ -295,24 +314,13 @@ function DrawerIcon({ name }: { name: string }) {
             strokeLinecap="round"
             strokeLinejoin="round"
           />
-          <path
-            d="M7.5 7.5h.01"
-            stroke="currentColor"
-            strokeWidth="3.2"
-            strokeLinecap="round"
-          />
+          <path d="M7.5 7.5h.01" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" />
         </svg>
       );
     default:
       return (
         <svg {...common} aria-hidden="true">
-          <path
-            d="M6 12h12"
-            stroke="currentColor"
-            strokeWidth="1.9"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          <path d="M6 12h12" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
   }
@@ -819,11 +827,7 @@ export default function Header() {
       });
       if (!res.ok) throw new Error("bad");
       const json = await res.json();
-      const items: SearchProduct[] = Array.isArray(json?.items)
-        ? json.items
-        : Array.isArray(json)
-        ? json
-        : [];
+      const items: SearchProduct[] = Array.isArray(json?.items) ? json.items : Array.isArray(json) ? json : [];
       if (ctrl.signal.aborted) return;
       if (lastReq.current !== reqId) return;
       setProducts(items.slice(0, 12));
@@ -1124,7 +1128,11 @@ export default function Header() {
         </div>
       </div>
 
-      <div className={activeMenu ? "jusp-mega open" : "jusp-mega"} onMouseEnter={cancelHoverClose} onMouseLeave={scheduleHoverClose}>
+      <div
+        className={activeMenu ? "jusp-mega open" : "jusp-mega"}
+        onMouseEnter={cancelHoverClose}
+        onMouseLeave={scheduleHoverClose}
+      >
         {activeMenu ? (
           <div className="jusp-mega-inner">
             <div className="jusp-mega-top">
@@ -1187,7 +1195,9 @@ export default function Header() {
             <div className="jusp-search-body">
               <div className="jusp-search-cols nike">
                 <div className="jusp-search-col">
-                  <div className="jusp-search-coltitle">{q.trim() ? "Sugerencias" : recents.length ? "Recientes" : "Sugerencias"}</div>
+                  <div className="jusp-search-coltitle">
+                    {q.trim() ? "Sugerencias" : recents.length ? "Recientes" : "Sugerencias"}
+                  </div>
                   <div className="jusp-search-list">
                     {suggestions.map((s) => (
                       <Link
@@ -1200,7 +1210,9 @@ export default function Header() {
                           setSearchOpen(false);
                         }}
                       >
-                        <span className="jusp-search-itemkind">{s.kind === "recent" ? "↻" : s.kind === "quick" ? "★" : "→"}</span>
+                        <span className="jusp-search-itemkind">
+                          {s.kind === "recent" ? "↻" : s.kind === "quick" ? "★" : "→"}
+                        </span>
                         <span className="jusp-search-itemlabel">{s.label}</span>
                       </Link>
                     ))}
@@ -1241,7 +1253,9 @@ export default function Header() {
                             {p.subtitle ? <div className="jusp-prod-sub">{p.subtitle}</div> : null}
                             {p.price != null ? (
                               <div className="jusp-prod-price">
-                                {p.compareAt != null ? <span className="jusp-prod-compare">${String(p.compareAt)}</span> : null}
+                                {p.compareAt != null ? (
+                                  <span className="jusp-prod-compare">${String(p.compareAt)}</span>
+                                ) : null}
                                 <span className="jusp-prod-now">${String(p.price)}</span>
                               </div>
                             ) : null}
@@ -1292,7 +1306,12 @@ export default function Header() {
       {/* MOBILE drawer */}
       {mobileOpen ? (
         <div className="jusp-mdrawer-wrap" role="dialog" aria-modal="true">
-          <button className="jusp-mdrawer-backdrop" onClick={() => setMobileOpen(false)} aria-label="Cerrar" type="button" />
+          <button
+            className="jusp-mdrawer-backdrop"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Cerrar"
+            type="button"
+          />
           <div className="jusp-mdrawer">
             <div className="jusp-mdrawer-top">
               <div className="jusp-mdrawer-title">Menú</div>
@@ -1316,18 +1335,15 @@ export default function Header() {
             <div className="jusp-mdrawer-links">
               {menus.map((m) => {
                 const iconName = iconNameForKey(m.key, m.label);
-
-                // ✅ SOLO: “Colecciones” se vuelve caja premium
-                const isColecciones = m.key === "jordan" || m.label === "Colecciones";
-
-                const baseClass = m.highlight ? "jusp-mdrawer-link jusp-nav-sale" : "jusp-mdrawer-link";
-                const className = isColecciones ? `${baseClass} jusp-mdrawer-premium` : baseClass;
-
+                const isCollections = m.key === "jordan" && m.label === "Colecciones";
                 return (
                   <Link
                     key={m.key}
                     href={m.href}
-                    className={className}
+                    className={[
+                      m.highlight ? "jusp-mdrawer-link jusp-nav-sale" : "jusp-mdrawer-link",
+                      isCollections ? "jusp-mdrawer-collections" : "",
+                    ].join(" ")}
                     onClick={() => setMobileOpen(false)}
                   >
                     <span className="jusp-mdrawer-left">
@@ -2241,50 +2257,30 @@ export default function Header() {
           color: rgba(198, 31, 31, 0.85);
         }
 
-        /* ✅ SOLO: Caja premium para “Colecciones” */
-        .jusp-mdrawer-link.jusp-mdrawer-premium {
-          padding: 12px 12px;
-          border-radius: 18px;
-          background: rgba(255, 255, 255, 0.72);
+        /* ✅ FIX VISUAL: Colecciones como “caja premium” */
+        .jusp-mdrawer-link.jusp-mdrawer-collections {
+          border-color: rgba(0, 0, 0, 0.14);
+          background: rgba(255, 255, 255, 0.62);
+          box-shadow: 0 18px 44px rgba(0, 0, 0, 0.09);
+        }
+
+        .jusp-mdrawer-link.jusp-mdrawer-collections .jusp-mdrawer-icobubble {
+          background: rgba(0, 0, 0, 0.05);
           border-color: rgba(0, 0, 0, 0.12);
-          box-shadow: 0 22px 60px rgba(0, 0, 0, 0.12);
-          position: relative;
-          overflow: hidden;
+          box-shadow: 0 18px 40px rgba(0, 0, 0, 0.09);
         }
 
-        .jusp-mdrawer-link.jusp-mdrawer-premium::before {
-          content: "";
-          position: absolute;
-          inset: -40% -30%;
-          background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.85), transparent 55%),
-            radial-gradient(circle at 70% 50%, rgba(255, 255, 255, 0.55), transparent 60%);
-          transform: rotate(12deg);
-          opacity: 0.55;
-          pointer-events: none;
+        .jusp-mdrawer-link.jusp-mdrawer-collections .jusp-mdrawer-linktext {
+          background: rgba(0, 0, 0, 0.05);
+          border-color: rgba(0, 0, 0, 0.12);
+          box-shadow: 0 14px 34px rgba(0, 0, 0, 0.08);
         }
 
-        .jusp-mdrawer-link.jusp-mdrawer-premium:hover {
-          background: rgba(255, 255, 255, 0.82);
-          transform: translateY(-2px);
-          box-shadow: 0 28px 78px rgba(0, 0, 0, 0.14);
-        }
-
-        .jusp-mdrawer-link.jusp-mdrawer-premium .jusp-mdrawer-icobubble {
-          background: rgba(0, 0, 0, 0.035);
-          border-color: rgba(0, 0, 0, 0.10);
-          box-shadow: 0 18px 44px rgba(0, 0, 0, 0.10);
-        }
-
-        .jusp-mdrawer-link.jusp-mdrawer-premium .jusp-mdrawer-linktext {
-          background: rgba(0, 0, 0, 0.035);
-          border-color: rgba(0, 0, 0, 0.10);
-          box-shadow: 0 16px 40px rgba(0, 0, 0, 0.10);
-        }
-
-        .jusp-mdrawer-link.jusp-mdrawer-premium .jusp-mdrawer-arrow {
-          background: rgba(0, 0, 0, 0.028);
-          border-color: rgba(0, 0, 0, 0.10);
-          box-shadow: 0 18px 44px rgba(0, 0, 0, 0.08);
+        .jusp-mdrawer-link.jusp-mdrawer-collections .jusp-mdrawer-arrow {
+          background: rgba(0, 0, 0, 0.04);
+          border-color: rgba(0, 0, 0, 0.12);
+          color: rgba(0, 0, 0, 0.78);
+          box-shadow: 0 18px 36px rgba(0, 0, 0, 0.08);
         }
 
         .jusp-mdrawer-actions {
