@@ -168,7 +168,6 @@ function DrawerIcon({ name }: { name: string }) {
             stroke="currentColor"
             strokeWidth="1.9"
             strokeLinecap="round"
-            strokeLinejoin="round"
           />
         </svg>
       );
@@ -1317,11 +1316,18 @@ export default function Header() {
             <div className="jusp-mdrawer-links">
               {menus.map((m) => {
                 const iconName = iconNameForKey(m.key, m.label);
+
+                // ✅ SOLO: “Colecciones” se vuelve caja premium
+                const isColecciones = m.key === "jordan" || m.label === "Colecciones";
+
+                const baseClass = m.highlight ? "jusp-mdrawer-link jusp-nav-sale" : "jusp-mdrawer-link";
+                const className = isColecciones ? `${baseClass} jusp-mdrawer-premium` : baseClass;
+
                 return (
                   <Link
                     key={m.key}
                     href={m.href}
-                    className={m.highlight ? "jusp-mdrawer-link jusp-nav-sale" : "jusp-mdrawer-link"}
+                    className={className}
                     onClick={() => setMobileOpen(false)}
                   >
                     <span className="jusp-mdrawer-left">
@@ -2233,6 +2239,52 @@ export default function Header() {
           background: rgba(198, 31, 31, 0.06);
           border-color: rgba(198, 31, 31, 0.12);
           color: rgba(198, 31, 31, 0.85);
+        }
+
+        /* ✅ SOLO: Caja premium para “Colecciones” */
+        .jusp-mdrawer-link.jusp-mdrawer-premium {
+          padding: 12px 12px;
+          border-radius: 18px;
+          background: rgba(255, 255, 255, 0.72);
+          border-color: rgba(0, 0, 0, 0.12);
+          box-shadow: 0 22px 60px rgba(0, 0, 0, 0.12);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .jusp-mdrawer-link.jusp-mdrawer-premium::before {
+          content: "";
+          position: absolute;
+          inset: -40% -30%;
+          background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.85), transparent 55%),
+            radial-gradient(circle at 70% 50%, rgba(255, 255, 255, 0.55), transparent 60%);
+          transform: rotate(12deg);
+          opacity: 0.55;
+          pointer-events: none;
+        }
+
+        .jusp-mdrawer-link.jusp-mdrawer-premium:hover {
+          background: rgba(255, 255, 255, 0.82);
+          transform: translateY(-2px);
+          box-shadow: 0 28px 78px rgba(0, 0, 0, 0.14);
+        }
+
+        .jusp-mdrawer-link.jusp-mdrawer-premium .jusp-mdrawer-icobubble {
+          background: rgba(0, 0, 0, 0.035);
+          border-color: rgba(0, 0, 0, 0.10);
+          box-shadow: 0 18px 44px rgba(0, 0, 0, 0.10);
+        }
+
+        .jusp-mdrawer-link.jusp-mdrawer-premium .jusp-mdrawer-linktext {
+          background: rgba(0, 0, 0, 0.035);
+          border-color: rgba(0, 0, 0, 0.10);
+          box-shadow: 0 16px 40px rgba(0, 0, 0, 0.10);
+        }
+
+        .jusp-mdrawer-link.jusp-mdrawer-premium .jusp-mdrawer-arrow {
+          background: rgba(0, 0, 0, 0.028);
+          border-color: rgba(0, 0, 0, 0.10);
+          box-shadow: 0 18px 44px rgba(0, 0, 0, 0.08);
         }
 
         .jusp-mdrawer-actions {
