@@ -1,6 +1,5 @@
 // components/Header.tsx
 "use client";
-
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "./store";
@@ -57,6 +56,7 @@ function safeLoadRecents(): string[] {
     return [];
   }
 }
+
 function safeSaveRecent(q: string) {
   const s = q.trim();
   if (!s) return;
@@ -102,11 +102,9 @@ export default function Header() {
   // ✅ micro-animación cuando sube el conteo
   const prevCartCount = useRef<number>(cartCount);
   const [cartBump, setCartBump] = useState(false);
-
   useEffect(() => {
     const prev = prevCartCount.current;
     prevCartCount.current = cartCount;
-
     if (cartCount > prev) {
       setCartBump(true);
       const t = window.setTimeout(() => setCartBump(false), 260);
@@ -134,10 +132,8 @@ export default function Header() {
   // SESSION (PRO)
   const [sessionLoading, setSessionLoading] = useState(true);
   const [user, setUser] = useState<SessionUser | null>(null);
-
   const isAuthed = !!user && user?.profile !== undefined; // user existe => sesión válida (me ok)
   const hasProfile = !!user && user?.profile != null;
-
   const accountTitle = useMemo(() => pickAccountLabel(user), [user]);
 
   // Detecta móvil/touch para no depender de hover
@@ -493,7 +489,6 @@ export default function Header() {
   const suggestions: Suggestion[] = useMemo(() => {
     const trimmed = q.trim();
     const lower = trimmed.toLowerCase();
-
     const quick: Suggestion[] = [
       { kind: "quick", label: "Dunk", href: "/products?q=dunk" },
       { kind: "quick", label: "Air Force 1", href: "/products?q=air%20force%201" },
@@ -501,13 +496,11 @@ export default function Header() {
       { kind: "quick", label: "Colecciones", href: "/products?tab=colecciones" },
       { kind: "quick", label: "Exclusivo", href: "/products?tab=exclusivo" },
     ];
-
     const rec: Suggestion[] = recents.map((r) => ({
       kind: "recent",
       label: r,
       href: `/products?q=${encodeURIComponent(r)}`,
     }));
-
     if (!trimmed) return [...rec, ...quick].slice(0, 8);
 
     const tokens = [
@@ -529,7 +522,6 @@ export default function Header() {
 
     const recMatch = rec.filter((x) => x.label.toLowerCase().includes(lower));
     const merged = [...recMatch, ...sug, ...quick].slice(0, 10);
-
     const seen = new Set<string>();
     return merged.filter((x) => {
       const k = x.href;
@@ -589,7 +581,6 @@ export default function Header() {
   useEffect(() => {
     let alive = true;
     const ctrl = new AbortController();
-
     (async () => {
       setSessionLoading(true);
       try {
@@ -600,9 +591,7 @@ export default function Header() {
           signal: ctrl.signal,
         });
         const json = await safeJson(res);
-
         if (!alive) return;
-
         if (res.ok && json?.ok === true) {
           const u = (json?.user ?? {}) as SessionUser;
           setUser({
@@ -622,7 +611,6 @@ export default function Header() {
         setSessionLoading(false);
       }
     })();
-
     return () => {
       alive = false;
       ctrl.abort();
@@ -784,7 +772,6 @@ export default function Header() {
                   ) : (
                     <span className="jusp-account-chip muted">No has iniciado sesión</span>
                   )}
-
                   {!sessionLoading && isAuthed && !hasProfile ? (
                     <span className="jusp-account-chip warn">Falta completar perfil</span>
                   ) : null}
@@ -813,20 +800,17 @@ export default function Header() {
                         <Link className="jusp-account-link strong" href="/account" onClick={() => setAccountOpen(false)}>
                           Mi cuenta
                         </Link>
-
                         {!hasProfile ? (
                           <Link className="jusp-account-link" href="/onboarding" onClick={() => setAccountOpen(false)}>
                             Terminar registro
                           </Link>
                         ) : null}
-
                         <Link className="jusp-account-link" href="/orders" onClick={() => setAccountOpen(false)}>
                           Mis pedidos
                         </Link>
                         <Link className="jusp-account-link" href="/favorites" onClick={() => setAccountOpen(false)}>
                           Favoritos
                         </Link>
-
                         <button
                           className="jusp-account-link danger"
                           type="button"
@@ -879,7 +863,11 @@ export default function Header() {
         </div>
       </div>
 
-      <div className={activeMenu ? "jusp-mega open" : "jusp-mega"} onMouseEnter={cancelHoverClose} onMouseLeave={scheduleHoverClose}>
+      <div
+        className={activeMenu ? "jusp-mega open" : "jusp-mega"}
+        onMouseEnter={cancelHoverClose}
+        onMouseLeave={scheduleHoverClose}
+      >
         {activeMenu ? (
           <div className="jusp-mega-inner">
             <div className="jusp-mega-top">
@@ -916,7 +904,6 @@ export default function Header() {
           <div className="jusp-search-panel">
             <div className="jusp-search-top">
               <div className="jusp-search-brand">JUSP</div>
-
               <div className="jusp-search-inputwrap">
                 <div className="jusp-search-ico" aria-hidden="true">
                   ⌕
@@ -933,7 +920,6 @@ export default function Header() {
                   }}
                 />
               </div>
-
               <button className="jusp-search-cancel" onClick={closeSearch} aria-label="Cancelar" type="button">
                 Cancelar
               </button>
@@ -942,8 +928,9 @@ export default function Header() {
             <div className="jusp-search-body">
               <div className="jusp-search-cols nike">
                 <div className="jusp-search-col">
-                  <div className="jusp-search-coltitle">{q.trim() ? "Sugerencias" : recents.length ? "Recientes" : "Sugerencias"}</div>
-
+                  <div className="jusp-search-coltitle">
+                    {q.trim() ? "Sugerencias" : recents.length ? "Recientes" : "Sugerencias"}
+                  </div>
                   <div className="jusp-search-list">
                     {suggestions.map((s) => (
                       <Link
@@ -980,14 +967,11 @@ export default function Header() {
 
                 <div className="jusp-search-col">
                   <div className="jusp-search-coltitle">Resultados</div>
-
                   <div className="jusp-search-results">
                     {loading ? <div className="jusp-search-loading">Buscando…</div> : null}
-
                     {!loading && q.trim() && products.length === 0 ? (
                       <div className="jusp-search-empty">Sin resultados aún. Presiona Enter para ver todo.</div>
                     ) : null}
-
                     <div className="jusp-search-grid">
                       {products.map((p) => (
                         <Link key={p.id} href={p.href} className="jusp-prod" onClick={() => setSearchOpen(false)}>
@@ -1034,7 +1018,6 @@ export default function Header() {
                         </Link>
                       ))}
                     </div>
-
                     <div className="jusp-search-hint">
                       Tip: presiona <span className="jusp-kbd">/</span> para buscar, <span className="jusp-kbd">ESC</span> para cerrar.
                     </div>
@@ -1061,7 +1044,7 @@ export default function Header() {
             </div>
 
             <button className="jusp-mdrawer-search" onClick={openSearch} type="button">
-              Buscar
+              <span className="jusp-mdrawer-linktext">Buscar</span>
             </button>
 
             <div className="jusp-mdrawer-links">
@@ -1072,7 +1055,7 @@ export default function Header() {
                   className={m.highlight ? "jusp-mdrawer-link jusp-nav-sale" : "jusp-mdrawer-link"}
                   onClick={() => setMobileOpen(false)}
                 >
-                  {m.label}
+                  <span className="jusp-mdrawer-linktext">{m.label}</span>
                 </Link>
               ))}
             </div>
@@ -1133,7 +1116,6 @@ export default function Header() {
           overflow:hidden;clip:rect(0,0,0,0);
           white-space:nowrap;border:0;
         }
-
         .jusp-header {
           position: fixed;
           top: 0;
@@ -1145,7 +1127,6 @@ export default function Header() {
           -webkit-backdrop-filter: blur(10px);
           border-bottom: 1px solid rgba(0,0,0,0.06);
         }
-
         .jusp-header-inner {
           height: var(--jusp-header-h);
           max-width: 1180px;
@@ -1156,7 +1137,6 @@ export default function Header() {
           align-items: center;
           gap: 12px;
         }
-
         .jusp-logo {
           font-weight: 800;
           letter-spacing: 0.12em;
@@ -1180,14 +1160,12 @@ export default function Header() {
         }
         .jusp-nav-link:hover { background: rgba(0, 0, 0, 0.04); }
         .jusp-nav-sale { color: #c61f1f; font-weight: 700; }
-
         .jusp-actions {
           display: flex;
           align-items: center;
           gap: 10px;
           justify-self: end;
         }
-
         .jusp-icon {
           width: 34px;
           height: 34px;
@@ -1202,13 +1180,11 @@ export default function Header() {
           position: relative;
         }
         .jusp-icon:hover { background: rgba(0, 0, 0, 0.04); }
-
         /* ✅ Lupa: botón cuadrado igual a los otros */
         .jusp-search-ico-btn{
           font-size: 16px;
           line-height: 1;
         }
-
         .jusp-cart-ico { position: relative; border: 1px solid rgba(0,0,0,0.12); }
         .jusp-cart-badge{
           position: absolute;
@@ -1226,14 +1202,12 @@ export default function Header() {
           place-items: center;
           border: 1px solid rgba(255,255,255,0.18);
         }
-
         .jusp-cart-ico.bump { animation: juspCartBump 240ms ease; }
         @keyframes juspCartBump {
           0% { transform: scale(1); }
           35% { transform: scale(1.08); }
           100% { transform: scale(1); }
         }
-
         /* ✅ Cuenta NEGRA (no azul) + ring verde cuando está abierta */
         .jusp-account-ico{
           color: #111 !important;
@@ -1247,7 +1221,6 @@ export default function Header() {
           color:#111 !important;
           filter: saturate(0) brightness(0.1);
         }
-
         .jusp-dot {
           position: absolute;
           right: 6px;
@@ -1258,7 +1231,6 @@ export default function Header() {
           background: rgba(34, 197, 94, 0.95);
           border: 2px solid #fff;
         }
-
         .jusp-account-wrap { position: relative; }
         .jusp-account-mega {
           position: absolute;
@@ -1280,7 +1252,6 @@ export default function Header() {
           top: -10px;
           height: 10px;
         }
-
         @media (max-width: 920px) {
           .jusp-account-mega {
             position: fixed;
@@ -1293,7 +1264,6 @@ export default function Header() {
             box-shadow: 0 22px 60px rgba(0,0,0,0.18);
           }
         }
-
         .jusp-account-head {
           display: flex;
           align-items: center;
@@ -1310,7 +1280,6 @@ export default function Header() {
           opacity: 0.7;
         }
         .jusp-account-close:hover { opacity: 1; }
-
         .jusp-account-sub {
           display: flex;
           gap: 8px;
@@ -1332,7 +1301,6 @@ export default function Header() {
         .jusp-account-chip.ok { background: rgba(34,197,94,0.10); border-color: rgba(34,197,94,0.22); color: rgba(0,0,0,0.78); }
         .jusp-account-chip.warn { background: rgba(255,214,0,0.18); border-color: rgba(255,214,0,0.35); color: rgba(0,0,0,0.78); }
         .jusp-account-chip.muted { opacity: 0.75; }
-
         .jusp-account-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
         @media (max-width: 520px) {
           .jusp-account-grid { grid-template-columns: 1fr; }
@@ -1366,7 +1334,6 @@ export default function Header() {
           border-radius: 12px;
           background: rgba(0, 0, 0, 0.03);
         }
-
         .jusp-account-skel {
           display: block;
           height: 36px;
@@ -1395,7 +1362,6 @@ export default function Header() {
           height: 40px;
           cursor: pointer;
         }
-
         .jusp-mega {
           position: absolute;
           left: 0;
@@ -1403,20 +1369,17 @@ export default function Header() {
           top: 100%;
           padding: 0 16px;
           z-index: 60;
-
           pointer-events: none;
           opacity: 0;
           transform: translateY(-6px);
           transition: opacity 140ms ease, transform 160ms ease;
           will-change: opacity, transform;
         }
-
         .jusp-mega.open {
           pointer-events: auto;
           opacity: 1;
           transform: translateY(0);
         }
-
         .jusp-mega-inner {
           max-width: 1180px;
           margin: 0 auto;
@@ -1432,7 +1395,6 @@ export default function Header() {
           overscroll-behavior: contain;
           -webkit-overflow-scrolling: touch;
         }
-
         .jusp-mega-top {
           display: flex;
           align-items: center;
@@ -1462,7 +1424,6 @@ export default function Header() {
           background: rgba(255, 255, 255, 0.72);
           backdrop-filter: blur(10px);
           border: 0;
-
           opacity: 0;
           animation: juspFadeIn 160ms ease forwards;
         }
@@ -1473,7 +1434,6 @@ export default function Header() {
           height: 100%;
           display: flex;
           flex-direction: column;
-
           transform: translateY(10px);
           opacity: 0;
           animation: juspPanelIn 180ms cubic-bezier(.2,.8,.2,1) forwards;
@@ -1484,7 +1444,6 @@ export default function Header() {
           0% { opacity: 0; transform: translateY(10px); }
           100% { opacity: 1; transform: translateY(0); }
         }
-
         @media (prefers-reduced-motion: reduce) {
           .jusp-mega,
           .jusp-search-panel,
@@ -1527,11 +1486,11 @@ export default function Header() {
           border-left: 1px solid rgba(0,0,0,0.10);
           box-shadow: -18px 0 48px rgba(0,0,0,0.18);
           padding: 12px 14px 16px;
-
           transform: translateX(12px);
           opacity: 0;
           animation: juspDrawerIn 180ms cubic-bezier(.2,.8,.2,1) forwards;
           will-change: transform, opacity;
+          isolation: isolate;
         }
         @keyframes juspDrawerIn {
           0% { opacity: 0; transform: translateX(12px); }
@@ -1553,6 +1512,20 @@ export default function Header() {
           font-weight: 900;
         }
 
+        /* ✅ NUEVO: fondo SOLO detrás del texto del menú móvil (para que se lea sobre cualquier fondo) */
+        .jusp-mdrawer-linktext{
+          display: inline-flex;
+          align-items: center;
+          padding: 6px 10px;
+          border-radius: 999px;
+          background: rgba(255,255,255,0.92);
+          border: 1px solid rgba(0,0,0,0.06);
+          color: #111;
+          font-weight: 900;
+          letter-spacing: 0.01em;
+          box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+        }
+
         .jusp-mdrawer-links { margin-top: 10px; display: grid; gap: 8px; }
         .jusp-mdrawer-link {
           padding: 12px 12px;
@@ -1561,11 +1534,15 @@ export default function Header() {
           color: #111;
           border: 1px solid rgba(0, 0, 0, 0.08);
           font-weight: 800;
+          background: transparent;
+        }
+        /* Si es OFERTAS (rojo), mantenemos el rojo pero el chip sigue legible */
+        .jusp-mdrawer-link.jusp-nav-sale .jusp-mdrawer-linktext{
+          border-color: rgba(198,31,31,0.14);
         }
 
         .jusp-mdrawer-actions { margin-top: 14px; display: flex; gap: 12px; justify-content: space-between; flex-wrap: wrap; align-items: center; }
         .jusp-mdrawer-actions a { text-decoration: none; color: #111; font-weight: 800; }
-
         .jusp-mdrawer-cartbtn{
           border:0;
           background:transparent;
