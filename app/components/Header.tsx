@@ -96,6 +96,242 @@ function pickAccountLabel(user: SessionUser | null) {
   return "Mi cuenta";
 }
 
+/* ===== ICONS (ELEGANTES, SIN DEPENDENCIAS) ===== */
+function DrawerIcon({ name }: { name: string }) {
+  const common = {
+    width: 18,
+    height: 18,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    xmlns: "http://www.w3.org/2000/svg",
+    className: "jusp-mdrawer-ico",
+  } as const;
+
+  switch (name) {
+    case "search":
+      return (
+        <svg {...common} aria-hidden="true">
+          <path
+            d="M10.5 18.5a8 8 0 1 1 5.66-2.34l4.09 4.09a1 1 0 0 1-1.41 1.41l-4.09-4.09A7.97 7.97 0 0 1 10.5 18.5Z"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
+    case "hombre":
+      return (
+        <svg {...common} aria-hidden="true">
+          <path
+            d="M14.5 5h4.5v4.5"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M19 5l-5.1 5.1"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M10.5 10.5a5 5 0 1 0 0 10a5 5 0 0 0 0-10Z"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
+    case "mujer":
+      return (
+        <svg {...common} aria-hidden="true">
+          <path
+            d="M12 3.5a5 5 0 1 0 0 10a5 5 0 0 0 0-10Z"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M12 13.5v7"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M9.5 18h5"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
+    case "ninos":
+      return (
+        <svg {...common} aria-hidden="true">
+          <path
+            d="M8.5 10.5a3 3 0 1 0 0-6a3 3 0 0 0 0 6Z"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M15.5 11.5a2.5 2.5 0 1 0 0-5a2.5 2.5 0 0 0 0 5Z"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M3.8 20a4.7 4.7 0 0 1 9.4 0"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M13.2 19.8a3.9 3.9 0 0 1 7 0"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
+    case "colecciones":
+      return (
+        <svg {...common} aria-hidden="true">
+          <path
+            d="M7 6h14M7 12h14M7 18h14"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M3.5 6h.01M3.5 12h.01M3.5 18h.01"
+            stroke="currentColor"
+            strokeWidth="3.2"
+            strokeLinecap="round"
+          />
+        </svg>
+      );
+    case "snkrs":
+      return (
+        <svg {...common} aria-hidden="true">
+          <path
+            d="M4.5 16.2c2.3-2.4 4.4-2 6.5-1.2c2.2.9 4.3 1.6 6.9-1.2c.8-.8 1.8-1.3 3.2-1.5"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M6 18.8h12.7c1.4 0 2.3-.9 2.3-2.2V12"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M4.5 16.2V12.5c0-2.3 1.2-4 3.6-4.7"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
+    case "accesorios":
+      return (
+        <svg {...common} aria-hidden="true">
+          <path
+            d="M8 7V6a4 4 0 0 1 8 0v1"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M6 9h12l-1 11H7L6 9Z"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M9 12v1M15 12v1"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+          />
+        </svg>
+      );
+    case "exclusivo":
+      return (
+        <svg {...common} aria-hidden="true">
+          <path
+            d="M12 3l2.3 6.1L21 9.8l-5 4.1L17.7 21L12 17.6L6.3 21L8 13.9l-5-4.1l6.7-.7L12 3Z"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
+    case "ofertas":
+      return (
+        <svg {...common} aria-hidden="true">
+          <path
+            d="M20 13l-7 7a2 2 0 0 1-2.8 0l-6.4-6.4a2 2 0 0 1-.6-1.4V6a2 2 0 0 1 2-2h6.2a2 2 0 0 1 1.4.6L20 11.8A2 2 0 0 1 20 13Z"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M7.5 7.5h.01"
+            stroke="currentColor"
+            strokeWidth="3.2"
+            strokeLinecap="round"
+          />
+        </svg>
+      );
+    default:
+      return (
+        <svg {...common} aria-hidden="true">
+          <path
+            d="M6 12h12"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
+  }
+}
+
+function iconNameForKey(key: Exclude<MegaKey, null>, label: string): string {
+  if (key === "hombre") return "hombre";
+  if (key === "mujer") return "mujer";
+  if (key === "ninos") return "ninos";
+  if (key === "snkrs") return "snkrs";
+  if (key === "accesorios") return "accesorios";
+  if (key === "exclusivo") return "exclusivo";
+  if (key === "ofertas") return "ofertas";
+  // “Colecciones” en tu config usa key "jordan"
+  if (label.toLowerCase().includes("colecciones") || key === "jordan") return "colecciones";
+  return "colecciones";
+}
+
 export default function Header() {
   // ✅ STORE (conteo + abrir carrito) — ahora viene de Zustand + persist
   const { cartCount, openCart } = useStore();
@@ -1067,20 +1303,39 @@ export default function Header() {
             </div>
 
             <button className="jusp-mdrawer-search" onClick={openSearch} type="button">
-              <span className="jusp-mdrawer-linktext">Buscar</span>
+              <span className="jusp-mdrawer-left">
+                <span className="jusp-mdrawer-icobubble" aria-hidden="true">
+                  <DrawerIcon name="search" />
+                </span>
+                <span className="jusp-mdrawer-linktext">Buscar</span>
+              </span>
+              <span className="jusp-mdrawer-arrow" aria-hidden="true">
+                →
+              </span>
             </button>
 
             <div className="jusp-mdrawer-links">
-              {menus.map((m) => (
-                <Link
-                  key={m.key}
-                  href={m.href}
-                  className={m.highlight ? "jusp-mdrawer-link jusp-nav-sale" : "jusp-mdrawer-link"}
-                  onClick={() => setMobileOpen(false)}
-                >
-                  <span className="jusp-mdrawer-linktext">{m.label}</span>
-                </Link>
-              ))}
+              {menus.map((m) => {
+                const iconName = iconNameForKey(m.key, m.label);
+                return (
+                  <Link
+                    key={m.key}
+                    href={m.href}
+                    className={m.highlight ? "jusp-mdrawer-link jusp-nav-sale" : "jusp-mdrawer-link"}
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <span className="jusp-mdrawer-left">
+                      <span className="jusp-mdrawer-icobubble" aria-hidden="true">
+                        <DrawerIcon name={iconName} />
+                      </span>
+                      <span className="jusp-mdrawer-linktext">{m.label}</span>
+                    </span>
+                    <span className="jusp-mdrawer-arrow" aria-hidden="true">
+                      →
+                    </span>
+                  </Link>
+                );
+              })}
             </div>
 
             <div className="jusp-mdrawer-actions">
@@ -1865,12 +2120,56 @@ export default function Header() {
           transition: transform var(--jusp-fast) var(--jusp-ease), background var(--jusp-fast) var(--jusp-ease),
             border-color var(--jusp-fast) var(--jusp-ease), box-shadow var(--jusp-fast) var(--jusp-ease);
           box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
+
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
         }
 
         .jusp-mdrawer-search:active {
           transform: translateY(1px);
         }
 
+        /* ✅ left group (icon + label pill) */
+        .jusp-mdrawer-left {
+          display: inline-flex;
+          align-items: center;
+          gap: 12px;
+          min-width: 0;
+        }
+
+        /* ✅ icon bubble (logo elegante) */
+        .jusp-mdrawer-icobubble {
+          width: 44px;
+          height: 44px;
+          border-radius: 999px;
+          display: grid;
+          place-items: center;
+          background: rgba(0, 0, 0, 0.04);
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          box-shadow: 0 14px 30px rgba(0, 0, 0, 0.07);
+          flex: 0 0 auto;
+        }
+
+        .jusp-mdrawer-ico {
+          color: rgba(0, 0, 0, 0.86);
+        }
+
+        .jusp-mdrawer-arrow {
+          width: 36px;
+          height: 36px;
+          border-radius: 999px;
+          display: grid;
+          place-items: center;
+          background: rgba(0, 0, 0, 0.03);
+          border: 1px solid rgba(0, 0, 0, 0.07);
+          color: rgba(0, 0, 0, 0.70);
+          box-shadow: 0 14px 28px rgba(0, 0, 0, 0.05);
+          flex: 0 0 auto;
+        }
+
+        /* pill (texto) — lo conservamos */
         .jusp-mdrawer-linktext {
           display: inline-flex;
           align-items: center;
@@ -1884,6 +2183,11 @@ export default function Header() {
           box-shadow: 0 10px 26px rgba(0, 0, 0, 0.06);
           backdrop-filter: blur(10px);
           -webkit-backdrop-filter: blur(10px);
+
+          max-width: 100%;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .jusp-mdrawer-links {
@@ -1901,6 +2205,11 @@ export default function Header() {
           transition: transform var(--jusp-fast) var(--jusp-ease), background var(--jusp-fast) var(--jusp-ease),
             border-color var(--jusp-fast) var(--jusp-ease), box-shadow var(--jusp-fast) var(--jusp-ease);
           box-shadow: 0 14px 34px rgba(0, 0, 0, 0.06);
+
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
         }
 
         .jusp-mdrawer-link:hover {
@@ -1918,6 +2227,12 @@ export default function Header() {
           background: rgba(198, 31, 31, 0.08);
           border-color: rgba(198, 31, 31, 0.18);
           color: rgba(198, 31, 31, 0.95);
+        }
+
+        .jusp-mdrawer-link.jusp-nav-sale .jusp-mdrawer-arrow {
+          background: rgba(198, 31, 31, 0.06);
+          border-color: rgba(198, 31, 31, 0.12);
+          color: rgba(198, 31, 31, 0.85);
         }
 
         .jusp-mdrawer-actions {
