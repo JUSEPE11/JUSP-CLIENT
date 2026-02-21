@@ -4,7 +4,7 @@ import { build360Frames } from "./build360Frames";
 export default function Page() {
   const slug = "nike-bra-black";
 
-  // 01-05 son .jpeg, 06-12 son .jpg (según tu captura)
+  // Según tu carpeta: 01-05 .jpeg y 06-12 .jpg
   const extByIndex: Record<number, "jpeg" | "jpg"> = {
     1: "jpeg",
     2: "jpeg",
@@ -30,73 +30,86 @@ export default function Page() {
   });
 
   return (
-    <main style={{ minHeight: "100vh", background: "#ffffff", padding: 24 }}>
-      <div style={{ maxWidth: 520, margin: "0 auto" }}>
-        <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 16 }}>
-          360° Viewer — JUSP
-        </h1>
-
-        {/* DEBUG VISIBLE */}
+    <main
+      style={{
+        minHeight: "100vh",
+        background: "#f4f4f5",
+        padding: "32px 16px",
+      }}
+    >
+      {/* Wrapper que SIEMPRE centra y limita */}
+      <div
+        style={{
+          width: "100%",
+          display: "flex",
+          justifyContent: "center",
+        }}
+      >
+        {/* Contenedor con ancho forzado (clamp) */}
         <div
           style={{
-            border: "1px solid #e5e7eb",
-            borderRadius: 12,
-            padding: 12,
-            marginBottom: 12,
-            background: "#f9fafb",
-            fontFamily:
-              "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-            fontSize: 12,
-            lineHeight: 1.4,
+            width: "clamp(280px, 92vw, 440px)",
+            maxWidth: "440px",
           }}
         >
-          <div>
-            <b>slug:</b> {slug}
-          </div>
-          <div>
-            <b>frames:</b> {frames.length}
-          </div>
-          <div>
-            <b>frame[0]:</b> {frames[0]}
-          </div>
-          <div>
-            <b>frame[5]:</b> {frames[5]}
-          </div>
-          <div style={{ marginTop: 6 }}>
-            Prueba directa: abre estas URLs:
-            <div style={{ marginTop: 4 }}>
-              <b>{frames[0]}</b>
+          <h1
+            style={{
+              fontSize: 26,
+              fontWeight: 800,
+              textAlign: "center",
+              margin: "0 0 18px 0",
+              color: "#111827",
+            }}
+          >
+            360° Viewer — JUSP
+          </h1>
+
+          {/* Card */}
+          <div
+            style={{
+              background: "#ffffff",
+              borderRadius: 20,
+              padding: 14,
+              boxShadow: "0 18px 50px rgba(0,0,0,0.10)",
+              overflow: "hidden", // 👈 corta cualquier desborde sí o sí
+            }}
+          >
+            {/* Wrapper extra para forzar ancho */}
+            <div
+              style={{
+                width: "100%",
+                maxWidth: "100%",
+                margin: "0 auto",
+                overflow: "hidden",
+                borderRadius: 16,
+              }}
+            >
+              <Jusp360Viewer
+                frames={frames}
+                alt="Producto 360"
+                aspectRatio="4/5" // vertical
+                sensitivity={8}
+                loop
+                enableWheel
+                showHint
+                brandLabel="JUSP"
+                brandTagline="Originales. Directo."
+              />
             </div>
-            <div style={{ marginTop: 4 }}>
-              <b>{frames[5]}</b>
-            </div>
+          </div>
+
+          {/* Nota */}
+          <div
+            style={{
+              marginTop: 12,
+              fontSize: 12,
+              color: "#6b7280",
+              textAlign: "center",
+            }}
+          >
+            Frames: <b>{frames.length}</b> — ejemplo: <b>{frames[0]}</b>
           </div>
         </div>
-
-        <div style={{ border: "2px solid #111827", borderRadius: 16, padding: 12 }}>
-          <Jusp360Viewer
-            frames={frames}
-            alt="Producto 360"
-            aspectRatio="1/1"
-            preload="eager"
-            sensitivity={8}
-            loop
-            showHint
-            brandLabel="JUSP"
-            brandTagline="Originales. Directo."
-            enableWheel
-          />
-        </div>
-
-        <p style={{ marginTop: 16, color: "#4b5563", fontSize: 14 }}>
-          Carpeta esperada:
-          <br />
-          <b>public/360/{slug}/</b>
-          <br />
-          Archivos:
-          <br />
-          <b>01.jpeg..05.jpeg</b> y <b>06.jpg..12.jpg</b>
-        </p>
       </div>
     </main>
   );
