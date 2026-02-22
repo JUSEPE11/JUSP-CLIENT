@@ -21,10 +21,9 @@ function useIsMobile(breakpoint: number = 768) {
       return () => mq.removeEventListener("change", onChange);
     }
 
-    // @ts-expect-error - legacy
-    mq.addListener(onChange);
-    // @ts-expect-error - legacy
-    return () => mq.removeListener(onChange);
+    const legacyMq = mq as any;
+    legacyMq.addListener?.(onChange);
+    return () => legacyMq.removeListener?.(onChange);
   }, [breakpoint]);
 
   return isMobile;
@@ -1152,7 +1151,6 @@ export default function Page() {
                     <SmartImg
                       baseSrc={s.imgBase}
                       alt={s.alt}
-                      draggable={false}
                       style={{
                         width: "100%",
                         height: "100%",
@@ -1234,7 +1232,7 @@ export default function Page() {
               gap: 14,
               textDecoration: "none",
               color: "#000",
-              borderRadius: 26, marginTop: isMobile ? 10 : 0,
+              borderRadius: 26, 
               overflow: "hidden",
               border: "1px solid rgba(0,0,0,0.08)",
               boxShadow: "0 20px 70px rgba(0,0,0,0.14)",
