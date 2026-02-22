@@ -37,11 +37,26 @@ type SmartImgProps = {
 };
 
 function SmartImg({ baseSrc, alt, style, className }: SmartImgProps) {
+  // ✅ Soporta archivos SIN extensión (por ejemplo: /home/stories/story-01)
+  // y también con extensión normal (/home/stories/story-01.jpg).
   const exts = useMemo(() => [".jpg", ".JPG", ".jpeg", ".JPEG", ".png", ".PNG", ".webp", ".WEBP"], []);
   const hasExt = useMemo(() => /\.[a-zA-Z0-9]+$/.test(baseSrc), [baseSrc]);
+
+  // Cuando NO hay extensión, primero probamos el baseSrc "tal cual"
+  // (sirve si el archivo real en /public no tiene extensión).
+  const candidates = useMemo(() => {
+    if (hasExt) return [baseSrc];
+    return [baseSrc, ...exts.map((e) => `${baseSrc}${e}`)];
+  }, [baseSrc, exts, hasExt]);
+
   const [idx, setIdx] = useState(0);
 
-  const src = hasExt ? baseSrc : `${baseSrc}${exts[Math.min(idx, exts.length - 1)]}`;
+  // Resetea el índice si cambia la imagen
+  useEffect(() => {
+    setIdx(0);
+  }, [baseSrc]);
+
+  const src = candidates[Math.min(idx, candidates.length - 1)];
 
   return (
     <img
@@ -49,8 +64,10 @@ function SmartImg({ baseSrc, alt, style, className }: SmartImgProps) {
       alt={alt}
       className={className}
       style={style}
+      loading="lazy"
+      decoding="async"
       onError={() => {
-        if (!hasExt) setIdx((i) => Math.min(i + 1, exts.length - 1));
+        if (idx < candidates.length - 1) setIdx((i) => Math.min(i + 1, candidates.length - 1));
       }}
     />
   );
