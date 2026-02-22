@@ -3,6 +3,33 @@
 import Link from "next/link";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
+
+function useIsMobile(breakpoint: number = 768) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
+    const onChange = () => setIsMobile(mq.matches);
+
+    onChange();
+
+    // Safari fallback
+    if (typeof mq.addEventListener === "function") {
+      mq.addEventListener("change", onChange);
+      return () => mq.removeEventListener("change", onChange);
+    }
+
+    // @ts-expect-error - legacy
+    mq.addListener(onChange);
+    // @ts-expect-error - legacy
+    return () => mq.removeListener(onChange);
+  }, [breakpoint]);
+
+  return isMobile;
+}
+
 type SmartImgProps = {
   baseSrc: string;
   alt: string;
@@ -89,6 +116,8 @@ export default function Page() {
       } catch {}
     }
   };
+
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -658,25 +687,20 @@ export default function Page() {
      BLOQUE 3 · STORIES (VISUAL PRO)
      ========================================== */
   const curatedSlides = useMemo(
-    () => [
-      { id: "st01", href: "/products?tag=curated", img: "/home/stories/story-01.jpeg", alt: "JUSP Story 01" },
-      { id: "st02", href: "/products?tag=curated", img: "/home/stories/story-02.jpeg", alt: "JUSP Story 02" },
-      { id: "st03", href: "/products?tag=curated", img: "/home/stories/story-03.jpeg", alt: "JUSP Story 03" },
-      { id: "st04", href: "/products?tag=curated", img: "/home/stories/story-04.jpeg", alt: "JUSP Story 04" },
-      { id: "st05", href: "/products?tag=curated", img: "/home/stories/story-05.jpeg", alt: "JUSP Story 05" },
-      { id: "st06", href: "/products?tag=curated", img: "/home/stories/story-06.jpeg", alt: "JUSP Story 06" },
-      { id: "st07", href: "/products?tag=curated", img: "/home/stories/story-07.jpeg", alt: "JUSP Story 07" },
-      { id: "st08", href: "/products?tag=curated", img: "/home/stories/story-08.jpeg", alt: "JUSP Story 08" },
-      { id: "st09", href: "/products?tag=curated", img: "/home/stories/story-09.jpeg", alt: "JUSP Story 09" },
-      { id: "st10", href: "/products?tag=curated", img: "/home/stories/story-10.jpeg", alt: "JUSP Story 10" },
-      { id: "st11", href: "/products?tag=curated", img: "/home/stories/story-11.jpeg", alt: "JUSP Story 11" },
-      { id: "st12", href: "/products?tag=curated", img: "/home/stories/story-12.jpeg", alt: "JUSP Story 12" },
-      { id: "st13", href: "/products?tag=curated", img: "/home/stories/story-13.jpeg", alt: "JUSP Story 13" },
-      { id: "st14", href: "/products?tag=curated", img: "/home/stories/story-14.jpeg", alt: "JUSP Story 14" },
-      { id: "st15", href: "/products?tag=curated", img: "/home/stories/story-15.jpeg", alt: "JUSP Story 15" },
-    ],
+    () =>
+      Array.from({ length: 15 }, (_, i) => {
+        const n = String(i + 1).padStart(2, "0");
+        return {
+          id: `st${n}`,
+          href: "/products?tag=curated",
+          imgBase: `/home/stories/story-${n}`,
+          alt: `JUSP Story ${n}`,
+          label: `Story ${i + 1}`,
+        };
+      }),
     []
   );
+
 
   const curatedViewportRef = useRef<HTMLDivElement | null>(null);
 
@@ -997,7 +1021,7 @@ export default function Page() {
                       flex: "0 0 calc(100vw - 28px)",
                       width: "calc(100vw - 28px)",
                       maxWidth: "calc(100vw - 28px)",
-                      borderRadius: 26,
+                      borderRadius: 26, marginTop: isMobile ? 10 : 0,
                       position: "relative",
                       overflow: "hidden",
                       border: "1px solid rgba(0,0,0,0.08)",
@@ -1125,12 +1149,10 @@ export default function Page() {
                       position: "relative",
                     }}
                   >
-                    <img
-                      src={s.img}
+                    <SmartImg
+                      baseSrc={s.imgBase}
                       alt={s.alt}
                       draggable={false}
-                      loading="lazy"
-                      decoding="async"
                       style={{
                         width: "100%",
                         height: "100%",
@@ -1139,7 +1161,7 @@ export default function Page() {
                         pointerEvents: "none",
                       }}
                     />
-                    <div
+<div
                       style={{
                         position: "absolute",
                         inset: 0,
@@ -1208,11 +1230,11 @@ export default function Page() {
             style={{
               marginTop: 16,
               display: "grid",
-              gridTemplateColumns: "1.05fr 0.95fr",
+              gridTemplateColumns: isMobile ? "1fr" : "1.05fr 0.95fr",
               gap: 14,
               textDecoration: "none",
               color: "#000",
-              borderRadius: 26,
+              borderRadius: 26, marginTop: isMobile ? 10 : 0,
               overflow: "hidden",
               border: "1px solid rgba(0,0,0,0.08)",
               boxShadow: "0 20px 70px rgba(0,0,0,0.14)",
@@ -1220,9 +1242,13 @@ export default function Page() {
               transform: "perspective(1200px) translateZ(0)",
             }}
           >
-            <div style={{ padding: 18, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-              <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.4, opacity: 0.7 }}>{activeCollection.kicker}</div>
-              <div style={{ marginTop: 8, fontSize: 34, fontWeight: 1000, lineHeight: 1.05, letterSpacing: -0.6 }}>
+            <div style={{ padding: isMobile ? 16 : 18, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+              {activeCollection.kicker ? (
+                <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.4, opacity: 0.7 }}>
+                  {activeCollection.kicker}
+                </div>
+              ) : null}
+              <div style={{ marginTop: 8, fontSize: isMobile ? 30 : 34, fontWeight: 1000, lineHeight: 1.05, letterSpacing: -0.6 }}>
                 {activeCollection.title}
               </div>
               <div style={{ marginTop: 10, fontSize: 14, opacity: 0.78, lineHeight: 1.7, maxWidth: 520 }}>
@@ -1236,8 +1262,8 @@ export default function Page() {
             <div
             style={{
               position: "relative",
-              height: 560,
-              borderRadius: 26,
+              height: isMobile ? 340 : 560,
+              borderRadius: 26, marginTop: isMobile ? 10 : 0,
               overflow: "hidden",
               background:
                 "radial-gradient(1200px 520px at 55% 45%, rgba(255,255,255,0.95) 0%, rgba(245,245,245,1) 58%, rgba(235,235,235,1) 100%)",
