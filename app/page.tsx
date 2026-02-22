@@ -3,6 +3,34 @@
 import Link from "next/link";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
+type SmartImgProps = {
+  baseSrc: string;
+  alt: string;
+  style?: React.CSSProperties;
+  className?: string;
+};
+
+function SmartImg({ baseSrc, alt, style, className }: SmartImgProps) {
+  const exts = useMemo(() => [".jpg", ".jpeg", ".png", ".webp"], []);
+  const hasExt = useMemo(() => /\.[a-zA-Z0-9]+$/.test(baseSrc), [baseSrc]);
+  const [idx, setIdx] = useState(0);
+
+  const src = hasExt ? baseSrc : `${baseSrc}${exts[Math.min(idx, exts.length - 1)]}`;
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      style={style}
+      onError={() => {
+        if (!hasExt) setIdx((i) => Math.min(i + 1, exts.length - 1));
+      }}
+    />
+  );
+}
+
+
 type TopItem = {
   id: string;
   name: string;
@@ -642,6 +670,10 @@ export default function Page() {
       { id: "st09", href: "/products?tag=curated", img: "/home/stories/story-09.jpeg", alt: "JUSP Story 09" },
       { id: "st10", href: "/products?tag=curated", img: "/home/stories/story-10.jpeg", alt: "JUSP Story 10" },
       { id: "st11", href: "/products?tag=curated", img: "/home/stories/story-11.jpeg", alt: "JUSP Story 11" },
+      { id: "st12", href: "/products?tag=curated", img: "/home/stories/story-12.jpeg", alt: "JUSP Story 12" },
+      { id: "st13", href: "/products?tag=curated", img: "/home/stories/story-13.jpeg", alt: "JUSP Story 13" },
+      { id: "st14", href: "/products?tag=curated", img: "/home/stories/story-14.jpeg", alt: "JUSP Story 14" },
+      { id: "st15", href: "/products?tag=curated", img: "/home/stories/story-15.jpeg", alt: "JUSP Story 15" },
     ],
     []
   );
@@ -676,60 +708,78 @@ export default function Page() {
   }, []);
 
   /* ==========================================
-     BLOQUE 4 · COLECCIÓN (3D AUTO)
+     BLOQUE 4 ·  (3D AUTO)
      ========================================== */
   const collectionCards: CardItem[] = useMemo(
     () => [
-      {
+            {
         id: "c1",
-        kicker: "COLECCIÓN",
-        title: "Best of all time",
-        desc: "Los íconos que nunca bajan. Multi-marca, multi-estilo, siempre top.",
+        kicker: "",
+        title: "Converse Chuck Taylor All Star",
+        desc: "Esencia: El sneaker más clásico de la historia. Nació como zapato de baloncesto en 1917 y terminó siendo ícono cultural. Minimalista, versátil y atemporal.",
         href: "/products?tag=top",
-        img: "/home/files/file-2a.jpg",
+        img: "/home/street-minimal/converse-chuck",
       },
       {
         id: "c2",
-        kicker: "COLECCIÓN",
-        title: "Original brands",
-        desc: "Nike, Adidas, Puma, NB y más. Selección limpia: solo lo que se siente premium.",
-        href: "/products?tag=original",
-        img: "/home/files/file-2b.jpg",
+        kicker: "",
+        title: "Nike Air Force 1",
+        desc: "Esencia: El sneaker urbano más vendido del mundo. Lanzado en 1982, combina simplicidad con presencia fuerte. El modelo blanco es un estándar global.",
+        href: "/products?tag=top",
+        img: "/home/street-minimal/nike-air-force-1",
       },
       {
         id: "c3",
-        kicker: "COLECCIÓN",
-        title: "Street & minimal",
-        desc: "Siluetas duras + outfits fáciles. Para verse fino sin esforzarse.",
-        href: "/products?tag=street",
-        img: "/home/files/file-3a.jpg",
+        kicker: "",
+        title: "Adidas Stan Smith",
+        desc: "Esencia: Elegancia minimalista. Diseño limpio, blanco con detalles verdes. Fue el zapato más vendido del mundo en los 80.",
+        href: "/products?tag=top",
+        img: "/home/street-minimal/adidas-stan-smith",
       },
       {
         id: "c4",
-        kicker: "COLECCIÓN",
-        title: "Sport legends",
-        desc: "Running, gym, fútbol y más. Rendimiento y estilo en la misma jugada.",
-        href: "/products?tag=sport",
-        img: "/home/files/file-3c.jpg",
+        kicker: "",
+        title: "Adidas Superstar",
+        desc: "Esencia: Cultura hip-hop y calle. Famoso por su puntera tipo “shell toe”. Se volvió leyenda en los 80 gracias a Run-D.M.C..",
+        href: "/products?tag=top",
+        img: "/home/street-minimal/adidas-superstar",
       },
     ],
     []
   );
 
-  const isCard = (
+    const isCard = (
     c: CardItem
-  ): c is Required<Pick<CardItem, "id" | "kicker" | "desc" | "href" | "img">> & { title: string } => {
-    return Boolean(c && c.id && c.kicker && c.desc && c.href && c.img);
+  ): c is Required<Pick<CardItem, "id" | "desc" | "href" | "img">> & { title: string; kicker?: string } => {
+    // kicker puede ser vacío; lo importante es que exista el contenido principal
+    return Boolean(c && c.id && c.title && c.desc && c.href && c.img);
   };
 
   const [colActive, setColActive] = useState(0);
 
-  useEffect(() => {
-    const t = setInterval(() => setColActive((i) => (i + 1) % Math.max(1, collectionCards.filter(isCard).length)), 3200);
-    return () => clearInterval(t);
-  }, [collectionCards.length]);
+  // Cartas válidas
+  const colCards = collectionCards.filter(isCard);
+  const colLen = Math.max(1, colCards.length);
 
-  const activeCollection = collectionCards.filter(isCard)[colActive] ?? collectionCards[0];
+  // 🔥 Rotación automática NIVEL DIOS (independiente y estable)
+  const colLenRef = React.useRef(colLen);
+  colLenRef.current = colLen;
+
+  useEffect(() => {
+    if (colLenRef.current <= 1) return;
+
+    const interval = setInterval(() => {
+      setColActive((prev) => {
+        const next = (prev + 1) % colLenRef.current;
+        return next;
+      });
+    }, 3200);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const activeCollection =
+    colCards[colActive] ?? colCards[0] ?? collectionCards[0];
 
   return (
     <main style={{ overflowX: "hidden", background: "#fff", color: "#000" }}>
@@ -1012,7 +1062,7 @@ export default function Page() {
         </div>
       </section>
 
-      {/* BLOQUE 3 · STORIES (SOLO "HISTORIA" + SIN "VER COLECCIÓN") */}
+      {/* BLOQUE 3 · STORIES (SOLO "HISTORIA" + SIN "VER ") */}
       <section
         ref={(el) => {
           storySectionRef.current = el;
@@ -1130,12 +1180,12 @@ export default function Page() {
         <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px" }}>
           <div style={{ display: "flex", alignItems: "end", justifyContent: "space-between", gap: 12 }}>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.2, opacity: 0.7 }}>COLECCIÓN</div>
+              <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.2, opacity: 0.7 }}></div>
               <div style={{ fontSize: 26, fontWeight: 1000, marginTop: 8 }}>Lo mejor de todos los tiempos</div>
-              <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75 }}>Multi-marca. Formato 3D automático.</div>
+              <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75 }}></div>
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              {collectionCards.filter(isCard).map((c, idx) => (
+              {colCards.map((c, idx) => (
                 <button
                   key={(c.id ?? c.title) + String(idx)}
                   aria-label={`Ver ${c.title}`}
@@ -1183,28 +1233,81 @@ export default function Page() {
               </div>
             </div>
 
-            <div style={{ position: "relative", minHeight: 340, background: "#f3f3f3" }}>
-              <img
-                src={activeCollection.img!}
-                alt={activeCollection.title}
+            <div
+            style={{
+              position: "relative",
+              height: 560,
+              borderRadius: 26,
+              overflow: "hidden",
+              background:
+                "radial-gradient(1200px 520px at 55% 45%, rgba(255,255,255,0.95) 0%, rgba(245,245,245,1) 58%, rgba(235,235,235,1) 100%)",
+              boxShadow: "0 24px 70px rgba(0,0,0,0.10)",
+            }}
+          >
+            {/* Velo suave premium */}
+            <div
+              aria-hidden
+              style={{
+                position: "absolute",
+                inset: 0,
+                background:
+                  "linear-gradient(110deg, rgba(255,255,255,0.78) 0%, rgba(255,255,255,0.10) 48%, rgba(0,0,0,0.06) 100%)",
+                pointerEvents: "none",
+              }}
+            />
+
+            {/* Marco interno: MISMA MEDIDA para todas las imágenes */}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "34px 36px",
+              }}
+            >
+              <div
                 style={{
                   width: "100%",
                   height: "100%",
-                  objectFit: "cover",
-                  transform: "perspective(1200px) rotateY(-10deg) rotateX(6deg) translateZ(30px) scale(1.08)",
-                  transformOrigin: "60% 55%",
-                  transition: "transform 520ms cubic-bezier(.2,.9,.2,1)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
-              />
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  background: "linear-gradient(90deg, rgba(255,255,255,0.0) 0%, rgba(0,0,0,0.08) 100%)",
-                  pointerEvents: "none",
-                }}
-              />
+              >
+                <SmartImg
+                  baseSrc={activeCollection.img!}
+                  alt={activeCollection.title}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                    transform: "scale(1.02)",
+                    transition: "transform 520ms cubic-bezier(.2,.9,.2,1)",
+                    filter: "drop-shadow(0 18px 26px rgba(0,0,0,0.16))",
+                  }}
+                />
+              </div>
             </div>
+
+            {/* Brillo diagonal (Nike vibes) */}
+            <div
+              aria-hidden
+              style={{
+                position: "absolute",
+                left: "-25%",
+                top: "-35%",
+                width: "65%",
+                height: "120%",
+                transform: "rotate(18deg)",
+                background:
+                  "linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.00) 70%)",
+                opacity: 0.7,
+                pointerEvents: "none",
+              }}
+            />
+          </div>
           </Link>
         </div>
       </section>
