@@ -38,7 +38,7 @@ type SmartImgProps = {
 };
 
 function SmartImg({ baseSrc, alt, style, className }: SmartImgProps) {
-  const exts = useMemo(() => [".jpg", ".jpeg", ".png", ".webp"], []);
+  const exts = useMemo(() => [".jpg", ".JPG", ".jpeg", ".JPEG", ".png", ".PNG", ".webp", ".WEBP"], []);
   const hasExt = useMemo(() => /\.[a-zA-Z0-9]+$/.test(baseSrc), [baseSrc]);
   const [idx, setIdx] = useState(0);
 
