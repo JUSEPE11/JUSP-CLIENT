@@ -405,7 +405,7 @@ export default function Page() {
       id: t.id,
       name: t.name,
       href: t.href,
-      img: t.img,
+      img: `${t.imgBase}.jpg`,
       brand: t.brand,
     }));
     const extra: SearchItem[] = [
