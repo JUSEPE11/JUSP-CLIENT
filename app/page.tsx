@@ -1527,7 +1527,7 @@ export default function Page() {
                     }}
                   >
                     <div style={{ position: "relative", height: 220, background: "#f4f4f4" }}>
-                      <img src={p.img} alt={p.name} loading="eager" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <img src={p.img} alt={p.name} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.0) 55%, rgba(0,0,0,0.44) 100%)" }} />
                       <div style={{ position: "absolute", left: 12, right: 12, bottom: 10, color: "#fff" }}>
                         <div style={{ fontSize: 12, fontWeight: 1000, opacity: 0.9 }}>{p.brand ?? "Original"}</div>
