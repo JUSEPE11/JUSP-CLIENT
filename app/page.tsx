@@ -34,11 +34,9 @@ type SmartImgProps = {
   alt: string;
   style?: React.CSSProperties;
   className?: string;
-  loading?: "eager" | "lazy";
-  fetchPriority?: "high" | "low" | "auto";
-};;
+};
 
-function SmartImg({ baseSrc, alt, style, className, loading = "lazy", fetchPriority = "auto" }: SmartImgProps) {
+function SmartImg({ baseSrc, alt, style, className }: SmartImgProps) {
   // ✅ Soporta archivos SIN extensión (por ejemplo: /home/stories/story-01)
   // y también con extensión normal (/home/stories/story-01.jpg).
   const exts = useMemo(() => [".jpg", ".JPG", ".jpeg", ".JPEG", ".png", ".PNG", ".webp", ".WEBP"], []);
@@ -92,15 +90,36 @@ function SmartImg({ baseSrc, alt, style, className, loading = "lazy", fetchPrior
       alt={alt}
       className={className}
       style={style}
-      loading={loading}
+      loading="lazy"
       decoding="async"
-      fetchPriority={fetchPriority}
       onError={() => {
         if (idx < candidates.length - 1) setIdx((i) => Math.min(i + 1, candidates.length - 1));
       }}
     />
   );
 }
+
+type StoryImgProps = {
+  name: string; // e.g. "story-01"
+  alt: string;
+  style?: React.CSSProperties;
+  className?: string;
+  eager?: boolean;
+  highPriority?: boolean;
+};
+
+function StoryImg({ name, alt, style, className }: StoryImgProps) {
+  return (
+    <SmartImg
+      baseSrc={`/home/stories/${name}`}
+      alt={alt}
+      className={className}
+      style={style}
+    />
+  );
+}
+
+
 
 
 type TopItem = {
@@ -738,7 +757,7 @@ export default function Page() {
         return {
           id: `st${n}`,
           href: "/products?tag=curated",
-          imgBase: `/home/stories/story-${n}`,
+          name: `story-${n}`,
           alt: `JUSP Story ${n}`,
           label: `Story ${i + 1}`,
         };
@@ -852,6 +871,9 @@ export default function Page() {
 
   return (
     <main style={{ overflowX: "hidden", background: "#fff", color: "#000" }}>
+      {/* ✅ Preload PRO MAX: asegura que las primeras stories estén listas en el primer render */}
+      <link rel="preload" as="image" href="/api/story?name=story-01" />
+      <link rel="preload" as="image" href="/api/story?name=story-02" />
       {/* ✅ Newsletter modal tipo Nike */}
       {nlOpen ? (
         <div
@@ -1194,11 +1216,11 @@ export default function Page() {
                       position: "relative",
                     }}
                   >
-                    <SmartImg
-                      baseSrc={s.imgBase}
+                    <StoryImg
+                      name={s.name}
                       alt={s.alt}
-                      loading={idx < 2 ? "eager" : "lazy"}
-                      fetchPriority={idx < 2 ? "high" : "low"}
+                      eager={idx < 2}
+                      highPriority={idx < 2}
                       style={{
                         width: "100%",
                         height: "100%",
@@ -1206,8 +1228,7 @@ export default function Page() {
                         userSelect: "none",
                         pointerEvents: "none",
                       }}
-                    />
-<div
+                    /><div
                       style={{
                         position: "absolute",
                         inset: 0,
