@@ -134,16 +134,17 @@ function TopPickImg({
   alt: string;
   style: React.CSSProperties;
 }) {
-  const [src, setSrc] = useState(`${base}.jpg`);
+  const [src, setSrc] = useState(`${base}.jpeg`);
   return (
     <img
       src={src}
       alt={alt}
       draggable={false}
       onError={() => {
-        // fallback .jpeg si .jpg no existe
-        if (src.endsWith(".jpg")) setSrc(`${base}.jpeg`);
-      }}
+        // fallback: alterna entre .jpeg y .jpg
+        if (src.endsWith(".jpeg")) setSrc(`${base}.jpg`);
+        else if (src.endsWith(".jpg")) setSrc(`${base}.jpeg`);
+}}
       style={style}
     />
   );
@@ -405,7 +406,7 @@ export default function Page() {
       id: t.id,
       name: t.name,
       href: t.href,
-      img: `${t.imgBase}.jpg`,
+      img: `${t.imgBase}.jpeg`,
       brand: t.brand,
     }));
     const extra: SearchItem[] = [
