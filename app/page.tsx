@@ -45,8 +45,34 @@ function SmartImg({ baseSrc, alt, style, className }: SmartImgProps) {
   // Cuando NO hay extensión, primero probamos el baseSrc "tal cual"
   // (sirve si el archivo real en /public no tiene extensión).
   const candidates = useMemo(() => {
-    if (hasExt) return [baseSrc];
-    return [baseSrc, ...exts.map((e) => `${baseSrc}${e}`)];
+    // Además de probar baseSrc y baseSrc+ext, soporta variantes sin ceros a la izquierda.
+    // Ej: /home/stories/story-06 -> también prueba /home/stories/story-6
+    const out: string[] = [];
+    const pushUnique = (v: string) => {
+      if (!out.includes(v)) out.push(v);
+    };
+
+    const stripLeadingZeros = (s: string) => s.replace(/(\D)0+(\d+)/g, "$1$2");
+
+    const baseNoZero = stripLeadingZeros(baseSrc);
+
+    if (hasExt) {
+      pushUnique(baseSrc);
+      if (baseNoZero !== baseSrc) pushUnique(baseNoZero);
+      return out;
+    }
+
+    // 1) sin extensión
+    pushUnique(baseSrc);
+    if (baseNoZero !== baseSrc) pushUnique(baseNoZero);
+
+    // 2) con extensiones
+    for (const e of exts) {
+      pushUnique(`${baseSrc}${e}`);
+      if (baseNoZero !== baseSrc) pushUnique(`${baseNoZero}${e}`);
+    }
+
+    return out;
   }, [baseSrc, exts, hasExt]);
 
   const [idx, setIdx] = useState(0);
