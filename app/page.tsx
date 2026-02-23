@@ -34,9 +34,11 @@ type SmartImgProps = {
   alt: string;
   style?: React.CSSProperties;
   className?: string;
+  loading?: "lazy" | "eager";
+  fetchPriority?: "high" | "low" | "auto";
 };
 
-function SmartImg({ baseSrc, alt, style, className }: SmartImgProps) {
+function SmartImg({ baseSrc, alt, style, className, loading = "lazy", fetchPriority = "auto" }: SmartImgProps) {
   // ✅ Soporta archivos SIN extensión (por ejemplo: /home/stories/story-01)
   // y también con extensión normal (/home/stories/story-01.jpg).
   const exts = useMemo(() => [".jpg", ".JPG", ".jpeg", ".JPEG", ".png", ".PNG", ".webp", ".WEBP"], []);
@@ -76,10 +78,14 @@ function SmartImg({ baseSrc, alt, style, className }: SmartImgProps) {
   }, [baseSrc, exts, hasExt]);
 
   const [idx, setIdx] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+  const [retries, setRetries] = useState(0);
 
   // Resetea el índice si cambia la imagen
   useEffect(() => {
     setIdx(0);
+    setLoaded(false);
+    setRetries(0);
   }, [baseSrc]);
 
   const src = candidates[Math.min(idx, candidates.length - 1)];
@@ -89,11 +95,31 @@ function SmartImg({ baseSrc, alt, style, className }: SmartImgProps) {
       src={src}
       alt={alt}
       className={className}
-      style={style}
-      loading="lazy"
+      style={{
+        ...(style ?? {}),
+        opacity: loaded ? 1 : 0,
+        transition: "opacity 420ms ease",
+        willChange: "opacity",
+      }}
+      loading={loading}
+      // @ts-ignore - React/TS puede no tipar fetchPriority en algunas versiones
+      fetchPriority={fetchPriority}
       decoding="async"
+      onLoad={() => setLoaded(true)}
       onError={() => {
-        if (idx < candidates.length - 1) setIdx((i) => Math.min(i + 1, candidates.length - 1));
+        // Intento siguiente candidato
+        if (idx < candidates.length - 1) {
+          setIdx((i) => Math.min(i + 1, candidates.length - 1));
+          return;
+        }
+        // Si TODO falló, reintenta 1 vez (por si fue un 404/timeout intermitente)
+        if (retries < 1) {
+          setRetries((r) => r + 1);
+          setTimeout(() => {
+            setLoaded(false);
+            setIdx(0);
+          }, 650);
+        }
       }}
     />
   );
@@ -839,7 +865,7 @@ export default function Page() {
         const next = (prev + 1) % colLenRef.current;
         return next;
       });
-    }, 3200);
+    }, 6500);
 
     return () => clearInterval(interval);
   }, []);
@@ -1166,7 +1192,7 @@ export default function Page() {
             }}
           >
             <div style={{ display: "flex", gap: 12, alignItems: "stretch" }}>
-              {curatedSlides.map((s) => (
+              {curatedSlides.map((s, idx) => (
                 <Link
                   key={s.id}
                   href={s.href}
@@ -1194,6 +1220,8 @@ export default function Page() {
                     <SmartImg
                       baseSrc={s.imgBase}
                       alt={s.alt}
+                      loading={idx < 2 ? "eager" : "lazy"}
+                      fetchPriority={idx === 0 ? "high" : "low"}
                       style={{
                         width: "100%",
                         height: "100%",
