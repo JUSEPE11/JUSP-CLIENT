@@ -36,13 +36,15 @@ type SmartImgProps = {
   className?: string;
   loading?: "eager" | "lazy";
   fetchPriority?: "high" | "low" | "auto";
+  onLoad?: () => void;
 };;
 
-function SmartImg({ baseSrc, alt, style, className, loading = "lazy", fetchPriority = "auto" }: SmartImgProps) {
+function SmartImg({ baseSrc, alt, style, className, loading = "lazy", fetchPriority = "auto", onLoad }: SmartImgProps) {
+  const safeBaseSrc = String((baseSrc as any) ?? "");
   // ✅ Soporta archivos SIN extensión (por ejemplo: /home/stories/story-01)
   // y también con extensión normal (/home/stories/story-01.jpg).
   const exts = useMemo(() => [".jpg", ".JPG", ".jpeg", ".JPEG", ".png", ".PNG", ".webp", ".WEBP"], []);
-  const hasExt = useMemo(() => /\.[a-zA-Z0-9]+$/.test(baseSrc), [baseSrc]);
+  const hasExt = useMemo(() => /\.[a-zA-Z0-9]+$/.test(safeBaseSrc), [safeBaseSrc]);
 
   // Cuando NO hay extensión, primero probamos el baseSrc "tal cual"
   // (sirve si el archivo real en /public no tiene extensión).
@@ -54,35 +56,35 @@ function SmartImg({ baseSrc, alt, style, className, loading = "lazy", fetchPrior
       if (!out.includes(v)) out.push(v);
     };
 
-    const stripLeadingZeros = (s: string) => s.replace(/(\D)0+(\d+)/g, "$1$2");
+    const stripLeadingZeros = (v?: any) => String(v ?? "").replace(/(\D)0+(\d+)/g, "$1$2");
 
-    const baseNoZero = stripLeadingZeros(baseSrc);
+    const baseNoZero = stripLeadingZeros(safeBaseSrc);
 
     if (hasExt) {
-      pushUnique(baseSrc);
-      if (baseNoZero !== baseSrc) pushUnique(baseNoZero);
+      pushUnique(safeBaseSrc);
+      if (baseNoZero !== safeBaseSrc) pushUnique(baseNoZero);
       return out;
     }
 
     // 1) sin extensión
-    pushUnique(baseSrc);
-    if (baseNoZero !== baseSrc) pushUnique(baseNoZero);
+    pushUnique(safeBaseSrc);
+    if (baseNoZero !== safeBaseSrc) pushUnique(baseNoZero);
 
     // 2) con extensiones
     for (const e of exts) {
-      pushUnique(`${baseSrc}${e}`);
-      if (baseNoZero !== baseSrc) pushUnique(`${baseNoZero}${e}`);
+      pushUnique(`${safeBaseSrc}${e}`);
+      if (baseNoZero !== safeBaseSrc) pushUnique(`${baseNoZero}${e}`);
     }
 
     return out;
-  }, [baseSrc, exts, hasExt]);
+  }, [safeBaseSrc, exts, hasExt]);
 
   const [idx, setIdx] = useState(0);
 
   // Resetea el índice si cambia la imagen
   useEffect(() => {
     setIdx(0);
-  }, [baseSrc]);
+  }, [safeBaseSrc]);
 
   const src = candidates[Math.min(idx, candidates.length - 1)];
 
@@ -95,11 +97,15 @@ function SmartImg({ baseSrc, alt, style, className, loading = "lazy", fetchPrior
       loading={loading}
       decoding="async"
       fetchPriority={fetchPriority}
+      onLoad={onLoad}
       onError={() => {
         if (idx < candidates.length - 1) setIdx((i) => Math.min(i + 1, candidates.length - 1));
       }}
     />
   );
+
+
+
 }
 
 
@@ -108,48 +114,23 @@ type TopItem = {
   name: string;
   href: string;
   imgBase: string;
-brand?: string;
+  img?: string;
+  brand?: string;
   price?: string;
 };
 
 const TOP_ITEMS: TopItem[] = [
-  { id: "t1", name: "Air Max", href: "/products?tag=top", imgBase: "/home/mas-top/01", brand: "Nike", price: "Desde $—" },
-  { id: "t2", name: "Superstar", href: "/products?tag=top", imgBase: "/home/mas-top/02", brand: "Adidas", price: "Desde $—" },
-  { id: "t3", name: "Jordan Low", href: "/products?tag=top", imgBase: "/home/mas-top/03", brand: "Jordan", price: "Desde $—" },
-  { id: "t4", name: "Air Force 1", href: "/products?tag=top", imgBase: "/home/mas-top/04", brand: "Nike", price: "Desde $—" },
-  { id: "t5", name: "Tech Fleece", href: "/products?tag=top", imgBase: "/home/mas-top/05", brand: "Nike", price: "Desde $—" },
-  { id: "t6", name: "P-6000", href: "/products?tag=top", imgBase: "/home/mas-top/06", brand: "Nike", price: "Desde $—" },
-  { id: "t7", name: "NB 2002R", href: "/products?tag=top", imgBase: "/home/mas-top/07", brand: "New Balance", price: "Desde $—" },
-  { id: "t8", name: "Gazelle", href: "/products?tag=top", imgBase: "/home/mas-top/08", brand: "Adidas", price: "Desde $—" },
-  { id: "t9", name: "Dunk", href: "/products?tag=top", imgBase: "/home/mas-top/09", brand: "Nike", price: "Desde $—" },
-  { id: "t10", name: "Metcon", href: "/products?tag=top", imgBase: "/home/mas-top/10", brand: "Nike", price: "Desde $—" },
+  { id: "t1", name: "Air Max", href: "/products?tag=top&pick=01", imgBase: "/home/mas-top/01", brand: "Nike", price: "Drop Top" },
+  { id: "t2", name: "Superstar", href: "/products?tag=top&pick=02", imgBase: "/home/mas-top/02", brand: "Adidas", price: "Drop Top" },
+  { id: "t3", name: "Jordan Low", href: "/products?tag=top&pick=03", imgBase: "/home/mas-top/03", brand: "Jordan", price: "Drop Top" },
+  { id: "t4", name: "Air Force 1", href: "/products?tag=top&pick=04", imgBase: "/home/mas-top/04", brand: "Nike", price: "Drop Top" },
+  { id: "t5", name: "Dunk Low", href: "/products?tag=top&pick=05", imgBase: "/home/mas-top/05", brand: "Nike", price: "Drop Top" },
+  { id: "t6", name: "Campus", href: "/products?tag=top&pick=06", imgBase: "/home/mas-top/06", brand: "Adidas", price: "Drop Top" },
+  { id: "t7", name: "Tech Fleece", href: "/products?tag=top&pick=07", imgBase: "/home/mas-top/07", brand: "Nike", price: "Drop Top" },
+  { id: "t8", name: "Essentials", href: "/products?tag=top&pick=08", imgBase: "/home/mas-top/08", brand: "Fear of God", price: "Drop Top" },
+  { id: "t9", name: "Running", href: "/products?tag=top&pick=09", imgBase: "/home/mas-top/09", brand: "Nike", price: "Drop Top" },
+  { id: "t10", name: "Metcon", href: "/products?tag=top&pick=10", imgBase: "/home/mas-top/10", brand: "Nike", price: "Drop Top" },
 ];
-
-function TopPickImg({
-  base,
-  alt,
-  style,
-}: {
-  base: string;
-  alt: string;
-  style: React.CSSProperties;
-}) {
-  const [src, setSrc] = useState(`${base}.jpeg`);
-  return (
-    <img
-      src={src}
-      alt={alt}
-      draggable={false}
-      onError={() => {
-        // fallback: alterna entre .jpeg y .jpg
-        if (src.endsWith(".jpeg")) setSrc(`${base}.jpg`);
-        else if (src.endsWith(".jpg")) setSrc(`${base}.jpeg`);
-}}
-      style={style}
-    />
-  );
-}
-
 
 type CardItem = {
   id?: string;
@@ -175,6 +156,125 @@ type UserSession = {
 
 type SearchItem = { id: string; name: string; href: string; img: string; brand?: string };
 
+/* ==========================
+   TOP PICKS · UI HELPERS
+   ========================== */
+
+const SAVED_TOP_KEY = "jusp_saved_top_picks_v1";
+
+function useLocalStorageStringArray(key: string) {
+  const [value, setValue] = useState<string[]>([]);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(key);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setValue(parsed.map(String));
+      }
+    } catch {}
+  }, [key]);
+
+  const save = (next: string[]) => {
+    setValue(next);
+    try {
+      window.localStorage.setItem(key, JSON.stringify(next));
+    } catch {}
+  };
+
+  return [value, save] as const;
+}
+
+function TopPickMedia({
+  base,
+  alt,
+  active,
+}: {
+  base: string;
+  alt: string;
+  active: boolean;
+}) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div style={{ position: "relative", width: "100%", height: "100%" }}>
+      {/* skeleton premium */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "radial-gradient(900px 380px at 50% 55%, rgba(0,0,0,0.00) 25%, rgba(0,0,0,0.10) 100%)",
+          opacity: loaded ? 0 : 1,
+          transition: "opacity 380ms ease",
+        }}
+      />
+      <SmartImg
+        baseSrc={base}
+        alt={alt}
+        fetchPriority={active ? "high" : "auto"}
+        loading={active ? "eager" : "lazy"}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
+          background: "#fff",
+          padding: 18,
+          boxSizing: "border-box",
+          transform: active
+            ? "perspective(1200px) rotateX(7deg) rotateY(-12deg) translateZ(18px) scale(1.00)"
+            : "perspective(1200px) rotateX(0deg) rotateY(0deg) translateZ(0px) scale(1.02)",
+          transformOrigin: "50% 60%",
+          transition: "transform 560ms cubic-bezier(.2,.9,.2,1), opacity 380ms ease",
+          filter: active ? "contrast(1.06) saturate(1.08)" : "contrast(1.0) saturate(1.0)",
+          userSelect: "none",
+          pointerEvents: "none",
+          opacity: loaded ? 1 : 0,
+        }}
+        onLoad={() => setLoaded(true)}
+      />
+    </div>
+  );
+}
+
+function SaveTopButton({
+  id,
+  saved,
+  onToggle,
+}: {
+  id: string;
+  saved: boolean;
+  onToggle: (id: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onToggle(id);
+      }}
+      style={{
+        appearance: "none",
+        border: "1px solid rgba(255,255,255,0.22)",
+        background: saved ? "rgba(255,255,255,0.95)" : "rgba(0,0,0,0.30)",
+        color: saved ? "#000" : "#fff",
+        borderRadius: 999,
+        padding: "9px 12px",
+        fontSize: 12,
+        fontWeight: 900,
+        cursor: "pointer",
+        backdropFilter: "blur(10px)",
+      }}
+      aria-label={saved ? "Guardado" : "Guardar"}
+      title={saved ? "Guardado" : "Guardar"}
+    >
+      {saved ? "Guardado" : "Guardar"}
+    </button>
+  );
+}
+
+
 export default function Page() {
   const scrollToTopPicks = () => {
     const section = document.getElementById("top-picks");
@@ -188,7 +288,19 @@ export default function Page() {
     }
   };
 
-  const isMobile = useIsMobile();
+  
+  const [savedTopIds, setSavedTopIds] = useLocalStorageStringArray(SAVED_TOP_KEY);
+
+  const [topQuery, setTopQuery] = useState("");
+  const TOP_CHIPS = useMemo(() => ["Nike", "Jordan", "Adidas", "Dunk", "Air Max", "Tech Fleece"], []);
+  const runTopSearch = (q: string) => {
+    const query = (q || "").trim();
+    if (!query) return;
+    if (typeof window === "undefined") return;
+    window.location.assign(`/products?q=${encodeURIComponent(query)}`);
+  };
+
+const isMobile = useIsMobile();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -406,7 +518,7 @@ export default function Page() {
       id: t.id,
       name: t.name,
       href: t.href,
-      img: `${t.imgBase}.jpeg`,
+      img: t.imgBase,
       brand: t.brand,
     }));
     const extra: SearchItem[] = [
@@ -813,7 +925,7 @@ export default function Page() {
         title: "Converse Chuck Taylor All Star",
         desc: "Esencia: El sneaker más clásico de la historia. Nació como zapato de baloncesto en 1917 y terminó siendo ícono cultural. Minimalista, versátil y atemporal.",
         href: "/products?tag=top",
-        img: "/home/street-minimal/converse-chuck",
+        img: "/home/mas-top/01",
       },
       {
         id: "c2",
@@ -821,7 +933,7 @@ export default function Page() {
         title: "Nike Air Force 1",
         desc: "Esencia: El sneaker urbano más vendido del mundo. Lanzado en 1982, combina simplicidad con presencia fuerte. El modelo blanco es un estándar global.",
         href: "/products?tag=top",
-        img: "/home/street-minimal/nike-air-force-1",
+        img: "/home/mas-top/02",
       },
       {
         id: "c3",
@@ -829,7 +941,7 @@ export default function Page() {
         title: "Adidas Stan Smith",
         desc: "Esencia: Elegancia minimalista. Diseño limpio, blanco con detalles verdes. Fue el zapato más vendido del mundo en los 80.",
         href: "/products?tag=top",
-        img: "/home/street-minimal/adidas-stan-smith",
+        img: "/home/mas-top/03",
       },
       {
         id: "c4",
@@ -837,7 +949,7 @@ export default function Page() {
         title: "Adidas Superstar",
         desc: "Esencia: Cultura hip-hop y calle. Famoso por su puntera tipo “shell toe”. Se volvió leyenda en los 80 gracias a Run-D.M.C..",
         href: "/products?tag=top",
-        img: "/home/street-minimal/adidas-superstar",
+        img: "/home/mas-top/04",
       },
     ],
     []
@@ -1040,7 +1152,80 @@ export default function Page() {
             <Link href="/products?tag=top" style={{ fontSize: 13, fontWeight: 900, textDecoration: "none", color: "#000", opacity: 0.85 }}>
               Ver todo →
             </Link>
+          
+          <div style={{ marginTop: 14, display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
+            <div
+              style={{
+                flex: "1 1 320px",
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                border: "1px solid rgba(0,0,0,0.10)",
+                borderRadius: 14,
+                padding: "10px 12px",
+                background: "#fff",
+                boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
+              }}
+            >
+              <span style={{ fontSize: 14, opacity: 0.7 }}>🔎</span>
+              <input
+                value={topQuery}
+                onChange={(e) => setTopQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") runTopSearch(topQuery);
+                }}
+                placeholder="Buscar (ej: Air Max, Dunk, Tech Fleece)…"
+                style={{
+                  width: "100%",
+                  border: "none",
+                  outline: "none",
+                  fontSize: 14,
+                  fontWeight: 700,
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => runTopSearch(topQuery)}
+                style={{
+                  border: "none",
+                  cursor: "pointer",
+                  fontWeight: 1000,
+                  borderRadius: 12,
+                  padding: "10px 12px",
+                  background: "#000",
+                  color: "#fff",
+                }}
+              >
+                Buscar
+              </button>
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+              {TOP_CHIPS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => {
+                    setTopQuery(c);
+                    runTopSearch(c);
+                  }}
+                  style={{
+                    border: "1px solid rgba(0,0,0,0.10)",
+                    background: "rgba(0,0,0,0.03)",
+                    borderRadius: 999,
+                    padding: "8px 12px",
+                    cursor: "pointer",
+                    fontSize: 12,
+                    fontWeight: 900,
+                  }}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
           </div>
+
+</div>
         </div>
 
         <div style={{ marginTop: 16, position: "relative" }}>
@@ -1105,25 +1290,10 @@ export default function Page() {
                     }}
                   >
                     <div style={{ height: "min(66vh, 520px)", minHeight: 360, background: "#f6f6f6", position: "relative" }}>
-                      <TopPickImg
+                      <TopPickMedia
                         base={it.imgBase}
                         alt={it.name}
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "contain",
-                          background: "#fff",
-                          padding: 18,
-                          boxSizing: "border-box",
-                          transform: isActive
-                            ? "perspective(1200px) rotateX(7deg) rotateY(-12deg) translateZ(12px) scale(1.00)"
-                            : "perspective(1200px) rotateX(0deg) rotateY(0deg) translateZ(0px) scale(1.02)",
-                          transformOrigin: "50% 60%",
-                          transition: "transform 560ms cubic-bezier(.2,.9,.2,1)",
-                          filter: isActive ? "contrast(1.06) saturate(1.08)" : "contrast(1.0) saturate(1.0)",
-                          userSelect: "none",
-                          pointerEvents: "none",
-                        }}
+                        active={isActive}
                       />
                       <div
                         style={{
@@ -1146,6 +1316,76 @@ export default function Page() {
                           }}
                         />
                       </div>
+
+                    <div
+                      style={{
+                        position: "absolute",
+                        left: 16,
+                        right: 16,
+                        bottom: 14,
+                        display: "flex",
+                        alignItems: "end",
+                        justifyContent: "space-between",
+                        gap: 12,
+                        padding: "14px 14px",
+                        borderRadius: 18,
+                        background: "linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.55) 100%)",
+                        color: "#fff",
+                        backdropFilter: "blur(8px)",
+                        border: "1px solid rgba(255,255,255,0.14)",
+                      }}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 1.2, opacity: 0.9 }}>
+                          {(it.brand || "JUSP").toUpperCase()} · ORIGINALES
+                        </div>
+                        <div
+                          style={{
+                            marginTop: 6,
+                            fontSize: 18,
+                            fontWeight: 1000,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {it.name}
+                        </div>
+                        <div style={{ marginTop: 6, fontSize: 12, opacity: 0.85 }}>
+                          {it.price || "Drop Top"} · Envío internacional transparente
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, flex: "0 0 auto" }}>
+                        <SaveTopButton
+                          id={it.id}
+                          saved={savedTopIds.includes(it.id)}
+                          onToggle={(id) => {
+                            const next = savedTopIds.includes(id)
+                              ? savedTopIds.filter((x) => x !== id)
+                              : [...savedTopIds, id];
+                            setSavedTopIds(next);
+                          }}
+                        />
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: 36,
+                            height: 36,
+                            borderRadius: 999,
+                            background: "rgba(255,255,255,0.90)",
+                            color: "#000",
+                            fontWeight: 1000,
+                          }}
+                          aria-hidden="true"
+                        >
+                          →
+                        </span>
+                      </div>
+                    </div>
+
                     </div>
                   </Link>
                 );
@@ -1159,7 +1399,63 @@ export default function Page() {
         </div>
       </section>
 
-      {/* BLOQUE 3 · STORIES (SOLO "HISTORIA" + SIN "VER ") */}
+      
+      {/* BLOQUE 2.5 · CONFIANZA JUSP */}
+      <section
+        style={{
+          padding: "10px 0 26px",
+          borderTop: "1px solid rgba(0,0,0,0.06)",
+          background: "linear-gradient(180deg, rgba(0,0,0,0.00) 0%, rgba(0,0,0,0.02) 100%)",
+        }}
+      >
+        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px" }}>
+          <div style={{ display: "flex", alignItems: "end", justifyContent: "space-between", gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.2, opacity: 0.7 }}>CONFIANZA</div>
+              <div style={{ fontSize: 22, fontWeight: 1000, marginTop: 6 }}>Originales. Directo. Sin vueltas.</div>
+              <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75 }}>
+                Transparencia total: compra internacional + entrega a Colombia, con acompañamiento real.
+              </div>
+            </div>
+            <Link href="/terms" style={{ fontSize: 13, fontWeight: 900, textDecoration: "none", color: "#000", opacity: 0.85 }}>
+              Ver términos →
+            </Link>
+          </div>
+
+          <div
+            style={{
+              marginTop: 14,
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: 14,
+            }}
+          >
+            {[
+              { k: "auth", t: "Originales verificados", d: "Proveedores seleccionados + control de calidad.", i: "✅" },
+              { k: "ship", t: "Envío internacional claro", d: "Costo y tiempos transparentes. Sin sorpresas.", i: "✈️" },
+              { k: "care", t: "Soporte humano", d: "Te acompañamos antes y después de comprar.", i: "💬" },
+            ].map((b) => (
+              <div
+                key={b.k}
+                style={{
+                  border: "1px solid rgba(0,0,0,0.08)",
+                  borderRadius: 20,
+                  padding: 16,
+                  background: "#fff",
+                  boxShadow: "0 14px 50px rgba(0,0,0,0.08)",
+                }}
+              >
+                <div style={{ fontSize: 22 }}>{b.i}</div>
+                <div style={{ marginTop: 10, fontWeight: 1000, fontSize: 15 }}>{b.t}</div>
+                <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75, lineHeight: 1.4 }}>{b.d}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+
+{/* BLOQUE 3 · STORIES (SOLO "HISTORIA" + SIN "VER ") */}
       <section
         ref={(el) => {
           storySectionRef.current = el;
@@ -1555,7 +1851,7 @@ export default function Page() {
                     }}
                   >
                     <div style={{ position: "relative", height: 220, background: "#f4f4f4" }}>
-                      <img src={p.img} alt={p.name} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <SmartImg baseSrc={p.img} alt={p.name} loading="lazy" fetchPriority="auto" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.0) 55%, rgba(0,0,0,0.44) 100%)" }} />
                       <div style={{ position: "absolute", left: 12, right: 12, bottom: 10, color: "#fff" }}>
                         <div style={{ fontSize: 12, fontWeight: 1000, opacity: 0.9 }}>{p.brand ?? "Original"}</div>
@@ -1904,6 +2200,72 @@ export default function Page() {
           </div>
         </div>
       ) : null}
-    </main>
+    
+      {/* FOOTER · NIKE-LIKE MINIMAL */}
+      <footer
+        style={{
+          marginTop: 10,
+          borderTop: "1px solid rgba(0,0,0,0.08)",
+          background: "#0b0b0b",
+          color: "rgba(255,255,255,0.88)",
+        }}
+      >
+        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "28px 14px" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: 18,
+              alignItems: "start",
+            }}
+          >
+            <div>
+              <div style={{ fontWeight: 1000, letterSpacing: 2, fontSize: 14 }}>JUSP</div>
+              <div style={{ marginTop: 10, fontSize: 13, opacity: 0.78, lineHeight: 1.45 }}>
+                Originales. Directo. Compra internacional sin drama.
+              </div>
+              <div style={{ marginTop: 12, fontSize: 12, opacity: 0.65 }}>© {new Date().getFullYear()} JUSP</div>
+            </div>
+
+            <div>
+              <div style={{ fontWeight: 1000, fontSize: 13 }}>Ayuda</div>
+              <div style={{ marginTop: 10, display: "grid", gap: 8, fontSize: 13 }}>
+                <Link href="/terms" style={{ color: "rgba(255,255,255,0.86)", textDecoration: "none" }}>
+                  Términos
+                </Link>
+                <Link href="/terms" style={{ color: "rgba(255,255,255,0.86)", textDecoration: "none" }}>
+                  Envíos y devoluciones
+                </Link>
+                <a href="#" style={{ color: "rgba(255,255,255,0.86)", textDecoration: "none" }}>
+                  Soporte
+                </a>
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontWeight: 1000, fontSize: 13 }}>Comunidad</div>
+              <div style={{ marginTop: 10, display: "grid", gap: 8, fontSize: 13 }}>
+                <a href="#" style={{ color: "rgba(255,255,255,0.86)", textDecoration: "none" }}>
+                  Instagram
+                </a>
+                <a href="#" style={{ color: "rgba(255,255,255,0.86)", textDecoration: "none" }}>
+                  TikTok
+                </a>
+                <a href="#" style={{ color: "rgba(255,255,255,0.86)", textDecoration: "none" }}>
+                  WhatsApp
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 18, height: 1, background: "rgba(255,255,255,0.10)" }} />
+
+          <div style={{ marginTop: 14, fontSize: 12, opacity: 0.65, lineHeight: 1.5 }}>
+            JUSP actúa como intermediario de compra internacional. Los productos son originales según proveedores seleccionados.
+          </div>
+        </div>
+      </footer>
+
+</main>
   );
 }
