@@ -107,23 +107,48 @@ type TopItem = {
   id: string;
   name: string;
   href: string;
-  img: string;
-  brand?: string;
+  imgBase: string;
+brand?: string;
   price?: string;
 };
 
 const TOP_ITEMS: TopItem[] = [
-  { id: "t1", name: "Air Max", href: "/products?q=air%20max", img: "/home/files/top-01.jpg", brand: "Nike", price: "Desde $—" },
-  { id: "t2", name: "Superstar", href: "/products?q=superstar", img: "/home/files/top-02.jpg", brand: "Adidas", price: "Desde $—" },
-  { id: "t3", name: "550", href: "/products?q=550", img: "/home/files/top-03.jpg", brand: "New Balance", price: "Desde $—" },
-  { id: "t4", name: "Classic", href: "/products?q=classic", img: "/home/files/top-04.jpg", brand: "Reebok", price: "Desde $—" },
-  { id: "t5", name: "Dunk Low", href: "/products?q=dunk%20low", img: "/home/files/top-05.jpg", brand: "Nike", price: "Desde $—" },
-  { id: "t6", name: "Forum", href: "/products?q=forum", img: "/home/files/top-06.jpg", brand: "Adidas", price: "Desde $—" },
-  { id: "t7", name: "Suede", href: "/products?q=suede", img: "/home/files/top-07.jpg", brand: "Puma", price: "Desde $—" },
-  { id: "t8", name: "Gel", href: "/products?q=gel", img: "/home/files/top-08.jpg", brand: "ASICS", price: "Desde $—" },
-  { id: "t9", name: "Vans Old Skool", href: "/products?q=old%20skool", img: "/home/files/top-09.jpg", brand: "Vans", price: "Desde $—" },
-  { id: "t10", name: "Chuck 70", href: "/products?q=chuck%2070", img: "/home/files/top-10.jpg", brand: "Converse", price: "Desde $—" },
+  { id: "t1", name: "Air Max", href: "/products?tag=top", imgBase: "/home/mas-top/01", brand: "Nike", price: "Desde $—" },
+  { id: "t2", name: "Superstar", href: "/products?tag=top", imgBase: "/home/mas-top/02", brand: "Adidas", price: "Desde $—" },
+  { id: "t3", name: "Jordan Low", href: "/products?tag=top", imgBase: "/home/mas-top/03", brand: "Jordan", price: "Desde $—" },
+  { id: "t4", name: "Air Force 1", href: "/products?tag=top", imgBase: "/home/mas-top/04", brand: "Nike", price: "Desde $—" },
+  { id: "t5", name: "Tech Fleece", href: "/products?tag=top", imgBase: "/home/mas-top/05", brand: "Nike", price: "Desde $—" },
+  { id: "t6", name: "P-6000", href: "/products?tag=top", imgBase: "/home/mas-top/06", brand: "Nike", price: "Desde $—" },
+  { id: "t7", name: "NB 2002R", href: "/products?tag=top", imgBase: "/home/mas-top/07", brand: "New Balance", price: "Desde $—" },
+  { id: "t8", name: "Gazelle", href: "/products?tag=top", imgBase: "/home/mas-top/08", brand: "Adidas", price: "Desde $—" },
+  { id: "t9", name: "Dunk", href: "/products?tag=top", imgBase: "/home/mas-top/09", brand: "Nike", price: "Desde $—" },
+  { id: "t10", name: "Metcon", href: "/products?tag=top", imgBase: "/home/mas-top/10", brand: "Nike", price: "Desde $—" },
 ];
+
+function TopPickImg({
+  base,
+  alt,
+  style,
+}: {
+  base: string;
+  alt: string;
+  style: React.CSSProperties;
+}) {
+  const [src, setSrc] = useState(`${base}.jpg`);
+  return (
+    <img
+      src={src}
+      alt={alt}
+      draggable={false}
+      onError={() => {
+        // fallback .jpeg si .jpg no existe
+        if (src.endsWith(".jpg")) setSrc(`${base}.jpeg`);
+      }}
+      style={style}
+    />
+  );
+}
+
 
 type CardItem = {
   id?: string;
@@ -1079,16 +1104,18 @@ export default function Page() {
                     }}
                   >
                     <div style={{ height: "min(66vh, 520px)", minHeight: 360, background: "#f6f6f6", position: "relative" }}>
-                      <img
-                        src={it.img}
+                      <TopPickImg
+                        base={it.imgBase}
                         alt={it.name}
-                        draggable={false}
                         style={{
                           width: "100%",
                           height: "100%",
-                          objectFit: "cover",
+                          objectFit: "contain",
+                          background: "#fff",
+                          padding: 18,
+                          boxSizing: "border-box",
                           transform: isActive
-                            ? "perspective(1200px) rotateX(7deg) rotateY(-12deg) translateZ(40px) scale(1.10)"
+                            ? "perspective(1200px) rotateX(7deg) rotateY(-12deg) translateZ(12px) scale(1.00)"
                             : "perspective(1200px) rotateX(0deg) rotateY(0deg) translateZ(0px) scale(1.02)",
                           transformOrigin: "50% 60%",
                           transition: "transform 560ms cubic-bezier(.2,.9,.2,1)",
