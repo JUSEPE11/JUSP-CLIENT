@@ -78,48 +78,28 @@ function SmartImg({ baseSrc, alt, style, className, loading = "lazy", fetchPrior
   }, [baseSrc, exts, hasExt]);
 
   const [idx, setIdx] = useState(0);
-  const [loaded, setLoaded] = useState(false);
-  const [retries, setRetries] = useState(0);
 
   // Resetea el índice si cambia la imagen
   useEffect(() => {
     setIdx(0);
-    setLoaded(false);
-    setRetries(0);
   }, [baseSrc]);
 
   const src = candidates[Math.min(idx, candidates.length - 1)];
 
+  const imgProps: any = {};
+  if (fetchPriority && fetchPriority !== "auto") imgProps.fetchPriority = fetchPriority;
+
   return (
     <img
+      {...imgProps}
       src={src}
       alt={alt}
       className={className}
-      style={{
-        ...(style ?? {}),
-        opacity: loaded ? 1 : 0,
-        transition: "opacity 420ms ease",
-        willChange: "opacity",
-      }}
+      style={style}
       loading={loading}
-      // @ts-ignore - React/TS puede no tipar fetchPriority en algunas versiones
-      fetchPriority={fetchPriority}
       decoding="async"
-      onLoad={() => setLoaded(true)}
       onError={() => {
-        // Intento siguiente candidato
-        if (idx < candidates.length - 1) {
-          setIdx((i) => Math.min(i + 1, candidates.length - 1));
-          return;
-        }
-        // Si TODO falló, reintenta 1 vez (por si fue un 404/timeout intermitente)
-        if (retries < 1) {
-          setRetries((r) => r + 1);
-          setTimeout(() => {
-            setLoaded(false);
-            setIdx(0);
-          }, 650);
-        }
+        if (idx < candidates.length - 1) setIdx((i) => Math.min(i + 1, candidates.length - 1));
       }}
     />
   );
@@ -865,7 +845,7 @@ export default function Page() {
         const next = (prev + 1) % colLenRef.current;
         return next;
       });
-    }, 6500);
+    }, 3200);
 
     return () => clearInterval(interval);
   }, []);
@@ -1221,7 +1201,7 @@ export default function Page() {
                       baseSrc={s.imgBase}
                       alt={s.alt}
                       loading={idx < 2 ? "eager" : "lazy"}
-                      fetchPriority={idx === 0 ? "high" : "low"}
+                      fetchPriority={idx < 2 ? "high" : "low"}
                       style={{
                         width: "100%",
                         height: "100%",
