@@ -34,9 +34,9 @@ type SmartImgProps = {
   alt: string;
   style?: React.CSSProperties;
   className?: string;
-  loading?: "lazy" | "eager";
+  loading?: "eager" | "lazy";
   fetchPriority?: "high" | "low" | "auto";
-};
+};;
 
 function SmartImg({ baseSrc, alt, style, className, loading = "lazy", fetchPriority = "auto" }: SmartImgProps) {
   // ✅ Soporta archivos SIN extensión (por ejemplo: /home/stories/story-01)
@@ -86,18 +86,15 @@ function SmartImg({ baseSrc, alt, style, className, loading = "lazy", fetchPrior
 
   const src = candidates[Math.min(idx, candidates.length - 1)];
 
-  const imgProps: any = {};
-  if (fetchPriority && fetchPriority !== "auto") imgProps.fetchPriority = fetchPriority;
-
   return (
     <img
-      {...imgProps}
       src={src}
       alt={alt}
       className={className}
       style={style}
       loading={loading}
       decoding="async"
+      fetchPriority={fetchPriority}
       onError={() => {
         if (idx < candidates.length - 1) setIdx((i) => Math.min(i + 1, candidates.length - 1));
       }}
