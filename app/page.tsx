@@ -738,7 +738,7 @@ export default function Page() {
         return {
           id: `st${n}`,
           href: "/products?tag=curated",
-          imgBase: `/home/stories/story-${n}`,
+          imgBase: `/home/stories/story-${n}.jpg`,
           alt: `JUSP Story ${n}`,
           label: `Story ${i + 1}`,
         };
