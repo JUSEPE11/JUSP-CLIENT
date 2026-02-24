@@ -277,7 +277,7 @@ function SaveTopButton({
 }) {
   return (
     <button
-      type="button"
+      type="button" className="jusp-btn jusp-save jusp-focus"
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -297,6 +297,7 @@ function SaveTopButton({
       }}
       aria-label={saved ? "Guardado" : "Guardar"}
       title={saved ? "Guardado" : "Guardar"}
+      data-saved={saved ? "1" : "0"}
     >
       {saved ? "Guardado" : "Guardar"}
     </button>
@@ -1023,6 +1024,57 @@ export default function Page() {
 
   return (
     <main style={{ overflowX: "hidden", background: "#fff", color: "#000" }}>
+
+<style>{`
+  :root {
+    --jusp-ease: cubic-bezier(.2,.9,.2,1);
+  }
+  /* Cards */
+  .jusp-card {
+    transform: translateZ(0);
+    transition: transform 280ms var(--jusp-ease), box-shadow 280ms var(--jusp-ease), filter 280ms var(--jusp-ease);
+    will-change: transform;
+  }
+  @media (hover:hover) and (pointer:fine) {
+    .jusp-card:hover {
+      transform: translateY(-3px) scale(1.008);
+      box-shadow: 0 18px 55px rgba(0,0,0,0.14);
+    }
+  }
+  .jusp-card:active {
+    transform: translateY(0px) scale(0.988);
+  }
+
+  /* Buttons */
+  .jusp-btn {
+    transition: transform 180ms var(--jusp-ease), filter 180ms var(--jusp-ease), background 180ms var(--jusp-ease);
+    will-change: transform;
+  }
+  @media (hover:hover) and (pointer:fine) {
+    .jusp-btn:hover { filter: brightness(1.03); }
+  }
+  .jusp-btn:active { transform: scale(0.98); }
+
+  /* Save button micro-pop when becomes saved */
+  .jusp-save[data-saved="1"] {
+    animation: juspPop 260ms var(--jusp-ease);
+  }
+  @keyframes juspPop {
+    0% { transform: scale(0.96); }
+    55% { transform: scale(1.06); }
+    100% { transform: scale(1.0); }
+  }
+
+  /* Focus ring pro */
+  .jusp-focus:focus-visible {
+    outline: 3px solid rgba(0,0,0,0.20);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .jusp-card, .jusp-btn { transition: none !important; animation: none !important; }
+  }
+`}</style>
       {/* ✅ Newsletter modal tipo Nike */}
       {nlOpen ? (
         <div
@@ -1289,7 +1341,7 @@ export default function Page() {
           <div style={{ display: "flex", alignItems: "end", justifyContent: "space-between", gap: 12 }}>
             <div>
               <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.2, opacity: 0.7 }}>CONFIANZA</div>
-              <div style={{ fontSize: 22, fontWeight: 1000, marginTop: 6 }}>Originales. Directo. Sin vueltas.</div>
+              <div style={{ fontSize: 22, fontWeight: 1000, marginTop: 6 }}>Originales ➡️ Directo ➡️ Flash</div>
               <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75 }}>
                 Transparencia total: compra internacional + entrega a Colombia, con acompañamiento real.
               </div>
@@ -1378,6 +1430,7 @@ export default function Page() {
                   />
                   <button
                     type="submit"
+                    className="jusp-btn jusp-focus"
                     style={{
                       border: "none",
                       background: "#0b0b0b",
@@ -1396,6 +1449,7 @@ export default function Page() {
                   {TOP_CHIPS.map((c) => (
                     <button
                       key={c}
+                      className="jusp-btn jusp-focus"
                       onClick={() => {
                         setTopQuery(c);
                         window.location.href = `/search?q=${encodeURIComponent(c)}`;
@@ -1415,7 +1469,7 @@ export default function Page() {
                 </div>
               </div>
 
-              <style jsx>{`
+              <style>{`
                 .tpWrap {
                   margin-top: 22px;
                 }
@@ -1544,7 +1598,8 @@ export default function Page() {
                 const isActive = idx === topActive;
                 return (
                   <Link
-                    key={it.id}
+                    key={(it?.href ? it.href : String(idx))}
+                    className="jusp-card"
                     href={it.href}
                     ref={(el) => {
                       topCardRefs.current[idx] = el;
