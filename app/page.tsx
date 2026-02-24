@@ -43,41 +43,16 @@ function SmartImg({ baseSrc, alt, style, className, loading = "lazy", fetchPrior
   const safeBaseSrc = String((baseSrc as any) ?? "");
   // ✅ Soporta archivos SIN extensión (por ejemplo: /home/stories/story-01)
   // y también con extensión normal (/home/stories/story-01.jpg).
-  const exts = useMemo(() => [".jpg", ".JPG", ".jpeg", ".JPEG", ".png", ".PNG", ".webp", ".WEBP"], []);
   const hasExt = useMemo(() => /\.[a-zA-Z0-9]+$/.test(safeBaseSrc), [safeBaseSrc]);
 
   // Cuando NO hay extensión, primero probamos el baseSrc "tal cual"
   // (sirve si el archivo real en /public no tiene extensión).
   const candidates = useMemo(() => {
-    // Además de probar baseSrc y baseSrc+ext, soporta variantes sin ceros a la izquierda.
-    // Ej: /home/stories/story-06 -> también prueba /home/stories/story-6
-    const out: string[] = [];
-    const pushUnique = (v: string) => {
-      if (!out.includes(v)) out.push(v);
-    };
-
-    const stripLeadingZeros = (v?: any) => String(v ?? "").replace(/(\D)0+(\d+)/g, "$1$2");
-
-    const baseNoZero = stripLeadingZeros(safeBaseSrc);
-
-    if (hasExt) {
-      pushUnique(safeBaseSrc);
-      if (baseNoZero !== safeBaseSrc) pushUnique(baseNoZero);
-      return out;
-    }
-
-    // 1) sin extensión
-    pushUnique(safeBaseSrc);
-    if (baseNoZero !== safeBaseSrc) pushUnique(baseNoZero);
-
-    // 2) con extensiones
-    for (const e of exts) {
-      pushUnique(`${safeBaseSrc}${e}`);
-      if (baseNoZero !== safeBaseSrc) pushUnique(`${baseNoZero}${e}`);
-    }
-
-    return out;
-  }, [safeBaseSrc, exts, hasExt]);
+    if (!safeBaseSrc) return [];
+    // Si ya trae extensión, úsalo tal cual. Si no, usamos .jpg (nuestras imágenes del repo).
+    if (hasExt) return [safeBaseSrc];
+    return [`${safeBaseSrc}.jpg`];
+  }, [safeBaseSrc, hasExt]);
 
   const [idx, setIdx] = useState(0);
 
