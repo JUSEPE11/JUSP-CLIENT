@@ -204,69 +204,67 @@ function useLocalStorageStringArray(key: string) {
   return [value, save] as const;
 }
 
-function TopPickMedia({
-  base,
-  alt,
-  active,
-}: {
-  base: string;
-  alt: string;
-  active: boolean;
-}) {
-  const isMobile = useIsMobile(768);
-  const coarsePointer = useIsCoarsePointer();
-  const reduceMotion = usePrefersReducedMotion();
-  const softMotion = isMobile || coarsePointer || reduceMotion;
+function TopPickMedia({ baseSrc, alt, active }: { baseSrc: string; alt: string; active: boolean }) {
+  const isMobile = useIsMobile();
 
-  const [loaded, setLoaded] = useState(false);
+  // Smooth cross-fade / soften transform when the media changes (mobile felt "forced").
+  const [ready, setReady] = React.useState(false);
+  React.useEffect(() => {
+    setReady(false);
+    const id = requestAnimationFrame(() => setReady(true));
+    return () => cancelAnimationFrame(id);
+  }, [baseSrc]);
+
+  const softMotion = isMobile;
+
+  const wrapStyle: React.CSSProperties = {
+    position: "absolute",
+    inset: 0,
+    borderRadius: 24,
+    overflow: "hidden",
+    transformStyle: "preserve-3d",
+    backfaceVisibility: "hidden",
+    willChange: "transform, opacity",
+    transitionProperty: "transform, opacity",
+    transitionDuration: softMotion ? "520ms" : "600ms",
+    transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
+    transformOrigin: "50% 60%",
+    opacity: active ? 1 : 0,
+    transform: active
+      ? softMotion
+        ? "translate3d(0,-1px,0) scale(1)"
+        : "perspective(900px) translateZ(0) rotateX(2deg) rotateY(-6deg) translateY(-2px) scale(1)"
+      : softMotion
+        ? "translate3d(0,10px,0) scale(0.992)"
+        : "perspective(900px) translateZ(0) rotateX(0deg) rotateY(0deg) translateY(10px) scale(0.985)",
+  };
+
+  // Separate layer for the actual image to fade-in on change (prevents hard "snap").
+  const imgLayerStyle: React.CSSProperties = {
+    position: "absolute",
+    inset: 0,
+    opacity: ready ? 1 : 0,
+    transform: ready ? "translate3d(0,0,0) scale(1)" : "translate3d(0,8px,0) scale(0.995)",
+    transitionProperty: "opacity, transform",
+    transitionDuration: softMotion ? "420ms" : "480ms",
+    transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
+    willChange: "opacity, transform",
+  };
+
   return (
-    <div style={{ position: "relative", width: "100%", height: "100%" }}>
-      {/* skeleton premium */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          inset: 0,
-          background:
-            "radial-gradient(900px 380px at 50% 55%, rgba(0,0,0,0.00) 25%, rgba(0,0,0,0.10) 100%)",
-          opacity: loaded ? 0 : 1,
-          transition: "opacity 380ms ease",
-        }}
-      />
-      <SmartImg
-        baseSrc={base}
-        alt={alt}
-        fetchPriority={active ? "high" : "auto"}
-        loading={active ? "eager" : "lazy"}
-        style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "contain",
-          background: "#fff",
-          padding: 18,
-          boxSizing: "border-box",
-          transform: softMotion
-            ? active
-              ? "translateY(-2px) scale(1.00)"
-              : "translateY(0px) scale(1.01)"
-            : active
-              ? "perspective(900px) rotateX(1deg) rotateY(-2deg) translateZ(0px) scale(1.00)"
-              : "perspective(900px) rotateX(0deg) rotateY(0deg) translateZ(0px) scale(1.01)",
-          transformOrigin: "50% 60%",
-          willChange: "transform, opacity",
-          transition: softMotion
-            ? "transform 420ms cubic-bezier(.2,.9,.2,1), opacity 320ms ease"
-            : "transform 560ms cubic-bezier(.2,.9,.2,1), opacity 380ms ease",
-          filter: softMotion ? "none" : active ? "contrast(1.05) saturate(1.06)" : "contrast(1.0) saturate(1.0)",
-          userSelect: "none",
-          pointerEvents: "none",
-          opacity: loaded ? 1 : 0,
-        }}
-        onLoad={() => setLoaded(true)}
-      />
+    <div style={wrapStyle} aria-hidden={!active}>
+      <div style={imgLayerStyle}>
+        <SmartImg
+          key={baseSrc}
+          baseSrc={baseSrc}
+          alt={alt}
+          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+/>
+      </div>
     </div>
   );
 }
+
 
 function SaveTopButton({
   id,
@@ -1573,7 +1571,7 @@ export default function Page() {
                   >
                     <div style={{ height: "min(66vh, 520px)", minHeight: 360, background: "#f6f6f6", position: "relative" }}>
                       <TopPickMedia
-                        base={it.imgBase}
+                        baseSrc={it.imgBase}
                         alt={it.name}
                         active={isActive}
                       />
