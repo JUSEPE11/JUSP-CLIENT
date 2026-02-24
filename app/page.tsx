@@ -132,6 +132,13 @@ const TOP_ITEMS: TopItem[] = [
   { id: "t10", name: "Metcon", href: "/products?tag=top&pick=10", imgBase: "/home/mas-top/10", brand: "Nike", price: "Drop Top" },
 ];
 
+const ALL_PRODUCTS: TopItem[] = TOP_ITEMS.map((t, idx) => ({
+  ...t,
+  id: `p${idx + 1}`,
+  price: t.price ?? "Oferta",
+}));
+
+
 type CardItem = {
   id?: string;
   kicker?: string;
@@ -1132,7 +1139,174 @@ const isMobile = useIsMobile();
         </div>
       </section>
 
-      {/* BLOQUE 2 */}
+      {/* BLOQUE 3 · STORIES (SOLO "HISTORIA" + SIN "VER ") */}
+      <section
+        ref={(el) => {
+          storySectionRef.current = el;
+        }}
+        style={{
+          padding: "22px 0 30px",
+          borderTop: "1px solid rgba(0,0,0,0.06)",
+          background: "linear-gradient(180deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.00) 100%)",
+          opacity: storyInView ? 1 : 0,
+          transform: storyInView ? "translateY(0px)" : "translateY(10px)",
+          transition: "opacity 680ms cubic-bezier(.2,.9,.2,1), transform 680ms cubic-bezier(.2,.9,.2,1)",
+        }}
+      >
+        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px" }}>
+          <div style={{ display: "flex", alignItems: "end", justifyContent: "space-between", gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.2, opacity: 0.7 }}>HISTORY</div>
+              {/* ✅ (QUITADO) "Editorial JUSP · Nivel Dios" */}
+            </div>
+
+            {/* ✅ (QUITADO) "Ver colección →" */}
+          </div>
+
+          <div
+            ref={curatedViewportRef}
+            onWheel={onCuratedWheel}
+            style={{
+              marginTop: 14,
+              overflowX: "auto",
+              scrollSnapType: "x mandatory",
+              WebkitOverflowScrolling: "touch",
+              overscrollBehaviorX: "contain",
+              scrollbarWidth: "none",
+              padding: "8px 2px 10px",
+            }}
+          >
+            <div style={{ display: "flex", gap: 12, alignItems: "stretch" }}>
+              {curatedSlides.map((s, idx) => (
+                <Link
+                  key={s.id}
+                  href={s.href}
+                  aria-label={s.alt}
+                  style={{
+                    flex: "0 0 auto",
+                    scrollSnapAlign: "start",
+                    textDecoration: "none",
+                    color: "#000",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "min(64vw, 260px)",
+                      aspectRatio: "9 / 16",
+                      borderRadius: 22,
+                      overflow: "hidden",
+                      border: "1px solid rgba(0,0,0,0.10)",
+                      background: "#f2f2f2",
+                      boxShadow: "0 18px 55px rgba(0,0,0,0.14)",
+                      transform: "translateZ(0)",
+                      position: "relative",
+                    }}
+                  >
+                    <SmartImg
+                      baseSrc={s.imgBase}
+                      alt={s.alt}
+                      loading={idx < 2 ? "eager" : "lazy"}
+                      fetchPriority={idx < 2 ? "high" : "low"}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        userSelect: "none",
+                        pointerEvents: "none",
+                      }}
+                    />
+<div
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        background:
+                          "linear-gradient(180deg, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.0) 40%, rgba(0,0,0,0.30) 100%)",
+                        pointerEvents: "none",
+                      }}
+                    />
+                    <div
+                      style={{
+                        position: "absolute",
+                        left: 10,
+                        top: 10,
+                        padding: "6px 10px",
+                        borderRadius: 999,
+                        background: "rgba(0,0,0,0.50)",
+                        color: "#fff",
+                        fontSize: 11,
+                        fontWeight: 1000,
+                        letterSpacing: 0.6,
+                        border: "1px solid rgba(255,255,255,0.18)",
+                        backdropFilter: "blur(10px)",
+                      }}
+                    >
+                      JUSP
+                    </div>
+                  </div>
+                </Link>
+              ))}
+              <div style={{ flex: "0 0 6px" }} />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* BLOQUE 2.5 · CONFIANZA JUSP */}
+      <section
+        style={{
+          padding: "10px 0 26px",
+          borderTop: "1px solid rgba(0,0,0,0.06)",
+          background: "linear-gradient(180deg, rgba(0,0,0,0.00) 0%, rgba(0,0,0,0.02) 100%)",
+        }}
+      >
+        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px" }}>
+          <div style={{ display: "flex", alignItems: "end", justifyContent: "space-between", gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.2, opacity: 0.7 }}>CONFIANZA</div>
+              <div style={{ fontSize: 22, fontWeight: 1000, marginTop: 6 }}>Originales. Directo. Sin vueltas.</div>
+              <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75 }}>
+                Transparencia total: compra internacional + entrega a Colombia, con acompañamiento real.
+              </div>
+            </div>
+            <Link href="/terms" style={{ fontSize: 13, fontWeight: 900, textDecoration: "none", color: "#000", opacity: 0.85 }}>
+              Ver términos →
+            </Link>
+          </div>
+
+          <div
+            style={{
+              marginTop: 14,
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: 14,
+            }}
+          >
+            {[
+              { k: "auth", t: "Originales verificados", d: "Proveedores seleccionados + control de calidad.", i: "✅" },
+              { k: "ship", t: "Envío internacional claro", d: "Costo y tiempos transparentes. Sin sorpresas.", i: "✈️" },
+              { k: "care", t: "Soporte humano", d: "Te acompañamos antes y después de comprar.", i: "💬" },
+            ].map((b) => (
+              <div
+                key={b.k}
+                style={{
+                  border: "1px solid rgba(0,0,0,0.08)",
+                  borderRadius: 20,
+                  padding: 16,
+                  background: "#fff",
+                  boxShadow: "0 14px 50px rgba(0,0,0,0.08)",
+                }}
+              >
+                <div style={{ fontSize: 22 }}>{b.i}</div>
+                <div style={{ marginTop: 10, fontWeight: 1000, fontSize: 15 }}>{b.t}</div>
+                <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75, lineHeight: 1.4 }}>{b.d}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+
+{/* BLOQUE 2 */}
       <section
         id="top-picks"
         ref={(el) => {
@@ -1400,313 +1574,127 @@ const isMobile = useIsMobile();
       </section>
 
       
-      {/* BLOQUE 2.5 · CONFIANZA JUSP */}
-      <section
-        style={{
-          padding: "10px 0 26px",
-          borderTop: "1px solid rgba(0,0,0,0.06)",
-          background: "linear-gradient(180deg, rgba(0,0,0,0.00) 0%, rgba(0,0,0,0.02) 100%)",
-        }}
-      >
-        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px" }}>
-          <div style={{ display: "flex", alignItems: "end", justifyContent: "space-between", gap: 12 }}>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.2, opacity: 0.7 }}>CONFIANZA</div>
-              <div style={{ fontSize: 22, fontWeight: 1000, marginTop: 6 }}>Originales. Directo. Sin vueltas.</div>
-              <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75 }}>
-                Transparencia total: compra internacional + entrega a Colombia, con acompañamiento real.
-              </div>
-            </div>
-            <Link href="/terms" style={{ fontSize: 13, fontWeight: 900, textDecoration: "none", color: "#000", opacity: 0.85 }}>
-              Ver términos →
-            </Link>
-          </div>
-
-          <div
-            style={{
-              marginTop: 14,
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: 14,
-            }}
-          >
-            {[
-              { k: "auth", t: "Originales verificados", d: "Proveedores seleccionados + control de calidad.", i: "✅" },
-              { k: "ship", t: "Envío internacional claro", d: "Costo y tiempos transparentes. Sin sorpresas.", i: "✈️" },
-              { k: "care", t: "Soporte humano", d: "Te acompañamos antes y después de comprar.", i: "💬" },
-            ].map((b) => (
-              <div
-                key={b.k}
-                style={{
-                  border: "1px solid rgba(0,0,0,0.08)",
-                  borderRadius: 20,
-                  padding: 16,
-                  background: "#fff",
-                  boxShadow: "0 14px 50px rgba(0,0,0,0.08)",
-                }}
-              >
-                <div style={{ fontSize: 22 }}>{b.i}</div>
-                <div style={{ marginTop: 10, fontWeight: 1000, fontSize: 15 }}>{b.t}</div>
-                <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75, lineHeight: 1.4 }}>{b.d}</div>
-              </div>
-            ))}
-          </div>
+      {/* BLOQUE 5 · TODOS LOS PRODUCTOS */}
+<section style={{ padding: "26px 0 44px", borderTop: "1px solid rgba(0,0,0,0.06)" }}>
+  <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px" }}>
+    <div style={{ display: "flex", alignItems: "end", justifyContent: "space-between", gap: 12 }}>
+      <div>
+        <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.2, opacity: 0.7 }}>TODOS</div>
+        <div style={{ fontSize: 28, fontWeight: 1000, marginTop: 8 }}>Todos los productos</div>
+        <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75 }}>
+          Grid tipo marketplace: rápido de escanear, directo al producto.
         </div>
-      </section>
+      </div>
+    </div>
 
+    {/* Tabs */}
+    <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
+      {["Te podría gustar", "Deportes", "Moda", "Accesorios", "Niños"].map((t) => (
+        <button
+          key={t}
+          onClick={() => setTopQuery(t === "Te podría gustar" ? "" : t)}
+          style={{
+            padding: "10px 12px",
+            borderRadius: 999,
+            border: "1px solid rgba(0,0,0,0.10)",
+            background: (topQuery || "") === (t === "Te podría gustar" ? "" : t) ? "rgba(0,0,0,0.92)" : "white",
+            color: (topQuery || "") === (t === "Te podría gustar" ? "" : t) ? "white" : "rgba(0,0,0,0.85)",
+            fontWeight: 900,
+            fontSize: 12,
+            letterSpacing: 0.2,
+            cursor: "pointer",
+          }}
+        >
+          {t}
+        </button>
+      ))}
+    </div>
 
-{/* BLOQUE 3 · STORIES (SOLO "HISTORIA" + SIN "VER ") */}
-      <section
-        ref={(el) => {
-          storySectionRef.current = el;
-        }}
-        style={{
-          padding: "22px 0 30px",
-          borderTop: "1px solid rgba(0,0,0,0.06)",
-          background: "linear-gradient(180deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.00) 100%)",
-          opacity: storyInView ? 1 : 0,
-          transform: storyInView ? "translateY(0px)" : "translateY(10px)",
-          transition: "opacity 680ms cubic-bezier(.2,.9,.2,1), transform 680ms cubic-bezier(.2,.9,.2,1)",
-        }}
-      >
-        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px" }}>
-          <div style={{ display: "flex", alignItems: "end", justifyContent: "space-between", gap: 12 }}>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.2, opacity: 0.7 }}>HISTORY</div>
-              {/* ✅ (QUITADO) "Editorial JUSP · Nivel Dios" */}
+    {/* Grid */}
+    <div
+      style={{
+        marginTop: 16,
+        display: "grid",
+        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+        gap: 14,
+      }}
+    >
+      {ALL_PRODUCTS.filter((p) => {
+        const q = (topQuery || "").trim().toLowerCase();
+        if (!q) return true;
+        return (p.name + " " + (p.brand ?? "")).toLowerCase().includes(q);
+      }).map((p) => (
+        <a
+          key={p.id}
+          href={p.href}
+          style={{
+            display: "block",
+            textDecoration: "none",
+            color: "inherit",
+            borderRadius: 18,
+            border: "1px solid rgba(0,0,0,0.08)",
+            background: "white",
+            overflow: "hidden",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
+          }}
+        >
+          <div style={{ position: "relative", background: "#f7f7f7" }}>
+            <div style={{ height: 220, position: "relative" }}>
+              <SmartImg
+                baseSrc={p.imgBase}
+                alt={p.name}
+                style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+              />
             </div>
 
-            {/* ✅ (QUITADO) "Ver colección →" */}
-          </div>
-
-          <div
-            ref={curatedViewportRef}
-            onWheel={onCuratedWheel}
-            style={{
-              marginTop: 14,
-              overflowX: "auto",
-              scrollSnapType: "x mandatory",
-              WebkitOverflowScrolling: "touch",
-              overscrollBehaviorX: "contain",
-              scrollbarWidth: "none",
-              padding: "8px 2px 10px",
-            }}
-          >
-            <div style={{ display: "flex", gap: 12, alignItems: "stretch" }}>
-              {curatedSlides.map((s, idx) => (
-                <Link
-                  key={s.id}
-                  href={s.href}
-                  aria-label={s.alt}
-                  style={{
-                    flex: "0 0 auto",
-                    scrollSnapAlign: "start",
-                    textDecoration: "none",
-                    color: "#000",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "min(64vw, 260px)",
-                      aspectRatio: "9 / 16",
-                      borderRadius: 22,
-                      overflow: "hidden",
-                      border: "1px solid rgba(0,0,0,0.10)",
-                      background: "#f2f2f2",
-                      boxShadow: "0 18px 55px rgba(0,0,0,0.14)",
-                      transform: "translateZ(0)",
-                      position: "relative",
-                    }}
-                  >
-                    <SmartImg
-                      baseSrc={s.imgBase}
-                      alt={s.alt}
-                      loading={idx < 2 ? "eager" : "lazy"}
-                      fetchPriority={idx < 2 ? "high" : "low"}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                        userSelect: "none",
-                        pointerEvents: "none",
-                      }}
-                    />
-<div
-                      style={{
-                        position: "absolute",
-                        inset: 0,
-                        background:
-                          "linear-gradient(180deg, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.0) 40%, rgba(0,0,0,0.30) 100%)",
-                        pointerEvents: "none",
-                      }}
-                    />
-                    <div
-                      style={{
-                        position: "absolute",
-                        left: 10,
-                        top: 10,
-                        padding: "6px 10px",
-                        borderRadius: 999,
-                        background: "rgba(0,0,0,0.50)",
-                        color: "#fff",
-                        fontSize: 11,
-                        fontWeight: 1000,
-                        letterSpacing: 0.6,
-                        border: "1px solid rgba(255,255,255,0.18)",
-                        backdropFilter: "blur(10px)",
-                      }}
-                    >
-                      JUSP
-                    </div>
-                  </div>
-                </Link>
-              ))}
-              <div style={{ flex: "0 0 6px" }} />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* BLOQUE 4 */}
-      <section style={{ padding: "26px 0 34px", borderTop: "1px solid rgba(0,0,0,0.06)" }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px" }}>
-          <div style={{ display: "flex", alignItems: "end", justifyContent: "space-between", gap: 12 }}>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.2, opacity: 0.7 }}></div>
-              <div style={{ fontSize: 26, fontWeight: 1000, marginTop: 8 }}>Lo mejor de todos los tiempos</div>
-              <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75 }}></div>
-            </div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              {colCards.map((c, idx) => (
-                <button
-                  key={(c.id ?? c.title) + String(idx)}
-                  aria-label={`Ver ${c.title}`}
-                  onClick={() => setColActive(idx)}
-                  style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: 999,
-                    border: "none",
-                    background: idx === colActive ? "#000" : "rgba(0,0,0,0.18)",
-                    cursor: "pointer",
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-
-          <Link
-            href={activeCollection.href!}
-            style={{
-              marginTop: 16,
-              display: "grid",
-              gridTemplateColumns: isMobile ? "1fr" : "1.05fr 0.95fr",
-              gap: 14,
-              textDecoration: "none",
-              color: "#000",
-              borderRadius: 26, 
-              overflow: "hidden",
-              border: "1px solid rgba(0,0,0,0.08)",
-              boxShadow: "0 20px 70px rgba(0,0,0,0.14)",
-              background: "#fff",
-              transform: "perspective(1200px) translateZ(0)",
-            }}
-          >
-            <div style={{ padding: isMobile ? 16 : 18, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-              {activeCollection.kicker ? (
-                <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.4, opacity: 0.7 }}>
-                  {activeCollection.kicker}
-                </div>
-              ) : null}
-              <div style={{ marginTop: 8, fontSize: isMobile ? 30 : 34, fontWeight: 1000, lineHeight: 1.05, letterSpacing: -0.6 }}>
-                {activeCollection.title}
-              </div>
-              <div style={{ marginTop: 10, fontSize: 14, opacity: 0.78, lineHeight: 1.7, maxWidth: 520 }}>
-                {activeCollection.desc}
-              </div>
-              <div style={{ marginTop: 14, display: "inline-flex", alignItems: "center", gap: 8, fontWeight: 1000 }}>
-                Explorar ahora <span style={{ transform: "translateY(-1px)" }}>→</span>
-              </div>
-            </div>
-
-            <div
-            style={{
-              position: "relative",
-              height: isMobile ? 340 : 560,
-              borderRadius: 26, marginTop: isMobile ? 10 : 0,
-              overflow: "hidden",
-              background:
-                "radial-gradient(1200px 520px at 55% 45%, rgba(255,255,255,0.95) 0%, rgba(245,245,245,1) 58%, rgba(235,235,235,1) 100%)",
-              boxShadow: "0 24px 70px rgba(0,0,0,0.10)",
-            }}
-          >
-            {/* Velo suave premium */}
-            <div
-              aria-hidden
-              style={{
-                position: "absolute",
-                inset: 0,
-                background:
-                  "linear-gradient(110deg, rgba(255,255,255,0.78) 0%, rgba(255,255,255,0.10) 48%, rgba(0,0,0,0.06) 100%)",
-                pointerEvents: "none",
-              }}
-            />
-
-            {/* Marco interno: MISMA MEDIDA para todas las imágenes */}
             <div
               style={{
                 position: "absolute",
-                inset: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "34px 36px",
+                left: 10,
+                top: 10,
+                padding: "8px 10px",
+                borderRadius: 999,
+                background: "rgba(255,255,255,0.92)",
+                border: "1px solid rgba(0,0,0,0.08)",
+                fontSize: 12,
+                fontWeight: 1000,
               }}
             >
+              {p.brand ?? "JUSP"}
+            </div>
+          </div>
+
+          <div style={{ padding: 12 }}>
+            <div style={{ fontWeight: 1000, fontSize: 14, lineHeight: 1.2 }}>{p.name}</div>
+            <div style={{ marginTop: 6, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+              <div style={{ fontSize: 12, opacity: 0.72 }}>{p.price ?? "Oferta"}</div>
               <div
                 style={{
-                  width: "100%",
-                  height: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
+                  fontSize: 12,
+                  fontWeight: 1000,
+                  padding: "8px 10px",
+                  borderRadius: 999,
+                  background: "rgba(0,0,0,0.92)",
+                  color: "white",
                 }}
               >
-                <SmartImg
-                  baseSrc={activeCollection.img!}
-                  alt={activeCollection.title}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "contain",
-                    transform: "scale(1.02)",
-                    transition: "transform 520ms cubic-bezier(.2,.9,.2,1)",
-                    filter: "drop-shadow(0 18px 26px rgba(0,0,0,0.16))",
-                  }}
-                />
+                Ver →
               </div>
             </div>
-
-            {/* Brillo diagonal (Nike vibes) */}
-            <div
-              aria-hidden
-              style={{
-                position: "absolute",
-                left: "-25%",
-                top: "-35%",
-                width: "65%",
-                height: "120%",
-                transform: "rotate(18deg)",
-                background:
-                  "linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.00) 70%)",
-                opacity: 0.7,
-                pointerEvents: "none",
-              }}
-            />
           </div>
-          </Link>
-        </div>
-      </section>
+        </a>
+      ))}
+    </div>
+
+    {/* Responsive: 4 columnas desktop */}
+    <style>{`
+      @media (min-width: 880px) {
+        .__jusp_all_products_grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      }
+    `}</style>
+  </div>
+</section>
+
 
       {/* SEARCH OVERLAY (queda disponible por tecla "/" aunque quitamos botones del hero) */}
       {searchOpen ? (
