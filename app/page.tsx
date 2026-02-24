@@ -258,7 +258,7 @@ function TopPickMedia({ baseSrc, alt, active }: { baseSrc: string; alt: string; 
           key={baseSrc}
           baseSrc={baseSrc}
           alt={alt}
-          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", transform: "scale(0.94)", transformOrigin: "center" }}
 />
       </div>
     </div>
