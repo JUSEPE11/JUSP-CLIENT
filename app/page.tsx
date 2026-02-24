@@ -29,6 +29,43 @@ function useIsMobile(breakpoint: number = 768) {
   return isMobile;
 }
 
+
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const onChange = () => setReduced(mq.matches);
+    onChange();
+    if (typeof mq.addEventListener === "function") {
+      mq.addEventListener("change", onChange);
+      return () => mq.removeEventListener("change", onChange);
+    }
+    const legacyMq = mq as any;
+    legacyMq.addListener?.(onChange);
+    return () => legacyMq.removeListener?.(onChange);
+  }, []);
+  return reduced;
+}
+
+function useIsCoarsePointer() {
+  const [coarse, setCoarse] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    const mq = window.matchMedia("(pointer: coarse)");
+    const onChange = () => setCoarse(mq.matches);
+    onChange();
+    if (typeof mq.addEventListener === "function") {
+      mq.addEventListener("change", onChange);
+      return () => mq.removeEventListener("change", onChange);
+    }
+    const legacyMq = mq as any;
+    legacyMq.addListener?.(onChange);
+    return () => legacyMq.removeListener?.(onChange);
+  }, []);
+  return coarse;
+}
+
 type SmartImgProps = {
   baseSrc: string;
   alt: string;
@@ -176,6 +213,11 @@ function TopPickMedia({
   alt: string;
   active: boolean;
 }) {
+  const isMobile = useIsMobile(768);
+  const coarsePointer = useIsCoarsePointer();
+  const reduceMotion = usePrefersReducedMotion();
+  const softMotion = isMobile || coarsePointer || reduceMotion;
+
   const [loaded, setLoaded] = useState(false);
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
@@ -203,12 +245,18 @@ function TopPickMedia({
           background: "#fff",
           padding: 18,
           boxSizing: "border-box",
-          transform: active
-            ? "perspective(1200px) rotateX(7deg) rotateY(-12deg) translateZ(18px) scale(1.00)"
-            : "perspective(1200px) rotateX(0deg) rotateY(0deg) translateZ(0px) scale(1.02)",
+          transform: softMotion
+            ? active
+              ? "translateY(-2px) scale(1.00)"
+              : "translateY(0px) scale(1.01)"
+            : active
+              ? "perspective(1200px) rotateX(2deg) rotateY(-6deg) translateZ(8px) scale(1.00)"
+              : "perspective(1200px) rotateX(0deg) rotateY(0deg) translateZ(0px) scale(1.02)",
           transformOrigin: "50% 60%",
-          transition: "transform 560ms cubic-bezier(.2,.9,.2,1), opacity 380ms ease",
-          filter: active ? "contrast(1.06) saturate(1.08)" : "contrast(1.0) saturate(1.0)",
+          transition: softMotion
+            ? "transform 420ms cubic-bezier(.2,.9,.2,1), opacity 320ms ease"
+            : "transform 560ms cubic-bezier(.2,.9,.2,1), opacity 380ms ease",
+          filter: softMotion ? "none" : active ? "contrast(1.05) saturate(1.06)" : "contrast(1.0) saturate(1.0)",
           userSelect: "none",
           pointerEvents: "none",
           opacity: loaded ? 1 : 0,
@@ -282,7 +330,8 @@ export default function Page() {
     window.location.assign(`/products?q=${encodeURIComponent(query)}`);
   };
 
-const isMobile = useIsMobile();
+  const isMobile = useIsMobile();
+  const reduceMotion = usePrefersReducedMotion();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -740,8 +789,11 @@ const isMobile = useIsMobile();
   };
 
   useEffect(() => {
-    if (topPaused || !topInView) return;
-    const t = setInterval(() => setTopActive((i) => (i + 1) % topItems.length), 2600);
+    if (reduceMotion || topPaused || !topInView) return;
+    const intervalMs = isMobile ? 5200 : 3600;
+    const t = setInterval(() => {
+      setTopActive((i) => (i + 1) % topItems.length);
+    }, intervalMs);
     return () => clearInterval(t);
   }, [topPaused, topInView, topItems.length]);
 
@@ -759,7 +811,7 @@ const isMobile = useIsMobile();
     vp.style.scrollBehavior = "smooth";
     snapToNearest();
     setIsDragging(false);
-    if (resume) window.setTimeout(() => setTopPaused(false), 450);
+    if (resume) window.setTimeout(() => setTopPaused(false), isMobile ? 2500 : 1600);
   };
 
   useEffect(() => {
