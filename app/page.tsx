@@ -2190,69 +2190,11 @@ const isMobile = useIsMobile();
       ) : null}
     
       {/* FOOTER · NIKE-LIKE MINIMAL */}
-      <footer
-        style={{
-          marginTop: 10,
-          borderTop: "1px solid rgba(0,0,0,0.08)",
-          background: "#0b0b0b",
-          color: "rgba(255,255,255,0.88)",
-        }}
-      >
-        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "28px 14px" }}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-              gap: 18,
-              alignItems: "start",
-            }}
-          >
-            <div>
-              <div style={{ fontWeight: 1000, letterSpacing: 2, fontSize: 14 }}>JUSP</div>
-              <div style={{ marginTop: 10, fontSize: 13, opacity: 0.78, lineHeight: 1.45 }}>
-                Originales. Directo. Compra internacional sin drama.
-              </div>
-              <div style={{ marginTop: 12, fontSize: 12, opacity: 0.65 }}>© {new Date().getFullYear()} JUSP</div>
-            </div>
+      
 
-            <div>
-              <div style={{ fontWeight: 1000, fontSize: 13 }}>Ayuda</div>
-              <div style={{ marginTop: 10, display: "grid", gap: 8, fontSize: 13 }}>
-                <Link href="/terms" style={{ color: "rgba(255,255,255,0.86)", textDecoration: "none" }}>
-                  Términos
-                </Link>
-                <Link href="/terms" style={{ color: "rgba(255,255,255,0.86)", textDecoration: "none" }}>
-                  Envíos y devoluciones
-                </Link>
-                <a href="#" style={{ color: "rgba(255,255,255,0.86)", textDecoration: "none" }}>
-                  Soporte
-                </a>
-              </div>
-            </div>
+{/* (footer removed) */}
 
-            <div>
-              <div style={{ fontWeight: 1000, fontSize: 13 }}>Comunidad</div>
-              <div style={{ marginTop: 10, display: "grid", gap: 8, fontSize: 13 }}>
-                <a href="#" style={{ color: "rgba(255,255,255,0.86)", textDecoration: "none" }}>
-                  Instagram
-                </a>
-                <a href="#" style={{ color: "rgba(255,255,255,0.86)", textDecoration: "none" }}>
-                  TikTok
-                </a>
-                <a href="#" style={{ color: "rgba(255,255,255,0.86)", textDecoration: "none" }}>
-                  WhatsApp
-                </a>
-              </div>
-            </div>
-          </div>
 
-          <div style={{ marginTop: 18, height: 1, background: "rgba(255,255,255,0.10)" }} />
-
-          <div style={{ marginTop: 14, fontSize: 12, opacity: 0.65, lineHeight: 1.5 }}>
-            JUSP actúa como intermediario de compra internacional. Los productos son originales según proveedores seleccionados.
-          </div>
-        </div>
-      </footer>
 
 </main>
   );
