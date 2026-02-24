@@ -1315,91 +1315,171 @@ const isMobile = useIsMobile();
         style={{ padding: "26px 0 10px", borderTop: "1px solid rgba(0,0,0,0.06)" }}
       >
         <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px" }}>
-          <div style={{ display: "flex", alignItems: "end", justifyContent: "space-between", gap: 12 }}>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.2, opacity: 0.7 }}>LO MÁS TOP</div>
-              <div style={{ fontSize: 22, fontWeight: 1000, marginTop: 6 }}>Top picks (10)</div>
-              <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75 }}>
-                Swipe Nike-like + snap. Auto-rotación se pausa al interactuar.
-              </div>
-            </div>
-            <Link href="/products?tag=top" style={{ fontSize: 13, fontWeight: 900, textDecoration: "none", color: "#000", opacity: 0.85 }}>
-              Ver todo →
-            </Link>
-          
-          <div style={{ marginTop: 14, display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
-            <div
-              style={{
-                flex: "1 1 320px",
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                border: "1px solid rgba(0,0,0,0.10)",
-                borderRadius: 14,
-                padding: "10px 12px",
-                background: "#fff",
-                boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
-              }}
-            >
-              <span style={{ fontSize: 14, opacity: 0.7 }}>🔎</span>
-              <input
-                value={topQuery}
-                onChange={(e) => setTopQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") runTopSearch(topQuery);
-                }}
-                placeholder="Buscar (ej: Air Max, Dunk, Tech Fleece)…"
-                style={{
-                  width: "100%",
-                  border: "none",
-                  outline: "none",
-                  fontSize: 14,
-                  fontWeight: 700,
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => runTopSearch(topQuery)}
-                style={{
-                  border: "none",
-                  cursor: "pointer",
-                  fontWeight: 1000,
-                  borderRadius: 12,
-                  padding: "10px 12px",
-                  background: "#000",
-                  color: "#fff",
-                }}
-              >
-                Buscar
-              </button>
-            </div>
+            <div className="tpWrap">
+              <div className="tpHeader">
+                <div>
+                  <div className="tpKicker">LO MÁS TOP</div>
+                  <h2 className="tpTitle">
+                  </h2>
+                </div>
 
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-              {TOP_CHIPS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => {
-                    setTopQuery(c);
-                    runTopSearch(c);
-                  }}
-                  style={{
-                    border: "1px solid rgba(0,0,0,0.10)",
-                    background: "rgba(0,0,0,0.03)",
-                    borderRadius: 999,
-                    padding: "8px 12px",
-                    cursor: "pointer",
-                    fontSize: 12,
-                    fontWeight: 900,
+                <Link className="tpAll" href="/search?tab=top">
+                  Ver todo →
+                </Link>
+              </div>
+
+              <div className="tpControls">
+                <form
+                  className="tpSearch"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (topQuery.trim()) window.location.href = `/search?q=${encodeURIComponent(topQuery.trim())}`;
                   }}
                 >
-                  {c}
-                </button>
-              ))}
-            </div>
-          </div>
+                  <span aria-hidden style={{ opacity: 0.65, fontSize: 14 }}>🔎</span>
+                  <input
+                    value={topQuery}
+                    onChange={(e) => setTopQuery(e.target.value)}
+                    placeholder="Buscar (ej: Air Force, hoodie...)"
+                    style={{
+                      border: "none",
+                      outline: "none",
+                      flex: 1,
+                      minWidth: 0,
+                      fontSize: 14,
+                      background: "transparent",
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    style={{
+                      border: "none",
+                      background: "#0b0b0b",
+                      color: "#fff",
+                      borderRadius: 999,
+                      padding: "10px 14px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Buscar
+                  </button>
+                </form>
 
-</div>
+                <div className="tpChips">
+                  {TOP_CHIPS.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => {
+                        setTopQuery(c);
+                        window.location.href = `/search?q=${encodeURIComponent(c)}`;
+                      }}
+                      style={{
+                        border: "1px solid #e7e7e7",
+                        background: "#f7f7f7",
+                        borderRadius: 999,
+                        padding: "10px 14px",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <style jsx>{`
+                .tpWrap {
+                  margin-top: 22px;
+                }
+                .tpHeader {
+                  display: flex;
+                  align-items: flex-end;
+                  justify-content: space-between;
+                  gap: 16px;
+                  flex-wrap: wrap;
+                }
+                .tpKicker {
+                  font-size: 12px;
+                  letter-spacing: 0.14em;
+                  text-transform: uppercase;
+                  opacity: 0.7;
+                  font-weight: 800;
+                }
+                .tpTitle {
+                  margin: 6px 0 0;
+                  font-size: 44px;
+                  line-height: 1;
+                  font-weight: 900;
+                }
+                .tpCount {
+                  font-weight: 900;
+                  opacity: 0.9;
+                }
+                .tpSubtitle {
+                  margin: 10px 0 0;
+                  opacity: 0.75;
+                  max-width: 560px;
+                }
+                .tpAll {
+                  font-weight: 800;
+                  color: #111;
+                  text-decoration: none;
+                  display: inline-flex;
+                  gap: 8px;
+                  align-items: center;
+                  padding: 8px 10px;
+                  border-radius: 999px;
+                  background: rgba(0,0,0,0.04);
+                }
+                .tpControls {
+                  margin-top: 14px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                  gap: 10px;
+                  flex-wrap: wrap;
+                }
+                .tpSearch {
+                  flex: 1 1 380px;
+                  display: flex;
+                  align-items: center;
+                  gap: 10px;
+                  padding: 10px 12px;
+                  border: 1px solid #e6e6e6;
+                  border-radius: 999px;
+                  background: #fff;
+                  box-shadow: 0 10px 24px rgba(0,0,0,0.06);
+                }
+                .tpChips {
+                  display: flex;
+                  gap: 10px;
+                  align-items: center;
+                  flex-wrap: wrap;
+                }
+
+                @media (max-width: 720px) {
+                  .tpTitle { font-size: 34px; }
+                  .tpSubtitle { max-width: 100%; }
+                  .tpControls {
+                    flex-direction: column;
+                    align-items: stretch;
+                  }
+                  .tpSearch {
+                    flex: 1 1 auto;
+                    width: 100%;
+                  }
+                  .tpChips {
+                    flex-wrap: nowrap;
+                    overflow-x: auto;
+                    padding-bottom: 6px;
+                    -webkit-overflow-scrolling: touch;
+                  }
+                  .tpChips::-webkit-scrollbar { display: none; }
+                }
+              `}</style>
+            </div>
         </div>
 
         <div style={{ marginTop: 16, position: "relative" }}>
