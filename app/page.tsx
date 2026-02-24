@@ -250,9 +250,10 @@ function TopPickMedia({
               ? "translateY(-2px) scale(1.00)"
               : "translateY(0px) scale(1.01)"
             : active
-              ? "perspective(1200px) rotateX(2deg) rotateY(-6deg) translateZ(8px) scale(1.00)"
-              : "perspective(1200px) rotateX(0deg) rotateY(0deg) translateZ(0px) scale(1.02)",
+              ? "perspective(900px) rotateX(1deg) rotateY(-2deg) translateZ(0px) scale(1.00)"
+              : "perspective(900px) rotateX(0deg) rotateY(0deg) translateZ(0px) scale(1.01)",
           transformOrigin: "50% 60%",
+          willChange: "transform, opacity",
           transition: softMotion
             ? "transform 420ms cubic-bezier(.2,.9,.2,1), opacity 320ms ease"
             : "transform 560ms cubic-bezier(.2,.9,.2,1), opacity 380ms ease",
