@@ -66,16 +66,40 @@ function currentYear() {
   }
 }
 
+const LS_MEGA_OPEN = "jusp.mega.open.v3";
+
+function safeGetLS(key: string) {
+  try {
+    if (typeof window === "undefined") return null;
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+function safeSetLS(key: string, value: string) {
+  try {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(key, value);
+  } catch {
+    // no-op
+  }
+}
+
+function isActiveHref(pathname: string, href: string) {
+  const p = pathname || "";
+  if (!href) return false;
+  if (href === "/") return p === "/";
+  if (p === href) return true;
+  return p.startsWith(href + "/");
+}
+
 export default function ClientLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
 
   const { state, cartCount, cartTotal, openCart, closePanel, incQty, decQty, removeFromCart, clearCart } = useStore();
 
-  // Si luego quieres ocultar header en rutas específicas, lo activas aquí:
-  // const hideHeader = pathname?.startsWith("/login") || pathname?.startsWith("/register");
   const hideHeader = false;
-
   const isCartOpen = state.ui.panel === "cart";
 
   // =========================
@@ -86,17 +110,12 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       if (typeof window === "undefined") return;
 
       const host = window.location.hostname;
-      // no tocar dev
       if (host === "localhost" || host === "127.0.0.1") return;
 
-      // ✅ Fuerza SIEMPRE www (porque tu Vercel está redirigiendo a www)
       const CANONICAL = "www.juspco.com";
-
       if (host !== CANONICAL) {
         const url = new URL(window.location.href);
         url.hostname = CANONICAL;
-
-        // replace para no ensuciar historial
         window.location.replace(url.toString());
       }
     } catch {
@@ -278,9 +297,29 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   }, [isCartOpen, closePanel]);
 
   // =========================
-  // ✅ Mega footer (NO fijo): siempre al final
+  // ✅ Mega footer (NO fijo): solo al final REAL
   // =========================
   const [megaOpen, setMegaOpen] = useState(true);
+
+  useEffect(() => {
+    const rawOpen = safeGetLS(LS_MEGA_OPEN);
+    if (rawOpen === "0") setMegaOpen(false);
+    if (rawOpen === "1") setMegaOpen(true);
+  }, []);
+
+  function onToggleMega() {
+    setMegaOpen((v) => {
+      const next = !v;
+      safeSetLS(LS_MEGA_OPEN, next ? "1" : "0");
+      return next;
+    });
+  }
+
+  // ✅ Rutas con “cinematic background” que suelen crear espacio visual sin altura real
+  const needsFooterSpacer = useMemo(() => {
+    const p = pathname || "";
+    return p === "/drops" || p.startsWith("/drops/") || p === "/membership" || p === "/early-access";
+  }, [pathname]);
 
   return (
     <>
@@ -295,11 +334,14 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
         </button>
       ) : null}
 
-      {/* ✅ Layout que empuja footer al final */}
+      {/* ✅ Empuja el footer al final en páginas cortas */}
       <div className="pageWrap" style={{ paddingTop: "var(--jusp-header-h)" }}>
         <main className="pageMain">{children}</main>
 
-        {/* ✅ Mega footer: AL FINAL (no fijo) */}
+        {/* ✅ Spacer SOLO en páginas con fondo “fake/absolute” para que el footer no quede “en la mitad” */}
+        {needsFooterSpacer ? <div className="footerSpacer" aria-hidden="true" /> : null}
+
+        {/* ✅ Footer SOLO al final */}
         <footer className="mega" aria-label="Footer">
           <div className="megaInner">
             <div className="megaTop">
@@ -308,45 +350,71 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
                 <span className="megaKicker">JUSP</span>
               </div>
 
-              <button type="button" className="megaToggle" onClick={() => setMegaOpen((v) => !v)} aria-expanded={megaOpen}>
-                {megaOpen ? "Ocultar" : "Mostrar"} ▾
-              </button>
+              <div className="dockRight">
+                <div className="quick" aria-label="Accesos rápidos">
+                  <Link href="/help" className={`q ${isActiveHref(pathname || "", "/help") ? "qA" : ""}`}>
+                    Ayuda
+                  </Link>
+                  <Link href="/stores" className={`q ${isActiveHref(pathname || "", "/stores") ? "qA" : ""}`}>
+                    Tiendas
+                  </Link>
+                  <Link href="/membership" className={`q ${isActiveHref(pathname || "", "/membership") ? "qA" : ""}`}>
+                    Membership
+                  </Link>
+                  <Link href="/feedback" className={`q ${isActiveHref(pathname || "", "/feedback") ? "qA" : ""}`}>
+                    Feedback
+                  </Link>
+                </div>
+
+                <button type="button" className="megaToggle" onClick={onToggleMega} aria-expanded={megaOpen}>
+                  {megaOpen ? "Ocultar" : "Mostrar"} ▾
+                </button>
+              </div>
             </div>
 
             {megaOpen ? (
-              <div className="megaGrid">
-                {MEGA_COLS.map((col) => (
-                  <div key={col.title} className="col">
-                    <div className="colT">{col.title}</div>
-                    <div className="colL">
-                      {col.items.map((it) => (
-                        <Link key={`${col.title}-${it.href}`} href={it.href} className="a">
-                          {it.label}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : null}
+              <>
+                <div className="megaGrid">
+                  {MEGA_COLS.map((col) => {
+                    const colHasActive = pathname ? col.items.some((it) => isActiveHref(pathname, it.href)) : false;
 
-            <div className="megaBar">
-              <div className="copy">© {currentYear()} JUSP. Todos los derechos reservados.</div>
-              <div className="legal">
-                <Link href="/help" className="l">
-                  Centro de ayuda
-                </Link>
-                <Link href="/terms" className="l">
-                  Términos
-                </Link>
-                <Link href="/privacy" className="l">
-                  Privacidad
-                </Link>
-                <Link href="/help/pqr" className="l">
-                  PQR
-                </Link>
-              </div>
-            </div>
+                    return (
+                      <div key={col.title} className={`col ${colHasActive ? "colActive" : ""}`}>
+                        <div className="colT">{col.title}</div>
+                        <div className="colL">
+                          {col.items.map((it) => {
+                            const active = pathname ? isActiveHref(pathname, it.href) : false;
+                            return (
+                              <Link key={`${col.title}-${it.href}`} href={it.href} className={`a ${active ? "aActive" : ""}`}>
+                                {it.label}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="megaBar">
+                  <div className="copy">© {currentYear()} JUSP. Todos los derechos reservados.</div>
+                  <div className="legal">
+                    <Link href="/help" className="l">
+                      Centro de ayuda
+                    </Link>
+                    <Link href="/terms" className="l">
+                      Términos
+                    </Link>
+                    <Link href="/privacy" className="l">
+                      Privacidad
+                    </Link>
+                    <Link href="/help/pqr" className="l">
+                      PQR
+                    </Link>
+                  </div>
+                </div>
+              </>
+            ) : null}
           </div>
         </footer>
       </div>
@@ -481,7 +549,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       ) : null}
 
       <style jsx>{`
-        /* ✅ Footer al final (aunque la página sea corta) */
+        /* ✅ Footer al final real */
         .pageWrap {
           min-height: calc(100vh - var(--jusp-header-h, 64px));
           display: flex;
@@ -489,6 +557,13 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
         }
         .pageMain {
           flex: 1;
+          position: relative;
+        }
+
+        /* ✅ Empuja footer SOLO donde el fondo “fake” engaña visualmente */
+        .footerSpacer {
+          height: clamp(220px, 42vh, 520px);
+          pointer-events: none;
         }
 
         .bag {
@@ -532,25 +607,33 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           border: 1px solid rgba(255, 255, 255, 0.18);
         }
 
-        /* ✅ Mega footer: igual, pero NO fijo */
+        /* ✅ Mega footer NO fijo */
         .mega {
           background: rgba(255, 255, 255, 0.92);
           backdrop-filter: blur(14px);
           -webkit-backdrop-filter: blur(14px);
           border-top: 1px solid rgba(0, 0, 0, 0.08);
           box-shadow: 0 -14px 40px rgba(0, 0, 0, 0.08);
+
+          /* ✅ Quita el “seleccionado azul” dentro del footer */
+          user-select: none;
+          -webkit-user-select: none;
         }
+        .mega ::selection {
+          background: transparent;
+          color: inherit;
+        }
+
         .megaInner {
           width: min(1220px, calc(100vw - 24px));
           margin: 0 auto;
-          padding: 14px 0 12px;
+          padding: 12px 0 10px;
         }
         .megaTop {
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 12px;
-          padding: 2px 0 10px;
         }
         .megaBrand {
           display: flex;
@@ -571,6 +654,40 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           color: rgba(0, 0, 0, 0.74);
           font-size: 12px;
         }
+        .dockRight {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+        }
+
+        .quick {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+        .q {
+          font-weight: 950;
+          color: rgba(0, 0, 0, 0.62);
+          text-decoration: none;
+          font-size: 12px;
+          border: 1px solid rgba(0, 0, 0, 0.12);
+          background: rgba(0, 0, 0, 0.02);
+          border-radius: 999px;
+          padding: 8px 10px;
+        }
+        .q:hover {
+          color: #111;
+          background: rgba(0, 0, 0, 0.04);
+        }
+        .qA {
+          color: #111;
+          border-color: rgba(255, 214, 10, 0.65);
+          background: rgba(255, 214, 10, 0.18);
+        }
+
         .megaToggle {
           border: 1px solid rgba(0, 0, 0, 0.12);
           background: rgba(0, 0, 0, 0.02);
@@ -579,17 +696,27 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           font-weight: 950;
           cursor: pointer;
           color: #111;
+          white-space: nowrap;
         }
         .megaToggle:active {
           transform: scale(0.99);
         }
 
         .megaGrid {
+          margin-top: 12px;
           display: grid;
           grid-template-columns: 1fr 1fr 1fr 1.1fr;
-          gap: 26px;
-          padding: 12px 0 16px;
+          gap: 18px;
+          padding: 14px 0 12px;
           border-top: 1px solid rgba(0, 0, 0, 0.06);
+        }
+        .col {
+          border-radius: 16px;
+          padding: 8px 10px;
+        }
+        .colActive {
+          background: rgba(0, 0, 0, 0.02);
+          border: 1px solid rgba(0, 0, 0, 0.06);
         }
         .colT {
           font-weight: 950;
@@ -600,7 +727,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
         }
         .colL {
           display: grid;
-          gap: 10px;
+          gap: 8px;
         }
         .a {
           font-weight: 900;
@@ -608,9 +735,19 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           text-decoration: none;
           font-size: 12px;
           line-height: 1.2;
+          padding: 8px 10px;
+          border-radius: 12px;
+          border: 1px solid transparent;
+          transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
         }
         .a:hover {
           color: #111;
+          background: rgba(0, 0, 0, 0.03);
+        }
+        .aActive {
+          color: #111;
+          background: rgba(255, 214, 10, 0.18);
+          border-color: rgba(255, 214, 10, 0.55);
         }
 
         .megaBar {
@@ -646,7 +783,11 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
         @media (max-width: 980px) {
           .megaGrid {
             grid-template-columns: 1fr 1fr;
-            gap: 18px;
+          }
+        }
+        @media (max-width: 740px) {
+          .dockRight {
+            justify-content: flex-start;
           }
         }
         @media (max-width: 640px) {
@@ -658,6 +799,9 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           }
           .legal {
             gap: 10px;
+          }
+          .footerSpacer {
+            height: clamp(160px, 34vh, 420px);
           }
         }
 
@@ -679,6 +823,8 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           -webkit-backdrop-filter: blur(12px);
           border: 1px solid rgba(0, 0, 0, 0.1);
           box-shadow: 0 20px 50px rgba(0, 0, 0, 0.16);
+          user-select: none;
+          -webkit-user-select: none;
         }
         .toastL {
           display: grid;
