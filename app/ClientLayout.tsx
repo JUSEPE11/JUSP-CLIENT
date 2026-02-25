@@ -1,6 +1,6 @@
 "use client";
 
-import React, { ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import React, { ReactNode, useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -122,6 +122,48 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       // no-op
     }
   }, []);
+
+  // =========================
+  // ✅ PRO MAX REAL: Prefetch inteligente (percibido: cero lag al navegar)
+  // - No rompe nada, solo acelera
+  // =========================
+  const prefetch = useCallback(
+    (href: string) => {
+      try {
+        if (!href || !href.startsWith("/")) return;
+        // router.prefetch existe en Next App Router
+        // @ts-ignore
+        if (typeof (router as any)?.prefetch === "function") (router as any).prefetch(href);
+      } catch {
+        // no-op
+      }
+    },
+    [router]
+  );
+
+  useEffect(() => {
+    try {
+      if (typeof window === "undefined") return;
+      const run = () => {
+        prefetch("/products");
+        prefetch("/checkout");
+        prefetch("/drops");
+        prefetch("/membership");
+        prefetch("/help");
+      };
+
+      // idle > setTimeout (mejor para no bloquear render)
+      // @ts-ignore
+      if (typeof window.requestIdleCallback === "function") {
+        // @ts-ignore
+        window.requestIdleCallback(run, { timeout: 1200 });
+      } else {
+        window.setTimeout(run, 300);
+      }
+    } catch {
+      // no-op
+    }
+  }, [prefetch]);
 
   // =========================
   // ✅ PRO MAX: Toast + Auto-open (solo producto)
@@ -273,7 +315,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isCartOpen, pathname]);
 
-  function undoLastAdd() {
+  const undoLastAdd = useCallback(() => {
     const last = lastAddedRef.current;
     if (!last) return;
     suppressNextRef.current = "undo";
@@ -283,7 +325,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     } catch {
       suppressNextRef.current = "none";
     }
-  }
+  }, [decQty]);
 
   useEffect(() => {
     if (!isCartOpen) return;
@@ -307,13 +349,13 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     if (rawOpen === "1") setMegaOpen(true);
   }, []);
 
-  function onToggleMega() {
+  const onToggleMega = useCallback(() => {
     setMegaOpen((v) => {
       const next = !v;
       safeSetLS(LS_MEGA_OPEN, next ? "1" : "0");
       return next;
     });
-  }
+  }, []);
 
   // ✅ Rutas con “cinematic background” que suelen crear espacio visual sin altura real
   const needsFooterSpacer = useMemo(() => {
@@ -352,16 +394,40 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
 
               <div className="dockRight">
                 <div className="quick" aria-label="Accesos rápidos">
-                  <Link href="/help" className={`q ${isActiveHref(pathname || "", "/help") ? "qA" : ""}`}>
+                  <Link
+                    href="/help"
+                    className={`q ${isActiveHref(pathname || "", "/help") ? "qA" : ""}`}
+                    onMouseEnter={() => prefetch("/help")}
+                    onTouchStart={() => prefetch("/help")}
+                    onFocus={() => prefetch("/help")}
+                  >
                     Ayuda
                   </Link>
-                  <Link href="/stores" className={`q ${isActiveHref(pathname || "", "/stores") ? "qA" : ""}`}>
+                  <Link
+                    href="/stores"
+                    className={`q ${isActiveHref(pathname || "", "/stores") ? "qA" : ""}`}
+                    onMouseEnter={() => prefetch("/stores")}
+                    onTouchStart={() => prefetch("/stores")}
+                    onFocus={() => prefetch("/stores")}
+                  >
                     Tiendas
                   </Link>
-                  <Link href="/membership" className={`q ${isActiveHref(pathname || "", "/membership") ? "qA" : ""}`}>
+                  <Link
+                    href="/membership"
+                    className={`q ${isActiveHref(pathname || "", "/membership") ? "qA" : ""}`}
+                    onMouseEnter={() => prefetch("/membership")}
+                    onTouchStart={() => prefetch("/membership")}
+                    onFocus={() => prefetch("/membership")}
+                  >
                     Membership
                   </Link>
-                  <Link href="/feedback" className={`q ${isActiveHref(pathname || "", "/feedback") ? "qA" : ""}`}>
+                  <Link
+                    href="/feedback"
+                    className={`q ${isActiveHref(pathname || "", "/feedback") ? "qA" : ""}`}
+                    onMouseEnter={() => prefetch("/feedback")}
+                    onTouchStart={() => prefetch("/feedback")}
+                    onFocus={() => prefetch("/feedback")}
+                  >
                     Feedback
                   </Link>
                 </div>
@@ -385,7 +451,14 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
                           {col.items.map((it) => {
                             const active = pathname ? isActiveHref(pathname, it.href) : false;
                             return (
-                              <Link key={`${col.title}-${it.href}`} href={it.href} className={`a ${active ? "aActive" : ""}`}>
+                              <Link
+                                key={`${col.title}-${it.href}`}
+                                href={it.href}
+                                className={`a ${active ? "aActive" : ""}`}
+                                onMouseEnter={() => prefetch(it.href)}
+                                onTouchStart={() => prefetch(it.href)}
+                                onFocus={() => prefetch(it.href)}
+                              >
                                 {it.label}
                               </Link>
                             );
@@ -399,16 +472,28 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
                 <div className="megaBar">
                   <div className="copy">© {currentYear()} JUSP. Todos los derechos reservados.</div>
                   <div className="legal">
-                    <Link href="/help" className="l">
+                    <Link href="/help" className="l" onMouseEnter={() => prefetch("/help")} onTouchStart={() => prefetch("/help")} onFocus={() => prefetch("/help")}>
                       Centro de ayuda
                     </Link>
-                    <Link href="/terms" className="l">
+                    <Link href="/terms" className="l" onMouseEnter={() => prefetch("/terms")} onTouchStart={() => prefetch("/terms")} onFocus={() => prefetch("/terms")}>
                       Términos
                     </Link>
-                    <Link href="/privacy" className="l">
+                    <Link
+                      href="/privacy"
+                      className="l"
+                      onMouseEnter={() => prefetch("/privacy")}
+                      onTouchStart={() => prefetch("/privacy")}
+                      onFocus={() => prefetch("/privacy")}
+                    >
                       Privacidad
                     </Link>
-                    <Link href="/help/pqr" className="l">
+                    <Link
+                      href="/help/pqr"
+                      className="l"
+                      onMouseEnter={() => prefetch("/help/pqr")}
+                      onTouchStart={() => prefetch("/help/pqr")}
+                      onFocus={() => prefetch("/help/pqr")}
+                    >
                       PQR
                     </Link>
                   </div>
@@ -462,6 +547,9 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
                 <button
                   type="button"
                   className="btnGhost"
+                  onMouseEnter={() => prefetch("/products")}
+                  onTouchStart={() => prefetch("/products")}
+                  onFocus={() => prefetch("/products")}
                   onClick={() => {
                     closePanel();
                     router.push("/products");
@@ -480,7 +568,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
                         <div className="thumb">
                           {it.image ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={it.image} alt={it.name} />
+                            <img src={it.image} alt={it.name} loading="lazy" decoding="async" />
                           ) : (
                             <div className="ph" />
                           )}
@@ -533,6 +621,9 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
                     <button
                       type="button"
                       className="btnMain"
+                      onMouseEnter={() => prefetch("/checkout")}
+                      onTouchStart={() => prefetch("/checkout")}
+                      onFocus={() => prefetch("/checkout")}
                       onClick={() => {
                         closePanel();
                         router.push("/checkout");
@@ -582,6 +673,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           cursor: pointer;
           box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
           transition: transform 140ms ease;
+          will-change: transform;
         }
         .bag:active {
           transform: scale(0.98);
@@ -607,7 +699,8 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           border: 1px solid rgba(255, 255, 255, 0.18);
         }
 
-        /* ✅ Mega footer NO fijo */
+        /* ✅ Mega footer NO fijo
+           PRO MAX PERF: content-visibility reduce el costo de pintar cuando está fuera de pantalla */
         .mega {
           background: rgba(255, 255, 255, 0.92);
           backdrop-filter: blur(14px);
@@ -615,9 +708,11 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           border-top: 1px solid rgba(0, 0, 0, 0.08);
           box-shadow: 0 -14px 40px rgba(0, 0, 0, 0.08);
 
-          /* ✅ Quita el “seleccionado azul” dentro del footer */
           user-select: none;
           -webkit-user-select: none;
+
+          content-visibility: auto;
+          contain-intrinsic-size: 420px;
         }
         .mega ::selection {
           background: transparent;
@@ -889,6 +984,9 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           box-shadow: -20px 0 60px rgba(0, 0, 0, 0.25);
           display: flex;
           flex-direction: column;
+
+          /* PERF: evita recalcular todo el layout externo */
+          contain: layout paint;
         }
 
         .dTop {
@@ -931,6 +1029,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           padding: 12px 16px;
           overflow: auto;
           flex: 1;
+          -webkit-overflow-scrolling: touch;
         }
         .row {
           display: grid;
