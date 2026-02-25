@@ -1,10 +1,11 @@
 // app/drops/page.tsx
 import type { Metadata } from "next";
 import Link from "next/link";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
   title: "Drops | JUSP",
+  description: "Drops exclusivos (stock limitado). Accesos por fases. Sin humo.",
 };
 
 type Drop = {
@@ -12,37 +13,41 @@ type Drop = {
   title: string;
   desc: string;
   badge?: "Nuevo" | "Limitado" | "Exclusivo";
+  bullets: string[];
 };
 
-const drops: Drop[] = [
+const DROPS: Drop[] = [
   {
     tag: "DROP 01",
     title: "Drops exclusivos (stock limitado)",
-    desc: "Accesos por fases. Productos seleccionados. Sin humo.",
+    desc: "Accesos por fases. Productos seleccionados. Operación controlada para cumplir perfecto.",
     badge: "Limitado",
+    bullets: ["Cupos reales", "Selección curada", "Sin promesas vacías"],
   },
   {
     tag: "DROP 02",
     title: "Early Access primero",
-    desc: "Los miembros entran antes. Tú decides si esperas o te adelantas.",
+    desc: "Los miembros entran antes. Tú decides si esperas o te adelantas a los cupos.",
     badge: "Exclusivo",
+    bullets: ["Prioridad en cola", "Soporte humano", "Más velocidad operativa"],
   },
   {
     tag: "DROP 03",
     title: "Curaduría JUSP",
-    desc: "Selección enfocada en lo más top. No catálogo infinito: calidad.",
+    desc: "No catálogo infinito: calidad. Enfoque en lo más top para comprar con confianza.",
     badge: "Nuevo",
+    bullets: ["Menos ruido", "Más calidad", "Mejor trazabilidad"],
   },
 ];
 
-const faqs = [
+const FAQS = [
   {
     q: "¿Qué es un Drop en JUSP?",
     a: "Una selección limitada que abrimos por fases. No es “oferta vacía”: es cupo real para operar con calidad.",
   },
   {
     q: "¿Cómo entro a un Drop?",
-    a: "Con Early Access cuando esté activo. Si no, puedes explorar productos y te avisamos cuando abramos cupos.",
+    a: "Con Early Access cuando esté activo. Si no, explora productos y te avisamos cuando abramos cupos.",
   },
   {
     q: "¿Por qué los Drops tienen cupos?",
@@ -54,452 +59,591 @@ const faqs = [
   },
 ];
 
-function ToneBadge({ tone, children }: { tone: "gold" | "blue" | "neutral"; children: ReactNode }) {
-  const base: CSSProperties = {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    borderRadius: 999,
-    padding: "7px 10px",
-    fontSize: 12,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.06)",
-    color: "rgba(255,255,255,0.75)",
-    backdropFilter: "blur(14px)",
-  };
-
-  const toneStyle: CSSProperties =
-    tone === "gold"
-      ? {
-          borderColor: "rgba(250,204,21,0.22)",
-          background: "rgba(250,204,21,0.10)",
-          color: "rgba(255,245,210,0.92)",
-        }
-      : tone === "blue"
-      ? {
-          borderColor: "rgba(147,197,253,0.22)",
-          background: "rgba(59,130,246,0.10)",
-          color: "rgba(219,234,254,0.92)",
-        }
-      : {};
-
-  return <span style={{ ...base, ...toneStyle }}>{children}</span>;
+function TonePill({
+  tone,
+  children,
+}: {
+  tone: "gold" | "blue" | "neutral";
+  children: ReactNode;
+}) {
+  const cls =
+    tone === "gold" ? "pill pillGold" : tone === "blue" ? "pill pillBlue" : "pill";
+  return <span className={cls}>{children}</span>;
 }
 
 function Badge({ label }: { label: string }) {
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        padding: "7px 10px",
-        borderRadius: 999,
-        fontSize: 12,
-        fontWeight: 800,
-        border: "1px solid rgba(255,255,255,0.12)",
-        background: "rgba(255,255,255,0.06)",
-        color: "rgba(255,255,255,0.78)",
-        backdropFilter: "blur(14px)",
-      }}
-    >
-      {label}
-    </span>
-  );
+  return <span className="badge">{label}</span>;
 }
 
 export default function DropsPage() {
   return (
-    <main style={S.main}>
-      {/* Fondo cinematográfico (NO bloquea scroll) */}
-      <div aria-hidden style={S.bgWrap}>
-        <div style={S.bgBase} />
-        <div style={S.bgGoldRadialTop} />
-        <div style={S.bgGoldHaloLeft} />
-        <div style={S.bgBlueHaloRight} />
-        <div style={S.bgFadeDown} />
-        <div style={S.bgVignette} />
-        <div style={S.bgGrain} />
-      </div>
+    <main className="dropsRoot">
+      <style>{`
+        /* =========================================
+           JUSP /drops — NIVEL DIOS PRO MAX REAL
+           - NO toca global.css
+           - NO bloquea scroll (para que el footer SIEMPRE aparezca al final)
+           ========================================= */
 
-      <div style={S.container}>
+        .dropsRoot{
+          --bg:#0b0b0f;
+          --glass: rgba(255,255,255,0.06);
+          --glass2: rgba(255,255,255,0.045);
+          --stroke: rgba(255,255,255,0.12);
+          --muted: rgba(255,255,255,0.70);
+          --muted2: rgba(255,255,255,0.56);
+          --muted3: rgba(255,255,255,0.44);
+          --gold:#facc15;
+          --ease: cubic-bezier(.2,.8,.2,1);
+
+          position: relative;
+          color: #fff;
+          background: var(--bg);
+          /* 👇 clave: NO overflow hidden acá */
+          min-height: auto;
+          isolation: isolate;
+        }
+
+        /* Fondo cinematográfico: fixed detrás, pero sin tapar footer */
+        .bg{
+          position: fixed;
+          inset: 0;
+          z-index: -1;
+          pointer-events: none;
+          background: var(--bg);
+        }
+        .bg::before{
+          content:"";
+          position:absolute; inset:0;
+          background:
+            radial-gradient(980px 520px at 14% 18%, rgba(250,204,21,0.32), transparent 60%),
+            radial-gradient(860px 520px at 88% 16%, rgba(255,255,255,0.10), transparent 58%),
+            radial-gradient(980px 760px at 92% 92%, rgba(59,130,246,0.12), transparent 62%),
+            linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(11,11,15,1) 55%, rgba(11,11,15,1) 100%);
+          opacity: 0.98;
+        }
+        .bg::after{
+          content:"";
+          position:absolute; inset:0;
+          opacity: 0.10;
+          mix-blend-mode: overlay;
+          background-image:
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+          background-size: 240px 240px;
+        }
+        .vignette{
+          position: fixed;
+          inset: 0;
+          z-index: -1;
+          pointer-events:none;
+          background: radial-gradient(1200px 720px at 50% 32%, transparent 26%, rgba(0,0,0,0.88) 88%);
+        }
+
+        .wrap{
+          width: min(1120px, calc(100% - 48px));
+          margin: 0 auto;
+          padding: 44px 0 74px;
+        }
+
+        /* Topbar */
+        .topbar{
+          display:flex;
+          align-items:center;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .brandPill{
+          display:inline-flex;
+          align-items:center;
+          gap:10px;
+          padding: 10px 14px;
+          border-radius: 999px;
+          border: 1px solid rgba(255,255,255,0.12);
+          background: rgba(255,255,255,0.06);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          box-shadow: 0 18px 70px rgba(0,0,0,0.45);
+        }
+        .dot{
+          width: 8px; height: 8px;
+          border-radius: 999px;
+          background: var(--gold);
+          box-shadow: 0 0 0 4px rgba(250,204,21,0.12), 0 0 18px rgba(250,204,21,0.55);
+        }
+        .brandText{
+          font-size: 12px;
+          font-weight: 980;
+          letter-spacing: 0.08em;
+          color: rgba(255,255,255,0.78);
+        }
+        .actions{
+          display:flex;
+          gap: 10px;
+          flex-wrap: wrap;
+          align-items:center;
+        }
+        .btn{
+          display:inline-flex;
+          align-items:center;
+          justify-content:center;
+          height: 40px;
+          padding: 0 14px;
+          border-radius: 14px;
+          border: 1px solid rgba(255,255,255,0.16);
+          text-decoration:none;
+          font-weight: 950;
+          font-size: 12px;
+          color: rgba(255,255,255,0.92);
+          background: rgba(255,255,255,0.06);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+          transition: transform 140ms var(--ease), background 140ms var(--ease);
+          white-space: nowrap;
+        }
+        .btn:hover{ transform: translateY(-1px); background: rgba(255,255,255,0.09); }
+        .btnWhite{
+          background: #fff;
+          color: #000;
+          border-color: rgba(255,255,255,0.22);
+          box-shadow: 0 20px 70px rgba(255,255,255,0.12);
+        }
+
+        /* Hero */
+        .hero{
+          margin-top: 44px;
+        }
+        .pillRow{
+          display:flex;
+          gap: 10px;
+          flex-wrap: wrap;
+          align-items:center;
+        }
+        .pill{
+          display:inline-flex;
+          align-items:center;
+          gap: 8px;
+          border-radius: 999px;
+          padding: 7px 10px;
+          font-size: 12px;
+          border: 1px solid rgba(255,255,255,0.12);
+          background: rgba(255,255,255,0.06);
+          color: rgba(255,255,255,0.78);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+        }
+        .pillGold{
+          border-color: rgba(250,204,21,0.22);
+          background: rgba(250,204,21,0.10);
+          color: rgba(255,245,210,0.92);
+        }
+        .pillBlue{
+          border-color: rgba(147,197,253,0.22);
+          background: rgba(59,130,246,0.10);
+          color: rgba(219,234,254,0.92);
+        }
+
+        .kicker{
+          margin-top: 18px;
+          font-size: 12px;
+          letter-spacing: 0.28em;
+          font-weight: 980;
+          color: rgba(255,255,255,0.56);
+        }
+        .h1{
+          margin: 14px 0 0;
+          font-size: 72px;
+          line-height: 1.02;
+          letter-spacing: -0.05em;
+          font-weight: 990;
+          text-shadow: 0 18px 80px rgba(0,0,0,0.62);
+        }
+        .lead{
+          margin: 16px 0 0;
+          max-width: 880px;
+          font-size: 18px;
+          line-height: 1.7;
+          color: rgba(255,255,255,0.74);
+          font-weight: 780;
+        }
+        .ctaRow{
+          margin-top: 18px;
+          display:flex;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+        .ctaPrimary{
+          display:inline-flex;
+          align-items:center;
+          justify-content:center;
+          height: 46px;
+          padding: 0 16px;
+          border-radius: 18px;
+          border: 0;
+          background: #fff;
+          color: #000;
+          font-weight: 990;
+          text-decoration:none;
+          box-shadow: 0 26px 92px rgba(255,255,255,0.14);
+          transition: transform 140ms var(--ease), filter 140ms var(--ease);
+          white-space: nowrap;
+        }
+        .ctaPrimary:hover{ transform: translateY(-1px); filter: brightness(0.96); }
+        .ctaSecondary{
+          display:inline-flex;
+          align-items:center;
+          justify-content:center;
+          height: 46px;
+          padding: 0 16px;
+          border-radius: 18px;
+          border: 1px solid rgba(255,255,255,0.16);
+          background: rgba(255,255,255,0.08);
+          color: rgba(255,255,255,0.94);
+          font-weight: 980;
+          text-decoration:none;
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          white-space: nowrap;
+        }
+
+        /* Panel principal */
+        .panel{
+          margin-top: 22px;
+          border-radius: 26px;
+          border: 1px solid rgba(255,255,255,0.10);
+          background: rgba(15,15,21,0.62);
+          backdrop-filter: blur(18px);
+          -webkit-backdrop-filter: blur(18px);
+          box-shadow: 0 40px 140px rgba(0,0,0,0.72);
+          overflow: hidden;
+        }
+        .panelHead{
+          padding: 22px;
+          border-bottom: 1px solid rgba(255,255,255,0.10);
+          background:
+            linear-gradient(90deg, rgba(250,204,21,0.12), rgba(255,255,255,0.06), rgba(59,130,246,0.08));
+          display:flex;
+          align-items:flex-start;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .panelK{
+          font-size: 12px;
+          letter-spacing: 0.08em;
+          font-weight: 950;
+          color: rgba(255,255,255,0.62);
+        }
+        .panelT{
+          margin-top: 6px;
+          font-size: 24px;
+          font-weight: 990;
+          letter-spacing: -0.02em;
+        }
+        .panelBody{
+          padding: 22px;
+        }
+
+        /* Grid drops */
+        .grid3{
+          display:grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+        }
+        .card{
+          border-radius: 22px;
+          border: 1px solid rgba(255,255,255,0.10);
+          background: rgba(0,0,0,0.34);
+          backdrop-filter: blur(18px);
+          -webkit-backdrop-filter: blur(18px);
+          box-shadow: 0 26px 90px rgba(0,0,0,0.58);
+          padding: 18px;
+          position: relative;
+          overflow: hidden;
+        }
+        .card::before{
+          content:"";
+          position:absolute;
+          inset:-1px;
+          border-radius: 24px;
+          padding:1px;
+          background: radial-gradient(740px 240px at 12% 10%,
+            rgba(250,204,21,0.30),
+            rgba(255,255,255,0.10) 26%,
+            transparent 60%);
+          mask:
+            linear-gradient(#000 0 0) content-box,
+            linear-gradient(#000 0 0);
+          -webkit-mask:
+            linear-gradient(#000 0 0) content-box,
+            linear-gradient(#000 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+          opacity: 0.85;
+          pointer-events:none;
+        }
+        .cardTop{
+          display:flex;
+          align-items:center;
+          justify-content: space-between;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+        .tag{
+          font-size: 12px;
+          letter-spacing: 0.18em;
+          font-weight: 950;
+          color: rgba(255,255,255,0.58);
+        }
+        .badge{
+          display:inline-flex;
+          align-items:center;
+          padding: 7px 10px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 980;
+          border: 1px solid rgba(255,255,255,0.12);
+          background: rgba(255,255,255,0.06);
+          color: rgba(255,255,255,0.82);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+          white-space: nowrap;
+        }
+        .cardTitle{
+          margin-top: 12px;
+          font-size: 18px;
+          font-weight: 990;
+          letter-spacing: -0.02em;
+        }
+        .cardDesc{
+          margin-top: 8px;
+          font-size: 13px;
+          line-height: 1.7;
+          color: rgba(255,255,255,0.66);
+          font-weight: 780;
+        }
+        .divider{
+          margin-top: 14px;
+          height: 1px;
+          background: linear-gradient(to right, transparent, rgba(255,255,255,0.18), transparent);
+        }
+        .bullets{
+          margin-top: 12px;
+          display:flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .mini{
+          font-size: 12px;
+          padding: 7px 10px;
+          border-radius: 999px;
+          border: 1px solid rgba(255,255,255,0.12);
+          background: rgba(255,255,255,0.06);
+          color: rgba(255,255,255,0.74);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+        }
+
+        /* FAQ */
+        .faq{
+          margin-top: 14px;
+          border-radius: 22px;
+          border: 1px solid rgba(255,255,255,0.10);
+          background: rgba(0,0,0,0.26);
+          backdrop-filter: blur(18px);
+          -webkit-backdrop-filter: blur(18px);
+          box-shadow: 0 26px 90px rgba(0,0,0,0.58);
+          padding: 18px;
+        }
+        .faqTop{
+          display:flex;
+          align-items:center;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .faqTitle{
+          font-size: 18px;
+          font-weight: 990;
+          letter-spacing: -0.02em;
+        }
+        .faqGrid{
+          margin-top: 14px;
+          display:grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+        }
+        .faqItem{
+          border-radius: 18px;
+          border: 1px solid rgba(255,255,255,0.10);
+          background: rgba(255,255,255,0.05);
+          padding: 14px;
+        }
+        .faqQ{
+          font-size: 14px;
+          font-weight: 950;
+          color: rgba(255,255,255,0.92);
+        }
+        .faqA{
+          margin-top: 8px;
+          font-size: 13px;
+          line-height: 1.6;
+          color: rgba(255,255,255,0.66);
+          font-weight: 780;
+        }
+        .faqActions{
+          margin-top: 14px;
+          display:flex;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+        .note{
+          margin-top: 14px;
+          font-size: 12px;
+          line-height: 1.6;
+          color: rgba(255,255,255,0.46);
+        }
+
+        /* Responsive */
+        @media (max-width: 980px){
+          .wrap{ width: min(1120px, calc(100% - 32px)); }
+          .grid3{ grid-template-columns: 1fr; }
+          .faqGrid{ grid-template-columns: 1fr; }
+          .h1{ font-size: 44px; }
+        }
+        @media (max-width: 520px){
+          .wrap{ width: calc(100% - 28px); padding: 36px 0 64px; }
+          .h1{ font-size: 38px; }
+          .btn{ height: 42px; }
+        }
+
+        @media (prefers-reduced-motion: reduce){
+          .btn, .ctaPrimary{ transition: none !important; }
+        }
+      `}</style>
+
+      <div className="bg" aria-hidden />
+      <div className="vignette" aria-hidden />
+
+      <div className="wrap">
         {/* Top micro-nav */}
-        <div style={S.topbar}>
-          <div style={S.badge}>
-            <span style={S.dot} />
-            <span style={S.badgeText}>JUSP · Drops</span>
+        <div className="topbar">
+          <div className="brandPill">
+            <span className="dot" aria-hidden="true" />
+            <span className="brandText">JUSP · Drops</span>
           </div>
 
-          <div style={S.topActions}>
-            <Link href="/products" style={S.linkButtonSolid}>
+          <div className="actions">
+            <Link href="/products" className="btn btnWhite">
               Ver productos
             </Link>
-            <Link href="/early-access" style={S.linkButton}>
+            <Link href="/early-access" className="btn">
               Early Access →
             </Link>
-            <Link href="/help" style={S.linkButton}>
+            <Link href="/help" className="btn">
               Volver
             </Link>
           </div>
         </div>
 
         {/* HERO */}
-        <section style={S.hero}>
-          <div style={S.heroTopBadges}>
-            <ToneBadge tone="gold">Stock limitado</ToneBadge>
-            <ToneBadge tone="neutral">Acceso por fases</ToneBadge>
-            <ToneBadge tone="blue">Soporte humano</ToneBadge>
+        <section className="hero">
+          <div className="pillRow">
+            <TonePill tone="gold">Stock limitado</TonePill>
+            <TonePill tone="neutral">Acceso por fases</TonePill>
+            <TonePill tone="blue">Soporte humano</TonePill>
           </div>
 
-          <div style={S.kicker}>DROPS</div>
+          <div className="kicker">DROPS</div>
 
-          <h1 style={S.h1} className="jusp-h1">
-            Drops exclusivos
-            <span style={S.h1Sub}> </span>
-          </h1>
+          <h1 className="h1">Drops exclusivos</h1>
 
-          <p style={S.lead}>
-            No hacemos “catálogo infinito”. Abrimos cupos reales para operar bien: trazabilidad, comunicación clara y entrega sin vueltas.
+          <p className="lead">
+            No hacemos “catálogo infinito”. Abrimos cupos reales para operar bien: trazabilidad,
+            comunicación clara y entrega sin vueltas.
           </p>
 
-          {/* CTA */}
-          <div style={S.ctaRow}>
-            <Link href="/early-access" style={S.ctaPrimary}>
+          <div className="ctaRow">
+            <Link href="/early-access" className="ctaPrimary">
               Pedir Early Access
             </Link>
-            <Link href="/products" style={S.ctaSecondary}>
+            <Link href="/products" className="ctaSecondary">
               Explorar productos →
             </Link>
           </div>
         </section>
 
         {/* PANEL PRINCIPAL */}
-        <section style={S.panel}>
-          <div style={S.panelHeader}>
+        <section className="panel" aria-label="Drops">
+          <div className="panelHead">
             <div>
-              <div style={S.panelKicker}>Cómo funciona</div>
-              <div style={S.panelTitle}>Drops con control real</div>
+              <div className="panelK">Cómo funciona</div>
+              <div className="panelT">Drops con control real</div>
             </div>
-            <ToneBadge tone="gold">Sin humo</ToneBadge>
+            <TonePill tone="gold">Sin humo</TonePill>
           </div>
 
-          <div style={S.panelBody}>
+          <div className="panelBody">
             {/* Cards */}
-            <div style={S.grid3} className="jusp-grid3">
-              {drops.map((d) => (
-                <div key={d.tag} style={S.card}>
-                  <div style={S.cardTop}>
-                    <div style={S.cardTag}>{d.tag}</div>
+            <div className="grid3">
+              {DROPS.map((d) => (
+                <div key={d.tag} className="card">
+                  <div className="cardTop">
+                    <div className="tag">{d.tag}</div>
                     {d.badge ? <Badge label={d.badge} /> : null}
                   </div>
-                  <div style={S.cardTitle}>{d.title}</div>
-                  <div style={S.cardDesc}>{d.desc}</div>
-                  <div style={S.cardDivider} />
-                  <div style={S.cardFoot}>
-                    <span style={S.mini}>Cupos reales</span>
-                    <span style={S.mini}>Trazabilidad</span>
-                    <span style={S.mini}>Soporte humano</span>
+
+                  <div className="cardTitle">{d.title}</div>
+                  <div className="cardDesc">{d.desc}</div>
+
+                  <div className="divider" />
+
+                  <div className="bullets">
+                    {d.bullets.map((b) => (
+                      <span key={`${d.tag}-${b}`} className="mini">
+                        {b}
+                      </span>
+                    ))}
                   </div>
                 </div>
               ))}
             </div>
 
             {/* FAQ */}
-            <div style={S.faqCard}>
-              <div style={S.faqTop}>
-                <div style={S.faqTitle}>Preguntas rápidas</div>
-                <ToneBadge tone="gold">Claro y directo</ToneBadge>
+            <div className="faq" aria-label="Preguntas rápidas">
+              <div className="faqTop">
+                <div className="faqTitle">Preguntas rápidas</div>
+                <TonePill tone="gold">Claro y directo</TonePill>
               </div>
 
-              <div style={S.faqGrid} className="jusp-faq">
-                {faqs.map((f) => (
-                  <div key={f.q} style={S.faqItem}>
-                    <div style={S.faqQ}>{f.q}</div>
-                    <div style={S.faqA}>{f.a}</div>
+              <div className="faqGrid">
+                {FAQS.map((f) => (
+                  <div key={f.q} className="faqItem">
+                    <div className="faqQ">{f.q}</div>
+                    <div className="faqA">{f.a}</div>
                   </div>
                 ))}
               </div>
 
-              <div style={S.faqActions}>
-                <Link href="/early-access" style={S.linkButtonSolid}>
+              <div className="faqActions">
+                <Link href="/early-access" className="btn btnWhite">
                   Early Access →
                 </Link>
-                <Link href="/products" style={S.linkButtonSolidWhite}>
+                <Link href="/products" className="btn">
                   Ver productos
                 </Link>
-                <Link href="/terms" style={S.linkButton}>
+                <Link href="/terms" className="btn">
                   Ver términos →
                 </Link>
               </div>
 
-              <p style={S.note}>Nota: JUSP gestiona la compra internacional como intermediario. Consulta términos para el detalle legal.</p>
+              <p className="note">
+                Nota: JUSP gestiona la compra internacional como intermediario. Consulta términos para el detalle legal.
+              </p>
             </div>
           </div>
         </section>
       </div>
-
-      {/* Responsive */}
-      <style>{`
-        @media (max-width: 980px) {
-          .jusp-grid3 { grid-template-columns: 1fr !important; }
-          .jusp-faq { grid-template-columns: 1fr !important; }
-          .jusp-h1 { font-size: 44px !important; }
-        }
-        @media (max-width: 520px) {
-          .jusp-h1 { font-size: 38px !important; }
-        }
-      `}</style>
     </main>
   );
 }
-
-const S: Record<string, CSSProperties> = {
-  main: {
-    position: "relative",
-    width: "100%",
-    // ✅ NO bloquees el scroll: deja que el layout muestre el footer al final
-    overflow: "visible",
-    color: "#fff",
-    backgroundColor: "#0b0b0f",
-    fontFamily:
-      'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"',
-  },
-
-  // Background
-  bgWrap: { position: "fixed", inset: 0, zIndex: -1, pointerEvents: "none" },
-  bgBase: { position: "absolute", inset: 0, background: "#0b0b0f" },
-  bgGoldRadialTop: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: 0,
-    height: 560,
-    background: "radial-gradient(900px 420px at 15% 18%, rgba(255,200,0,0.34), transparent 60%)",
-  },
-  bgGoldHaloLeft: {
-    position: "absolute",
-    top: -160,
-    left: -220,
-    width: 980,
-    height: 980,
-    borderRadius: 9999,
-    background: "rgba(250,204,21,0.18)",
-    filter: "blur(190px)",
-  },
-  bgBlueHaloRight: {
-    position: "absolute",
-    bottom: -260,
-    right: -260,
-    width: 980,
-    height: 980,
-    borderRadius: 9999,
-    background: "rgba(59,130,246,0.12)",
-    filter: "blur(220px)",
-  },
-  bgFadeDown: {
-    position: "absolute",
-    inset: 0,
-    background: "linear-gradient(to bottom, rgba(0,0,0,0.06), rgba(0,0,0,0.86))",
-  },
-  bgVignette: {
-    position: "absolute",
-    inset: 0,
-    boxShadow: "inset 0 0 320px rgba(0,0,0,0.96)",
-  },
-  bgGrain: {
-    position: "absolute",
-    inset: 0,
-    opacity: 0.08,
-    backgroundImage:
-      "repeating-linear-gradient(0deg, rgba(255,255,255,0.06) 0, rgba(255,255,255,0.06) 1px, transparent 1px, transparent 3px)",
-    mixBlendMode: "overlay",
-  },
-
-  container: {
-    width: "min(1120px, calc(100% - 48px))",
-    margin: "0 auto",
-    padding: "56px 0 86px",
-  },
-
-  topbar: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 14,
-    flexWrap: "wrap",
-  },
-  badge: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 10,
-    padding: "10px 14px",
-    borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.10)",
-    background: "rgba(255,255,255,0.06)",
-    backdropFilter: "blur(18px)",
-    boxShadow: "0 18px 70px rgba(0,0,0,0.45)",
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 999,
-    background: "#facc15",
-    boxShadow: "0 0 18px rgba(250,204,21,0.70)",
-  },
-  badgeText: { fontSize: 12, letterSpacing: 0.6, color: "rgba(255,255,255,0.75)" },
-  topActions: { display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" },
-
-  linkButton: {
-    display: "inline-block",
-    padding: "10px 14px",
-    borderRadius: 14,
-    border: "1px solid rgba(255,255,255,0.16)",
-    color: "rgba(255,255,255,0.90)",
-    textDecoration: "none",
-    background: "transparent",
-  },
-  linkButtonSolid: {
-    display: "inline-block",
-    padding: "10px 14px",
-    borderRadius: 14,
-    border: "1px solid rgba(255,255,255,0.16)",
-    color: "rgba(255,255,255,0.92)",
-    textDecoration: "none",
-    background: "rgba(255,255,255,0.08)",
-    backdropFilter: "blur(18px)",
-  },
-  linkButtonSolidWhite: {
-    display: "inline-block",
-    padding: "10px 14px",
-    borderRadius: 14,
-    border: "1px solid rgba(255,255,255,0.16)",
-    color: "#000",
-    textDecoration: "none",
-    background: "#fff",
-    fontWeight: 900,
-  },
-
-  hero: { marginTop: 48 },
-  heroTopBadges: { display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" },
-  kicker: {
-    marginTop: 22,
-    fontSize: 12,
-    letterSpacing: "0.28em",
-    color: "rgba(255,255,255,0.55)",
-  },
-  h1: {
-    marginTop: 14,
-    fontSize: 72,
-    fontWeight: 900,
-    lineHeight: 1.02,
-    letterSpacing: -1.2,
-    textShadow: "0 14px 60px rgba(0,0,0,0.55)",
-  },
-  h1Sub: { color: "rgba(255,255,255,0.70)", fontWeight: 900 },
-  lead: {
-    marginTop: 18,
-    maxWidth: 820,
-    fontSize: 18,
-    lineHeight: 1.7,
-    color: "rgba(255,255,255,0.74)",
-  },
-
-  ctaRow: { marginTop: 18, display: "flex", gap: 10, flexWrap: "wrap" },
-  ctaPrimary: {
-    display: "inline-block",
-    padding: "12px 16px",
-    borderRadius: 18,
-    border: "1px solid rgba(255,255,255,0.16)",
-    background: "#fff",
-    color: "#000",
-    fontWeight: 900,
-    textDecoration: "none",
-  },
-  ctaSecondary: {
-    display: "inline-block",
-    padding: "12px 16px",
-    borderRadius: 18,
-    border: "1px solid rgba(255,255,255,0.16)",
-    background: "rgba(255,255,255,0.08)",
-    color: "rgba(255,255,255,0.92)",
-    fontWeight: 900,
-    textDecoration: "none",
-    backdropFilter: "blur(18px)",
-  },
-
-  panel: {
-    marginTop: 22,
-    borderRadius: 26,
-    border: "1px solid rgba(255,255,255,0.10)",
-    background: "rgba(15,15,21,0.62)",
-    backdropFilter: "blur(18px)",
-    boxShadow: "0 40px 140px rgba(0,0,0,0.72)",
-    overflow: "hidden",
-  },
-  panelHeader: {
-    padding: "22px 22px",
-    borderBottom: "1px solid rgba(255,255,255,0.10)",
-    background:
-      "linear-gradient(90deg, rgba(250,204,21,0.12), rgba(255,255,255,0.06), rgba(59,130,246,0.08))",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: 12,
-    flexWrap: "wrap",
-  },
-  panelKicker: { fontSize: 12, color: "rgba(255,255,255,0.60)", letterSpacing: 0.4 },
-  panelTitle: { marginTop: 6, fontSize: 24, fontWeight: 900, letterSpacing: -0.4 },
-  panelBody: { padding: 22 },
-
-  grid3: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 },
-
-  card: {
-    borderRadius: 22,
-    border: "1px solid rgba(255,255,255,0.10)",
-    background: "rgba(0,0,0,0.34)",
-    backdropFilter: "blur(18px)",
-    boxShadow: "0 26px 90px rgba(0,0,0,0.58)",
-    padding: 18,
-  },
-  cardTop: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" },
-  cardTag: { fontSize: 12, letterSpacing: "0.18em", color: "rgba(255,255,255,0.58)" },
-  cardTitle: { marginTop: 12, fontSize: 18, fontWeight: 900, letterSpacing: -0.2 },
-  cardDesc: { marginTop: 8, fontSize: 13, color: "rgba(255,255,255,0.64)", lineHeight: 1.7 },
-  cardDivider: {
-    marginTop: 14,
-    height: 1,
-    background: "linear-gradient(to right, transparent, rgba(255,255,255,0.18), transparent)",
-  },
-  cardFoot: { marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" },
-  mini: {
-    fontSize: 12,
-    padding: "7px 10px",
-    borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.06)",
-    color: "rgba(255,255,255,0.72)",
-    backdropFilter: "blur(14px)",
-  },
-
-  faqCard: {
-    marginTop: 14,
-    borderRadius: 22,
-    border: "1px solid rgba(255,255,255,0.10)",
-    background: "rgba(0,0,0,0.26)",
-    backdropFilter: "blur(18px)",
-    boxShadow: "0 26px 90px rgba(0,0,0,0.58)",
-    padding: 18,
-  },
-  faqTop: { display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" },
-  faqTitle: { fontSize: 18, fontWeight: 900, letterSpacing: -0.2 },
-  faqGrid: { marginTop: 14, display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 },
-  faqItem: {
-    borderRadius: 18,
-    border: "1px solid rgba(255,255,255,0.10)",
-    background: "rgba(255,255,255,0.05)",
-    padding: 14,
-  },
-  faqQ: { fontSize: 14, fontWeight: 800, color: "rgba(255,255,255,0.92)" },
-  faqA: { marginTop: 8, fontSize: 13, color: "rgba(255,255,255,0.64)", lineHeight: 1.6 },
-  faqActions: { marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" },
-  note: { marginTop: 14, fontSize: 12, color: "rgba(255,255,255,0.45)", lineHeight: 1.6 },
-};
