@@ -1,11 +1,12 @@
 /**
- * JUSP — Legal Pages (PRO MAX / Formal Jurídico)
+ * JUSP — Términos y Condiciones (PRO MAX REAL)
  * Company: JUSP S.A.S. — NIT: En trámite ante la DIAN
  * Domicilio: Cali, Colombia — Contacto: contacto@juspco.com — Dominio: juspco.com
  * Última actualización: 21 feb 2026
  */
 
 import type { Metadata } from "next";
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
@@ -33,142 +34,212 @@ const SECTIONS = [
   { id: "ley", title: "16. Ley aplicable y jurisdicción" },
 ];
 
-function SectionTitle({ id, children }: { id: string; children: ReactNode }) {
+function BgHelpLike() {
   return (
-    <h2
-      id={id}
-      className="scroll-mt-28 text-xl md:text-2xl font-semibold tracking-tight text-zinc-900 dark:text-white"
-    >
-      {children}
-    </h2>
-  );
-}
+    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+      {/* Base */}
+      <div className="absolute inset-0 bg-[#070709]" />
 
-function Card({ children }: { children: ReactNode }) {
-  return (
-    <div className="rounded-2xl border border-zinc-200/70 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur-md shadow-sm">
-      <div className="p-5 md:p-7">{children}</div>
+      {/* Warm top band like /help */}
+      <div className="absolute left-0 right-0 top-[72px] h-[520px] bg-[radial-gradient(1200px_420px_at_20%_30%,rgba(250,204,21,0.22),transparent_62%),radial-gradient(900px_360px_at_72%_28%,rgba(255,255,255,0.08),transparent_64%),linear-gradient(to_bottom,rgba(0,0,0,0.0),rgba(0,0,0,0.72))]" />
+
+      {/* Glows */}
+      <div className="absolute -top-44 -left-48 h-[900px] w-[900px] rounded-full bg-yellow-300/14 blur-[180px]" />
+      <div className="absolute -top-24 left-[18%] h-[760px] w-[760px] rounded-full bg-yellow-200/10 blur-[220px]" />
+      <div className="absolute -bottom-72 -right-72 h-[980px] w-[980px] rounded-full bg-blue-500/10 blur-[240px]" />
+
+      {/* Vignette */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.10),rgba(0,0,0,0.78))]" />
+      <div className="absolute inset-0 shadow-[inset_0_0_260px_rgba(0,0,0,0.92)]" />
+
+      {/* Grain */}
+      <div
+        className="absolute inset-0 opacity-[0.09] mix-blend-overlay"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(0deg, rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 3px)",
+        }}
+      />
     </div>
   );
 }
 
 function Badge({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-zinc-200 dark:border-white/10 bg-white/70 dark:bg-white/5 px-3 py-1 text-xs font-medium text-zinc-700 dark:text-zinc-200">
+    <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-white/75 backdrop-blur-2xl">
       {children}
     </span>
   );
 }
 
+function Card({ children }: { children: ReactNode }) {
+  return (
+    <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-2xl shadow-[0_30px_120px_rgba(0,0,0,0.65)]">
+      <div className="p-6 md:p-8">{children}</div>
+    </div>
+  );
+}
+
 function Divider() {
-  return <div className="my-6 h-px w-full bg-zinc-200/70 dark:bg-white/10" />;
+  return <div className="my-7 h-px w-full bg-gradient-to-r from-transparent via-white/14 to-transparent" />;
+}
+
+function SectionTitle({ id, children }: { id: string; children: ReactNode }) {
+  return (
+    <h2
+      id={id}
+      className="scroll-mt-28 text-xl md:text-2xl font-extrabold tracking-tight text-white/95"
+    >
+      {children}
+    </h2>
+  );
 }
 
 function P({ children }: { children: ReactNode }) {
-  return <p className="mt-3 text-sm leading-7 text-zinc-700 dark:text-zinc-300">{children}</p>;
+  return <p className="mt-3 text-sm md:text-[15px] leading-7 text-white/70">{children}</p>;
 }
 
 function UL({ children }: { children: ReactNode }) {
-  return <ul className="mt-3 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">{children}</ul>;
+  return <ul className="mt-3 space-y-2 text-sm md:text-[15px] text-white/70">{children}</ul>;
 }
 
 function LI({ children }: { children: ReactNode }) {
   return (
-    <li className="flex gap-2">
-      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-900 dark:bg-white" />
+    <li className="flex gap-3">
+      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-yellow-300 shadow-[0_0_14px_rgba(250,204,21,0.7)]" />
       <span>{children}</span>
     </li>
   );
 }
 
+function CTAButton({
+  href,
+  children,
+  variant,
+}: {
+  href: string;
+  children: ReactNode;
+  variant: "primary" | "ghost";
+}) {
+  if (variant === "primary") {
+    return (
+      <a
+        href={href}
+        className="inline-flex items-center justify-center rounded-2xl bg-white px-6 py-3 text-sm font-bold text-black hover:scale-[1.02] active:scale-[0.98] transition"
+      >
+        {children}
+      </a>
+    );
+  }
+  return (
+    <a
+      href={href}
+      className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white/90 backdrop-blur-2xl hover:bg-white/10 hover:border-white/25 transition"
+    >
+      {children}
+    </a>
+  );
+}
+
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950">
-      {/* Background glow (premium, subtle) */}
-      <div aria-hidden className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -top-40 left-1/2 h-[38rem] w-[38rem] -translate-x-1/2 rounded-full bg-zinc-200/60 blur-3xl dark:bg-white/10" />
-        <div className="absolute -bottom-40 right-[-10rem] h-[30rem] w-[30rem] rounded-full bg-zinc-100 blur-3xl dark:bg-white/5" />
-      </div>
+    <main className="relative min-h-screen overflow-hidden text-white">
+      <BgHelpLike />
 
-      <div className="relative mx-auto max-w-6xl px-4 md:px-8 py-12 md:py-16">
-        {/* Header */}
-        <div className="mb-8 md:mb-10">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge>Legal</Badge>
-            <Badge>Colombia</Badge>
-            <Badge>Últ. actualización: 21 feb 2026</Badge>
-          </div>
-
-          <h1 className="mt-5 text-3xl md:text-5xl font-black tracking-tight text-zinc-950 dark:text-white">
-            Términos y Condiciones
-          </h1>
-
-          <p className="mt-4 max-w-3xl text-base md:text-lg leading-7 text-zinc-700 dark:text-zinc-300">
-            El presente documento establece los términos y condiciones aplicables al uso del sitio{" "}
-            <span className="font-semibold">juspco.com</span> y a la adquisición de productos a través de{" "}
-            <span className="font-semibold">JUSP S.A.S.</span> (en adelante, “JUSP”).
-          </p>
-
-          <div className="mt-6 flex flex-wrap gap-3">
-            <a
-              href="javascript:window.print()"
-              className="rounded-xl border border-zinc-200 dark:border-white/10 bg-white/80 dark:bg-white/5 px-4 py-2 text-sm font-semibold text-zinc-900 dark:text-white hover:bg-white dark:hover:bg-white/10 transition"
-            >
-              Imprimir / Guardar PDF
-            </a>
-            <a
-              href="mailto:contacto@juspco.com"
-              className="rounded-xl border border-zinc-200 dark:border-white/10 bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 transition"
-            >
-              Contactar soporte
-            </a>
-          </div>
+      <div className="relative mx-auto max-w-6xl px-6 py-14 md:py-20">
+        {/* Top badges */}
+        <div className="flex flex-wrap items-center gap-3">
+          <Badge>
+            <span className="h-2 w-2 rounded-full bg-yellow-300 shadow-[0_0_16px_rgba(250,204,21,0.75)]" />
+            JUSP · Legal
+          </Badge>
+          <Badge>Colombia</Badge>
+          <Badge>Últ. actualización: 21 feb 2026</Badge>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 lg:gap-8">
+        {/* Hero */}
+        <h1 className="mt-8 text-4xl md:text-6xl font-black tracking-tight leading-[1.05]">
+          Términos y Condiciones
+          <span className="block mt-2 text-white/70">
+            Claros. Serios. Sin letra pequeña.
+          </span>
+        </h1>
+
+        <p className="mt-5 max-w-3xl text-base md:text-lg leading-relaxed text-white/70">
+          Este documento regula el uso de <span className="font-semibold text-white/90">juspco.com</span> y las compras
+          gestionadas por <span className="font-semibold text-white/90">JUSP S.A.S.</span> (en adelante, “JUSP”).
+        </p>
+
+        {/* Actions */}
+        <div className="mt-10 flex flex-wrap gap-3">
+          <CTAButton href="javascript:window.print()" variant="ghost">
+            Imprimir / Guardar PDF
+          </CTAButton>
+          <CTAButton href="mailto:contacto@juspco.com" variant="primary">
+            Contactar soporte
+          </CTAButton>
+          <Link
+            href="/help"
+            className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white/90 backdrop-blur-2xl hover:bg-white/10 hover:border-white/25 transition"
+          >
+            Centro de ayuda →
+          </Link>
+        </div>
+
+        <div className="mt-14 h-px w-full bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+
+        <div className="mt-12 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 lg:gap-8">
           {/* Main */}
           <div className="space-y-6">
+            {/* Summary card */}
             <Card>
-              <p className="text-sm leading-7 text-zinc-700 dark:text-zinc-300">
-                <span className="font-semibold text-zinc-950 dark:text-white">JUSP S.A.S.</span> (NIT: En trámite ante la DIAN),
-                con domicilio en <span className="font-semibold">Cali, Colombia</span>, y canal oficial de contacto{" "}
-                <span className="font-semibold">contacto@juspco.com</span>.
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="rounded-full border border-yellow-300/20 bg-yellow-300/10 px-3 py-1 text-[11px] text-yellow-100">
+                  Operación cross-border
+                </span>
+                <span className="rounded-full border border-white/12 bg-white/6 px-3 py-1 text-[11px] text-white/70">
+                  Wompi
+                </span>
+                <span className="rounded-full border border-white/12 bg-white/6 px-3 py-1 text-[11px] text-white/70">
+                  Recepción en EE. UU. → Colombia
+                </span>
+              </div>
+
+              <p className="mt-4 text-sm md:text-[15px] leading-7 text-white/70">
+                <span className="font-semibold text-white/90">JUSP S.A.S.</span> (NIT: En trámite ante la DIAN),
+                con domicilio en <span className="font-semibold text-white/90">Cali, Colombia</span>, canal oficial{" "}
+                <span className="font-semibold text-white/90">contacto@juspco.com</span>.
               </p>
 
               <Divider />
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="rounded-xl border border-zinc-200/70 dark:border-white/10 bg-white/60 dark:bg-white/5 p-4">
-                  <div className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Logística</div>
-                  <div className="mt-1 text-base font-bold text-zinc-950 dark:text-white">Recepción en EE. UU.</div>
-                  <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-                    Consolidación y reenvío a Colombia.
-                  </div>
+                <div className="rounded-2xl border border-white/10 bg-black/35 backdrop-blur-2xl p-5">
+                  <div className="text-xs font-semibold text-white/60">Logística</div>
+                  <div className="mt-1 text-base font-extrabold text-white/90">Recepción en EE. UU.</div>
+                  <div className="mt-1 text-xs text-white/60">Consolidación y reenvío a Colombia.</div>
                 </div>
-                <div className="rounded-xl border border-zinc-200/70 dark:border-white/10 bg-white/60 dark:bg-white/5 p-4">
-                  <div className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Plazo estimado</div>
-                  <div className="mt-1 text-base font-bold text-zinc-950 dark:text-white">15 a 20 días hábiles</div>
-                  <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-                    Sujeto a aduana, inspecciones y fuerza mayor.
-                  </div>
+                <div className="rounded-2xl border border-white/10 bg-black/35 backdrop-blur-2xl p-5">
+                  <div className="text-xs font-semibold text-white/60">Plazo estimado</div>
+                  <div className="mt-1 text-base font-extrabold text-white/90">15 a 20 días hábiles</div>
+                  <div className="mt-1 text-xs text-white/60">Sujeto a aduana, inspecciones y fuerza mayor.</div>
                 </div>
-                <div className="rounded-xl border border-zinc-200/70 dark:border-white/10 bg-white/60 dark:bg-white/5 p-4">
-                  <div className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Pagos</div>
-                  <div className="mt-1 text-base font-bold text-zinc-950 dark:text-white">Wompi</div>
-                  <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-                    El pedido inicia con pago aprobado.
-                  </div>
+                <div className="rounded-2xl border border-white/10 bg-black/35 backdrop-blur-2xl p-5">
+                  <div className="text-xs font-semibold text-white/60">Pago</div>
+                  <div className="mt-1 text-base font-extrabold text-white/90">Wompi</div>
+                  <div className="mt-1 text-xs text-white/60">El pedido inicia con pago aprobado.</div>
                 </div>
               </div>
             </Card>
 
+            {/* Sections */}
             <Card>
               <SectionTitle id="identificacion">1. Identificación del comerciante</SectionTitle>
               <P>
                 JUSP S.A.S. es una sociedad comercial constituida conforme a las leyes de la República de Colombia, con
                 domicilio en Cali, Colombia, identificada con NIT en trámite ante la Dirección de Impuestos y Aduanas
-                Nacionales (DIAN), titular del sitio <span className="font-semibold">juspco.com</span> y responsable de la
-                comercialización de los productos ofrecidos en el sitio.
+                Nacionales (DIAN), titular del sitio <span className="font-semibold text-white/90">juspco.com</span> y
+                responsable de la comercialización de los productos ofrecidos en el sitio.
               </P>
             </Card>
 
@@ -218,7 +289,8 @@ export default function TermsPage() {
               <SectionTitle id="precios">5. Precios, pagos y validaciones</SectionTitle>
               <P>
                 Los precios publicados corresponden al valor total estimado a pagar por el usuario e incluyen los componentes
-                aplicables al producto, gestión y logística. El pago se procesa a través de <span className="font-semibold">Wompi</span>.
+                aplicables al producto, gestión y logística. El pago se procesa a través de{" "}
+                <span className="font-semibold text-white/90">Wompi</span>.
               </P>
               <P>
                 El pedido inicia únicamente una vez el pago sea aprobado. JUSP podrá implementar validaciones antifraude y de seguridad.
@@ -238,7 +310,7 @@ export default function TermsPage() {
             <Card>
               <SectionTitle id="envios">6. Envíos, plazos y entrega</SectionTitle>
               <P>
-                El plazo estimado de entrega es de <span className="font-semibold">15 a 20 días hábiles</span> contados desde la confirmación del pago,
+                El plazo estimado de entrega es de <span className="font-semibold text-white/90">15 a 20 días hábiles</span> contados desde la confirmación del pago,
                 sin perjuicio de eventos ajenos al control razonable de JUSP.
               </P>
               <P>
@@ -253,8 +325,8 @@ export default function TermsPage() {
                 entidades competentes. Dichas actuaciones son ajenas al control de JUSP y pueden afectar los tiempos estimados.
               </P>
               <P>
-                En caso de <span className="font-semibold">retención definitiva</span> por autoridad competente que impida la entrega del producto, JUSP
-                procederá a gestionar la <span className="font-semibold">devolución del dinero pagado</span>, una vez se cuente con la confirmación de la
+                En caso de <span className="font-semibold text-white/90">retención definitiva</span> por autoridad competente que impida la entrega del producto, JUSP
+                procederá a gestionar la <span className="font-semibold text-white/90">devolución del dinero pagado</span>, una vez se cuente con la confirmación de la
                 imposibilidad de entrega conforme a la información disponible.
               </P>
             </Card>
@@ -266,7 +338,8 @@ export default function TermsPage() {
                 de los cinco (5) días hábiles siguientes a la entrega del bien, cuando resulte procedente y sin perjuicio de las excepciones legales.
               </P>
               <P>
-                Para el trámite, el usuario deberá contactar a JUSP a través de <span className="font-semibold">contacto@juspco.com</span>, identificando el pedido
+                Para el trámite, el usuario deberá contactar a JUSP a través de{" "}
+                <span className="font-semibold text-white/90">contacto@juspco.com</span>, identificando el pedido
                 y aportando la información necesaria para la evaluación del caso.
               </P>
               <P>
@@ -277,21 +350,17 @@ export default function TermsPage() {
 
             <Card>
               <SectionTitle id="cambios">9. Cambios por talla y defectos</SectionTitle>
-              <P>
-                JUSP gestionará cambios en los siguientes supuestos:
-              </P>
+              <P>JUSP gestionará cambios en los siguientes supuestos:</P>
               <UL>
                 <LI>
-                  <span className="font-semibold">Defecto de fábrica comprobable</span>, sujeto a evidencia y validación.
+                  <span className="font-semibold text-white/90">Defecto de fábrica comprobable</span>, sujeto a evidencia y validación.
                 </LI>
                 <LI>
-                  <span className="font-semibold">Cambio por talla</span>, el cual podrá requerir un tiempo de gestión estimado de hasta{" "}
-                  <span className="font-semibold">cuarenta y cinco (45) días</span>, sujeto a disponibilidad del proveedor y logística internacional.
+                  <span className="font-semibold text-white/90">Cambio por talla</span>, el cual podrá requerir un tiempo de gestión estimado de hasta{" "}
+                  <span className="font-semibold text-white/90">cuarenta y cinco (45) días</span>, sujeto a disponibilidad del proveedor y logística internacional.
                 </LI>
               </UL>
-              <P>
-                El cambio por talla está sujeto a disponibilidad y condiciones del proveedor; JUSP no garantiza disponibilidad inmediata.
-              </P>
+              <P>El cambio por talla está sujeto a disponibilidad y condiciones del proveedor; JUSP no garantiza disponibilidad inmediata.</P>
             </Card>
 
             <Card>
@@ -336,7 +405,11 @@ export default function TermsPage() {
               <SectionTitle id="datos">14. Protección de datos personales</SectionTitle>
               <P>
                 El tratamiento de datos personales se regirá por la Política de Privacidad de JUSP y por la normativa aplicable en Colombia. Para más información,
-                consulte <a className="underline font-semibold" href="/privacy">Política de Privacidad</a>.
+                consulte{" "}
+                <Link className="underline font-semibold text-white/90 hover:text-white transition" href="/privacy">
+                  Política de Privacidad
+                </Link>
+                .
               </P>
             </Card>
 
@@ -344,7 +417,7 @@ export default function TermsPage() {
               <SectionTitle id="pqrs">15. PQRS y soporte</SectionTitle>
               <P>
                 Para peticiones, quejas, reclamos y solicitudes (PQRS), el usuario podrá comunicarse al correo{" "}
-                <span className="font-semibold">contacto@juspco.com</span>. El tiempo objetivo de respuesta es de 1 a 2 días hábiles, sin perjuicio de la complejidad del caso.
+                <span className="font-semibold text-white/90">contacto@juspco.com</span>. El tiempo objetivo de respuesta es de 1 a 2 días hábiles, sin perjuicio de la complejidad del caso.
               </P>
             </Card>
 
@@ -356,31 +429,31 @@ export default function TermsPage() {
             </Card>
 
             {/* Help CTA */}
-            <div className="pb-8">
-              <div className="rounded-2xl border border-zinc-200/70 dark:border-white/10 bg-zinc-950 text-white px-6 py-6 md:px-8 md:py-7 shadow-sm">
-                <div className="text-sm font-semibold">Canal oficial</div>
-                <div className="mt-1 text-lg md:text-xl font-black tracking-tight">
+            <div className="pb-4">
+              <div className="rounded-3xl border border-white/10 bg-black/35 backdrop-blur-2xl px-7 py-7 shadow-[0_30px_120px_rgba(0,0,0,0.65)]">
+                <div className="text-sm font-semibold text-white/85">Canal oficial</div>
+                <div className="mt-1 text-lg md:text-xl font-black tracking-tight text-white/95">
                   PQRS y soporte por escrito
                 </div>
-                <div className="mt-3 flex flex-wrap gap-3">
+                <div className="mt-4 flex flex-wrap gap-3">
                   <a
                     href="mailto:contacto@juspco.com"
-                    className="rounded-xl bg-white text-zinc-950 px-4 py-2 text-sm font-bold hover:bg-zinc-100 transition"
+                    className="rounded-2xl bg-white px-5 py-2.5 text-sm font-bold text-black hover:scale-[1.02] active:scale-[0.98] transition"
                   >
                     contacto@juspco.com
                   </a>
-                  <a
-                    href="/shipping"
-                    className="rounded-xl border border-white/20 px-4 py-2 text-sm font-semibold hover:bg-white/10 transition"
+                  <Link
+                    href="/help"
+                    className="rounded-2xl border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white/90 backdrop-blur-2xl hover:bg-white/10 hover:border-white/25 transition"
                   >
-                    Ver envíos
-                  </a>
-                  <a
+                    Centro de ayuda →
+                  </Link>
+                  <Link
                     href="/privacy"
-                    className="rounded-xl border border-white/20 px-4 py-2 text-sm font-semibold hover:bg-white/10 transition"
+                    className="rounded-2xl border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white/90 backdrop-blur-2xl hover:bg-white/10 hover:border-white/25 transition"
                   >
-                    Ver privacidad
-                  </a>
+                    Privacidad →
+                  </Link>
                 </div>
               </div>
             </div>
@@ -388,11 +461,11 @@ export default function TermsPage() {
 
           {/* Sidebar TOC */}
           <aside className="lg:sticky lg:top-24 h-fit">
-            <div className="rounded-2xl border border-zinc-200/70 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur-md shadow-sm">
-              <div className="p-5">
+            <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-2xl shadow-[0_30px_120px_rgba(0,0,0,0.65)]">
+              <div className="p-6">
                 <div className="flex items-center justify-between">
-                  <div className="text-sm font-bold text-zinc-950 dark:text-white">Contenido</div>
-                  <span className="text-xs text-zinc-500 dark:text-zinc-400">JUSP</span>
+                  <div className="text-sm font-extrabold text-white/90">Contenido</div>
+                  <span className="text-xs text-white/55">JUSP</span>
                 </div>
 
                 <div className="mt-4 space-y-1.5">
@@ -400,27 +473,27 @@ export default function TermsPage() {
                     <a
                       key={s.id}
                       href={`#${s.id}`}
-                      className="block rounded-lg px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100/70 dark:hover:bg-white/10 transition"
+                      className="block rounded-2xl px-3 py-2 text-sm text-white/70 hover:bg-white/10 hover:text-white transition"
                     >
                       {s.title}
                     </a>
                   ))}
                 </div>
 
-                <div className="mt-5 rounded-xl border border-zinc-200/70 dark:border-white/10 bg-zinc-50 dark:bg-white/5 p-4">
-                  <div className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Empresa</div>
-                  <div className="mt-1 text-sm font-bold text-zinc-950 dark:text-white">JUSP S.A.S.</div>
-                  <div className="mt-1 text-xs text-zinc-700 dark:text-zinc-300">NIT: En trámite ante la DIAN</div>
-                  <div className="mt-1 text-xs text-zinc-700 dark:text-zinc-300">Cali, Colombia</div>
-                  <div className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
-                    Contacto: <span className="font-semibold">contacto@juspco.com</span>
+                <div className="mt-6 rounded-2xl border border-white/10 bg-black/35 backdrop-blur-2xl p-5">
+                  <div className="text-xs font-semibold text-white/60">Empresa</div>
+                  <div className="mt-1 text-sm font-extrabold text-white/90">JUSP S.A.S.</div>
+                  <div className="mt-1 text-xs text-white/65">NIT: En trámite ante la DIAN</div>
+                  <div className="mt-1 text-xs text-white/65">Cali, Colombia</div>
+                  <div className="mt-2 text-xs text-white/60">
+                    Contacto: <span className="font-semibold text-white/85">contacto@juspco.com</span>
                   </div>
                 </div>
 
-                <div className="mt-4 rounded-xl border border-zinc-200/70 dark:border-white/10 bg-white/60 dark:bg-white/5 p-4">
-                  <div className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Nota</div>
-                  <div className="mt-1 text-xs leading-6 text-zinc-700 dark:text-zinc-300">
-                    Este documento puede ser actualizado. La versión vigente se publica en esta URL. Se recomienda conservar copia.
+                <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-2xl p-5">
+                  <div className="text-xs font-semibold text-white/60">Nota</div>
+                  <div className="mt-1 text-xs leading-6 text-white/65">
+                    Este documento puede actualizarse. La versión vigente se publica en esta URL. Se recomienda conservar copia.
                   </div>
                 </div>
               </div>
@@ -428,6 +501,6 @@ export default function TermsPage() {
           </aside>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
