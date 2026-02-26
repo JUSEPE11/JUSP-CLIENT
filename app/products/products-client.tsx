@@ -118,6 +118,7 @@ const Q = {
   color: "color",
   size: "size",
   price: "p",
+  isNew: "new", // ✅ Quick filter "New"
 } as const;
 
 function parseDiscountCap(v: string | null): DiscountCap {
@@ -161,6 +162,9 @@ function inBucket(price: number, bucket: string | null) {
   if (!Number.isFinite(min) || !Number.isFinite(max)) return true;
   return price >= min && price <= max;
 }
+function parseBool01(v: string | null) {
+  return v === "1" || v === "true" || v === "yes";
+}
 
 /** =========================
  * Favorites signal (no hydration mismatch)
@@ -193,7 +197,6 @@ function SlidersIcon({ size = 18 }: { size?: number }) {
     </svg>
   );
 }
-
 function ArrowUpIcon({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -635,6 +638,92 @@ function ActiveFilters({
         .clearAll:hover {
           background: rgba(0, 0, 0, 0.06);
           color: #111;
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/** =========================
+ * Quick Filters row (Nike)
+ * ========================= */
+function QuickFiltersRow({
+  featuredOn,
+  saleOn,
+  underOn,
+  newOn,
+  onFeatured,
+  onSale,
+  onUnder,
+  onNew,
+}: {
+  featuredOn: boolean;
+  saleOn: boolean;
+  underOn: boolean;
+  newOn: boolean;
+  onFeatured: () => void;
+  onSale: () => void;
+  onUnder: () => void;
+  onNew: () => void;
+}) {
+  return (
+    <div className="qf" aria-label="Quick filters">
+      <div className="row">
+        <button type="button" className={`b ${featuredOn ? "on" : ""}`} onClick={onFeatured}>
+          Featured
+        </button>
+        <button type="button" className={`b ${saleOn ? "on" : ""}`} onClick={onSale}>
+          Sale
+        </button>
+        <button type="button" className={`b ${underOn ? "on" : ""}`} onClick={onUnder}>
+          Under $200k
+        </button>
+        <button type="button" className={`b ${newOn ? "on" : ""}`} onClick={onNew}>
+          New
+        </button>
+      </div>
+
+      <style jsx>{`
+        .qf {
+          max-width: 1440px;
+          margin: 0 auto 10px;
+        }
+        .row {
+          display: flex;
+          gap: 10px;
+          overflow-x: auto;
+          padding-bottom: 2px;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+        }
+        .row::-webkit-scrollbar {
+          display: none;
+        }
+        .b {
+          flex: 0 0 auto;
+          border: 1px solid rgba(0, 0, 0, 0.14);
+          background: rgba(255, 255, 255, 0.96);
+          border-radius: 999px;
+          padding: 10px 14px;
+          height: 40px;
+          cursor: pointer;
+          font-weight: 950;
+          color: rgba(0, 0, 0, 0.82);
+          letter-spacing: -0.01em;
+          transition: background 140ms ease, border-color 140ms ease, transform 120ms ease, color 140ms ease;
+          white-space: nowrap;
+        }
+        .b:hover {
+          background: rgba(0, 0, 0, 0.03);
+          border-color: rgba(0, 0, 0, 0.18);
+        }
+        .b:active {
+          transform: scale(0.99);
+        }
+        .b.on {
+          background: rgba(17, 17, 17, 0.92);
+          color: rgba(255, 255, 255, 0.96);
+          border-color: rgba(0, 0, 0, 0.24);
         }
       `}</style>
     </div>
@@ -1144,6 +1233,7 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
   const color = useMemo(() => normStr(searchParams.get(Q.color)), [searchParams]);
   const size = useMemo(() => normStr(searchParams.get(Q.size)), [searchParams]);
   const priceBucket = useMemo(() => parsePriceBucket(searchParams.get(Q.price)), [searchParams]);
+  const newOnly = useMemo(() => parseBool01(searchParams.get(Q.isNew)), [searchParams]);
 
   const setParam = useCallback(
     (key: string, value: string | null) => {
@@ -1164,6 +1254,7 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
     sp.delete(Q.color);
     sp.delete(Q.size);
     sp.delete(Q.price);
+    sp.delete(Q.isNew);
     const qs = sp.toString();
     router.replace(qs ? `${pathname}?${qs}` : `${pathname}`, { scroll: false });
   }, [router, pathname, searchParams]);
@@ -1171,7 +1262,9 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
   const activeFilters = useMemo(() => {
     const items: Array<{ key: string; label: string; onRemove: () => void }> = [];
 
+    if (newOnly) items.push({ key: "new", label: "New", onRemove: () => setParam(Q.isNew, null) });
     if (dCap) items.push({ key: "d", label: `Sale ${dCap}%+`, onRemove: () => setParam(Q.d, null) });
+
     if (priceBucket) {
       const label = priceBucket.endsWith("+")
         ? `Price: $${moneyCOP(Number(priceBucket.slice(0, -1)))}+`
@@ -1188,7 +1281,7 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
 
     return items;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dCap, priceBucket, type, brand, color, size, searchParams]);
+  }, [dCap, priceBucket, type, brand, color, size, newOnly, searchParams]);
 
   const activeCount = activeFilters.length;
   const hasActive = activeCount > 0;
@@ -1283,6 +1376,10 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
   const filtered = useMemo(() => {
     let list = [...all];
 
+    if (newOnly) {
+      list = list.filter((p) => Boolean((p as any).isNew));
+    }
+
     if (dCap) {
       list = list.filter((p) => {
         const disc = Number((p as any).discountPercent ?? (p as any).discount ?? 0);
@@ -1317,7 +1414,7 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
     }
 
     return list;
-  }, [all, dCap, type, brand, color, size, sort, priceBucket]);
+  }, [all, dCap, type, brand, color, size, sort, priceBucket, newOnly]);
 
   const prefetchRef = useRef<Record<string, number>>({});
   const onPrefetch = useCallback(
@@ -1354,7 +1451,6 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
     }
   }, [searchParams]);
 
-  // ✅ Back-to-top show logic
   const [showTop, setShowTop] = useState(false);
   useEffect(() => {
     const onScroll = () => {
@@ -1365,6 +1461,12 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll as any);
   }, []);
+
+  // ✅ Quick Filters state (synced)
+  const featuredOn = sort === "launch";
+  const saleOn = dCap >= 30; // quick meaning: at least 30%+
+  const underOn = priceBucket === "0-200000";
+  const newOn = newOnly;
 
   const showSide = filtersOpen;
 
@@ -1427,6 +1529,18 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           <SortDropdown value={sort} onChange={(v) => setParam(Q.sort, v)} />
         </div>
       </header>
+
+      {/* ✅ Quick Filters row (Nike) */}
+      <QuickFiltersRow
+        featuredOn={featuredOn}
+        saleOn={saleOn}
+        underOn={underOn}
+        newOn={newOn}
+        onFeatured={() => setParam(Q.sort, featuredOn ? null : "launch")}
+        onSale={() => setParam(Q.d, saleOn ? null : "30")}
+        onUnder={() => setParam(Q.price, underOn ? null : "0-200000")}
+        onNew={() => setParam(Q.isNew, newOn ? null : "1")}
+      />
 
       <ActiveFilters items={activeFilters} onClearAll={resetFilters} />
 
