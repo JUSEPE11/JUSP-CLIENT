@@ -117,7 +117,7 @@ const Q = {
   brand: "brand",
   color: "color",
   size: "size",
-  price: "p", // ✅ Shop by Price
+  price: "p",
 } as const;
 
 function parseDiscountCap(v: string | null): DiscountCap {
@@ -141,21 +141,19 @@ function sortLabel(sort: SortKey) {
 }
 function parsePriceBucket(v: string | null) {
   const s = (v || "").trim();
-  return s ? s : null; // format: "min-max" or "min+"
+  return s ? s : null; // "min-max" or "min+"
 }
 function inBucket(price: number, bucket: string | null) {
   if (!bucket) return true;
   const b = bucket.trim();
   if (!b) return true;
 
-  // "min+"
   if (b.endsWith("+")) {
     const min = Number(b.slice(0, -1));
     if (!Number.isFinite(min)) return true;
     return price >= min;
   }
 
-  // "min-max"
   const parts = b.split("-");
   if (parts.length !== 2) return true;
   const min = Number(parts[0]);
@@ -192,6 +190,17 @@ function SlidersIcon({ size = 18 }: { size?: number }) {
         fill="currentColor"
       />
       <path d="M4 13h4M10 9h4M16 15h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" opacity="0.9" />
+    </svg>
+  );
+}
+
+function ArrowUpIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path
+        d="M12 5l6.2 6.2a1 1 0 0 1-1.4 1.4L13 8.8V19a1 1 0 1 1-2 0V8.8l-3.8 3.8A1 1 0 1 1 5.8 11.2L12 5z"
+        fill="currentColor"
+      />
     </svg>
   );
 }
@@ -540,7 +549,7 @@ function TopLoadingBar({ active }: { active: boolean }) {
 }
 
 /** =========================
- * Active filter chips (Nike)
+ * Active filter pills (Nike)
  * ========================= */
 function ActiveFilters({
   items,
@@ -629,6 +638,158 @@ function ActiveFilters({
         }
       `}</style>
     </div>
+  );
+}
+
+/** =========================
+ * Empty State PRO (Nike)
+ * ========================= */
+function EmptyState({ onClear }: { onClear: () => void }) {
+  return (
+    <div className="es" role="status" aria-live="polite">
+      <div className="box">
+        <div className="h">No results found</div>
+        <div className="p">Try adjusting your filters or clear them to see everything.</div>
+        <div className="actions">
+          <button type="button" className="btn" onClick={onClear}>
+            Clear filters
+          </button>
+          <Link className="link" href="/" prefetch={false}>
+            Go home
+          </Link>
+        </div>
+      </div>
+
+      <style jsx>{`
+        .es {
+          padding: 36px 0 10px;
+        }
+        .box {
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          border-radius: 18px;
+          background: #fff;
+          box-shadow: 0 18px 60px rgba(0, 0, 0, 0.06);
+          padding: 22px 18px;
+          max-width: 560px;
+        }
+        .h {
+          font-weight: 950;
+          letter-spacing: -0.02em;
+          color: #111;
+          font-size: 18px;
+        }
+        .p {
+          margin-top: 8px;
+          color: rgba(0, 0, 0, 0.6);
+          font-weight: 900;
+          font-size: 13px;
+          line-height: 1.45;
+        }
+        .actions {
+          margin-top: 14px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .btn {
+          border: 0;
+          cursor: pointer;
+          border-radius: 999px;
+          padding: 12px 14px;
+          background: rgba(17, 17, 17, 0.92);
+          color: rgba(255, 255, 255, 0.96);
+          font-weight: 950;
+          letter-spacing: -0.01em;
+        }
+        .btn:active {
+          transform: scale(0.99);
+        }
+        .link {
+          text-decoration: none;
+          font-weight: 950;
+          color: rgba(0, 0, 0, 0.65);
+          padding: 10px 0;
+        }
+        .link:hover {
+          color: #111;
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/** =========================
+ * Back-to-top (Nike)
+ * ========================= */
+function BackToTop({ show }: { show: boolean }) {
+  return (
+    <button
+      type="button"
+      className={`btt ${show ? "on" : ""}`}
+      onClick={() => {
+        try {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        } catch {
+          window.scrollTo(0, 0);
+        }
+      }}
+      aria-label="Back to top"
+    >
+      <span className="ic" aria-hidden="true">
+        <ArrowUpIcon size={18} />
+      </span>
+      <span className="tx">Top</span>
+
+      <style jsx>{`
+        .btt {
+          position: fixed;
+          right: 16px;
+          bottom: 18px;
+          z-index: 1200;
+          border: 1px solid rgba(0, 0, 0, 0.14);
+          background: rgba(255, 255, 255, 0.92);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.16);
+          border-radius: 999px;
+          padding: 12px 12px;
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          cursor: pointer;
+          color: rgba(0, 0, 0, 0.84);
+          font-weight: 950;
+          opacity: 0;
+          transform: translateY(12px);
+          pointer-events: none;
+          transition: opacity 180ms ease, transform 220ms ease, background 140ms ease;
+        }
+        .btt:hover {
+          background: #fff;
+        }
+        .btt.on {
+          opacity: 1;
+          transform: translateY(0);
+          pointer-events: auto;
+        }
+        .ic {
+          display: inline-flex;
+          align-items: center;
+          opacity: 0.8;
+        }
+        .tx {
+          font-size: 13px;
+          letter-spacing: -0.01em;
+        }
+        @media (max-width: 980px) {
+          .btt {
+            right: 12px;
+            bottom: 14px;
+          }
+        }
+      `}</style>
+    </button>
   );
 }
 
@@ -963,11 +1124,9 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
 
   const { mounted, tick: favTick } = useFavoritesSignal();
 
-  // Desktop: Nike default = filters visibles.
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Nike-like accordion state
   const [secPickup, setSecPickup] = useState(true);
   const [secDiscount, setSecDiscount] = useState(true);
   const [secType, setSecType] = useState(true);
@@ -976,7 +1135,6 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
   const [secSize, setSecSize] = useState(true);
   const [secPrice, setSecPrice] = useState(true);
 
-  // Pure UI (Pick up today)
   const [pickupToday, setPickupToday] = useState(false);
 
   const sort = useMemo(() => parseSort(searchParams.get(Q.sort)), [searchParams]);
@@ -998,7 +1156,18 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
     [router, pathname, searchParams]
   );
 
-  // ✅ Active filters (Nike pills)
+  const resetFilters = useCallback(() => {
+    const sp = new URLSearchParams(searchParams.toString());
+    sp.delete(Q.d);
+    sp.delete(Q.type);
+    sp.delete(Q.brand);
+    sp.delete(Q.color);
+    sp.delete(Q.size);
+    sp.delete(Q.price);
+    const qs = sp.toString();
+    router.replace(qs ? `${pathname}?${qs}` : `${pathname}`, { scroll: false });
+  }, [router, pathname, searchParams]);
+
   const activeFilters = useMemo(() => {
     const items: Array<{ key: string; label: string; onRemove: () => void }> = [];
 
@@ -1024,18 +1193,6 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
   const activeCount = activeFilters.length;
   const hasActive = activeCount > 0;
 
-  const resetFilters = useCallback(() => {
-    const sp = new URLSearchParams(searchParams.toString());
-    sp.delete(Q.d);
-    sp.delete(Q.type);
-    sp.delete(Q.brand);
-    sp.delete(Q.color);
-    sp.delete(Q.size);
-    sp.delete(Q.price);
-    const qs = sp.toString();
-    router.replace(qs ? `${pathname}?${qs}` : `${pathname}`, { scroll: false });
-  }, [router, pathname, searchParams]);
-
   useEffect(() => {
     try {
       const mq = window.matchMedia("(max-width: 980px)");
@@ -1054,7 +1211,6 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
     } catch {}
   }, []);
 
-  // ✅ lock scroll when mobile drawer open
   useEffect(() => {
     if (!mobileOpen) {
       try {
@@ -1092,7 +1248,6 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
   const colors = useMemo(() => uniq(all.flatMap((p) => safeArr((p as any).colors))).sort(), [all]);
   const sizes = useMemo(() => uniq(all.flatMap((p) => safeArr((p as any).sizes))).sort(), [all]);
 
-  // Dynamic price ranges
   const priceRanges = useMemo(() => {
     const prices = all.map((p) => Number((p as any).price ?? 0)).filter((n) => Number.isFinite(n) && n > 0);
     if (!prices.length) {
@@ -1164,7 +1319,6 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
     return list;
   }, [all, dCap, type, brand, color, size, sort, priceBucket]);
 
-  /** Prefetch throttled */
   const prefetchRef = useRef<Record<string, number>>({});
   const onPrefetch = useCallback(
     (href: string) => {
@@ -1184,7 +1338,6 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
     emitFavEvent();
   }, []);
 
-  /** UI loading (filters/sort) + top bar */
   const [uiLoading, setUiLoading] = useState(false);
   const lastQsRef = useRef<string>("");
   useEffect(() => {
@@ -1201,20 +1354,28 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
     }
   }, [searchParams]);
 
+  // ✅ Back-to-top show logic
+  const [showTop, setShowTop] = useState(false);
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY || 0;
+      setShowTop(y > 520);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll as any);
+  }, []);
+
   const showSide = filtersOpen;
 
   return (
     <main className="root">
       <TopLoadingBar active={uiLoading} />
+      <BackToTop show={showTop} />
 
       {/* ✅ Sticky mini bar (mobile only) */}
       <div className="mSticky" aria-label="Mobile controls">
-        <button
-          type="button"
-          className="mFiltersBtn"
-          onClick={() => setMobileOpen(true)}
-          aria-label="Open filters"
-        >
+        <button type="button" className="mFiltersBtn" onClick={() => setMobileOpen(true)} aria-label="Open filters">
           <span className="mFtxt">Filters</span>
           {activeCount ? <span className="mBadge">{activeCount}</span> : null}
           <span className="mFic" aria-hidden="true">
@@ -1386,12 +1547,27 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
         </aside>
 
         <section className="main" aria-label="Products grid">
-          <div className={`grid ${uiLoading ? "fade" : ""}`}>
-            {filtered.map((p) => {
-              const key = String((p as any).id || (p as any).slug || (p as any).name || "");
-              return <ProductCard key={key} p={p} mounted={mounted} favTick={favTick} onToggleFav={onToggleFav} onPrefetch={onPrefetch} />;
-            })}
-          </div>
+          {filtered.length === 0 ? (
+            <EmptyState
+              onClear={() => {
+                resetFilters();
+                try {
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                } catch {
+                  window.scrollTo(0, 0);
+                }
+              }}
+            />
+          ) : (
+            <div className={`grid ${uiLoading ? "fade" : ""}`}>
+              {filtered.map((p) => {
+                const key = String((p as any).id || (p as any).slug || (p as any).name || "");
+                return (
+                  <ProductCard key={key} p={p} mounted={mounted} favTick={favTick} onToggleFav={onToggleFav} onPrefetch={onPrefetch} />
+                );
+              })}
+            </div>
+          )}
         </section>
       </div>
 
@@ -1545,7 +1721,6 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           }
         }
 
-        /* ✅ Sticky mini bar (mobile only) */
         .mSticky {
           display: none;
         }
@@ -1645,7 +1820,6 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           line-height: 1;
         }
 
-        /* ✅ FIX real: cuando sideOff => 1 columna y gap=0 */
         .layout {
           max-width: 1440px;
           margin: 0 auto;
@@ -1780,7 +1954,6 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           min-width: 0;
         }
 
-        /* ✅ Grid 4 cols desktop ancho */
         .grid {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
@@ -1809,7 +1982,6 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
             padding-right: 14px;
           }
 
-          /* ✅ show sticky bar on mobile */
           .mSticky {
             display: flex;
             position: sticky;
@@ -1875,7 +2047,6 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
             white-space: nowrap;
           }
 
-          /* hero becomes lighter on mobile (kept) */
           .title {
             font-size: 28px;
           }
@@ -1901,7 +2072,6 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           }
         }
 
-        /* Mobile drawer */
         .mBackdrop {
           position: fixed;
           inset: 0;
