@@ -241,6 +241,7 @@ function Chip({
           color: rgba(0, 0, 0, 0.82);
           transition: background 140ms ease, transform 120ms ease, border-color 140ms ease, color 140ms ease;
           height: 40px;
+          outline: none;
         }
         .chip:hover {
           background: rgba(0, 0, 0, 0.03);
@@ -253,6 +254,10 @@ function Chip({
           background: rgba(17, 17, 17, 0.92);
           color: rgba(255, 255, 255, 0.95);
           border-color: rgba(0, 0, 0, 0.24);
+        }
+        .chip:focus-visible {
+          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.18);
+          border-color: rgba(0, 0, 0, 0.22);
         }
         .lead {
           display: inline-flex;
@@ -308,6 +313,11 @@ function FilterSection({
           justify-content: space-between;
           gap: 10px;
           padding: 0;
+          outline: none;
+        }
+        .head:focus-visible {
+          border-radius: 10px;
+          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
         }
         .t {
           font-weight: 950;
@@ -426,9 +436,13 @@ function SortDropdown({ value, onChange }: { value: SortKey; onChange: (v: SortK
           transition: background 140ms ease;
           color: rgba(0, 0, 0, 0.85);
           font-weight: 950;
+          outline: none;
         }
         .btn:hover {
           background: rgba(0, 0, 0, 0.04);
+        }
+        .btn:focus-visible {
+          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
         }
         .k {
           font-weight: 900;
@@ -471,9 +485,13 @@ function SortDropdown({ value, onChange }: { value: SortKey; onChange: (v: SortK
           cursor: pointer;
           text-align: left;
           transition: background 140ms ease;
+          outline: none;
         }
         .mi:hover {
           background: rgba(0, 0, 0, 0.04);
+        }
+        .mi:focus-visible {
+          box-shadow: inset 0 0 0 2px rgba(17, 17, 17, 0.18);
         }
         .mi.on {
           background: rgba(0, 0, 0, 0.03);
@@ -604,6 +622,7 @@ function ActiveFilters({
           transition: background 140ms ease, transform 120ms ease, border-color 140ms ease;
           height: 40px;
           max-width: 100%;
+          outline: none;
         }
         .pill:hover {
           background: rgba(0, 0, 0, 0.03);
@@ -611,6 +630,9 @@ function ActiveFilters({
         }
         .pill:active {
           transform: scale(0.99);
+        }
+        .pill:focus-visible {
+          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
         }
         .lab {
           max-width: 320px;
@@ -634,10 +656,14 @@ function ActiveFilters({
           color: rgba(0, 0, 0, 0.74);
           height: 40px;
           transition: background 140ms ease, color 140ms ease;
+          outline: none;
         }
         .clearAll:hover {
           background: rgba(0, 0, 0, 0.06);
           color: #111;
+        }
+        .clearAll:focus-visible {
+          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
         }
       `}</style>
     </div>
@@ -712,6 +738,7 @@ function QuickFiltersRow({
           letter-spacing: -0.01em;
           transition: background 140ms ease, border-color 140ms ease, transform 120ms ease, color 140ms ease;
           white-space: nowrap;
+          outline: none;
         }
         .b:hover {
           background: rgba(0, 0, 0, 0.03);
@@ -724,6 +751,9 @@ function QuickFiltersRow({
           background: rgba(17, 17, 17, 0.92);
           color: rgba(255, 255, 255, 0.96);
           border-color: rgba(0, 0, 0, 0.24);
+        }
+        .b:focus-visible {
+          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
         }
       `}</style>
     </div>
@@ -790,9 +820,13 @@ function EmptyState({ onClear }: { onClear: () => void }) {
           color: rgba(255, 255, 255, 0.96);
           font-weight: 950;
           letter-spacing: -0.01em;
+          outline: none;
         }
         .btn:active {
           transform: scale(0.99);
+        }
+        .btn:focus-visible {
+          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.18);
         }
         .link {
           text-decoration: none;
@@ -853,6 +887,7 @@ function BackToTop({ show }: { show: boolean }) {
           transform: translateY(12px);
           pointer-events: none;
           transition: opacity 180ms ease, transform 220ms ease, background 140ms ease;
+          outline: none;
         }
         .btt:hover {
           background: #fff;
@@ -861,6 +896,9 @@ function BackToTop({ show }: { show: boolean }) {
           opacity: 1;
           transform: translateY(0);
           pointer-events: auto;
+        }
+        .btt:focus-visible {
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.16), 0 0 0 3px rgba(17, 17, 17, 0.14);
         }
         .ic {
           display: inline-flex;
@@ -916,12 +954,7 @@ function GridSkeleton({ count }: { count: number }) {
         .img {
           aspect-ratio: 1 / 1;
           border-radius: 10px;
-          background: linear-gradient(
-            90deg,
-            rgba(0, 0, 0, 0.04),
-            rgba(0, 0, 0, 0.08),
-            rgba(0, 0, 0, 0.04)
-          );
+          background: linear-gradient(90deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04));
           background-size: 220% 100%;
           animation: shimmer 1200ms ease-in-out infinite;
           box-shadow: 0 18px 60px rgba(0, 0, 0, 0.06);
@@ -934,12 +967,7 @@ function GridSkeleton({ count }: { count: number }) {
         .l3 {
           height: 12px;
           border-radius: 999px;
-          background: linear-gradient(
-            90deg,
-            rgba(0, 0, 0, 0.04),
-            rgba(0, 0, 0, 0.08),
-            rgba(0, 0, 0, 0.04)
-          );
+          background: linear-gradient(90deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04));
           background-size: 220% 100%;
           animation: shimmer 1200ms ease-in-out infinite;
         }
@@ -1084,10 +1112,14 @@ function DesktopStickyControls({
             padding: 10px 12px;
             border-radius: 999px;
             transition: background 140ms ease, color 140ms ease;
+            outline: none;
           }
           .dBtn:hover {
             background: rgba(0, 0, 0, 0.06);
             color: #111;
+          }
+          .dBtn:focus-visible {
+            box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
           }
           .lbl {
             font-size: 13px;
@@ -1154,7 +1186,6 @@ const ProductCard = memo(function ProductCard({
   const favKey = String((p as any).id || (p as any).slug || (p as any).name || "");
   const href = `/product?id=${encodeURIComponent(String((p as any).id || ""))}`;
 
-  // keep tick dependency so component updates when favorites change
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _ = favTick;
 
@@ -1357,6 +1388,7 @@ const ProductCard = memo(function ProductCard({
           -webkit-backdrop-filter: blur(10px);
           transition: transform 140ms ease, background 140ms ease;
           z-index: 4;
+          outline: none;
         }
         .heart:active {
           transform: scale(0.98);
@@ -1365,6 +1397,9 @@ const ProductCard = memo(function ProductCard({
           background: rgba(239, 68, 68, 0.12);
           border-color: rgba(239, 68, 68, 0.25);
           color: rgba(239, 68, 68, 0.95);
+        }
+        .heart:focus-visible {
+          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.16);
         }
 
         .qs {
@@ -1392,10 +1427,14 @@ const ProductCard = memo(function ProductCard({
           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.16);
           backdrop-filter: blur(10px);
           -webkit-backdrop-filter: blur(10px);
+          outline: none;
         }
         .qsBtn:hover {
           background: #fff;
           color: #111;
+        }
+        .qsBtn:focus-visible {
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.16), 0 0 0 3px rgba(17, 17, 17, 0.14);
         }
 
         @media (hover: hover) and (pointer: fine) {
@@ -1624,9 +1663,7 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
   const filtered = useMemo(() => {
     let list = [...all];
 
-    if (newOnly) {
-      list = list.filter((p) => Boolean((p as any).isNew));
-    }
+    if (newOnly) list = list.filter((p) => Boolean((p as any).isNew));
 
     if (dCap) {
       list = list.filter((p) => {
@@ -1741,7 +1778,6 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
     }
   }, []);
 
-  // skeleton count (desktop shows more)
   const skeletonCount = useMemo(() => {
     if (!filtered.length) return 8;
     return filtered.length >= 12 ? 12 : filtered.length >= 8 ? 8 : 6;
@@ -1787,9 +1823,10 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
             <span className="crumb dim">Products</span>
           </div>
 
-          <h1 className="title">
-            Products <span className="count">({filtered.length})</span>
-          </h1>
+          <div className="hRow">
+            <h1 className="title">Products</h1>
+            <div className="metaCount">{filtered.length} Results</div>
+          </div>
         </div>
 
         <div className="heroRight">
@@ -1824,7 +1861,7 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
             ref={(n) => {
               sideRef.current = n;
             }}
-            className="side"
+            className={`side ${sideScrolled ? "rail" : ""}`}
           >
             <div className={`sideTop ${sideScrolled ? "sc" : ""}`}>
               <div className="sideTitle">
@@ -2104,7 +2141,6 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
       ) : null}
 
       <style jsx>{`
-        /* ✅ FIX barra abajo (scroll horizontal) */
         .root {
           background: #fff;
           min-height: 100vh;
@@ -2127,7 +2163,7 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
         .hero {
           max-width: 1440px;
           margin: 0 auto;
-          padding: 10px 0 12px;
+          padding: 10px 0 10px;
           display: flex;
           justify-content: space-between;
           align-items: flex-end;
@@ -2156,18 +2192,27 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           opacity: 0.85;
         }
 
+        /* ✅ Header compact Nike */
+        .hRow {
+          display: flex;
+          align-items: baseline;
+          gap: 12px;
+          margin-top: 10px;
+          flex-wrap: wrap;
+        }
         .title {
-          margin: 10px 0 0;
+          margin: 0;
           font-weight: 950;
-          letter-spacing: -0.04em;
+          letter-spacing: -0.045em;
           color: #111;
-          font-size: 40px;
+          font-size: 36px;
           line-height: 1.02;
         }
-        .count {
-          font-weight: 900;
+        .metaCount {
+          font-weight: 950;
           color: rgba(0, 0, 0, 0.55);
-          font-size: 22px;
+          font-size: 13px;
+          letter-spacing: -0.01em;
         }
 
         .heroRight {
@@ -2190,10 +2235,14 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           padding: 10px 10px;
           border-radius: 12px;
           transition: background 140ms ease, color 140ms ease;
+          outline: none;
         }
         .filtersBtn:hover {
           background: rgba(0, 0, 0, 0.04);
           color: #111;
+        }
+        .filtersBtn:focus-visible {
+          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
         }
         .lbl {
           font-size: 13px;
@@ -2238,13 +2287,12 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           position: sticky;
           top: calc(var(--jusp-header-h, 64px) + 12px);
           overflow: hidden;
-          transition: opacity 180ms ease, transform 220ms ease;
-          will-change: opacity, transform;
         }
         .sideWrap.off {
           display: none;
         }
 
+        /* ✅ Sticky rail pro */
         .side {
           max-height: calc(100vh - (var(--jusp-header-h, 64px) + 20px));
           overflow: auto;
@@ -2252,14 +2300,24 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           padding-right: 18px;
           overscroll-behavior: contain;
           -webkit-overflow-scrolling: touch;
+
+          background: #fff;
+          border-radius: 14px;
+          padding-top: 0;
+        }
+        .side.rail {
+          box-shadow: 0 22px 60px rgba(0, 0, 0, 0.06);
+          border-right-color: rgba(0, 0, 0, 0.1);
         }
 
         .sideTop {
           position: sticky;
           top: 0;
           z-index: 2;
-          background: #fff;
-          padding: 10px 0 12px;
+          background: rgba(255, 255, 255, 0.92);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          padding: 12px 0 12px;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -2291,10 +2349,14 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           padding: 8px 10px;
           border-radius: 12px;
           transition: background 140ms ease, color 140ms ease, opacity 140ms ease;
+          outline: none;
         }
         .sideReset:hover {
           background: rgba(0, 0, 0, 0.04);
           color: #111;
+        }
+        .sideReset:focus-visible {
+          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
         }
         .sideReset:disabled {
           opacity: 0.35;
@@ -2345,6 +2407,10 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           align-items: center;
           justify-content: flex-start;
           transition: background 160ms ease;
+          outline: none;
+        }
+        .toggle:focus-visible {
+          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
         }
         .toggle.on {
           background: rgba(17, 17, 17, 0.92);
@@ -2386,7 +2452,7 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
             gap: 22px 16px;
           }
           .title {
-            font-size: 34px;
+            font-size: 32px;
           }
         }
 
@@ -2424,6 +2490,10 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
             font-weight: 950;
             color: rgba(0, 0, 0, 0.82);
             flex: 0 0 auto;
+            outline: none;
+          }
+          .mFiltersBtn:focus-visible {
+            box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
           }
           .mFtxt {
             font-size: 13px;
@@ -2462,10 +2532,7 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           }
 
           .title {
-            font-size: 28px;
-          }
-          .count {
-            font-size: 18px;
+            font-size: 26px;
           }
           .layout {
             grid-template-columns: 1fr;
@@ -2521,6 +2588,11 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           font-weight: 950;
           font-size: 16px;
           color: rgba(0, 0, 0, 0.7);
+          outline: none;
+        }
+        .mX:focus-visible {
+          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
+          border-radius: 10px;
         }
         .mBody {
           padding: 10px 16px 18px;
@@ -2540,6 +2612,10 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           border-radius: 12px;
           color: rgba(0, 0, 0, 0.75);
           transition: opacity 140ms ease;
+          outline: none;
+        }
+        .mClear:focus-visible {
+          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
         }
         .mClear:disabled {
           opacity: 0.4;
