@@ -124,14 +124,13 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   }, []);
 
   // =========================
-  // ✅ PRO MAX REAL: Prefetch inteligente (percibido: cero lag al navegar)
-  // - No rompe nada, solo acelera
+  // ✅ PRO MAX REAL: Prefetch seguro (SIN deps variables)
   // =========================
   const prefetch = useCallback(
     (href: string) => {
       try {
         if (!href || !href.startsWith("/")) return;
-        // router.prefetch existe en Next App Router
+        // Next router en App Router soporta prefetch
         // @ts-ignore
         if (typeof (router as any)?.prefetch === "function") (router as any).prefetch(href);
       } catch {
@@ -141,24 +140,28 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     [router]
   );
 
+  // Prefetch 1 vez, en idle, para rutas clave
   useEffect(() => {
     try {
       if (typeof window === "undefined") return;
+
       const run = () => {
         prefetch("/products");
         prefetch("/checkout");
         prefetch("/drops");
         prefetch("/membership");
         prefetch("/help");
+        prefetch("/stores");
+        prefetch("/privacy");
+        prefetch("/terms");
       };
 
-      // idle > setTimeout (mejor para no bloquear render)
       // @ts-ignore
       if (typeof window.requestIdleCallback === "function") {
         // @ts-ignore
         window.requestIdleCallback(run, { timeout: 1200 });
       } else {
-        window.setTimeout(run, 300);
+        window.setTimeout(run, 260);
       }
     } catch {
       // no-op
@@ -315,7 +318,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isCartOpen, pathname]);
 
-  const undoLastAdd = useCallback(() => {
+  function undoLastAdd() {
     const last = lastAddedRef.current;
     if (!last) return;
     suppressNextRef.current = "undo";
@@ -325,7 +328,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     } catch {
       suppressNextRef.current = "none";
     }
-  }, [decQty]);
+  }
 
   useEffect(() => {
     if (!isCartOpen) return;
@@ -349,15 +352,14 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     if (rawOpen === "1") setMegaOpen(true);
   }, []);
 
-  const onToggleMega = useCallback(() => {
+  function onToggleMega() {
     setMegaOpen((v) => {
       const next = !v;
       safeSetLS(LS_MEGA_OPEN, next ? "1" : "0");
       return next;
     });
-  }, []);
+  }
 
-  // ✅ Rutas con “cinematic background” que suelen crear espacio visual sin altura real
   const needsFooterSpacer = useMemo(() => {
     const p = pathname || "";
     return p === "/drops" || p.startsWith("/drops/") || p === "/membership" || p === "/early-access";
@@ -376,14 +378,13 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
         </button>
       ) : null}
 
-      {/* ✅ Empuja el footer al final en páginas cortas */}
       <div className="pageWrap" style={{ paddingTop: "var(--jusp-header-h)" }}>
-        <main className="pageMain">{children}</main>
+        <main className="pageMain" style={{ touchAction: "manipulation" }}>
+          {children}
+        </main>
 
-        {/* ✅ Spacer SOLO en páginas con fondo “fake/absolute” para que el footer no quede “en la mitad” */}
         {needsFooterSpacer ? <div className="footerSpacer" aria-hidden="true" /> : null}
 
-        {/* ✅ Footer SOLO al final */}
         <footer className="mega" aria-label="Footer">
           <div className="megaInner">
             <div className="megaTop">
@@ -478,22 +479,10 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
                     <Link href="/terms" className="l" onMouseEnter={() => prefetch("/terms")} onTouchStart={() => prefetch("/terms")} onFocus={() => prefetch("/terms")}>
                       Términos
                     </Link>
-                    <Link
-                      href="/privacy"
-                      className="l"
-                      onMouseEnter={() => prefetch("/privacy")}
-                      onTouchStart={() => prefetch("/privacy")}
-                      onFocus={() => prefetch("/privacy")}
-                    >
+                    <Link href="/privacy" className="l" onMouseEnter={() => prefetch("/privacy")} onTouchStart={() => prefetch("/privacy")} onFocus={() => prefetch("/privacy")}>
                       Privacidad
                     </Link>
-                    <Link
-                      href="/help/pqr"
-                      className="l"
-                      onMouseEnter={() => prefetch("/help/pqr")}
-                      onTouchStart={() => prefetch("/help/pqr")}
-                      onFocus={() => prefetch("/help/pqr")}
-                    >
+                    <Link href="/help/pqr" className="l" onMouseEnter={() => prefetch("/help/pqr")} onTouchStart={() => prefetch("/help/pqr")} onFocus={() => prefetch("/help/pqr")}>
                       PQR
                     </Link>
                   </div>
@@ -699,8 +688,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           border: 1px solid rgba(255, 255, 255, 0.18);
         }
 
-        /* ✅ Mega footer NO fijo
-           PRO MAX PERF: content-visibility reduce el costo de pintar cuando está fuera de pantalla */
+        /* ✅ Mega footer NO fijo */
         .mega {
           background: rgba(255, 255, 255, 0.92);
           backdrop-filter: blur(14px);
@@ -710,9 +698,6 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
 
           user-select: none;
           -webkit-user-select: none;
-
-          content-visibility: auto;
-          contain-intrinsic-size: 420px;
         }
         .mega ::selection {
           background: transparent;
@@ -984,9 +969,6 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           box-shadow: -20px 0 60px rgba(0, 0, 0, 0.25);
           display: flex;
           flex-direction: column;
-
-          /* PERF: evita recalcular todo el layout externo */
-          contain: layout paint;
         }
 
         .dTop {
