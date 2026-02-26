@@ -55,6 +55,83 @@ function emitFavEvent() {
     window.dispatchEvent(new Event("jusp:favorites"));
   } catch {}
 }
+function normKey(v: string) {
+  return (v || "").trim().toLowerCase();
+}
+function includesLoose(haystack: string, needle: string) {
+  const h = normKey(haystack);
+  const n = normKey(needle);
+  if (!n) return true;
+  return h.includes(n);
+}
+
+/** =========================
+ * Gender scope (MEN / WOMEN)
+ * - Esto controla qué marcas/tallas aparecen
+ * ========================= */
+type GenderScope = "men" | "women" | "all";
+
+function genderScopeFromPathname(pathname: string): GenderScope {
+  const p = (pathname || "").toLowerCase();
+
+  // ✅ Ajusta aquí si tus rutas son distintas (ej: /hombre, /mujer)
+  if (p.includes("/men") || p.includes("men")) return "men";
+  if (p.includes("/women") || p.includes("women")) return "women";
+
+  return "all";
+}
+
+function matchesGenderScope(productGender: any, scope: GenderScope) {
+  const g = String(productGender || "").toLowerCase(); // "men" | "women" | "unisex" | "kids" | ""
+  if (scope === "all") return true;
+
+  // ✅ Unisex aparece tanto en men como women
+  if (g === "unisex") return true;
+
+  if (scope === "men") return g === "men";
+  if (scope === "women") return g === "women";
+  return true;
+}
+
+/** ✅ Fallback de tallas completas por género (si algún producto viene sin sizes) */
+const MEN_SIZES_FALLBACK = [
+  "6",
+  "6.5",
+  "7",
+  "7.5",
+  "8",
+  "8.5",
+  "9",
+  "9.5",
+  "10",
+  "10.5",
+  "11",
+  "11.5",
+  "12",
+  "12.5",
+  "13",
+  "14",
+];
+
+const WOMEN_SIZES_FALLBACK = [
+  "4",
+  "4.5",
+  "5",
+  "5.5",
+  "6",
+  "6.5",
+  "7",
+  "7.5",
+  "8",
+  "8.5",
+  "9",
+  "9.5",
+  "10",
+  "10.5",
+  "11",
+  "11.5",
+  "12",
+];
 
 /** Color swatch: nombre -> color real (fallback robusto) */
 function colorToCss(name: string) {
@@ -334,6 +411,57 @@ function FilterSection({
         }
         .body {
           margin-top: 12px;
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/** =========================
+ * Search input (Filter Search)
+ * ========================= */
+function FilterSearch({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <div className="fs">
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="inp"
+        type="search"
+        aria-label={placeholder}
+      />
+      <style jsx>{`
+        .fs {
+          margin-bottom: 12px;
+        }
+        .inp {
+          width: 100%;
+          height: 40px;
+          border-radius: 12px;
+          border: 1px solid rgba(0, 0, 0, 0.14);
+          background: rgba(255, 255, 255, 0.96);
+          padding: 10px 12px;
+          font-weight: 900;
+          font-size: 13px;
+          outline: none;
+          color: rgba(0, 0, 0, 0.82);
+        }
+        .inp::placeholder {
+          color: rgba(0, 0, 0, 0.42);
+          font-weight: 900;
+        }
+        .inp:focus-visible {
+          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.12);
+          border-color: rgba(0, 0, 0, 0.18);
         }
       `}</style>
     </div>
@@ -1163,7 +1291,380 @@ function DesktopStickyControls({
 }
 
 /** =========================
- * Card PRO MAX (Nike 1:1)
+ * Compare Modal (Nike clean)
+ * ========================= */
+function CompareModal({
+  open,
+  onClose,
+  a,
+  b,
+}: {
+  open: boolean;
+  onClose: () => void;
+  a: Product | null;
+  b: Product | null;
+}) {
+  const ref = useOutsideClose(open, onClose);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  const rows = [
+    {
+      k: "Price",
+      a: a ? `$${moneyCOP(Number((a as any).price ?? 0) || 0)}` : "—",
+      b: b ? `$${moneyCOP(Number((b as any).price ?? 0) || 0)}` : "—",
+    },
+    {
+      k: "Sale",
+      a: a ? `${Number((a as any).discountPercent ?? (a as any).discount ?? 0) || 0}%` : "—",
+      b: b ? `${Number((b as any).discountPercent ?? (b as any).discount ?? 0) || 0}%` : "—",
+    },
+    {
+      k: "Brand",
+      a: a ? String((a as any).brand || "Nike") : "—",
+      b: b ? String((b as any).brand || "Nike") : "—",
+    },
+    {
+      k: "Type",
+      a: a ? typeLabel((a as any).category) : "—",
+      b: b ? typeLabel((b as any).category) : "—",
+    },
+    {
+      k: "Gender",
+      a: a ? genderLabel((a as any).gender) : "—",
+      b: b ? genderLabel((b as any).gender) : "—",
+    },
+    {
+      k: "Colors",
+      a: a ? String(safeArr((a as any).colors).length || 0) : "—",
+      b: b ? String(safeArr((b as any).colors).length || 0) : "—",
+    },
+    {
+      k: "Sizes",
+      a: a ? String(safeArr((a as any).sizes).length || 0) : "—",
+      b: b ? String(safeArr((b as any).sizes).length || 0) : "—",
+    },
+  ];
+
+  const imgA = a ? pickImgs(a).main : null;
+  const imgB = b ? pickImgs(b).main : null;
+
+  return (
+    <div
+      className="cmBack"
+      role="presentation"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="cm" role="dialog" aria-modal="true" aria-label="Compare products" ref={ref}>
+        <div className="cmTop">
+          <div className="cmTitle">Compare</div>
+          <button type="button" className="cmX" onClick={onClose} aria-label="Close">
+            ✕
+          </button>
+        </div>
+
+        <div className="cmHead">
+          <div className="col">
+            <div className="pimg">{imgA ? <img src={imgA} alt="" /> : null}</div>
+            <div className="pn">{a ? String((a as any).name || "Product") : "—"}</div>
+          </div>
+          <div className="col">
+            <div className="pimg">{imgB ? <img src={imgB} alt="" /> : null}</div>
+            <div className="pn">{b ? String((b as any).name || "Product") : "—"}</div>
+          </div>
+        </div>
+
+        <div className="cmTable" role="table" aria-label="Comparison table">
+          {rows.map((r) => (
+            <div key={r.k} className="r" role="row">
+              <div className="k" role="cell">
+                {r.k}
+              </div>
+              <div className="v" role="cell">
+                {r.a}
+              </div>
+              <div className="v" role="cell">
+                {r.b}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <style jsx>{`
+          .cmBack {
+            position: fixed;
+            inset: 0;
+            z-index: 2600;
+            background: rgba(0, 0, 0, 0.42);
+            display: grid;
+            place-items: center;
+            padding: 16px;
+          }
+          .cm {
+            width: min(980px, 96vw);
+            max-height: min(760px, 92vh);
+            overflow: auto;
+            background: #fff;
+            border-radius: 18px;
+            border: 1px solid rgba(0, 0, 0, 0.12);
+            box-shadow: 0 28px 90px rgba(0, 0, 0, 0.22);
+          }
+          .cmTop {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            position: sticky;
+            top: 0;
+            z-index: 2;
+          }
+          .cmTitle {
+            font-weight: 950;
+            color: #111;
+            font-size: 14px;
+            letter-spacing: -0.01em;
+          }
+          .cmX {
+            border: 0;
+            background: transparent;
+            cursor: pointer;
+            font-weight: 950;
+            font-size: 16px;
+            color: rgba(0, 0, 0, 0.7);
+            outline: none;
+          }
+          .cmX:focus-visible {
+            box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
+            border-radius: 10px;
+          }
+
+          .cmHead {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            padding: 16px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+          }
+          .col {
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 14px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.02);
+          }
+          .pimg {
+            aspect-ratio: 1/1;
+            border-radius: 12px;
+            background: #f4f4f4;
+            display: grid;
+            place-items: center;
+            overflow: hidden;
+          }
+          .pimg img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            padding: 18px;
+            display: block;
+          }
+          .pn {
+            margin-top: 10px;
+            font-weight: 950;
+            color: #111;
+            letter-spacing: -0.02em;
+            font-size: 14px;
+            line-height: 1.18;
+          }
+
+          .cmTable {
+            padding: 10px 16px 18px;
+          }
+          .r {
+            display: grid;
+            grid-template-columns: 160px 1fr 1fr;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+          }
+          .k {
+            font-weight: 950;
+            color: rgba(0, 0, 0, 0.55);
+            font-size: 12px;
+          }
+          .v {
+            font-weight: 950;
+            color: rgba(0, 0, 0, 0.82);
+            font-size: 13px;
+          }
+
+          @media (max-width: 700px) {
+            .cmHead {
+              grid-template-columns: 1fr;
+            }
+            .r {
+              grid-template-columns: 120px 1fr;
+              grid-auto-rows: auto;
+            }
+            .r .v:nth-child(3) {
+              grid-column: 2 / 3;
+            }
+          }
+        `}</style>
+      </div>
+    </div>
+  );
+}
+
+/** =========================
+ * Compare Bar (Nike)
+ * ========================= */
+function CompareBar({
+  count,
+  aName,
+  bName,
+  onOpen,
+  onClear,
+}: {
+  count: number;
+  aName: string | null;
+  bName: string | null;
+  onOpen: () => void;
+  onClear: () => void;
+}) {
+  if (!count) return null;
+
+  return (
+    <div className="cb" role="region" aria-label="Compare bar">
+      <div className="in">
+        <div className="left">
+          <div className="t">Compare</div>
+          <div className="s">
+            {count === 1 ? (
+              <span>Selected: {aName || "1 item"}</span>
+            ) : (
+              <span>
+                Selected: {aName || "A"} <span className="dot">·</span> {bName || "B"}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="right">
+          <button type="button" className="ghost" onClick={onClear}>
+            Clear
+          </button>
+          <button type="button" className="cta" onClick={onOpen} disabled={count < 2} aria-disabled={count < 2}>
+            Compare
+          </button>
+        </div>
+      </div>
+
+      <style jsx>{`
+        .cb {
+          position: fixed;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          z-index: 2000;
+          padding: 10px 14px;
+          background: rgba(255, 255, 255, 0.86);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+          border-top: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        .in {
+          max-width: 1440px;
+          margin: 0 auto;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+        .t {
+          font-weight: 950;
+          color: #111;
+          font-size: 13px;
+          letter-spacing: -0.01em;
+        }
+        .s {
+          margin-top: 2px;
+          font-weight: 900;
+          color: rgba(0, 0, 0, 0.55);
+          font-size: 12px;
+          letter-spacing: -0.01em;
+          max-width: 64vw;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .dot {
+          opacity: 0.55;
+        }
+        .right {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          flex: 0 0 auto;
+        }
+        .ghost {
+          border: 0;
+          background: rgba(0, 0, 0, 0.04);
+          cursor: pointer;
+          font-weight: 950;
+          padding: 10px 12px;
+          border-radius: 999px;
+          color: rgba(0, 0, 0, 0.75);
+          outline: none;
+        }
+        .ghost:hover {
+          background: rgba(0, 0, 0, 0.06);
+          color: #111;
+        }
+        .ghost:focus-visible {
+          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
+        }
+        .cta {
+          border: 0;
+          cursor: pointer;
+          font-weight: 950;
+          padding: 10px 14px;
+          border-radius: 999px;
+          background: rgba(17, 17, 17, 0.92);
+          color: rgba(255, 255, 255, 0.96);
+          outline: none;
+          transition: transform 120ms ease, opacity 140ms ease;
+        }
+        .cta:active {
+          transform: scale(0.99);
+        }
+        .cta:focus-visible {
+          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.16);
+        }
+        .cta:disabled {
+          opacity: 0.45;
+          cursor: default;
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/** =========================
+ * Card PRO MAX (Nike 1:1) + Compare
  * ========================= */
 const ProductCard = memo(function ProductCard({
   p,
@@ -1171,12 +1672,16 @@ const ProductCard = memo(function ProductCard({
   favTick,
   onToggleFav,
   onPrefetch,
+  compareOn,
+  onToggleCompare,
 }: {
   p: Product;
   mounted: boolean;
   favTick: number;
   onToggleFav: (favKey: string) => void;
   onPrefetch: (href: string) => void;
+  compareOn: boolean;
+  onToggleCompare: (id: string) => void;
 }) {
   const { main } = pickImgs(p);
   const price = Number((p as any).price ?? 0) || 0;
@@ -1217,6 +1722,16 @@ const ProductCard = memo(function ProductCard({
           )}
           {sale.has ? <div className="sale">-{sale.d}%</div> : null}
         </Link>
+
+        <button
+          type="button"
+          className={`cmp ${compareOn ? "on" : ""}`}
+          onClick={() => onToggleCompare(favKey)}
+          aria-pressed={compareOn}
+          aria-label="Toggle compare"
+        >
+          Compare
+        </button>
 
         <div className="dotsRow" aria-label="Available colors">
           <div className="dots" aria-hidden="true">
@@ -1330,6 +1845,54 @@ const ProductCard = memo(function ProductCard({
           font-size: 12px;
           letter-spacing: -0.01em;
           z-index: 3;
+        }
+
+        .cmp {
+          position: absolute;
+          top: 12px;
+          left: 12px;
+          transform: translateY(44px);
+          border: 1px solid rgba(0, 0, 0, 0.14);
+          background: rgba(255, 255, 255, 0.92);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          border-radius: 999px;
+          padding: 8px 10px;
+          height: 34px;
+          cursor: pointer;
+          font-weight: 950;
+          color: rgba(0, 0, 0, 0.82);
+          z-index: 4;
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 160ms ease, transform 160ms ease, background 140ms ease, color 140ms ease;
+          outline: none;
+          font-size: 12px;
+          letter-spacing: -0.01em;
+        }
+        .cmp.on {
+          background: rgba(17, 17, 17, 0.92);
+          color: rgba(255, 255, 255, 0.96);
+          border-color: rgba(0, 0, 0, 0.24);
+          opacity: 1;
+          pointer-events: auto;
+        }
+        .cmp:focus-visible {
+          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
+        }
+        @media (hover: hover) and (pointer: fine) {
+          article:hover .cmp {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(44px);
+          }
+        }
+        @media (max-width: 980px) {
+          .cmp {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(44px);
+          }
         }
 
         .dotsRow {
@@ -1492,11 +2055,17 @@ const ProductCard = memo(function ProductCard({
  * Main
  * ========================= */
 function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
-  const all = useMemo(() => (initialProducts?.length ? initialProducts : PRODUCTS ?? []), [initialProducts]);
+  const allRaw = useMemo(() => (initialProducts?.length ? initialProducts : PRODUCTS ?? []), [initialProducts]);
 
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  // ✅ Detecta si estás en MEN o WOMEN
+  const scope = useMemo(() => genderScopeFromPathname(pathname || ""), [pathname]);
+
+  // ✅ Base list por sección: SOLO men/women (+ unisex)
+  const all = useMemo(() => allRaw.filter((p) => matchesGenderScope((p as any).gender, scope)), [allRaw, scope]);
 
   const { mounted, tick: favTick } = useFavoritesSignal();
 
@@ -1510,6 +2079,16 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
   const [secColor, setSecColor] = useState(true);
   const [secSize, setSecSize] = useState(true);
   const [secPrice, setSecPrice] = useState(true);
+
+  // ✅ Filter search (desktop)
+  const [brandSearch, setBrandSearch] = useState("");
+  const [colorSearch, setColorSearch] = useState("");
+  const [sizeSearch, setSizeSearch] = useState("");
+
+  // ✅ Filter search (mobile drawer)
+  const [mBrandSearch, setMBrandSearch] = useState("");
+  const [mColorSearch, setMColorSearch] = useState("");
+  const [mSizeSearch, setMSizeSearch] = useState("");
 
   const [pickupToday, setPickupToday] = useState(false);
 
@@ -1623,10 +2202,48 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
     return () => el.removeEventListener("scroll", onScroll as any);
   }, [filtersOpen, mobileOpen]);
 
+  // ✅ Listas por sección (men/women) + fallback PRO de tallas completas por género
   const types = useMemo(() => uniq(all.map((p) => typeLabel((p as any).category))).sort(), [all]);
-  const brands = useMemo(() => uniq(all.map((p) => String((p as any).brand || "Nike"))).sort(), [all]);
+
+  const brands = useMemo(() => {
+    // Solo marcas que existan en esa sección (men/women)
+    const fromProducts = uniq(all.map((p) => String((p as any).brand || "Nike"))).filter(Boolean);
+    return fromProducts.sort((a, b) => a.localeCompare(b));
+  }, [all]);
+
   const colors = useMemo(() => uniq(all.flatMap((p) => safeArr((p as any).colors))).sort(), [all]);
-  const sizes = useMemo(() => uniq(all.flatMap((p) => safeArr((p as any).sizes))).sort(), [all]);
+
+  const sizes = useMemo(() => {
+    const fromProducts = uniq(all.flatMap((p) => safeArr((p as any).sizes))).filter(Boolean);
+
+    // Fallback: agrega catálogo completo por género SOLO en su sección
+    const fallback =
+      scope === "men" ? MEN_SIZES_FALLBACK : scope === "women" ? WOMEN_SIZES_FALLBACK : [...MEN_SIZES_FALLBACK, ...WOMEN_SIZES_FALLBACK];
+
+    const merged = uniq([...fromProducts, ...fallback]);
+
+    // Orden numérico si se puede
+    merged.sort((a, b) => {
+      const na = Number(a);
+      const nb = Number(b);
+      const fa = Number.isFinite(na);
+      const fb = Number.isFinite(nb);
+      if (fa && fb) return na - nb;
+      if (fa && !fb) return -1;
+      if (!fa && fb) return 1;
+      return String(a).localeCompare(String(b));
+    });
+
+    return merged;
+  }, [all, scope]);
+
+  const brandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, brandSearch)), [brands, brandSearch]);
+  const colorsFiltered = useMemo(() => colors.filter((c) => includesLoose(c, colorSearch)), [colors, colorSearch]);
+  const sizesFiltered = useMemo(() => sizes.filter((s) => includesLoose(s, sizeSearch)), [sizes, sizeSearch]);
+
+  const mBrandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, mBrandSearch)), [brands, mBrandSearch]);
+  const mColorsFiltered = useMemo(() => colors.filter((c) => includesLoose(c, mColorSearch)), [colors, mColorSearch]);
+  const mSizesFiltered = useMemo(() => sizes.filter((s) => includesLoose(s, mSizeSearch)), [sizes, mSizeSearch]);
 
   const priceRanges = useMemo(() => {
     const prices = all.map((p) => Number((p as any).price ?? 0)).filter((n) => Number.isFinite(n) && n > 0);
@@ -1674,7 +2291,15 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
     if (type) list = list.filter((p) => typeLabel((p as any).category) === type);
     if (brand) list = list.filter((p) => String((p as any).brand || "Nike") === brand);
     if (color) list = list.filter((p) => safeArr((p as any).colors).includes(color));
-    if (size) list = list.filter((p) => safeArr((p as any).sizes).includes(size));
+
+    if (size) {
+      // ✅ Size aplica con fallback: si un producto no tiene sizes, no lo filtra "por error"
+      list = list.filter((p) => {
+        const ps = safeArr((p as any).sizes);
+        if (!ps.length) return true;
+        return ps.includes(size);
+      });
+    }
 
     if (priceBucket) {
       list = list.filter((p) => {
@@ -1783,6 +2408,40 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
     return filtered.length >= 12 ? 12 : filtered.length >= 8 ? 8 : 6;
   }, [filtered.length]);
 
+  /** ✅ Compare state */
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [compareOpen, setCompareOpen] = useState(false);
+
+  const compareSet = useMemo(() => new Set(compareIds), [compareIds]);
+  const onToggleCompare = useCallback((id: string) => {
+    setCompareIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 2) return [prev[1], id];
+      return [...prev, id];
+    });
+  }, []);
+  const clearCompare = useCallback(() => setCompareIds([]), []);
+  const openCompare = useCallback(() => setCompareOpen(true), []);
+  const closeCompare = useCallback(() => setCompareOpen(false), []);
+
+  const compareA = useMemo(
+    () =>
+      compareIds[0]
+        ? all.find((p) => String((p as any).id || (p as any).slug || (p as any).name || "") === compareIds[0]) || null
+        : null,
+    [all, compareIds]
+  );
+  const compareB = useMemo(
+    () =>
+      compareIds[1]
+        ? all.find((p) => String((p as any).id || (p as any).slug || (p as any).name || "") === compareIds[1]) || null
+        : null,
+    [all, compareIds]
+  );
+
+  const aName = compareA ? String((compareA as any).name || "A") : null;
+  const bName = compareB ? String((compareB as any).name || "B") : null;
+
   return (
     <main className="root">
       <TopLoadingBar active={uiLoading} />
@@ -1799,7 +2458,17 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
       />
 
       <div className="mSticky" aria-label="Mobile controls">
-        <button type="button" className="mFiltersBtn" onClick={() => setMobileOpen(true)} aria-label="Open filters">
+        <button
+          type="button"
+          className="mFiltersBtn"
+          onClick={() => {
+            setMobileOpen(true);
+            setMBrandSearch("");
+            setMColorSearch("");
+            setMSizeSearch("");
+          }}
+          aria-label="Open filters"
+        >
           <span className="mFtxt">Filters</span>
           {activeCount ? <span className="mBadge">{activeCount}</span> : null}
           <span className="mFic" aria-hidden="true">
@@ -1925,11 +2594,12 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
               </FilterSection>
 
               <FilterSection title="Brand" open={secBrand} onToggle={() => setSecBrand((v) => !v)}>
+                <FilterSearch value={brandSearch} onChange={setBrandSearch} placeholder="Search brand…" />
                 <div className="chipsGrid">
                   <Chip on={!brand} onClick={() => setParam(Q.brand, null)}>
                     All
                   </Chip>
-                  {brands.map((b) => (
+                  {brandsFiltered.map((b) => (
                     <Chip key={b} on={brand === b} onClick={() => setParam(Q.brand, b)}>
                       {b}
                     </Chip>
@@ -1938,11 +2608,12 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
               </FilterSection>
 
               <FilterSection title="Color" open={secColor} onToggle={() => setSecColor((v) => !v)}>
+                <FilterSearch value={colorSearch} onChange={setColorSearch} placeholder="Search color…" />
                 <div className="chipsGrid">
                   <Chip on={!color} onClick={() => setParam(Q.color, null)}>
                     All
                   </Chip>
-                  {colors.map((c) => (
+                  {colorsFiltered.map((c) => (
                     <Chip
                       key={c}
                       on={color === c}
@@ -1956,11 +2627,12 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
               </FilterSection>
 
               <FilterSection title="Size" open={secSize} onToggle={() => setSecSize((v) => !v)}>
+                <FilterSearch value={sizeSearch} onChange={setSizeSearch} placeholder="Search size…" />
                 <div className="chipsGrid">
                   <Chip on={!size} onClick={() => setParam(Q.size, null)}>
                     All
                   </Chip>
-                  {sizes.map((s) => (
+                  {sizesFiltered.map((s) => (
                     <Chip key={s} on={size === s} onClick={() => setParam(Q.size, s)}>
                       {s}
                     </Chip>
@@ -2000,6 +2672,8 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
                       favTick={favTick}
                       onToggleFav={onToggleFav}
                       onPrefetch={onPrefetch}
+                      compareOn={compareSet.has(key)}
+                      onToggleCompare={onToggleCompare}
                     />
                   );
                 })}
@@ -2008,6 +2682,9 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           )}
         </section>
       </div>
+
+      <CompareBar count={compareIds.length} aName={aName} bName={bName} onOpen={openCompare} onClear={clearCompare} />
+      <CompareModal open={compareOpen} onClose={closeCompare} a={compareA} b={compareB} />
 
       {mobileOpen ? (
         <div
@@ -2089,11 +2766,12 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
 
               <div className="mSec">
                 <div className="mSecHead">Brand</div>
+                <FilterSearch value={mBrandSearch} onChange={setMBrandSearch} placeholder="Search brand…" />
                 <div className="chipsGrid">
                   <Chip on={!brand} onClick={() => setParam(Q.brand, null)}>
                     All
                   </Chip>
-                  {brands.map((b) => (
+                  {mBrandsFiltered.map((b) => (
                     <Chip key={b} on={brand === b} onClick={() => setParam(Q.brand, b)}>
                       {b}
                     </Chip>
@@ -2103,11 +2781,12 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
 
               <div className="mSec">
                 <div className="mSecHead">Color</div>
+                <FilterSearch value={mColorSearch} onChange={setMColorSearch} placeholder="Search color…" />
                 <div className="chipsGrid">
                   <Chip on={!color} onClick={() => setParam(Q.color, null)}>
                     All
                   </Chip>
-                  {colors.map((c) => (
+                  {mColorsFiltered.map((c) => (
                     <Chip
                       key={c}
                       on={color === c}
@@ -2122,11 +2801,12 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
 
               <div className="mSec">
                 <div className="mSecHead">Size</div>
+                <FilterSearch value={mSizeSearch} onChange={setMSizeSearch} placeholder="Search size…" />
                 <div className="chipsGrid">
                   <Chip on={!size} onClick={() => setParam(Q.size, null)}>
                     All
                   </Chip>
-                  {sizes.map((s) => (
+                  {mSizesFiltered.map((s) => (
                     <Chip key={s} on={size === s} onClick={() => setParam(Q.size, s)}>
                       {s}
                     </Chip>
@@ -2147,7 +2827,7 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           padding-top: calc(var(--jusp-header-h, 64px) + 10px);
           padding-left: 18px;
           padding-right: 18px;
-          padding-bottom: 44px;
+          padding-bottom: 88px;
           overflow-x: clip;
         }
         @supports not (overflow: clip) {
@@ -2192,7 +2872,6 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           opacity: 0.85;
         }
 
-        /* ✅ Header compact Nike */
         .hRow {
           display: flex;
           align-items: baseline;
@@ -2292,7 +2971,6 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           display: none;
         }
 
-        /* ✅ Sticky rail pro */
         .side {
           max-height: calc(100vh - (var(--jusp-header-h, 64px) + 20px));
           overflow: auto;
