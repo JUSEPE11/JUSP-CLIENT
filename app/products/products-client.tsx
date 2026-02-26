@@ -118,7 +118,7 @@ const Q = {
   color: "color",
   size: "size",
   price: "p",
-  isNew: "new", // ✅ Quick filter "New"
+  isNew: "new",
 } as const;
 
 function parseDiscountCap(v: string | null): DiscountCap {
@@ -142,7 +142,7 @@ function sortLabel(sort: SortKey) {
 }
 function parsePriceBucket(v: string | null) {
   const s = (v || "").trim();
-  return s ? s : null; // "min-max" or "min+"
+  return s ? s : null;
 }
 function inBucket(price: number, bucket: string | null) {
   if (!bucket) return true;
@@ -457,7 +457,7 @@ function SortDropdown({ value, onChange }: { value: SortKey; onChange: (v: SortK
           border-radius: 14px;
           box-shadow: 0 22px 60px rgba(0, 0, 0, 0.14);
           overflow: hidden;
-          z-index: 50;
+          z-index: 80;
         }
         .mi {
           width: 100%;
@@ -879,6 +879,254 @@ function BackToTop({ show }: { show: boolean }) {
         }
       `}</style>
     </button>
+  );
+}
+
+/** =========================
+ * Skeleton (Nike grid)
+ * ========================= */
+function GridSkeleton({ count }: { count: number }) {
+  const n = clamp(count, 6, 16);
+  const items = Array.from({ length: n }, (_, i) => i);
+
+  return (
+    <div className="sk" aria-hidden="true">
+      {items.map((i) => (
+        <div key={i} className="card">
+          <div className="img" />
+          <div className="m">
+            <div className="l1" />
+            <div className="l2" />
+            <div className="l3" />
+          </div>
+        </div>
+      ))}
+
+      <style jsx>{`
+        .sk {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 26px 18px;
+          padding-top: 8px;
+        }
+        .card {
+          border-radius: 10px;
+          overflow: hidden;
+        }
+        .img {
+          aspect-ratio: 1 / 1;
+          border-radius: 10px;
+          background: linear-gradient(
+            90deg,
+            rgba(0, 0, 0, 0.04),
+            rgba(0, 0, 0, 0.08),
+            rgba(0, 0, 0, 0.04)
+          );
+          background-size: 220% 100%;
+          animation: shimmer 1200ms ease-in-out infinite;
+          box-shadow: 0 18px 60px rgba(0, 0, 0, 0.06);
+        }
+        .m {
+          padding: 14px 2px 2px;
+        }
+        .l1,
+        .l2,
+        .l3 {
+          height: 12px;
+          border-radius: 999px;
+          background: linear-gradient(
+            90deg,
+            rgba(0, 0, 0, 0.04),
+            rgba(0, 0, 0, 0.08),
+            rgba(0, 0, 0, 0.04)
+          );
+          background-size: 220% 100%;
+          animation: shimmer 1200ms ease-in-out infinite;
+        }
+        .l1 {
+          width: 86%;
+        }
+        .l2 {
+          width: 68%;
+          margin-top: 10px;
+          opacity: 0.9;
+        }
+        .l3 {
+          width: 42%;
+          margin-top: 12px;
+          height: 14px;
+        }
+
+        @keyframes shimmer {
+          0% {
+            background-position: 0% 0%;
+          }
+          50% {
+            background-position: 100% 0%;
+          }
+          100% {
+            background-position: 0% 0%;
+          }
+        }
+
+        @media (max-width: 1320px) {
+          .sk {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 22px 16px;
+          }
+        }
+        @media (max-width: 980px) {
+          .sk {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px 12px;
+          }
+        }
+        @media (max-width: 520px) {
+          .sk {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .img,
+          .l1,
+          .l2,
+          .l3 {
+            animation: none;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/** =========================
+ * Sticky Desktop Controls (Nike)
+ * ========================= */
+function DesktopStickyControls({
+  show,
+  activeCount,
+  resultsCount,
+  showSide,
+  onToggleFilters,
+  sort,
+  onChangeSort,
+}: {
+  show: boolean;
+  activeCount: number;
+  resultsCount: number;
+  showSide: boolean;
+  onToggleFilters: () => void;
+  sort: SortKey;
+  onChangeSort: (v: SortKey) => void;
+}) {
+  return (
+    <div className={`dSticky ${show ? "on" : ""}`} aria-hidden={!show}>
+      <div className="inner">
+        <button type="button" className="dBtn" onClick={onToggleFilters} aria-pressed={showSide}>
+          <span className="lbl">{showSide ? "Hide Filters" : "Show Filters"}</span>
+          {activeCount ? <span className="badge">{activeCount}</span> : null}
+          <span className="ic" aria-hidden="true">
+            <SlidersIcon size={18} />
+          </span>
+        </button>
+
+        <div className="right">
+          <div className="count">{resultsCount} Results</div>
+          <SortDropdown value={sort} onChange={onChangeSort} />
+        </div>
+      </div>
+
+      <style jsx>{`
+        .dSticky {
+          display: none;
+        }
+        @media (min-width: 981px) {
+          .dSticky {
+            display: block;
+            position: sticky;
+            top: calc(var(--jusp-header-h, 64px) + 3px);
+            z-index: 46;
+            margin-left: -18px;
+            margin-right: -18px;
+            padding: 10px 18px;
+            background: rgba(255, 255, 255, 0.76);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            opacity: 0;
+            transform: translateY(-6px);
+            pointer-events: none;
+            transition: opacity 180ms ease, transform 220ms ease;
+          }
+          .dSticky.on {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+          }
+          .inner {
+            max-width: 1440px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+          }
+          .dBtn {
+            border: 0;
+            background: rgba(0, 0, 0, 0.04);
+            cursor: pointer;
+            font-weight: 950;
+            color: rgba(0, 0, 0, 0.86);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 999px;
+            transition: background 140ms ease, color 140ms ease;
+          }
+          .dBtn:hover {
+            background: rgba(0, 0, 0, 0.06);
+            color: #111;
+          }
+          .lbl {
+            font-size: 13px;
+            letter-spacing: -0.01em;
+          }
+          .ic {
+            opacity: 0.8;
+            display: inline-flex;
+            align-items: center;
+          }
+          .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 6px;
+            border-radius: 999px;
+            background: rgba(17, 17, 17, 0.92);
+            color: rgba(255, 255, 255, 0.96);
+            font-size: 11px;
+            font-weight: 950;
+            line-height: 1;
+          }
+          .right {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+          }
+          .count {
+            font-weight: 950;
+            color: rgba(0, 0, 0, 0.55);
+            font-size: 12px;
+            white-space: nowrap;
+          }
+        }
+      `}</style>
+    </div>
   );
 }
 
@@ -1446,36 +1694,74 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
     if (qs !== lastQsRef.current) {
       lastQsRef.current = qs;
       setUiLoading(true);
-      const t = window.setTimeout(() => setUiLoading(false), 420);
+      const t = window.setTimeout(() => setUiLoading(false), 520);
       return () => window.clearTimeout(t);
     }
   }, [searchParams]);
 
   const [showTop, setShowTop] = useState(false);
+  const [showDeskSticky, setShowDeskSticky] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    try {
+      const mq = window.matchMedia("(min-width: 981px)");
+      const apply = () => setIsDesktop(Boolean(mq.matches));
+      apply();
+      mq.addEventListener?.("change", apply);
+      return () => mq.removeEventListener?.("change", apply);
+    } catch {
+      setIsDesktop(false);
+    }
+  }, []);
+
   useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY || 0;
       setShowTop(y > 520);
+      setShowDeskSticky(y > 180);
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll as any);
   }, []);
 
-  // ✅ Quick Filters state (synced)
   const featuredOn = sort === "launch";
-  const saleOn = dCap >= 30; // quick meaning: at least 30%+
+  const saleOn = dCap >= 30;
   const underOn = priceBucket === "0-200000";
   const newOn = newOnly;
 
   const showSide = filtersOpen;
+
+  const onToggleFilters = useCallback(() => {
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 980px)").matches) {
+      setMobileOpen(true);
+    } else {
+      setFiltersOpen((v) => !v);
+    }
+  }, []);
+
+  // skeleton count (desktop shows more)
+  const skeletonCount = useMemo(() => {
+    if (!filtered.length) return 8;
+    return filtered.length >= 12 ? 12 : filtered.length >= 8 ? 8 : 6;
+  }, [filtered.length]);
 
   return (
     <main className="root">
       <TopLoadingBar active={uiLoading} />
       <BackToTop show={showTop} />
 
-      {/* ✅ Sticky mini bar (mobile only) */}
+      <DesktopStickyControls
+        show={isDesktop && showDeskSticky}
+        activeCount={activeCount}
+        resultsCount={filtered.length}
+        showSide={showSide}
+        onToggleFilters={onToggleFilters}
+        sort={sort}
+        onChangeSort={(v) => setParam(Q.sort, v)}
+      />
+
       <div className="mSticky" aria-label="Mobile controls">
         <button type="button" className="mFiltersBtn" onClick={() => setMobileOpen(true)} aria-label="Open filters">
           <span className="mFtxt">Filters</span>
@@ -1507,18 +1793,7 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
         </div>
 
         <div className="heroRight">
-          <button
-            type="button"
-            className="filtersBtn"
-            onClick={() => {
-              if (typeof window !== "undefined" && window.matchMedia("(max-width: 980px)").matches) {
-                setMobileOpen(true);
-              } else {
-                setFiltersOpen((v) => !v);
-              }
-            }}
-            aria-pressed={showSide}
-          >
+          <button type="button" className="filtersBtn" onClick={onToggleFilters} aria-pressed={showSide}>
             <span className="lbl">{showSide ? "Hide Filters" : "Show Filters"}</span>
             {activeCount ? <span className="badge">{activeCount}</span> : null}
             <span className="ic" aria-hidden="true">
@@ -1530,7 +1805,6 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
         </div>
       </header>
 
-      {/* ✅ Quick Filters row (Nike) */}
       <QuickFiltersRow
         featuredOn={featuredOn}
         saleOn={saleOn}
@@ -1553,7 +1827,9 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
             className="side"
           >
             <div className={`sideTop ${sideScrolled ? "sc" : ""}`}>
-              <div className="sideTitle">Filters</div>
+              <div className="sideTitle">
+                Filters <span className="sel">· Selected ({activeCount})</span>
+              </div>
               <button className="sideReset" type="button" onClick={resetFilters} disabled={!hasActive} aria-disabled={!hasActive}>
                 Clear
               </button>
@@ -1673,19 +1949,29 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
               }}
             />
           ) : (
-            <div className={`grid ${uiLoading ? "fade" : ""}`}>
-              {filtered.map((p) => {
-                const key = String((p as any).id || (p as any).slug || (p as any).name || "");
-                return (
-                  <ProductCard key={key} p={p} mounted={mounted} favTick={favTick} onToggleFav={onToggleFav} onPrefetch={onPrefetch} />
-                );
-              })}
+            <div className="gridWrap">
+              {uiLoading ? <GridSkeleton count={skeletonCount} /> : null}
+
+              <div className={`grid ${uiLoading ? "fade" : ""}`} aria-busy={uiLoading}>
+                {filtered.map((p) => {
+                  const key = String((p as any).id || (p as any).slug || (p as any).name || "");
+                  return (
+                    <ProductCard
+                      key={key}
+                      p={p}
+                      mounted={mounted}
+                      favTick={favTick}
+                      onToggleFav={onToggleFav}
+                      onPrefetch={onPrefetch}
+                    />
+                  );
+                })}
+              </div>
             </div>
           )}
         </section>
       </div>
 
-      {/* Mobile filters drawer */}
       {mobileOpen ? (
         <div
           className="mBackdrop"
@@ -1826,7 +2112,6 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           padding-left: 18px;
           padding-right: 18px;
           padding-bottom: 44px;
-
           overflow-x: clip;
         }
         @supports not (overflow: clip) {
@@ -1987,6 +2272,15 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           font-weight: 950;
           color: #111;
           font-size: 14px;
+          display: inline-flex;
+          align-items: baseline;
+          gap: 8px;
+        }
+        .sel {
+          font-weight: 900;
+          color: rgba(0, 0, 0, 0.55);
+          font-size: 12px;
+          letter-spacing: -0.01em;
         }
         .sideReset {
           border: 0;
@@ -2068,6 +2362,10 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           min-width: 0;
         }
 
+        .gridWrap {
+          position: relative;
+        }
+
         .grid {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
@@ -2076,8 +2374,10 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           transition: opacity 180ms ease, filter 180ms ease;
         }
         .grid.fade {
-          opacity: 0.85;
+          opacity: 0.2;
           filter: saturate(0.98);
+          pointer-events: none;
+          user-select: none;
         }
 
         @media (max-width: 1320px) {
@@ -2257,7 +2557,7 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .layout {
+          .grid {
             transition: none;
           }
         }
