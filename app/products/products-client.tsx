@@ -2201,6 +2201,9 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
     // ✅ Show full size scale; we only *disable* unavailable sizes.
     return sizes;
   }, [sizes]);
+
+  const sizesKey = useMemo(() => sizes.map(String).join("|"), [sizes]);
+
 // ✅ Auto-fix: si tu talla seleccionada deja de existir bajo los filtros actuales, se limpia sola.
   useEffect(() => {
     if (!size) return;
@@ -2208,7 +2211,7 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
     if (!availableSizesSet.has(size)) {
       setParam(Q.size, null);
     }
-  }, [size, hasAnyAvailabilityData, availableSizesSet, setParam]);
+  }, [size, sizesKey, hasAnyAvailabilityData, availableSizesSet, setParam]);
 const brandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, brandSearch)), [brands, brandSearch]);
   const mBrandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, mBrandSearch)), [brands, mBrandSearch]);
 
