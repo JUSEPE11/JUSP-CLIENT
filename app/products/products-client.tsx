@@ -66,71 +66,77 @@ function includesLoose(haystack: string, needle: string) {
 }
 
 /** =========================
- * Gender scope (MEN / WOMEN)
- * - Esto controla qué marcas/tallas aparecen
+ * Gender scope (MEN / WOMEN / KIDS)
+ * Esto controla qué marcas/tallas aparecen
  * ========================= */
-type GenderScope = "men" | "women" | "all";
+type GenderScope = "men" | "women" | "kids" | "all";
 
 function genderScopeFromPathname(pathname: string): GenderScope {
   const p = (pathname || "").toLowerCase();
 
-  // ✅ Ajusta aquí si tus rutas son distintas (ej: /hombre, /mujer)
-  if (p.includes("/men") || p.includes("men")) return "men";
-  if (p.includes("/women") || p.includes("women")) return "women";
+  // ✅ Ajusta aquí si tus rutas son distintas (ej: /hombre, /mujer, /ninos)
+  if (p.includes("/kids") || p.includes("/kid") || p.includes("kids") || p.includes("ninos") || p.includes("niños"))
+    return "kids";
+  if (p.includes("/women") || p.includes("women") || p.includes("mujer")) return "women";
+  if (p.includes("/men") || p.includes("men") || p.includes("hombre")) return "men";
 
   return "all";
 }
 
 function matchesGenderScope(productGender: any, scope: GenderScope) {
-  const g = String(productGender || "").toLowerCase(); // "men" | "women" | "unisex" | "kids" | ""
+  const g = String(productGender || "").toLowerCase(); // "men" | "women" | "kids" | "unisex" | ""
+
   if (scope === "all") return true;
 
-  // ✅ Unisex aparece tanto en men como women
-  if (g === "unisex") return true;
+  // ✅ Unisex aparece tanto en men como women (NO en kids)
+  if (g === "unisex") return scope === "men" || scope === "women";
 
   if (scope === "men") return g === "men";
   if (scope === "women") return g === "women";
+  if (scope === "kids") return g === "kids";
+
   return true;
 }
 
-/** ✅ Fallback de tallas completas por género (si algún producto viene sin sizes) */
-const MEN_SIZES_FALLBACK = [
-  "6",
-  "6.5",
-  "7",
-  "7.5",
-  "8",
-  "8.5",
-  "9",
-  "9.5",
-  "10",
-  "10.5",
-  "11",
-  "11.5",
-  "12",
-  "12.5",
-  "13",
-  "14",
-];
+/** ✅ Fallback de tallas completas por género (fuente de verdad del filtro) */
+const MEN_SIZES_FALLBACK = ["6", "6.5", "7", "7.5", "8", "8.5", "9", "9.5", "10", "10.5", "11", "11.5", "12", "12.5", "13", "14"];
+const WOMEN_SIZES_FALLBACK = ["4", "4.5", "5", "5.5", "6", "6.5", "7", "7.5", "8", "8.5", "9", "9.5", "10", "10.5", "11", "11.5", "12"];
+const KIDS_SIZES_FALLBACK = ["10C", "10.5C", "11C", "11.5C", "12C", "12.5C", "13C", "13.5C", "1Y", "1.5Y", "2Y", "2.5Y", "3Y", "3.5Y", "4Y", "4.5Y", "5Y", "5.5Y", "6Y", "6.5Y", "7Y"];
 
-const WOMEN_SIZES_FALLBACK = [
-  "4",
-  "4.5",
-  "5",
-  "5.5",
-  "6",
-  "6.5",
-  "7",
-  "7.5",
-  "8",
-  "8.5",
-  "9",
-  "9.5",
-  "10",
-  "10.5",
-  "11",
-  "11.5",
-  "12",
+/** ✅ Marcas completas (se mezclan con las marcas reales del catálogo por sección) */
+const ALL_BRANDS = [
+  "Nike",
+  "Jordan",
+  "Adidas",
+  "Puma",
+  "New Balance",
+  "Reebok",
+  "Vans",
+  "Converse",
+  "ASICS",
+  "Under Armour",
+  "Skechers",
+  "Salomon",
+  "Hoka",
+  "On",
+  "Mizuno",
+  "Brooks",
+  "Saucony",
+  "Fila",
+  "Champion",
+  "Timberland",
+  "Dr. Martens",
+  "Crocs",
+  "Birkenstock",
+  "The North Face",
+  "Lacoste",
+  "Tommy Hilfiger",
+  "Calvin Klein",
+  "Yeezy",
+  "Gucci",
+  "Prada",
+  "Balenciaga",
+  "Louis Vuitton",
 ];
 
 /** Color swatch: nombre -> color real (fallback robusto) */
@@ -160,7 +166,7 @@ function colorToCss(name: string) {
     rosado: "#fb7185",
     brown: "#92400e",
     cafe: "#92400e",
-    café: "#92400e",
+    "café": "#92400e",
     beige: "#e7d3b1",
     cream: "#f5f5dc",
     gold: "#d4af37",
@@ -265,60 +271,65 @@ function useFavoritesSignal() {
  * ========================= */
 function SlidersIcon({ size = 18 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path
-        d="M6 21a1 1 0 0 1-1-1v-6a1 1 0 1 1 2 0v6a1 1 0 0 1-1 1Zm0-12a1 1 0 0 1-1-1V4a1 1 0 1 1 2 0v4a1 1 0 0 1-1 1Zm6 12a1 1 0 0 1-1-1v-9a1 1 0 1 1 2 0v9a1 1 0 0 1-1 1Zm0-15a1 1 0 0 1-1-1V4a1 1 0 1 1 2 0v1a1 1 0 0 1-1 1Zm6 15a1 1 0 0 1-1-1v-3a1 1 0 1 1 2 0v3a1 1 0 0 1-1 1Zm0-9a1 1 0 0 1-1-1V4a1 1 0 1 1 2 0v7a1 1 0 0 1-1 1Z"
-        fill="currentColor"
-      />
-      <path d="M4 13h4M10 9h4M16 15h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" opacity="0.9" />
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" fill="none">
+      <path d="M4 6h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M18 6h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M4 12h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M12 12h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M4 18h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M22 18h-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="16" cy="6" r="2" fill="currentColor" />
+      <circle cx="10" cy="12" r="2" fill="currentColor" />
+      <circle cx="20" cy="18" r="2" fill="currentColor" />
     </svg>
   );
 }
 function ArrowUpIcon({ size = 18 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path
-        d="M12 5l6.2 6.2a1 1 0 0 1-1.4 1.4L13 8.8V19a1 1 0 1 1-2 0V8.8l-3.8 3.8A1 1 0 1 1 5.8 11.2L12 5z"
-        fill="currentColor"
-      />
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" fill="none">
+      <path d="M12 5l-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M12 5l6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M12 5v14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
 
 /** =========================
- * Nike Chips (rect)
+ * Nike Chips (rect) + Disabled
  * ========================= */
 function Chip({
   on,
   children,
   onClick,
   leading,
+  disabled,
 }: {
   on: boolean;
   children: React.ReactNode;
   onClick: () => void;
   leading?: React.ReactNode;
+  disabled?: boolean;
 }) {
   return (
-    <button type="button" className={`chip ${on ? "on" : ""}`} onClick={onClick}>
+    <button type="button" className={`chip ${on ? "on" : ""} ${disabled ? "dis" : ""}`} onClick={onClick} disabled={disabled}>
       {leading ? <span className="lead">{leading}</span> : null}
       <span className="txt">{children}</span>
-
       <style jsx>{`
         .chip {
-          border-radius: 10px;
-          padding: 10px 12px;
           border: 1px solid rgba(0, 0, 0, 0.14);
           background: #fff;
-          font-weight: 950;
+          border-radius: 12px;
+          padding: 10px 12px;
           cursor: pointer;
           display: inline-flex;
           align-items: center;
           gap: 10px;
+          font-weight: 950;
           color: rgba(0, 0, 0, 0.82);
-          transition: background 140ms ease, transform 120ms ease, border-color 140ms ease, color 140ms ease;
+          transition: background 140ms ease, transform 120ms ease, border-color 140ms ease, opacity 140ms ease;
           height: 40px;
           outline: none;
+          max-width: 100%;
         }
         .chip:hover {
           background: rgba(0, 0, 0, 0.03);
@@ -329,16 +340,21 @@ function Chip({
         }
         .chip.on {
           background: rgba(17, 17, 17, 0.92);
-          color: rgba(255, 255, 255, 0.95);
-          border-color: rgba(0, 0, 0, 0.24);
+          border-color: rgba(17, 17, 17, 0.92);
+          color: rgba(255, 255, 255, 0.96);
+        }
+        .chip.dis {
+          opacity: 0.38;
+          cursor: default;
+          pointer-events: none;
         }
         .chip:focus-visible {
-          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.18);
-          border-color: rgba(0, 0, 0, 0.22);
+          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
         }
-        .lead {
+        .lead :global(*) {
           display: inline-flex;
           align-items: center;
+          justify-content: center;
         }
         .txt {
           font-size: 13px;
@@ -365,103 +381,81 @@ function FilterSection({
   children: React.ReactNode;
 }) {
   return (
-    <div className="sec">
+    <section className="fs">
       <button type="button" className="head" onClick={onToggle} aria-expanded={open}>
         <span className="t">{title}</span>
         <span className={`c ${open ? "on" : ""}`} aria-hidden="true">
           ▾
         </span>
       </button>
-
       {open ? <div className="body">{children}</div> : null}
-
       <style jsx>{`
-        .sec {
-          padding: 16px 0;
+        .fs {
+          padding: 14px 0;
           border-bottom: 1px solid rgba(0, 0, 0, 0.08);
         }
         .head {
           width: 100%;
-          border: 0;
-          background: transparent;
-          cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 10px;
+          border: 0;
+          background: transparent;
+          cursor: pointer;
           padding: 0;
           outline: none;
         }
         .head:focus-visible {
-          border-radius: 10px;
           box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
+          border-radius: 10px;
         }
         .t {
           font-weight: 950;
           color: #111;
           font-size: 14px;
+          letter-spacing: -0.01em;
         }
         .c {
-          opacity: 0.55;
+          opacity: 0.6;
           transition: transform 160ms ease;
-          font-weight: 950;
         }
         .c.on {
           transform: rotate(180deg);
         }
         .body {
-          margin-top: 12px;
+          padding-top: 12px;
         }
       `}</style>
-    </div>
+    </section>
   );
 }
 
 /** =========================
  * Search input (Filter Search)
  * ========================= */
-function FilterSearch({
-  value,
-  onChange,
-  placeholder,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  placeholder: string;
-}) {
+function FilterSearch({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
   return (
     <div className="fs">
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="inp"
-        type="search"
-        aria-label={placeholder}
-      />
+      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="inp" type="search" aria-label={placeholder} />
       <style jsx>{`
         .fs {
-          margin-bottom: 12px;
+          margin-bottom: 10px;
         }
         .inp {
           width: 100%;
-          height: 40px;
-          border-radius: 12px;
           border: 1px solid rgba(0, 0, 0, 0.14);
-          background: rgba(255, 255, 255, 0.96);
+          background: #fff;
+          border-radius: 12px;
           padding: 10px 12px;
           font-weight: 900;
-          font-size: 13px;
           outline: none;
+          font-size: 13px;
           color: rgba(0, 0, 0, 0.82);
         }
-        .inp::placeholder {
-          color: rgba(0, 0, 0, 0.42);
-          font-weight: 900;
-        }
-        .inp:focus-visible {
-          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.12);
-          border-color: rgba(0, 0, 0, 0.18);
+        .inp:focus {
+          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
+          border-color: rgba(0, 0, 0, 0.22);
         }
       `}</style>
     </div>
@@ -476,7 +470,6 @@ function useOutsideClose(open: boolean, onClose: () => void) {
 
   useEffect(() => {
     if (!open) return;
-
     const onDown = (e: MouseEvent) => {
       const el = ref.current;
       if (!el) return;
@@ -648,48 +641,43 @@ function SortDropdown({ value, onChange }: { value: SortKey; onChange: (v: SortK
  * ========================= */
 function TopLoadingBar({ active }: { active: boolean }) {
   return (
-    <div className={`bar ${active ? "on" : ""}`} aria-hidden="true">
-      <div className="fill" />
+    <div className={`tl ${active ? "on" : ""}`} aria-hidden="true">
+      <div className="bar" />
       <style jsx>{`
-        .bar {
-          position: sticky;
-          top: var(--jusp-header-h, 64px);
-          z-index: 40;
+        .tl {
+          position: fixed;
+          top: calc(var(--jusp-header-h, 64px));
+          left: 0;
+          right: 0;
           height: 3px;
-          background: rgba(0, 0, 0, 0.06);
+          z-index: 120;
+          pointer-events: none;
           opacity: 0;
-          transform: translateY(-2px);
-          transition: opacity 140ms ease, transform 140ms ease;
+          transition: opacity 140ms ease;
         }
-        .bar.on {
+        .tl.on {
           opacity: 1;
-          transform: translateY(0);
         }
-        .fill {
+        .bar {
+          width: 40%;
           height: 100%;
-          width: 42%;
           background: rgba(17, 17, 17, 0.92);
-          transform-origin: left;
-          animation: run 800ms ease-in-out infinite;
+          animation: run 520ms ease-in-out infinite;
         }
         @keyframes run {
           0% {
-            transform: translateX(-20%) scaleX(0.2);
-            opacity: 0.5;
+            transform: translateX(-10%);
           }
           50% {
-            transform: translateX(80%) scaleX(1);
-            opacity: 1;
+            transform: translateX(80%);
           }
           100% {
-            transform: translateX(220%) scaleX(0.3);
-            opacity: 0.6;
+            transform: translateX(210%);
           }
         }
         @media (prefers-reduced-motion: reduce) {
-          .fill {
+          .bar {
             animation: none;
-            width: 28%;
           }
         }
       `}</style>
@@ -713,7 +701,7 @@ function ActiveFilters({
     <div className="af" aria-label="Active filters">
       <div className="row">
         {items.map((it) => (
-          <button key={it.key} type="button" className="pill" onClick={it.onRemove} title="Remove filter">
+          <button key={it.key} type="button" className="pill" onClick={it.onRemove} aria-label={`Remove ${it.label}`}>
             <span className="lab">{it.label}</span>
             <span className="x" aria-hidden="true">
               ✕
@@ -823,20 +811,19 @@ function QuickFiltersRow({
   return (
     <div className="qf" aria-label="Quick filters">
       <div className="row">
-        <button type="button" className={`b ${featuredOn ? "on" : ""}`} onClick={onFeatured}>
+        <button type="button" className={`q ${featuredOn ? "on" : ""}`} onClick={onFeatured}>
           Featured
         </button>
-        <button type="button" className={`b ${saleOn ? "on" : ""}`} onClick={onSale}>
+        <button type="button" className={`q ${saleOn ? "on" : ""}`} onClick={onSale}>
           Sale
         </button>
-        <button type="button" className={`b ${underOn ? "on" : ""}`} onClick={onUnder}>
+        <button type="button" className={`q ${underOn ? "on" : ""}`} onClick={onUnder}>
           Under $200k
         </button>
-        <button type="button" className={`b ${newOn ? "on" : ""}`} onClick={onNew}>
+        <button type="button" className={`q ${newOn ? "on" : ""}`} onClick={onNew}>
           New
         </button>
       </div>
-
       <style jsx>{`
         .qf {
           max-width: 1440px;
@@ -844,43 +831,34 @@ function QuickFiltersRow({
         }
         .row {
           display: flex;
+          flex-wrap: wrap;
           gap: 10px;
-          overflow-x: auto;
-          padding-bottom: 2px;
-          -webkit-overflow-scrolling: touch;
-          scrollbar-width: none;
         }
-        .row::-webkit-scrollbar {
-          display: none;
-        }
-        .b {
-          flex: 0 0 auto;
+        .q {
           border: 1px solid rgba(0, 0, 0, 0.14);
-          background: rgba(255, 255, 255, 0.96);
+          background: #fff;
           border-radius: 999px;
           padding: 10px 14px;
-          height: 40px;
           cursor: pointer;
           font-weight: 950;
           color: rgba(0, 0, 0, 0.82);
-          letter-spacing: -0.01em;
-          transition: background 140ms ease, border-color 140ms ease, transform 120ms ease, color 140ms ease;
-          white-space: nowrap;
+          height: 40px;
           outline: none;
+          transition: background 140ms ease, border-color 140ms ease, transform 120ms ease;
         }
-        .b:hover {
+        .q:hover {
           background: rgba(0, 0, 0, 0.03);
           border-color: rgba(0, 0, 0, 0.18);
         }
-        .b:active {
+        .q:active {
           transform: scale(0.99);
         }
-        .b.on {
+        .q.on {
           background: rgba(17, 17, 17, 0.92);
+          border-color: rgba(17, 17, 17, 0.92);
           color: rgba(255, 255, 255, 0.96);
-          border-color: rgba(0, 0, 0, 0.24);
         }
-        .b:focus-visible {
+        .q:focus-visible {
           box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
         }
       `}</style>
@@ -895,75 +873,78 @@ function EmptyState({ onClear }: { onClear: () => void }) {
   return (
     <div className="es" role="status" aria-live="polite">
       <div className="box">
-        <div className="h">No results found</div>
-        <div className="p">Try adjusting your filters or clear them to see everything.</div>
-        <div className="actions">
-          <button type="button" className="btn" onClick={onClear}>
+        <div className="t">No results found</div>
+        <div className="s">Try adjusting your filters or clear them to see everything.</div>
+        <div className="row">
+          <button type="button" className="cta" onClick={onClear}>
             Clear filters
           </button>
-          <Link className="link" href="/" prefetch={false}>
+          <Link className="ghost" href="/">
             Go home
           </Link>
         </div>
       </div>
-
       <style jsx>{`
         .es {
-          padding: 36px 0 10px;
+          padding: 40px 0;
         }
         .box {
-          border: 1px solid rgba(0, 0, 0, 0.08);
+          border: 1px solid rgba(0, 0, 0, 0.12);
           border-radius: 18px;
-          background: #fff;
-          box-shadow: 0 18px 60px rgba(0, 0, 0, 0.06);
-          padding: 22px 18px;
-          max-width: 560px;
+          background: rgba(0, 0, 0, 0.02);
+          padding: 22px;
+          max-width: 720px;
         }
-        .h {
+        .t {
           font-weight: 950;
-          letter-spacing: -0.02em;
           color: #111;
           font-size: 18px;
+          letter-spacing: -0.02em;
         }
-        .p {
-          margin-top: 8px;
-          color: rgba(0, 0, 0, 0.6);
+        .s {
+          margin-top: 10px;
           font-weight: 900;
+          color: rgba(0, 0, 0, 0.6);
           font-size: 13px;
-          line-height: 1.45;
         }
-        .actions {
-          margin-top: 14px;
+        .row {
+          margin-top: 16px;
           display: flex;
-          align-items: center;
-          gap: 12px;
+          gap: 10px;
           flex-wrap: wrap;
         }
-        .btn {
+        .cta {
           border: 0;
           cursor: pointer;
+          font-weight: 950;
+          padding: 10px 14px;
           border-radius: 999px;
-          padding: 12px 14px;
           background: rgba(17, 17, 17, 0.92);
           color: rgba(255, 255, 255, 0.96);
-          font-weight: 950;
-          letter-spacing: -0.01em;
           outline: none;
         }
-        .btn:active {
-          transform: scale(0.99);
+        .cta:focus-visible {
+          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.16);
         }
-        .btn:focus-visible {
-          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.18);
-        }
-        .link {
+        .ghost {
           text-decoration: none;
+          border: 0;
+          background: rgba(0, 0, 0, 0.04);
+          cursor: pointer;
           font-weight: 950;
-          color: rgba(0, 0, 0, 0.65);
-          padding: 10px 0;
+          padding: 10px 14px;
+          border-radius: 999px;
+          color: rgba(0, 0, 0, 0.75);
+          outline: none;
+          display: inline-flex;
+          align-items: center;
         }
-        .link:hover {
+        .ghost:hover {
+          background: rgba(0, 0, 0, 0.06);
           color: #111;
+        }
+        .ghost:focus-visible {
+          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
         }
       `}</style>
     </div>
@@ -987,38 +968,30 @@ function BackToTop({ show }: { show: boolean }) {
       }}
       aria-label="Back to top"
     >
-      <span className="ic" aria-hidden="true">
-        <ArrowUpIcon size={18} />
-      </span>
-      <span className="tx">Top</span>
-
+      <ArrowUpIcon size={18} />
+      <span className="t">Top</span>
       <style jsx>{`
         .btt {
           position: fixed;
           right: 16px;
-          bottom: 18px;
-          z-index: 1200;
-          border: 1px solid rgba(0, 0, 0, 0.14);
-          background: rgba(255, 255, 255, 0.92);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.16);
-          border-radius: 999px;
-          padding: 12px 12px;
+          bottom: 92px;
+          z-index: 1600;
           display: inline-flex;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
+          border: 0;
           cursor: pointer;
-          color: rgba(0, 0, 0, 0.84);
           font-weight: 950;
-          opacity: 0;
-          transform: translateY(12px);
-          pointer-events: none;
-          transition: opacity 180ms ease, transform 220ms ease, background 140ms ease;
+          padding: 10px 12px;
+          border-radius: 999px;
+          background: rgba(17, 17, 17, 0.92);
+          color: rgba(255, 255, 255, 0.96);
+          box-shadow: 0 22px 60px rgba(0, 0, 0, 0.22);
           outline: none;
-        }
-        .btt:hover {
-          background: #fff;
+          transform: translateY(16px);
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 160ms ease, transform 160ms ease;
         }
         .btt.on {
           opacity: 1;
@@ -1026,22 +999,11 @@ function BackToTop({ show }: { show: boolean }) {
           pointer-events: auto;
         }
         .btt:focus-visible {
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.16), 0 0 0 3px rgba(17, 17, 17, 0.14);
+          box-shadow: 0 22px 60px rgba(0, 0, 0, 0.22), 0 0 0 3px rgba(17, 17, 17, 0.16);
         }
-        .ic {
-          display: inline-flex;
-          align-items: center;
-          opacity: 0.8;
-        }
-        .tx {
+        .t {
           font-size: 13px;
           letter-spacing: -0.01em;
-        }
-        @media (max-width: 980px) {
-          .btt {
-            right: 12px;
-            bottom: 14px;
-          }
         }
       `}</style>
     </button>
@@ -1067,13 +1029,15 @@ function GridSkeleton({ count }: { count: number }) {
           </div>
         </div>
       ))}
-
       <style jsx>{`
         .sk {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
           gap: 26px 18px;
           padding-top: 8px;
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
         }
         .card {
           border-radius: 10px;
@@ -1177,112 +1141,95 @@ function DesktopStickyControls({
   onChangeSort: (v: SortKey) => void;
 }) {
   return (
-    <div className={`dSticky ${show ? "on" : ""}`} aria-hidden={!show}>
-      <div className="inner">
-        <button type="button" className="dBtn" onClick={onToggleFilters} aria-pressed={showSide}>
-          <span className="lbl">{showSide ? "Hide Filters" : "Show Filters"}</span>
-          {activeCount ? <span className="badge">{activeCount}</span> : null}
-          <span className="ic" aria-hidden="true">
-            <SlidersIcon size={18} />
-          </span>
+    <div className={`ds ${show ? "on" : ""}`} aria-hidden={!show}>
+      <div className="in">
+        <button type="button" className="f" onClick={onToggleFilters} aria-pressed={showSide}>
+          {showSide ? "Hide Filters" : "Show Filters"}
+          {activeCount ? <span className="b">{activeCount}</span> : null}
         </button>
-
         <div className="right">
           <div className="count">{resultsCount} Results</div>
           <SortDropdown value={sort} onChange={onChangeSort} />
         </div>
       </div>
-
       <style jsx>{`
-        .dSticky {
-          display: none;
+        .ds {
+          position: sticky;
+          top: calc(var(--jusp-header-h, 64px));
+          z-index: 70;
+          background: rgba(255, 255, 255, 0.92);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+          margin: 0 -18px 8px;
+          padding: 10px 18px;
+          transform: translateY(-10px);
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 160ms ease, transform 160ms ease;
         }
-        @media (min-width: 981px) {
-          .dSticky {
-            display: block;
-            position: sticky;
-            top: calc(var(--jusp-header-h, 64px) + 3px);
-            z-index: 46;
-            margin-left: -18px;
-            margin-right: -18px;
-            padding: 10px 18px;
-            background: rgba(255, 255, 255, 0.76);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-            opacity: 0;
-            transform: translateY(-6px);
-            pointer-events: none;
-            transition: opacity 180ms ease, transform 220ms ease;
-          }
-          .dSticky.on {
-            opacity: 1;
-            transform: translateY(0);
-            pointer-events: auto;
-          }
-          .inner {
-            max-width: 1440px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 14px;
-          }
-          .dBtn {
-            border: 0;
-            background: rgba(0, 0, 0, 0.04);
-            cursor: pointer;
-            font-weight: 950;
-            color: rgba(0, 0, 0, 0.86);
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 12px;
-            border-radius: 999px;
-            transition: background 140ms ease, color 140ms ease;
-            outline: none;
-          }
-          .dBtn:hover {
-            background: rgba(0, 0, 0, 0.06);
-            color: #111;
-          }
-          .dBtn:focus-visible {
-            box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
-          }
-          .lbl {
-            font-size: 13px;
-            letter-spacing: -0.01em;
-          }
-          .ic {
-            opacity: 0.8;
-            display: inline-flex;
-            align-items: center;
-          }
-          .badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 18px;
-            height: 18px;
-            padding: 0 6px;
-            border-radius: 999px;
-            background: rgba(17, 17, 17, 0.92);
-            color: rgba(255, 255, 255, 0.96);
-            font-size: 11px;
-            font-weight: 950;
-            line-height: 1;
-          }
-          .right {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            min-width: 0;
-          }
-          .count {
-            font-weight: 950;
-            color: rgba(0, 0, 0, 0.55);
-            font-size: 12px;
-            white-space: nowrap;
+        .ds.on {
+          opacity: 1;
+          transform: translateY(0);
+          pointer-events: auto;
+        }
+        .in {
+          max-width: 1440px;
+          margin: 0 auto;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+        .f {
+          border: 0;
+          background: rgba(0, 0, 0, 0.04);
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 12px;
+          border-radius: 999px;
+          font-weight: 950;
+          color: rgba(0, 0, 0, 0.82);
+          outline: none;
+        }
+        .f:hover {
+          background: rgba(0, 0, 0, 0.06);
+          color: #111;
+        }
+        .f:focus-visible {
+          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
+        }
+        .b {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 18px;
+          height: 18px;
+          padding: 0 6px;
+          border-radius: 999px;
+          background: rgba(17, 17, 17, 0.92);
+          color: rgba(255, 255, 255, 0.96);
+          font-size: 11px;
+          font-weight: 950;
+          line-height: 1;
+        }
+        .right {
+          display: inline-flex;
+          align-items: center;
+          gap: 12px;
+          min-width: 0;
+        }
+        .count {
+          font-weight: 950;
+          color: rgba(0, 0, 0, 0.55);
+          font-size: 12px;
+          white-space: nowrap;
+        }
+        @media (max-width: 980px) {
+          .ds {
+            display: none;
           }
         }
       `}</style>
@@ -1318,41 +1265,13 @@ function CompareModal({
   if (!open) return null;
 
   const rows = [
-    {
-      k: "Price",
-      a: a ? `$${moneyCOP(Number((a as any).price ?? 0) || 0)}` : "—",
-      b: b ? `$${moneyCOP(Number((b as any).price ?? 0) || 0)}` : "—",
-    },
-    {
-      k: "Sale",
-      a: a ? `${Number((a as any).discountPercent ?? (a as any).discount ?? 0) || 0}%` : "—",
-      b: b ? `${Number((b as any).discountPercent ?? (b as any).discount ?? 0) || 0}%` : "—",
-    },
-    {
-      k: "Brand",
-      a: a ? String((a as any).brand || "Nike") : "—",
-      b: b ? String((b as any).brand || "Nike") : "—",
-    },
-    {
-      k: "Type",
-      a: a ? typeLabel((a as any).category) : "—",
-      b: b ? typeLabel((b as any).category) : "—",
-    },
-    {
-      k: "Gender",
-      a: a ? genderLabel((a as any).gender) : "—",
-      b: b ? genderLabel((b as any).gender) : "—",
-    },
-    {
-      k: "Colors",
-      a: a ? String(safeArr((a as any).colors).length || 0) : "—",
-      b: b ? String(safeArr((b as any).colors).length || 0) : "—",
-    },
-    {
-      k: "Sizes",
-      a: a ? String(safeArr((a as any).sizes).length || 0) : "—",
-      b: b ? String(safeArr((b as any).sizes).length || 0) : "—",
-    },
+    { k: "Price", a: a ? `$${moneyCOP(Number((a as any).price ?? 0) || 0)}` : "—", b: b ? `$${moneyCOP(Number((b as any).price ?? 0) || 0)}` : "—" },
+    { k: "Sale", a: a ? `${Number((a as any).discountPercent ?? (a as any).discount ?? 0) || 0}%` : "—", b: b ? `${Number((b as any).discountPercent ?? (b as any).discount ?? 0) || 0}%` : "—" },
+    { k: "Brand", a: a ? String((a as any).brand || "Nike") : "—", b: b ? String((b as any).brand || "Nike") : "—" },
+    { k: "Type", a: a ? typeLabel((a as any).category) : "—", b: b ? typeLabel((b as any).category) : "—" },
+    { k: "Gender", a: a ? genderLabel((a as any).gender) : "—", b: b ? genderLabel((b as any).gender) : "—" },
+    { k: "Colors", a: a ? String(safeArr((a as any).colors).length || 0) : "—", b: b ? String(safeArr((b as any).colors).length || 0) : "—" },
+    { k: "Sizes", a: a ? String(safeArr((a as any).sizes).length || 0) : "—", b: b ? String(safeArr((b as any).sizes).length || 0) : "—" },
   ];
 
   const imgA = a ? pickImgs(a).main : null;
@@ -1366,10 +1285,10 @@ function CompareModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="cm" role="dialog" aria-modal="true" aria-label="Compare products" ref={ref}>
+      <div className="cm" ref={ref}>
         <div className="cmTop">
           <div className="cmTitle">Compare</div>
-          <button type="button" className="cmX" onClick={onClose} aria-label="Close">
+          <button className="cmX" type="button" onClick={onClose} aria-label="Close">
             ✕
           </button>
         </div>
@@ -1400,131 +1319,131 @@ function CompareModal({
             </div>
           ))}
         </div>
+      </div>
 
-        <style jsx>{`
-          .cmBack {
-            position: fixed;
-            inset: 0;
-            z-index: 2600;
-            background: rgba(0, 0, 0, 0.42);
-            display: grid;
-            place-items: center;
-            padding: 16px;
-          }
-          .cm {
-            width: min(980px, 96vw);
-            max-height: min(760px, 92vh);
-            overflow: auto;
-            background: #fff;
-            border-radius: 18px;
-            border: 1px solid rgba(0, 0, 0, 0.12);
-            box-shadow: 0 28px 90px rgba(0, 0, 0, 0.22);
-          }
-          .cmTop {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 14px 16px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-            background: rgba(255, 255, 255, 0.92);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            position: sticky;
-            top: 0;
-            z-index: 2;
-          }
-          .cmTitle {
-            font-weight: 950;
-            color: #111;
-            font-size: 14px;
-            letter-spacing: -0.01em;
-          }
-          .cmX {
-            border: 0;
-            background: transparent;
-            cursor: pointer;
-            font-weight: 950;
-            font-size: 16px;
-            color: rgba(0, 0, 0, 0.7);
-            outline: none;
-          }
-          .cmX:focus-visible {
-            box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
-            border-radius: 10px;
-          }
+      <style jsx>{`
+        .cmBack {
+          position: fixed;
+          inset: 0;
+          z-index: 2600;
+          background: rgba(0, 0, 0, 0.42);
+          display: grid;
+          place-items: center;
+          padding: 16px;
+        }
+        .cm {
+          width: min(980px, 96vw);
+          max-height: min(760px, 92vh);
+          overflow: auto;
+          background: #fff;
+          border-radius: 18px;
+          border: 1px solid rgba(0, 0, 0, 0.12);
+          box-shadow: 0 28px 90px rgba(0, 0, 0, 0.22);
+        }
+        .cmTop {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 14px 16px;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+          background: rgba(255, 255, 255, 0.92);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          position: sticky;
+          top: 0;
+          z-index: 2;
+        }
+        .cmTitle {
+          font-weight: 950;
+          color: #111;
+          font-size: 14px;
+          letter-spacing: -0.01em;
+        }
+        .cmX {
+          border: 0;
+          background: transparent;
+          cursor: pointer;
+          font-weight: 950;
+          font-size: 16px;
+          color: rgba(0, 0, 0, 0.7);
+          outline: none;
+        }
+        .cmX:focus-visible {
+          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
+          border-radius: 10px;
+        }
 
+        .cmHead {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 14px;
+          padding: 16px;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        }
+        .col {
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          border-radius: 14px;
+          padding: 12px;
+          background: rgba(0, 0, 0, 0.02);
+        }
+        .pimg {
+          aspect-ratio: 1/1;
+          border-radius: 12px;
+          background: #f4f4f4;
+          display: grid;
+          place-items: center;
+          overflow: hidden;
+        }
+        .pimg img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          padding: 18px;
+          display: block;
+        }
+        .pn {
+          margin-top: 10px;
+          font-weight: 950;
+          color: #111;
+          letter-spacing: -0.02em;
+          font-size: 14px;
+          line-height: 1.18;
+        }
+
+        .cmTable {
+          padding: 10px 16px 18px;
+        }
+        .r {
+          display: grid;
+          grid-template-columns: 160px 1fr 1fr;
+          gap: 12px;
+          padding: 12px 0;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        }
+        .k {
+          font-weight: 950;
+          color: rgba(0, 0, 0, 0.55);
+          font-size: 12px;
+        }
+        .v {
+          font-weight: 950;
+          color: rgba(0, 0, 0, 0.82);
+          font-size: 13px;
+        }
+
+        @media (max-width: 700px) {
           .cmHead {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 14px;
-            padding: 16px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-          }
-          .col {
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 14px;
-            padding: 12px;
-            background: rgba(0, 0, 0, 0.02);
-          }
-          .pimg {
-            aspect-ratio: 1/1;
-            border-radius: 12px;
-            background: #f4f4f4;
-            display: grid;
-            place-items: center;
-            overflow: hidden;
-          }
-          .pimg img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            padding: 18px;
-            display: block;
-          }
-          .pn {
-            margin-top: 10px;
-            font-weight: 950;
-            color: #111;
-            letter-spacing: -0.02em;
-            font-size: 14px;
-            line-height: 1.18;
-          }
-
-          .cmTable {
-            padding: 10px 16px 18px;
+            grid-template-columns: 1fr;
           }
           .r {
-            display: grid;
-            grid-template-columns: 160px 1fr 1fr;
-            gap: 12px;
-            padding: 12px 0;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            grid-template-columns: 120px 1fr;
+            grid-auto-rows: auto;
           }
-          .k {
-            font-weight: 950;
-            color: rgba(0, 0, 0, 0.55);
-            font-size: 12px;
+          .r .v:nth-child(3) {
+            grid-column: 2 / 3;
           }
-          .v {
-            font-weight: 950;
-            color: rgba(0, 0, 0, 0.82);
-            font-size: 13px;
-          }
-
-          @media (max-width: 700px) {
-            .cmHead {
-              grid-template-columns: 1fr;
-            }
-            .r {
-              grid-template-columns: 120px 1fr;
-              grid-auto-rows: auto;
-            }
-            .r .v:nth-child(3) {
-              grid-column: 2 / 3;
-            }
-          }
-        `}</style>
-      </div>
+        }
+      `}</style>
     </div>
   );
 }
@@ -1550,17 +1469,15 @@ function CompareBar({
   return (
     <div className="cb" role="region" aria-label="Compare bar">
       <div className="in">
-        <div className="left">
+        <div>
           <div className="t">Compare</div>
-          <div className="s">
-            {count === 1 ? (
-              <span>Selected: {aName || "1 item"}</span>
-            ) : (
-              <span>
-                Selected: {aName || "A"} <span className="dot">·</span> {bName || "B"}
-              </span>
-            )}
-          </div>
+          {count === 1 ? (
+            <div className="s">Selected: {aName || "1 item"}</div>
+          ) : (
+            <div className="s">
+              Selected: {aName || "A"} <span className="dot">·</span> {bName || "B"}
+            </div>
+          )}
         </div>
 
         <div className="right">
@@ -1703,10 +1620,9 @@ const ProductCard = memo(function ProductCard({
   const [imgReady, setImgReady] = useState(false);
 
   return (
-    <article className={`card ${imgReady ? "ready" : ""}`} style={{ contentVisibility: "auto", containIntrinsicSize: "360px 560px" }}>
+    <article className={`card ${imgReady ? "ready" : ""}`} style={{ contentVisibility: "auto", containIntrinsicSize: "360px 560px" as any }}>
       <div className="imgWrap">
         <Link className="img" href={href} prefetch={false} onMouseEnter={() => onPrefetch(href)} onFocus={() => onPrefetch(href)}>
-          <div className="imgBg" aria-hidden="true" />
           {main ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -1720,16 +1636,12 @@ const ProductCard = memo(function ProductCard({
           ) : (
             <div className="ph" />
           )}
-          {sale.has ? <div className="sale">-{sale.d}%</div> : null}
+          <span className="imgBg" aria-hidden="true" />
         </Link>
 
-        <button
-          type="button"
-          className={`cmp ${compareOn ? "on" : ""}`}
-          onClick={() => onToggleCompare(favKey)}
-          aria-pressed={compareOn}
-          aria-label="Toggle compare"
-        >
+        {sale.has ? <div className="sale">-{sale.d}%</div> : null}
+
+        <button type="button" className={`cmp ${compareOn ? "on" : ""}`} onClick={() => onToggleCompare(favKey)} aria-pressed={compareOn} aria-label="Toggle compare">
           Compare
         </button>
 
@@ -1743,13 +1655,7 @@ const ProductCard = memo(function ProductCard({
           <div className="colorsTxt">{colors.length ? `${colors.length} Colors` : ""}</div>
         </div>
 
-        <button
-          type="button"
-          className={`heart ${fav ? "on" : ""}`}
-          onClick={() => onToggleFav(favKey)}
-          aria-label="Favorite"
-          suppressHydrationWarning
-        >
+        <button type="button" className={`heart ${fav ? "on" : ""}`} onClick={() => onToggleFav(favKey)} aria-label="Favorite" suppressHydrationWarning>
           ♥
         </button>
 
@@ -1813,7 +1719,7 @@ const ProductCard = memo(function ProductCard({
           pointer-events: none;
         }
 
-        .img img {
+        .img :global(img) {
           width: 100%;
           height: 100%;
           object-fit: contain;
@@ -1823,13 +1729,14 @@ const ProductCard = memo(function ProductCard({
           transition: transform 240ms ease, filter 240ms ease;
           filter: saturate(1.02) contrast(1.02);
         }
-        article:hover .img img {
+        article:hover .img :global(img) {
           transform: scale(1.035);
         }
 
         .ph {
           width: 100%;
           height: 100%;
+          aspect-ratio: 1 / 1;
           background: linear-gradient(90deg, rgba(0, 0, 0, 0.03), rgba(0, 0, 0, 0.07), rgba(0, 0, 0, 0.03));
         }
 
@@ -2061,10 +1968,22 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // ✅ Detecta si estás en MEN o WOMEN
-  const scope = useMemo(() => genderScopeFromPathname(pathname || ""), [pathname]);
+  // ✅ Detecta si estás en MEN / WOMEN / KIDS
+  const catParam = searchParams?.get("cat");
 
-  // ✅ Base list por sección: SOLO men/women (+ unisex)
+  // ✅ Scope estable (sin hooks condicionales) y SIN permitir "all" en el tipo.
+  const scope = useMemo((): "men" | "women" | "kids" => {
+    const cp = (catParam || "").toLowerCase();
+
+    if (cp === "hombre") return "men";
+    if (cp === "mujer") return "women";
+    if (cp === "niños" || cp === "ninos") return "kids";
+
+    const fromPath = genderScopeFromPathname(pathname || "");
+    return fromPath === "women" || fromPath === "kids" ? fromPath : "men";
+  }, [catParam, pathname]);
+
+// ✅ Base list por sección: SOLO men/women/kids (+ unisex en men/women)
   const all = useMemo(() => allRaw.filter((p) => matchesGenderScope((p as any).gender, scope)), [allRaw, scope]);
 
   const { mounted, tick: favTick } = useFavoritesSignal();
@@ -2080,15 +1999,13 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
   const [secSize, setSecSize] = useState(true);
   const [secPrice, setSecPrice] = useState(true);
 
-  // ✅ Filter search (desktop)
-  const [brandSearch, setBrandSearch] = useState("");
-  const [colorSearch, setColorSearch] = useState("");
-  const [sizeSearch, setSizeSearch] = useState("");
+  // ✅ Size UX PRO MAX: colapsado por defecto (desktop + mobile)
 
-  // ✅ Filter search (mobile drawer)
+  // ✅ Filter search (desktop) — SOLO Brand (sin buscar en colores / tallas)
+  const [brandSearch, setBrandSearch] = useState("");
+
+  // ✅ Filter search (mobile drawer) — SOLO Brand
   const [mBrandSearch, setMBrandSearch] = useState("");
-  const [mColorSearch, setMColorSearch] = useState("");
-  const [mSizeSearch, setMSizeSearch] = useState("");
 
   const [pickupToday, setPickupToday] = useState(false);
 
@@ -2127,7 +2044,6 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
 
   const activeFilters = useMemo(() => {
     const items: Array<{ key: string; label: string; onRemove: () => void }> = [];
-
     if (newOnly) items.push({ key: "new", label: "New", onRemove: () => setParam(Q.isNew, null) });
     if (dCap) items.push({ key: "d", label: `Sale ${dCap}%+`, onRemove: () => setParam(Q.d, null) });
 
@@ -2140,14 +2056,14 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
             .join(" – ")}`;
       items.push({ key: "p", label, onRemove: () => setParam(Q.price, null) });
     }
+
     if (type) items.push({ key: "type", label: `Type: ${type}`, onRemove: () => setParam(Q.type, null) });
     if (brand) items.push({ key: "brand", label: `Brand: ${brand}`, onRemove: () => setParam(Q.brand, null) });
     if (color) items.push({ key: "color", label: `Color: ${color}`, onRemove: () => setParam(Q.color, null) });
     if (size) items.push({ key: "size", label: `Size: ${size}`, onRemove: () => setParam(Q.size, null) });
 
     return items;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dCap, priceBucket, type, brand, color, size, newOnly, searchParams]);
+  }, [dCap, priceBucket, type, brand, color, size, newOnly, setParam]);
 
   const activeCount = activeFilters.length;
   const hasActive = activeCount > 0;
@@ -2198,52 +2114,102 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
     if (!el) return;
     const onScroll = () => setSideScrolled(el.scrollTop > 10);
     onScroll();
-    el.addEventListener("scroll", onScroll, { passive: true });
+    el.addEventListener("scroll", onScroll, { passive: true } as any);
     return () => el.removeEventListener("scroll", onScroll as any);
   }, [filtersOpen, mobileOpen]);
 
-  // ✅ Listas por sección (men/women) + fallback PRO de tallas completas por género
+  // ✅ Listas por sección (men/women/kids)
   const types = useMemo(() => uniq(all.map((p) => typeLabel((p as any).category))).sort(), [all]);
 
   const brands = useMemo(() => {
-    // Solo marcas que existan en esa sección (men/women)
+    // Solo marcas del catálogo de ESA sección + lista completa global
     const fromProducts = uniq(all.map((p) => String((p as any).brand || "Nike"))).filter(Boolean);
-    return fromProducts.sort((a, b) => a.localeCompare(b));
+    const merged = uniq([...ALL_BRANDS, ...fromProducts]).filter(Boolean);
+    return merged.sort((a, b) => a.localeCompare(b));
   }, [all]);
 
   const colors = useMemo(() => uniq(all.flatMap((p) => safeArr((p as any).colors))).sort(), [all]);
 
+  // ✅ FIX PRO MAX REAL: tallas SIEMPRE dependen del scope (no del dataset mezclado)
   const sizes = useMemo(() => {
-    const fromProducts = uniq(all.flatMap((p) => safeArr((p as any).sizes))).filter(Boolean);
+    if (scope === "men") return MEN_SIZES_FALLBACK;
+    if (scope === "women") return WOMEN_SIZES_FALLBACK;
+    if (scope === "kids") return KIDS_SIZES_FALLBACK;
 
-    // Fallback: agrega catálogo completo por género SOLO en su sección
-    const fallback =
-      scope === "men" ? MEN_SIZES_FALLBACK : scope === "women" ? WOMEN_SIZES_FALLBACK : [...MEN_SIZES_FALLBACK, ...WOMEN_SIZES_FALLBACK];
+    // scope === "all": mezcla
+    const fromProducts = uniq(allRaw.flatMap((p) => safeArr((p as any).sizes))).filter(Boolean);
+    const merged = uniq([...fromProducts, ...MEN_SIZES_FALLBACK, ...WOMEN_SIZES_FALLBACK, ...KIDS_SIZES_FALLBACK]);
 
-    const merged = uniq([...fromProducts, ...fallback]);
+    const parseKid = (s: string) => {
+      const m = String(s).trim().toUpperCase().match(/^(\d+(?:\.\d+)?)(C|Y)$/);
+      if (!m) return null;
+      return { n: Number(m[1]), suf: m[2] as "C" | "Y" };
+    };
 
-    // Orden numérico si se puede
     merged.sort((a, b) => {
       const na = Number(a);
       const nb = Number(b);
       const fa = Number.isFinite(na);
       const fb = Number.isFinite(nb);
+
       if (fa && fb) return na - nb;
       if (fa && !fb) return -1;
       if (!fa && fb) return 1;
+
+      const ka = parseKid(a);
+      const kb = parseKid(b);
+      if (ka && kb) {
+        if (ka.suf !== kb.suf) return ka.suf === "C" ? -1 : 1;
+        return ka.n - kb.n;
+      }
+      if (ka && !kb) return 1;
+      if (!ka && kb) return -1;
+
       return String(a).localeCompare(String(b));
     });
 
     return merged;
-  }, [all, scope]);
+  }, [scope, allRaw]);
+
+  // ✅ PRO MAX: “Popular sizes” por sección (chips arriba)
+  // ✅ PRO MAX REAL: availability por dataset de la sección
+  const availableSizesSet = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of all) {
+      const ps = safeArr((p as any).sizes);
+      for (const s of ps) set.add(s);
+    }
+    return set;
+  }, [all]);
+
+  const hasAnyAvailabilityData = useMemo(() => availableSizesSet.size > 0, [availableSizesSet.size]);
+
+  const isSizeAvailable = useCallback(
+    (s: string) => {
+      // Si el dataset no trae sizes en ninguna referencia, NO deshabilitamos nada
+      if (!hasAnyAvailabilityData) return true;
+      return availableSizesSet.has(s);
+    },
+    [availableSizesSet, hasAnyAvailabilityData]
+  );
+
+  // ✅ PRO MAX: lista colapsada/expandida (All sizes)
+
+  // ✅ Sizes visibles: SOLO tallas disponibles (en orden), sin "Popular"
+  const sizesAvailableOrdered = useMemo(() => {
+    if (!hasAnyAvailabilityData) return sizes;
+    return sizes.filter((s) => availableSizesSet.has(s));
+  }, [sizes, hasAnyAvailabilityData, availableSizesSet]);
+
+  // ✅ Auto-fix: si cambias de sección y tu talla seleccionada no existe ahí, se limpia sola
+  useEffect(() => {
+    if (size && !sizes.includes(size)) {
+      setParam(Q.size, null);
+    }
+  }, [size, sizes, setParam]);
 
   const brandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, brandSearch)), [brands, brandSearch]);
-  const colorsFiltered = useMemo(() => colors.filter((c) => includesLoose(c, colorSearch)), [colors, colorSearch]);
-  const sizesFiltered = useMemo(() => sizes.filter((s) => includesLoose(s, sizeSearch)), [sizes, sizeSearch]);
-
   const mBrandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, mBrandSearch)), [brands, mBrandSearch]);
-  const mColorsFiltered = useMemo(() => colors.filter((c) => includesLoose(c, mColorSearch)), [colors, mColorSearch]);
-  const mSizesFiltered = useMemo(() => sizes.filter((s) => includesLoose(s, mSizeSearch)), [sizes, mSizeSearch]);
 
   const priceRanges = useMemo(() => {
     const prices = all.map((p) => Number((p as any).price ?? 0)).filter((n) => Number.isFinite(n) && n > 0);
@@ -2255,7 +2221,6 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
         { key: "400000+", label: "Over $400k" },
       ];
     }
-
     const min = Math.min(...prices);
     const max = Math.max(...prices);
     const span = Math.max(1, max - min);
@@ -2288,12 +2253,13 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
         return Number.isFinite(disc) && disc >= dCap;
       });
     }
+
     if (type) list = list.filter((p) => typeLabel((p as any).category) === type);
     if (brand) list = list.filter((p) => String((p as any).brand || "Nike") === brand);
     if (color) list = list.filter((p) => safeArr((p as any).colors).includes(color));
 
     if (size) {
-      // ✅ Size aplica con fallback: si un producto no tiene sizes, no lo filtra "por error"
+      // ✅ Si el producto no trae sizes, no lo elimina por error
       list = list.filter((p) => {
         const ps = safeArr((p as any).sizes);
         if (!ps.length) return true;
@@ -2323,8 +2289,11 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
       list.sort((a, b) => String((a as any).name ?? "").localeCompare(String((b as any).name ?? "")));
     }
 
+    // pickupToday placeholder (sin data real): no filtra, solo mantiene UX
+    void pickupToday;
+
     return list;
-  }, [all, dCap, type, brand, color, size, sort, priceBucket, newOnly]);
+  }, [all, dCap, type, brand, color, size, sort, priceBucket, newOnly, pickupToday]);
 
   const prefetchRef = useRef<Record<string, number>>({});
   const onPrefetch = useCallback(
@@ -2341,12 +2310,12 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
   );
 
   const onToggleFav = useCallback((favKey: string) => {
-    toggleFavorite({ id: favKey });
+    toggleFavorite({ id: favKey } as any);
     emitFavEvent();
   }, []);
 
   const [uiLoading, setUiLoading] = useState(false);
-  const lastQsRef = useRef<string>("");
+  const lastQsRef = useRef("");
   useEffect(() => {
     const qs = searchParams.toString();
     if (!lastQsRef.current) {
@@ -2384,7 +2353,7 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
       setShowDeskSticky(y > 180);
     };
     onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("scroll", onScroll, { passive: true } as any);
     return () => window.removeEventListener("scroll", onScroll as any);
   }, []);
 
@@ -2445,7 +2414,6 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
   return (
     <main className="root">
       <TopLoadingBar active={uiLoading} />
-      <BackToTop show={showTop} />
 
       <DesktopStickyControls
         show={isDesktop && showDeskSticky}
@@ -2464,8 +2432,6 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           onClick={() => {
             setMobileOpen(true);
             setMBrandSearch("");
-            setMColorSearch("");
-            setMSizeSearch("");
           }}
           aria-label="Open filters"
         >
@@ -2528,7 +2494,7 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
         <aside className={`sideWrap ${showSide ? "on" : "off"}`} aria-label="Filters">
           <div
             ref={(n) => {
-              sideRef.current = n;
+              sideRef.current = n as any;
             }}
             className={`side ${sideScrolled ? "rail" : ""}`}
           >
@@ -2545,12 +2511,7 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
               <FilterSection title="Pick Up Today" open={secPickup} onToggle={() => setSecPickup((v) => !v)}>
                 <div className="pickupRow">
                   <span className="pickupTxt">Pick Up Today</span>
-                  <button
-                    type="button"
-                    className={`toggle ${pickupToday ? "on" : ""}`}
-                    onClick={() => setPickupToday((v) => !v)}
-                    aria-pressed={pickupToday}
-                  >
+                  <button type="button" className={`toggle ${pickupToday ? "on" : ""}`} onClick={() => setPickupToday((v) => !v)} aria-pressed={pickupToday}>
                     <span className="knob" />
                   </button>
                 </div>
@@ -2608,12 +2569,12 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
               </FilterSection>
 
               <FilterSection title="Color" open={secColor} onToggle={() => setSecColor((v) => !v)}>
-                <FilterSearch value={colorSearch} onChange={setColorSearch} placeholder="Search color…" />
+                {/* ✅ SIN buscador: todos los colores directos */}
                 <div className="chipsGrid">
                   <Chip on={!color} onClick={() => setParam(Q.color, null)}>
                     All
                   </Chip>
-                  {colorsFiltered.map((c) => (
+                  {colors.map((c) => (
                     <Chip
                       key={c}
                       on={color === c}
@@ -2626,13 +2587,12 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
                 </div>
               </FilterSection>
 
-              <FilterSection title="Size" open={secSize} onToggle={() => setSecSize((v) => !v)}>
-                <FilterSearch value={sizeSearch} onChange={setSizeSearch} placeholder="Search size…" />
+              <FilterSection title={size ? `Size · ${size}` : "Size"} open={secSize} onToggle={() => setSecSize((v) => !v)}>
                 <div className="chipsGrid">
                   <Chip on={!size} onClick={() => setParam(Q.size, null)}>
                     All
                   </Chip>
-                  {sizesFiltered.map((s) => (
+                  {sizesAvailableOrdered.map((s) => (
                     <Chip key={s} on={size === s} onClick={() => setParam(Q.size, s)}>
                       {s}
                     </Chip>
@@ -2686,6 +2646,8 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
       <CompareBar count={compareIds.length} aName={aName} bName={bName} onOpen={openCompare} onClear={clearCompare} />
       <CompareModal open={compareOpen} onClose={closeCompare} a={compareA} b={compareB} />
 
+      <BackToTop show={showTop} />
+
       {mobileOpen ? (
         <div
           className="mBackdrop"
@@ -2713,12 +2675,7 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
                 <div className="mSecHead">Pick Up Today</div>
                 <div className="pickupRow">
                   <span className="pickupTxt">Pick Up Today</span>
-                  <button
-                    type="button"
-                    className={`toggle ${pickupToday ? "on" : ""}`}
-                    onClick={() => setPickupToday((v) => !v)}
-                    aria-pressed={pickupToday}
-                  >
+                  <button type="button" className={`toggle ${pickupToday ? "on" : ""}`} onClick={() => setPickupToday((v) => !v)} aria-pressed={pickupToday}>
                     <span className="knob" />
                   </button>
                 </div>
@@ -2781,12 +2738,12 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
 
               <div className="mSec">
                 <div className="mSecHead">Color</div>
-                <FilterSearch value={mColorSearch} onChange={setMColorSearch} placeholder="Search color…" />
+                {/* ✅ SIN buscador */}
                 <div className="chipsGrid">
                   <Chip on={!color} onClick={() => setParam(Q.color, null)}>
                     All
                   </Chip>
-                  {mColorsFiltered.map((c) => (
+                  {colors.map((c) => (
                     <Chip
                       key={c}
                       on={color === c}
@@ -2800,14 +2757,21 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
               </div>
 
               <div className="mSec">
-                <div className="mSecHead">Size</div>
-                <FilterSearch value={mSizeSearch} onChange={setMSizeSearch} placeholder="Search size…" />
+                <div className="mTitleRow">
+                  <div className="mTitle">Size</div>
+                  {size ? (
+                    <button className="mClear" onClick={() => setParam(Q.size, null)}>
+                      Clear
+                    </button>
+                  ) : null}
+                </div>
+
                 <div className="chipsGrid">
                   <Chip on={!size} onClick={() => setParam(Q.size, null)}>
                     All
                   </Chip>
-                  {mSizesFiltered.map((s) => (
-                    <Chip key={s} on={size === s} onClick={() => setParam(Q.size, s)}>
+                  {sizesAvailableOrdered.map((s) => (
+                    <Chip key={`m-${s}`} on={size === s} onClick={() => setParam(Q.size, s)}>
                       {s}
                     </Chip>
                   ))}
@@ -3102,6 +3066,38 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
         }
 
+        .miniHead {
+          font-weight: 950;
+          color: rgba(0, 0, 0, 0.55);
+          font-size: 12px;
+          letter-spacing: -0.01em;
+          margin-bottom: 10px;
+        }
+        .sizeRow {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 10px;
+        }
+        .moreBtn {
+          border: 0;
+          background: rgba(0, 0, 0, 0.04);
+          cursor: pointer;
+          font-weight: 950;
+          padding: 8px 10px;
+          border-radius: 999px;
+          color: rgba(0, 0, 0, 0.75);
+          outline: none;
+        }
+        .moreBtn:hover {
+          background: rgba(0, 0, 0, 0.06);
+          color: #111;
+        }
+        .moreBtn:focus-visible {
+          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
+        }
+
         .main {
           min-width: 0;
         }
@@ -3308,12 +3304,6 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           color: #111;
           font-size: 14px;
           margin-bottom: 12px;
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .grid {
-            transition: none;
-          }
         }
       `}</style>
     </main>
