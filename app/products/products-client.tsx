@@ -140,6 +140,45 @@ const ALL_BRANDS = [
   "Louis Vuitton",
 ];
 
+/** ✅ Colores globales (palette). No incluye Multicolor. */
+const ALL_COLORS = [
+  "Black",
+  "White",
+  "Grey",
+  "Gray",
+  "Red",
+  "Blue",
+  "Green",
+  "Yellow",
+  "Orange",
+  "Purple",
+  "Pink",
+  "Brown",
+  "Beige",
+  "Cream",
+  "Gold",
+  "Silver",
+  "Navy",
+  "Olive",
+  "Teal",
+  "Maroon",
+  "Tan",
+  "Khaki",
+  "Light Blue",
+  "Dark Blue",
+  "Burgundy",
+  "Off-White",
+  "Ivory",
+  "Sand",
+  "Chocolate",
+  "Lime",
+  "Mint",
+  "Cyan",
+  "Sky Blue",
+  "Royal Blue",
+];
+
+
 /** Color swatch: nombre -> color real (fallback robusto) */
 function colorToCss(name: string) {
   const n = (name || "").trim().toLowerCase();
@@ -2129,7 +2168,76 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
     return merged.sort((a, b) => a.localeCompare(b));
   }, [all]);
 
-  const colors = useMemo(() => uniq(all.flatMap((p) => safeArr((p as any).colors))).sort(), [all]);
+  const colors = useMemo(() => {
+    const fromProducts = uniq(all.flatMap((p) => safeArr((p as any).colors))).filter(Boolean);
+    const merged = uniq([...ALL_COLORS, ...fromProducts])
+      .filter(Boolean)
+      .filter((c) => String(c).trim().toLowerCase() !== "multicolor");
+    return merged.sort((a, b) => a.localeCompare(b));
+  }, [all]);
+
+  // ✅ PRO MAX: disponibilidad de colores (depende de filtros NO-color)
+  const availableColorsSet = useMemo(() => {
+    const set = new Set<string>();
+    let list = [...all];
+
+    if (newOnly) list = list.filter((p) => Boolean((p as any).isNew));
+
+    if (dCap) {
+      list = list.filter((p) => {
+        const disc = Number((p as any).discountPercent ?? (p as any).discount ?? 0);
+        return Number.isFinite(disc) && disc >= dCap;
+      });
+    }
+
+    if (type) list = list.filter((p) => typeLabel((p as any).category) === type);
+    if (brand) list = list.filter((p) => String((p as any).brand || "Nike") === brand);
+
+    if (size) {
+      list = list.filter((p) => {
+        const ps = safeArr((p as any).sizes);
+        if (!ps.length) return true; // si no hay data de sizes, no lo elimines
+        return ps.includes(size);
+      });
+    }
+
+    if (priceBucket) {
+      list = list.filter((p) => {
+        const price = Number((p as any).price ?? 0) || 0;
+        return inBucket(price, priceBucket);
+      });
+    }
+
+    for (const p of list) {
+      for (const c of safeArr((p as any).colors)) set.add(c);
+    }
+    return set;
+  }, [all, newOnly, dCap, type, brand, size, priceBucket]);
+
+  const hasAnyColorAvailabilityData = useMemo(() => availableColorsSet.size > 0, [availableColorsSet.size]);
+
+  const isColorAvailable = useCallback(
+    (c: string) => {
+      // Si el dataset no trae colors en ninguna referencia, NO deshabilitamos nada
+      if (!hasAnyColorAvailabilityData) return true;
+      return availableColorsSet.has(c);
+    },
+    [availableColorsSet, hasAnyColorAvailabilityData]
+  );
+
+  const availableColorsKey = useMemo(() => {
+    if (!hasAnyColorAvailabilityData) return "";
+    return Array.from(availableColorsSet).sort().join("|");
+  }, [availableColorsSet, hasAnyColorAvailabilityData]);
+
+  // ✅ Auto-fix: si con los filtros actuales el color seleccionado ya no existe, se limpia solo
+  useEffect(() => {
+    if (!color) return;
+    if (!hasAnyColorAvailabilityData) return;
+    if (!availableColorsSet.has(color)) setParam(Q.color, null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [color, hasAnyColorAvailabilityData, availableColorsKey]);
+
 
   // ✅ FIX PRO MAX REAL: tallas SIEMPRE dependen del scope (no del dataset mezclado)
   const sizes = useMemo(() => {
@@ -2578,16 +2686,23 @@ const brandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, brand
                   <Chip on={!color} onClick={() => setParam(Q.color, null)}>
                     All
                   </Chip>
-                  {colors.map((c) => (
-                    <Chip
-                      key={c}
-                      on={color === c}
-                      onClick={() => setParam(Q.color, c)}
-                      leading={<span className="sw" style={{ background: colorToCss(c) }} aria-hidden="true" />}
-                    >
-                      {c}
-                    </Chip>
-                  ))}
+                  {colors.map((c) => {
+                    const av = isColorAvailable(c);
+                    return (
+                      <Chip
+                        key={c}
+                        on={color === c}
+                        disabled={!av}
+                        onClick={() => {
+                          if (!av) return;
+                          setParam(Q.color, c);
+                        }}
+                        leading={<span className="sw" style={{ background: colorToCss(c) }} aria-hidden="true" />}
+                      >
+                        {c}
+                      </Chip>
+                    );
+                  })}
                 </div>
               </FilterSection>
 
@@ -2747,16 +2862,23 @@ const brandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, brand
                   <Chip on={!color} onClick={() => setParam(Q.color, null)}>
                     All
                   </Chip>
-                  {colors.map((c) => (
-                    <Chip
-                      key={c}
-                      on={color === c}
-                      onClick={() => setParam(Q.color, c)}
-                      leading={<span className="sw" style={{ background: colorToCss(c) }} aria-hidden="true" />}
-                    >
-                      {c}
-                    </Chip>
-                  ))}
+                  {colors.map((c) => {
+                    const av = isColorAvailable(c);
+                    return (
+                      <Chip
+                        key={c}
+                        on={color === c}
+                        disabled={!av}
+                        onClick={() => {
+                          if (!av) return;
+                          setParam(Q.color, c);
+                        }}
+                        leading={<span className="sw" style={{ background: colorToCss(c) }} aria-hidden="true" />}
+                      >
+                        {c}
+                      </Chip>
+                    );
+                  })}
                 </div>
               </div>
 
