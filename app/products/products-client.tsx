@@ -69,9 +69,10 @@ function includesLoose(haystack: string, needle: string) {
  * Gender scope (MEN / WOMEN / KIDS)
  * Esto controla qué marcas/tallas aparecen
  * ========================= */
-type GenderScope = "men" | "women" | "kids" | "all";
+type GenderScope = "men" | "women" | "kids";
+type GenderScopeParam = GenderScope | "all";
 
-function genderScopeFromPathname(pathname: string): GenderScope {
+function genderScopeFromPathname(pathname: string): GenderScopeParam {
   const p = (pathname || "").toLowerCase();
 
   // ✅ Ajusta aquí si tus rutas son distintas (ej: /hombre, /mujer, /ninos)
@@ -83,7 +84,7 @@ function genderScopeFromPathname(pathname: string): GenderScope {
   return "all";
 }
 
-function matchesGenderScope(productGender: any, scope: GenderScope) {
+function matchesGenderScope(productGender: any, scope: GenderScopeParam) {
   const g = String(productGender || "").toLowerCase(); // "men" | "women" | "kids" | "unisex" | ""
 
   if (scope === "all") return true;
@@ -100,7 +101,7 @@ function matchesGenderScope(productGender: any, scope: GenderScope) {
 
 /** ✅ Fallback de tallas completas por género (fuente de verdad del filtro) */
 const MEN_SIZES_FALLBACK = ["6", "6.5", "7", "7.5", "8", "8.5", "9", "9.5", "10", "10.5", "11", "11.5", "12", "12.5", "13", "14"];
-const WOMEN_SIZES_FALLBACK = ["4", "4.5", "5", "5.5", "6", "6.5", "7", "7.5", "8", "8.5", "9", "9.5", "10", "10.5", "11", "11.5", "12"];
+const WOMEN_SIZES_FALLBACK = ["5.5","6","6.5","7","7.5","8","8.5","9","9.5"];
 const KIDS_SIZES_FALLBACK = ["10C", "10.5C", "11C", "11.5C", "12C", "12.5C", "13C", "13.5C", "1Y", "1.5Y", "2Y", "2.5Y", "3Y", "3.5Y", "4Y", "4.5Y", "5Y", "5.5Y", "6Y", "6.5Y", "7Y"];
 
 /** ✅ Marcas completas (se mezclan con las marcas reales del catálogo por sección) */
@@ -2197,18 +2198,18 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
 
   // ✅ Sizes visibles: SOLO tallas disponibles (en orden), sin "Popular"
   const sizesAvailableOrdered = useMemo(() => {
-    if (!hasAnyAvailabilityData) return sizes;
-    return sizes.filter((s) => availableSizesSet.has(s));
-  }, [sizes, hasAnyAvailabilityData, availableSizesSet]);
-
-  // ✅ Auto-fix: si cambias de sección y tu talla seleccionada no existe ahí, se limpia sola
+    // ✅ Show full size scale; we only *disable* unavailable sizes.
+    return sizes;
+  }, [sizes]);
+// ✅ Auto-fix: si tu talla seleccionada deja de existir bajo los filtros actuales, se limpia sola.
   useEffect(() => {
-    if (size && !sizes.includes(size)) {
+    if (!size) return;
+    if (!hasAnyAvailabilityData) return;
+    if (!availableSizesSet.has(size)) {
       setParam(Q.size, null);
     }
-  }, [size, sizes, setParam]);
-
-  const brandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, brandSearch)), [brands, brandSearch]);
+  }, [size, hasAnyAvailabilityData, availableSizesSet, setParam]);
+const brandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, brandSearch)), [brands, brandSearch]);
   const mBrandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, mBrandSearch)), [brands, mBrandSearch]);
 
   const priceRanges = useMemo(() => {

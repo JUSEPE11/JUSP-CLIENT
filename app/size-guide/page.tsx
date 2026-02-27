@@ -1,6 +1,9 @@
 // /app/size-guide/page.tsx
+"use client";
 
 import Link from "next/link";
+import React, {useMemo, Suspense} from "react";
+import { useSearchParams } from "next/navigation";
 import { getSizeGuide, SIZE_GUIDES } from "@/lib/size-guides";
 
 function normalizeTab(tab?: string): "men" | "women" | "kids" {
@@ -9,16 +12,15 @@ function normalizeTab(tab?: string): "men" | "women" | "kids" {
   return "men";
 }
 
-export default function SizeGuidePage({
-  searchParams,
-}: {
-  searchParams?: { tab?: string | string[] };
-}) {
-  const rawTab = Array.isArray(searchParams?.tab) ? searchParams?.tab?.[0] : searchParams?.tab;
-  const tab = normalizeTab(rawTab);
-
+function SizeGuidePageInner() {
+  const searchParams = useSearchParams();
+  const tab = normalizeTab(searchParams.get("tab") ?? undefined);
   const guide = getSizeGuide(tab);
-  const activeLabel = SIZE_GUIDES.find((g) => g.key === tab)?.title ?? "Hombre";
+
+  const activeLabel = useMemo(() => {
+    const hit = SIZE_GUIDES.find((g) => g.key === tab);
+    return hit?.title ?? "Hombre";
+  }, [tab]);
 
   return (
     <main style={{ background: "#0b0b10", minHeight: "100vh", color: "white" }}>
@@ -415,5 +417,13 @@ export default function SizeGuidePage({
         </div>
       </section>
     </main>
+  );
+}
+
+export default function SizeGuidePage() {
+  return (
+    <Suspense fallback={<div />}> 
+      <SizeGuidePageInner />
+    </Suspense>
   );
 }
