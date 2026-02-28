@@ -1,3 +1,4 @@
+// app/ClientLayout.tsx
 "use client";
 
 import React, { ReactNode, useEffect, useMemo, useRef, useState, useCallback } from "react";
@@ -33,7 +34,7 @@ const MEGA_COLS: MegaCol[] = [
     items: [
       { label: "Buscar tienda", href: "/stores" },
       { label: "Hacerse miembro", href: "/membership" },
-      { label: "JUSP News", href: "/news" },
+      { label: "Guia de tallas", href: "/size-guide" },
       { label: "Envíanos tus comentarios", href: "/feedback" },
     ],
   },
@@ -394,45 +395,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
               </div>
 
               <div className="dockRight">
-                <div className="quick" aria-label="Accesos rápidos">
-                  <Link
-                    href="/help"
-                    className={`q ${isActiveHref(pathname || "", "/help") ? "qA" : ""}`}
-                    onMouseEnter={() => prefetch("/help")}
-                    onTouchStart={() => prefetch("/help")}
-                    onFocus={() => prefetch("/help")}
-                  >
-                    Ayuda
-                  </Link>
-                  <Link
-                    href="/stores"
-                    className={`q ${isActiveHref(pathname || "", "/stores") ? "qA" : ""}`}
-                    onMouseEnter={() => prefetch("/stores")}
-                    onTouchStart={() => prefetch("/stores")}
-                    onFocus={() => prefetch("/stores")}
-                  >
-                    Tiendas
-                  </Link>
-                  <Link
-                    href="/membership"
-                    className={`q ${isActiveHref(pathname || "", "/membership") ? "qA" : ""}`}
-                    onMouseEnter={() => prefetch("/membership")}
-                    onTouchStart={() => prefetch("/membership")}
-                    onFocus={() => prefetch("/membership")}
-                  >
-                    Membership
-                  </Link>
-                  <Link
-                    href="/feedback"
-                    className={`q ${isActiveHref(pathname || "", "/feedback") ? "qA" : ""}`}
-                    onMouseEnter={() => prefetch("/feedback")}
-                    onTouchStart={() => prefetch("/feedback")}
-                    onFocus={() => prefetch("/feedback")}
-                  >
-                    Feedback
-                  </Link>
-                </div>
-
+                {/* ✅ SOLO DEJAR "Mostrar/Ocultar" */}
                 <button type="button" className="megaToggle" onClick={onToggleMega} aria-expanded={megaOpen}>
                   {megaOpen ? "Ocultar" : "Mostrar"} ▾
                 </button>
@@ -740,32 +703,6 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           gap: 12px;
           flex-wrap: wrap;
           justify-content: flex-end;
-        }
-
-        .quick {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          flex-wrap: wrap;
-        }
-        .q {
-          font-weight: 950;
-          color: rgba(0, 0, 0, 0.62);
-          text-decoration: none;
-          font-size: 12px;
-          border: 1px solid rgba(0, 0, 0, 0.12);
-          background: rgba(0, 0, 0, 0.02);
-          border-radius: 999px;
-          padding: 8px 10px;
-        }
-        .q:hover {
-          color: #111;
-          background: rgba(0, 0, 0, 0.04);
-        }
-        .qA {
-          color: #111;
-          border-color: rgba(255, 214, 10, 0.65);
-          background: rgba(255, 214, 10, 0.18);
         }
 
         .megaToggle {
