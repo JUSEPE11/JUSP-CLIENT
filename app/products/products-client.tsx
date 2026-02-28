@@ -1688,7 +1688,7 @@ const ProductCard = memo(function ProductCard({
         <div className="dotsRow" aria-label="Available colors">
           <div className="dots" aria-hidden="true">
             {colorDots.map((c) => (
-              <span key={c} className="dot" style={{ background: colorToCss(c) }} title={c} />
+              <span key={c} className="dot" style={{ backgroundColor: colorToCss(c) || "#111111" }} title={c} />
             ))}
             {moreColors ? <span className="more">+{moreColors}</span> : null}
           </div>
@@ -2697,7 +2697,7 @@ const brandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, brand
                           if (!av) return;
                           setParam(Q.color, c);
                         }}
-                        leading={<span className="sw" style={{ background: colorToCss(c) }} aria-hidden="true" />}
+                        leading={<span className="sw" style={{ backgroundColor: colorToCss(c) || "#111111" }} aria-hidden="true" />}
                       >
                         {c}
                       </Chip>
@@ -2873,7 +2873,7 @@ const brandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, brand
                           if (!av) return;
                           setParam(Q.color, c);
                         }}
-                        leading={<span className="sw" style={{ background: colorToCss(c) }} aria-hidden="true" />}
+                        leading={<span className="sw" style={{ backgroundColor: colorToCss(c) || "#111111" }} aria-hidden="true" />}
                       >
                         {c}
                       </Chip>
