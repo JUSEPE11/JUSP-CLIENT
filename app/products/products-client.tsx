@@ -1625,6 +1625,7 @@ function CompareBar({
  * ========================= */
 const ProductCard = memo(function ProductCard({
   p,
+  scope,
   mounted,
   favTick,
   onToggleFav,
@@ -1633,6 +1634,7 @@ const ProductCard = memo(function ProductCard({
   onToggleCompare,
 }: {
   p: Product;
+  scope: GenderScope;
   mounted: boolean;
   favTick: number;
   onToggleFav: (favKey: string) => void;
@@ -1646,7 +1648,8 @@ const ProductCard = memo(function ProductCard({
   const sale = computeSale(price, disc);
 
   const favKey = String((p as any).id || (p as any).slug || (p as any).name || "");
-  const href = `/product?id=${encodeURIComponent(String((p as any).id || ""))}`;
+  const slugOrId = String((p as any).slug || (p as any).id || (p as any).product_code || "");
+  const href = `/product/${encodeURIComponent(slugOrId)}?g=${scope}`;
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _ = favTick;
@@ -2747,6 +2750,7 @@ const brandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, brand
                     <ProductCard
                       key={key}
                       p={p}
+                      scope={scope}
                       mounted={mounted}
                       favTick={favTick}
                       onToggleFav={onToggleFav}

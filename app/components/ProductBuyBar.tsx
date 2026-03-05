@@ -1,13 +1,21 @@
+// app/components/ProductBuyBar.tsx
 "use client";
 
 import React, { useMemo, useState } from "react";
 import { useStore } from "./store";
-import type { Product } from "@/lib/products";
+import type { Product, ProductVariant } from "@/lib/products";
 
 function safeArr(v: unknown): string[] {
-  return Array.isArray(v)
-    ? v.filter((x) => typeof x === "string" && x.trim()).map((x) => x.trim())
-    : [];
+  return Array.isArray(v) ? v.filter((x) => typeof x === "string" && x.trim()).map((x) => x.trim()) : [];
+}
+
+function uniq(arr: string[]) {
+  const out: string[] = [];
+  for (const a of arr) {
+    const v = (a || "").trim();
+    if (v && !out.includes(v)) out.push(v);
+  }
+  return out;
 }
 
 function pickImg(p: any, idx: number): string | null {
@@ -17,10 +25,40 @@ function pickImg(p: any, idx: number): string | null {
   return s ? s : null;
 }
 
+function deriveColorsSizes(product: Product) {
+  const variants = Array.isArray(product.variants) ? product.variants : [];
+  if (!variants.length) return { colors: safeArr((product as any).colors), sizes: safeArr((product as any).sizes) };
+  const colors = uniq(variants.map((v) => String(v.color ?? "").trim()).filter(Boolean));
+  const sizes = uniq(variants.map((v) => String(v.size ?? "").trim()).filter(Boolean));
+  return { colors, sizes };
+}
+
+function findVariant(product: Product, color: string | null, size: string | null): ProductVariant | null {
+  const variants = Array.isArray(product.variants) ? product.variants : [];
+  if (!variants.length) return null;
+
+  const c = (color ?? "").trim();
+  const s = (size ?? "").trim();
+
+  if (c && s) {
+    const exact = variants.find((v) => String(v.color ?? "").trim() === c && String(v.size ?? "").trim() === s);
+    if (exact) return exact;
+  }
+  if (s) {
+    const bySize = variants.find((v) => String(v.size ?? "").trim() === s);
+    if (bySize) return bySize;
+  }
+  if (c) {
+    const byColor = variants.find((v) => String(v.color ?? "").trim() === c);
+    if (byColor) return byColor;
+  }
+  return variants[0] ?? null;
+}
+
 export default function ProductBuyBar({ product }: { product: Product }) {
   const { addToCart, openCart } = useStore();
-  const colors = useMemo(() => safeArr((product as any).colors), [product]);
-  const sizes = useMemo(() => safeArr((product as any).sizes), [product]);
+
+  const { colors, sizes } = useMemo(() => deriveColorsSizes(product), [product]);
 
   const [color, setColor] = useState<string | null>(colors[0] ?? null);
   const [size, setSize] = useState<string | null>(sizes[0] ?? null);
@@ -28,6 +66,9 @@ export default function ProductBuyBar({ product }: { product: Product }) {
 
   const img1 = pickImg(product as any, 0);
   const img2 = pickImg(product as any, 1);
+
+  const selectedVariant = useMemo(() => findVariant(product, color, size), [product, color, size]);
+  const price = selectedVariant?.price ?? product.price;
 
   return (
     <div className="wrap">
@@ -53,7 +94,9 @@ export default function ProductBuyBar({ product }: { product: Product }) {
             <div className="meta">
               {color ? <span>Color: {color}</span> : null}
               {size ? <span>Talla: {size}</span> : null}
+              <span className="p">Precio: ${Math.round(price).toLocaleString("es-CO")}</span>
             </div>
+            <div className="note">Recuerda: los precios pueden variar según disponibilidad y condiciones del proveedor internacional.</div>
           </div>
         </div>
 
@@ -100,7 +143,8 @@ export default function ProductBuyBar({ product }: { product: Product }) {
             className="add"
             type="button"
             onClick={() => {
-              addToCart(product, { color, size, qty });
+              const cloned: any = { ...product, price }; // ✅ precio variante
+              addToCart(cloned, { color, size, qty });
               openCart();
             }}
           >
@@ -183,6 +227,17 @@ export default function ProductBuyBar({ product }: { product: Product }) {
           color: rgba(0, 0, 0, 0.62);
           font-size: 12px;
         }
+        .p {
+          font-weight: 950;
+          color: rgba(0, 0, 0, 0.78);
+        }
+        .note {
+          margin-top: 6px;
+          font-weight: 900;
+          color: rgba(0, 0, 0, 0.6);
+          font-size: 12px;
+          line-height: 1.3;
+        }
 
         .mid {
           display: flex;
@@ -218,55 +273,38 @@ export default function ProductBuyBar({ product }: { product: Product }) {
           gap: 10px;
         }
         .q {
-          width: 38px;
-          height: 38px;
+          width: 34px;
+          height: 34px;
           border-radius: 999px;
-          border: 1px solid rgba(0, 0, 0, 0.12);
+          border: 1px solid rgba(0, 0, 0, 0.14);
           background: #fff;
-          font-weight: 950;
           cursor: pointer;
+          font-weight: 950;
         }
         .qv {
-          min-width: 26px;
+          min-width: 18px;
           text-align: center;
           font-weight: 950;
           color: #111;
         }
 
-        .right {
-          display: flex;
-          justify-content: flex-end;
-        }
         .add {
+          width: 100%;
           border-radius: 999px;
-          padding: 12px 14px;
-          border: 1px solid rgba(0, 0, 0, 0.2);
+          padding: 14px 16px;
+          font-weight: 950;
+          border: 1px solid rgba(0, 0, 0, 0.14);
           background: rgba(17, 17, 17, 0.92);
           color: rgba(255, 255, 255, 0.95);
-          font-weight: 950;
           cursor: pointer;
-          white-space: nowrap;
-        }
-        .add:active {
-          transform: scale(0.99);
         }
 
         @media (max-width: 980px) {
           .card {
             grid-template-columns: 1fr;
-            gap: 10px;
-          }
-          .right {
-            justify-content: stretch;
-          }
-          .add {
-            width: 100%;
           }
           .mid {
             justify-content: flex-start;
-          }
-          select {
-            min-width: 220px;
           }
         }
       `}</style>
