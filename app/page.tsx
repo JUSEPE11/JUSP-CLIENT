@@ -1875,7 +1875,7 @@ export default function Page() {
           }}
         >
           <div style={{ position: "relative", background: "#f7f7f7" }}>
-            <div style={{ height: 220, position: "relative" }}>
+            <div style={{ height: 260, position: "relative", padding: 18, boxSizing: "border-box" }}>
               <SmartImg
                 baseSrc={p.imgBase}
                 alt={p.name}
