@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { PRODUCTS, type Product } from "@/lib/products";
 
 
 function useIsMobile(breakpoint: number = 768) {
@@ -129,6 +130,7 @@ type TopItem = {
   img?: string;
   brand?: string;
   price?: string;
+  gender?: "men" | "women" | "kids";
 };
 
 const TOP_ITEMS: TopItem[] = [
@@ -144,11 +146,83 @@ const TOP_ITEMS: TopItem[] = [
   { id: "t10", name: "Metcon", href: "/products?tag=top&pick=10", imgBase: "/home/mas-top/10", brand: "Nike", price: "Drop Top" },
 ];
 
-const ALL_PRODUCTS: TopItem[] = TOP_ITEMS.map((t, idx) => ({
-  ...t,
-  id: `p${idx + 1}`,
-  price: t.price ?? "Oferta",
-}));
+function formatCOP(n: number) {
+  const x = Number(n);
+  if (!Number.isFinite(x)) return "";
+  return Math.round(x).toLocaleString("es-CO");
+}
+
+function minPriceFromProduct(p: any): number | null {
+  // Variants-first: if product has variants with numeric prices, pick the lowest.
+  const variants = Array.isArray(p?.variants) ? p.variants : [];
+  let best: number | null = null;
+  for (const v of variants) {
+    const n = Number((v as any)?.price);
+    if (!Number.isFinite(n) || n <= 0) continue;
+    if (best === null || n < best) best = n;
+  }
+  if (best !== null) return best;
+
+  const base = Number(p?.price);
+  if (Number.isFinite(base) && base > 0) return base;
+  return null;
+}
+
+
+function normalizeHomeGender(v: unknown): "men" | "women" | "kids" {
+  const s = String(v ?? "").trim().toLowerCase();
+  if (s === "women" || s === "mujer" || s === "w") return "women";
+  if (s === "kids" || s === "kid" || s === "niños" || s === "ninos" || s === "ninas" || s === "niñas") return "kids";
+  return "men";
+}
+
+function firstImageFromProduct(p: Product, slug: string): string {
+  const imgs = Array.isArray((p as any).images) ? ((p as any).images as unknown[]) : [];
+  const main = String(
+    (imgs?.[0] as any) ||
+      ((p as any).image as any) ||
+      (slug ? `/products/${slug}/1` : "")
+  ).trim();
+
+  if (!main) return slug ? `/products/${slug}/1` : "";
+
+  // Soporta:
+  // - http(s)://...
+  // - /products/...
+  // - products/...
+  // - archivo.jpg
+  const isAbs = /^https?:\/\//i.test(main);
+  const hasSlash = main.startsWith("/");
+  if (isAbs) return main;
+  if (hasSlash) return main;
+  if (main.startsWith("products/")) return `/${main}`;
+  return `/products/${main}`;
+}
+
+const ALL_PRODUCTS: TopItem[] = (PRODUCTS ?? []).map((p: any, idx: number) => {
+  const slug = String(p?.slug ?? p?.id ?? "").trim();
+  const title = String(p?.title ?? p?.name ?? "Producto").trim();
+  const brand = String(p?.brand ?? p?.marca ?? "JUSP").trim() || "JUSP";
+  const gender = normalizeHomeGender(p?.gender);
+
+  // ✅ Preferimos el estándar de carpeta por slug: /products/<slug>/1.jpg
+  const imgBase = slug ? `/products/${slug}/1` : firstImageFromProduct(p as Product, slug);
+
+  const href = slug ? `/product/${encodeURIComponent(slug)}` : "/products";
+  const priceNum = minPriceFromProduct(p);
+  const price = typeof priceNum === "number" && priceNum > 0 ? `$${formatCOP(priceNum)}` : undefined;
+
+  return {
+    id: slug || `p${idx + 1}`,
+    name: title,
+    href,
+    imgBase,
+    brand,
+    price,
+    gender,
+  } as TopItem;
+});
+
 
 
 type CardItem = {
@@ -1773,6 +1847,7 @@ export default function Page() {
 
     {/* Grid */}
     <div
+      className="__jusp_all_products_grid"
       style={{
         marginTop: 16,
         display: "grid",
@@ -1808,40 +1883,11 @@ export default function Page() {
               />
             </div>
 
-            <div
-              style={{
-                position: "absolute",
-                left: 10,
-                top: 10,
-                padding: "8px 10px",
-                borderRadius: 999,
-                background: "rgba(255,255,255,0.92)",
-                border: "1px solid rgba(0,0,0,0.08)",
-                fontSize: 12,
-                fontWeight: 1000,
-              }}
-            >
-              {p.brand ?? "JUSP"}
-            </div>
           </div>
 
           <div style={{ padding: 12 }}>
             <div style={{ fontWeight: 1000, fontSize: 14, lineHeight: 1.2 }}>{p.name}</div>
-            <div style={{ marginTop: 6, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-              <div style={{ fontSize: 12, opacity: 0.72 }}>{p.price ?? "Oferta"}</div>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 1000,
-                  padding: "8px 10px",
-                  borderRadius: 999,
-                  background: "rgba(0,0,0,0.92)",
-                  color: "white",
-                }}
-              >
-                Ver →
-              </div>
-            </div>
+            <div style={{ marginTop: 6, fontSize: 12, opacity: 0.72 }}>{p.price ?? "Oferta"}</div>
           </div>
         </a>
       ))}
@@ -1854,8 +1900,6 @@ export default function Page() {
       }
     `}</style>
   </div>
-</section>
-
 
       {/* SEARCH OVERLAY (queda disponible por tecla "/" aunque quitamos botones del hero) */}
       {searchOpen ? (
@@ -2356,7 +2400,7 @@ export default function Page() {
 {/* (footer removed) */}
 
 
-
-</main>
+</section>
+    </main>
   );
 }

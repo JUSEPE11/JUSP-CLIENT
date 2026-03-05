@@ -11,13 +11,49 @@ function moneyCOP(n: number) {
   return Math.round(n).toLocaleString("es-CO");
 }
 
-function pickImgs(p: Product): string[] {
+function pickImgs(p: Product, slug: string): string[] {
   const imgs = Array.isArray((p as any).images) ? ((p as any).images as string[]) : [];
   const main = (imgs?.[0] || (typeof (p as any).image === "string" ? (p as any).image : "") || "").trim();
   const alt = (imgs?.[1] || "").trim();
-  const rest = imgs.slice(2).map((x) => String(x || "").trim()).filter(Boolean);
-  const out = [main, alt, ...rest].filter(Boolean) as string[];
-  return out.length ? out : [];
+  const rest = imgs
+    .slice(2)
+    .map((x) => String(x || "").trim())
+    .filter(Boolean);
+
+  const raw = [main, alt, ...rest].filter(Boolean) as string[];
+
+  const isAbs = (s: string) => /^https?:\/\//i.test(s);
+  const hasExt = (s: string) => /\.(png|jpe?g|webp|gif|avif)$/i.test(s);
+
+  const normalizeOne = (s: string) => {
+    const v = String(s || "").trim();
+    if (!v) return "";
+    if (isAbs(v)) return v;
+    if (v.startsWith("/")) return v;
+    if (v.startsWith("products/")) return `/${v}`;
+    if (hasExt(v)) return `/products/${v}`;
+    return v;
+  };
+
+  const normalized = raw.map(normalizeOne).filter(Boolean);
+
+  // Si viene en formato plano (slug.jpg / slug-2.jpg), preferimos SIEMPRE carpeta /products/slug/1.jpg...
+  const looksFlat = (s: string) => {
+    const a = String(s || "").trim();
+    if (!a) return false;
+    if (!slug) return false;
+    return a === `/products/${slug}.jpg` || a.startsWith(`/products/${slug}-`);
+  };
+
+  const shouldPreferFolder = !normalized.length || normalized.some(looksFlat);
+
+  if (shouldPreferFolder) {
+    // Estructura real: /public/products/<slug>/1.jpg..8.jpg
+    const count = 8;
+    return Array.from({ length: count }, (_, i) => `/products/${slug}/${i + 1}.jpg`);
+  }
+
+  return normalized;
 }
 
 /** =========================
@@ -255,8 +291,8 @@ export default function ProductPage() {
     [product]
   );
 
-  // ✅ Galería fija
-  const imgs = useMemo(() => (product ? pickImgs(product) : []), [product]);
+  // ✅ Galería fija (carpeta /products/<slug>/1.jpg..8.jpg cuando aplica)
+  const imgs = useMemo(() => (product ? pickImgs(product, slug) : []), [product, slug]);
 
   const variants = useMemo(() => (product ? normalizeVariants(product) : []), [product]);
 
@@ -265,42 +301,29 @@ export default function ProductPage() {
     return inferSizingMode(product, variants);
   }, [product, variants]);
 
-  // ✅ Fuente de tallas:
-  // 1) Apparel => S/M/L/XL siempre
-  // 2) Shoes (scope women) => 5.5→9.5 siempre (US WOMEN) (guardamos RAW como MEN para que pricing cuadre)
-  // 3) Si hay variantes => tallas únicas de variantes (RAW)
-  // 4) Si hay product.sizes => esas (RAW)
-  // 5) fallback por scope (DEFAULT)
   const rawSizes = useMemo(() => {
     if (!product) return [];
 
-    // (A) Apparel manda
     if (sizingMode === "apparel") {
       return APPAREL_SIZES;
     }
 
-    // (B) Shoes + women: rango completo 5.5→9.5
     if (scope === "women") {
-      // Guardamos RAW como MEN para que findVariantBySize funcione con variantes en MEN
       return WOMEN_SHOE_FULL_US.map(convertWomenToMenUS);
     }
 
-    // (C) variants reales
     if (variants.length) return uniq(variants.map((v: any) => String(v?.size ?? "").trim()).filter(Boolean));
 
-    // (D) product.sizes
     const ps = safeArr((product as any).sizes);
     if (ps.length) return uniq(ps);
 
-    // (E) fallback legacy
     if (scope === "kids") return KIDS_DEFAULT;
     return MEN_DEFAULT;
   }, [product, variants, scope, sizingMode]);
 
-  // ✅ lo que se muestra al usuario
   const sizes = useMemo(() => {
     if (sizingMode === "apparel") return rawSizes;
-    if (scope === "women") return applyScopeToSizes(rawSizes, scope); // convierte RAW(MEN) => WOMEN
+    if (scope === "women") return applyScopeToSizes(rawSizes, scope);
     return rawSizes;
   }, [rawSizes, scope, sizingMode]);
 
@@ -310,13 +333,11 @@ export default function ProductPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [activeImg, setActiveImg] = useState<number>(0);
 
-  // si hay variantes reales, obliga selección
   const [attemptedBuy, setAttemptedBuy] = useState(false);
 
   useEffect(() => {
     setActiveImg(0);
     setAttemptedBuy(false);
-    // si el size actual no existe en la lista visible, resetea
     if (sizes.length && (!size || !sizes.includes(size))) setSize(sizes[0] ?? null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug, sizes.join("|")]);
@@ -369,7 +390,6 @@ export default function ProductPage() {
     return null;
   }, [hasRealVariants, attemptedBuy, selectionMissing]);
 
-  // Hooks del store (se usan en handlers reales)
   const { addToCart, openCart } = useStore();
 
   function onBuyReal(mode: "add" | "now") {
@@ -505,7 +525,6 @@ export default function ProductPage() {
                 <div className={`hint ${attemptedBuy && selectionMissing ? "err" : ""}`}>{selectionHint}</div>
               ) : null}
 
-              {/* ✅ TALLAS (SHOES vs APPAREL) */}
               <div className="blk">
                 <div className="lbl">Talla</div>
                 <div className="gridOps">
@@ -558,7 +577,6 @@ export default function ProductPage() {
         </div>
       </div>
 
-      {/* Mobile Bar */}
       <div className="mobileBar" role="presentation">
         <div className="mLeft">
           <div className="mTop">
@@ -744,10 +762,15 @@ export default function ProductPage() {
           position: relative;
           border-radius: 18px;
           border: 1px solid rgba(0, 0, 0, 0.08);
-          background: radial-gradient(500px 240px at 40% 20%, rgba(212, 175, 55, 0.12), transparent 60%),
-            #fafafa;
+          background: radial-gradient(500px 240px at 40% 20%, rgba(212, 175, 55, 0.12), transparent 60%), #fafafa;
           overflow: hidden;
-          aspect-ratio: 4/3;
+
+          /* ✅ FIX: antes 4/3 (muy bajo) → ahora 3/4 para fotos verticales */
+          aspect-ratio: 3 / 4;
+
+          /* ✅ altura premium para que no “aplastes” la imagen */
+          min-height: 520px;
+
           display: grid;
           place-items: center;
           box-shadow: var(--shadow2);
@@ -756,8 +779,13 @@ export default function ProductPage() {
         .imgBox img {
           width: 100%;
           height: 100%;
+
+          /* ✅ mantiene la imagen completa */
           object-fit: contain;
-          padding: 24px;
+
+          /* ✅ menos padding para que no “recorte visualmente” */
+          padding: 12px;
+
           display: block;
           user-select: none;
           -webkit-user-select: none;
@@ -1234,6 +1262,9 @@ export default function ProductPage() {
           .card {
             position: relative;
             top: auto;
+          }
+          .imgBox {
+            min-height: 440px;
           }
         }
 
