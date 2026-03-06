@@ -215,16 +215,16 @@ function colorToCss(name: string) {
   if (map[n]) return map[n];
 
   const cssCandidate = name.trim();
-  if (!cssCandidate) return "rgba(0,0,0,0.22)";
+  if (!cssCandidate) return "#111111";
 
-  try {
-    const el = document.createElement("span");
-    el.style.color = "";
-    el.style.color = cssCandidate;
-    if (el.style.color) return cssCandidate;
-  } catch {}
+  // SSR-safe fallback: nunca usar document aquí para evitar hydration mismatch.
+  // Si no está en el mapa, devolvemos el valor crudo para colores CSS válidos simples
+  // y, si no aplica, usamos un fallback estable.
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(cssCandidate)) return cssCandidate;
+  if (/^(rgb|rgba|hsl|hsla)\(/i.test(cssCandidate)) return cssCandidate;
+  if (/^[a-zA-Z]+$/.test(cssCandidate)) return cssCandidate;
 
-  return "rgba(0,0,0,0.22)";
+  return "#111111";
 }
 
 /** =========================
@@ -1072,7 +1072,7 @@ function GridSkeleton({ count }: { count: number }) {
       <style jsx>{`
         .sk {
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
+          grid-template-columns: repeat(3, 1fr);
           gap: 26px 18px;
           padding-top: 8px;
           position: absolute;
@@ -1668,14 +1668,26 @@ const ProductCard = memo(function ProductCard({
         <Link className="img" href={href} prefetch={false} onMouseEnter={() => onPrefetch(href)} onFocus={() => onPrefetch(href)}>
           {main ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={main}
-              alt={String((p as any).name || "Producto")}
-              loading="lazy"
-              decoding="async"
-              fetchPriority="low"
-              onLoad={() => setImgReady(true)}
-            />
+            <div style={{position:"relative",width:"100%",height:"260px",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+              <img
+                src={main}
+                alt={String((p as any).name || "Producto")}
+                loading="lazy"
+                decoding="async"
+                fetchPriority="low"
+                onLoad={() => setImgReady(true)}
+                style={{maxHeight:"240px",width:"auto",objectFit:"contain",transition:"opacity .25s"}}
+              />
+              {(p as any).images?.[1] ? (
+                <img
+                  src={(p as any).images[1]}
+                  alt=""
+                  style={{position:"absolute",maxHeight:"240px",width:"auto",objectFit:"contain",opacity:0,transition:"opacity .25s"}}
+                  onMouseEnter={(e)=>{(e.currentTarget.style.opacity="1")}}
+                  onMouseLeave={(e)=>{(e.currentTarget.style.opacity="0")}}
+                />
+              ) : null}
+            </div>
           ) : (
             <div className="ph" />
           )}
@@ -1749,10 +1761,13 @@ const ProductCard = memo(function ProductCard({
         }
 
         .img {
-          display: block;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           aspect-ratio: 1 / 1;
           position: relative;
           background: #f4f4f4;
+          overflow: hidden;
         }
 
         .imgBg {
@@ -1763,17 +1778,20 @@ const ProductCard = memo(function ProductCard({
         }
 
         .img :global(img) {
-          width: 100%;
-          height: 100%;
+          width: 78%;
+          height: 78%;
+          max-width: 260px;
+          max-height: 260px;
           object-fit: contain;
           display: block;
-          padding: 26px;
+          margin: auto;
+          padding: 0;
           transform: translateZ(0);
           transition: transform 240ms ease, filter 240ms ease;
           filter: saturate(1.02) contrast(1.02);
         }
         article:hover .img :global(img) {
-          transform: scale(1.035);
+          transform: scale(1.02);
         }
 
         .ph {
