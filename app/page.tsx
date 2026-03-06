@@ -1851,8 +1851,7 @@ export default function Page() {
       style={{
         marginTop: 16,
         display: "grid",
-        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-        gap: 14,
+                gap: 14,
       }}
     >
       {ALL_PRODUCTS.filter((p) => {
@@ -1875,7 +1874,7 @@ export default function Page() {
           }}
         >
           <div style={{ position: "relative", background: "#f7f7f7" }}>
-            <div style={{ height: 260, position: "relative", padding: 18, boxSizing: "border-box" }}>
+            <div style={{ height: 220, position: "relative" }}>
               <SmartImg
                 baseSrc={p.imgBase}
                 alt={p.name}
@@ -1893,10 +1892,10 @@ export default function Page() {
       ))}
     </div>
 
-    {/* Responsive: 4 columnas desktop */}
+    {/* Grid fijo: 5 productos por fila */}
     <style>{`
-      @media (min-width: 880px) {
-        .__jusp_all_products_grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .__jusp_all_products_grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
       }
     `}</style>
   </div>

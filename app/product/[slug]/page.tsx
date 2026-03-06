@@ -37,7 +37,6 @@ function pickImgs(p: Product, slug: string): string[] {
 
   const normalized = raw.map(normalizeOne).filter(Boolean);
 
-  // Si viene en formato plano (slug.jpg / slug-2.jpg), preferimos SIEMPRE carpeta /products/slug/1.jpg...
   const looksFlat = (s: string) => {
     const a = String(s || "").trim();
     if (!a) return false;
@@ -48,7 +47,6 @@ function pickImgs(p: Product, slug: string): string[] {
   const shouldPreferFolder = !normalized.length || normalized.some(looksFlat);
 
   if (shouldPreferFolder) {
-    // Estructura real: /public/products/<slug>/1.jpg..8.jpg
     const count = 8;
     return Array.from({ length: count }, (_, i) => `/products/${slug}/${i + 1}.jpg`);
   }
@@ -56,12 +54,6 @@ function pickImgs(p: Product, slug: string): string[] {
   return normalized;
 }
 
-/** =========================
- * Gender scope (PDP page.tsx)
- * 1) ?g=men|women|kids
- * 2) localStorage jusp:genderScope
- * 3) product.gender fallback
- * ========================= */
 type GenderScope = "men" | "women" | "kids";
 
 function normalizeGenderScope(v: unknown): GenderScope | null {
@@ -89,7 +81,6 @@ function storeScope(scope: GenderScope) {
 
 function convertMenToWomenUS(size: string) {
   const raw = (size || "").trim();
-  // Solo números tipo "7" o "7.5". Si tiene letras (Y/C) lo dejamos igual.
   if (!raw || /[a-zA-Z]/.test(raw)) return raw;
   const n = Number(raw);
   if (!Number.isFinite(n)) return raw;
@@ -127,19 +118,11 @@ function uniq(arr: string[]) {
   return out;
 }
 
-/** =========================
- * Sizing modes (nuevo)
- * - Shoes: (women) 5.5 → 9.5 SIEMPRE (US)
- * - Apparel: S / M / L / XL
- * ========================= */
 type SizingMode = "shoe" | "apparel";
 
 const WOMEN_SHOE_FULL_US = ["5.5", "6", "6.5", "7", "7.5", "8", "8.5", "9", "9.5"];
 const APPAREL_SIZES = ["S", "M", "L", "XL"];
-
-// Defaults legacy (se conservan como fallback)
 const MEN_DEFAULT = ["7", "7.5", "8", "8.5", "9", "10"];
-const WOMEN_DEFAULT = MEN_DEFAULT.map(convertMenToWomenUS);
 const KIDS_DEFAULT = ["3Y", "3.5Y", "4Y", "4.5Y", "5Y", "5.5Y", "6Y"];
 
 function normalizeVariants(product: Product): ProductVariant[] {
@@ -163,12 +146,12 @@ function looksLikeApparelSize(s: string) {
 
 function inferSizingMode(product: Product, variants: ProductVariant[]): SizingMode {
   const vSizes = uniq(variants.map((v: any) => String(v?.size ?? "").trim()).filter(Boolean));
+
   if (vSizes.some((s) => looksLikeApparelSize(s))) return "apparel";
 
   const ps = safeArr((product as any).sizes);
   if (ps.some((s) => looksLikeApparelSize(s))) return "apparel";
 
-  // Heurística por categoría/tags/título
   const haystack = `${String((product as any)?.category ?? "")} ${String((product as any)?.type ?? "")} ${String(
     (product as any)?.collection ?? ""
   )} ${String((product as any)?.title ?? "")} ${String((product as any)?.name ?? "")}`.toLowerCase();
@@ -193,25 +176,44 @@ function inferSizingMode(product: Product, variants: ProductVariant[]): SizingMo
     "bermuda",
     "ropa",
     "apparel",
+    "tank",
+    "top",
+    "bra",
   ];
   if (apparelWords.some((w) => haystack.includes(w))) return "apparel";
 
   return "shoe";
 }
 
-// ✅ Variante por talla. Si WOMEN, el usuario ve WOMEN pero las variantes suelen estar en MEN.
 function findVariantBySize(product: Product, scope: GenderScope, displayedSize: string | null): ProductVariant | null {
   const variants = normalizeVariants(product);
   if (!variants.length) return null;
 
   const ds = (displayedSize ?? "").trim();
-  const s = scope === "women" ? convertWomenToMenUS(ds) : ds;
 
-  if (s) {
-    const candidates = variants.filter((v) => String((v as any).size ?? "").trim() === s);
-    if (candidates.length) {
-      let best = candidates[0];
-      for (const v of candidates) {
+  // Primero intenta exacto. Esto arregla gorras, ropa y tallas especiales.
+  if (ds) {
+    const exact = variants.filter((v) => String((v as any).size ?? "").trim() === ds);
+    if (exact.length) {
+      let best = exact[0];
+      for (const v of exact) {
+        const p = Number((v as any).price ?? 0);
+        if (p < Number((best as any).price ?? 0)) best = v;
+      }
+      return best;
+    }
+  }
+
+  // Solo si no hubo exacto y es una talla numérica visible de women, intenta convertir a men.
+  const normalizedDs = ds;
+  const maybeConverted =
+    scope === "women" && normalizedDs && !/[a-zA-Z/]/.test(normalizedDs) ? convertWomenToMenUS(normalizedDs) : normalizedDs;
+
+  if (maybeConverted && maybeConverted !== normalizedDs) {
+    const converted = variants.filter((v) => String((v as any).size ?? "").trim() === maybeConverted);
+    if (converted.length) {
+      let best = converted[0];
+      for (const v of converted) {
         const p = Number((v as any).price ?? 0);
         if (p < Number((best as any).price ?? 0)) best = v;
       }
@@ -264,23 +266,35 @@ export default function ProductPage() {
 
     return list.find((p: any) => {
       const pid = String(p?.id ?? "").trim();
-      const pslug = String(p?.slug ?? "").trim();
-      const pcode = String(p?.product_code ?? "").trim();
+      const pslug = String((p as any)?.slug ?? "").trim();
+      const pcode = String((p as any)?.product_code ?? "").trim();
       return pid === s || pslug === s || pcode === s;
     }) as Product | undefined;
   }, [slug]);
 
-  // ✅ scope estable y persistido (evita volver a men)
-  const scope = useMemo<GenderScope>(() => {
-    const g = normalizeGenderScope(gParam);
-    if (g) return g;
-
-    const stored = typeof window !== "undefined" ? readStoredScope() : null;
-    if (stored) return stored;
+  // SSR-safe: nunca leer localStorage durante el render.
+  const initialScope = useMemo<GenderScope>(() => {
+    const fromQuery = normalizeGenderScope(gParam);
+    if (fromQuery) return fromQuery;
 
     const fromProduct = normalizeGenderScope((product as any)?.gender);
     return fromProduct || "men";
   }, [gParam, product]);
+
+  const [scope, setScope] = useState<GenderScope>(initialScope);
+
+  useEffect(() => {
+    setScope(initialScope);
+  }, [initialScope]);
+
+  useEffect(() => {
+    if (gParam) return;
+    const stored = readStoredScope();
+    if (stored && stored !== scope) {
+      setScope(stored);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gParam]);
 
   useEffect(() => {
     storeScope(scope);
@@ -291,9 +305,7 @@ export default function ProductPage() {
     [product]
   );
 
-  // ✅ Galería fija (carpeta /products/<slug>/1.jpg..8.jpg cuando aplica)
   const imgs = useMemo(() => (product ? pickImgs(product, slug) : []), [product, slug]);
-
   const variants = useMemo(() => (product ? normalizeVariants(product) : []), [product]);
 
   const sizingMode = useMemo<SizingMode>(() => {
@@ -304,43 +316,50 @@ export default function ProductPage() {
   const rawSizes = useMemo(() => {
     if (!product) return [];
 
-    if (sizingMode === "apparel") {
-      return APPAREL_SIZES;
+    // 1) Si hay variantes reales, SIEMPRE mandan.
+    if (variants.length) {
+      return uniq(variants.map((v: any) => String(v?.size ?? "").trim()).filter(Boolean));
     }
 
-    if (scope === "women") {
-      return WOMEN_SHOE_FULL_US.map(convertWomenToMenUS);
-    }
-
-    if (variants.length) return uniq(variants.map((v: any) => String(v?.size ?? "").trim()).filter(Boolean));
-
+    // 2) Si el producto trae sizes, usar esos.
     const ps = safeArr((product as any).sizes);
     if (ps.length) return uniq(ps);
 
+    // 3) Fallbacks solo cuando no hay info real.
+    if (sizingMode === "apparel") return APPAREL_SIZES;
+    if (scope === "women") return WOMEN_SHOE_FULL_US.map(convertWomenToMenUS);
     if (scope === "kids") return KIDS_DEFAULT;
     return MEN_DEFAULT;
   }, [product, variants, scope, sizingMode]);
 
   const sizes = useMemo(() => {
+    // Si hay variantes reales, NO transformar nada. Mostrar exacto.
+    if (variants.length) return rawSizes;
+
     if (sizingMode === "apparel") return rawSizes;
     if (scope === "women") return applyScopeToSizes(rawSizes, scope);
     return rawSizes;
-  }, [rawSizes, scope, sizingMode]);
+  }, [rawSizes, scope, sizingMode, variants]);
 
-  const [size, setSize] = useState<string | null>(sizes[0] ?? null);
+  const [size, setSize] = useState<string | null>(null);
   const [qty, setQty] = useState<number>(1);
-
   const [toast, setToast] = useState<string | null>(null);
   const [activeImg, setActiveImg] = useState<number>(0);
-
   const [attemptedBuy, setAttemptedBuy] = useState(false);
 
   useEffect(() => {
     setActiveImg(0);
     setAttemptedBuy(false);
-    if (sizes.length && (!size || !sizes.includes(size))) setSize(sizes[0] ?? null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug, sizes.join("|")]);
+
+    if (sizes.length) {
+      setSize((prev) => {
+        if (prev && sizes.includes(prev)) return prev;
+        return sizes[0] ?? null;
+      });
+    } else {
+      setSize(null);
+    }
+  }, [slug, sizes]);
 
   const hasRealVariants = useMemo(() => variants.length > 0, [variants]);
 
@@ -441,7 +460,6 @@ export default function ProductPage() {
         </div>
 
         <div className="grid">
-          {/* MEDIA */}
           <section className="media">
             <div className="mediaCard">
               <div className="gallery">
@@ -455,7 +473,6 @@ export default function ProductPage() {
                         onClick={() => setActiveImg(i)}
                         aria-label={`Ver imagen ${i + 1}`}
                       >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img className="th" src={src} alt="" aria-hidden="true" />
                       </button>
                     ))}
@@ -463,12 +480,7 @@ export default function ProductPage() {
                 ) : null}
 
                 <div className="imgBox">
-                  {imgs[activeImg] ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={imgs[activeImg]} alt={title} />
-                  ) : (
-                    <div className="ph" />
-                  )}
+                  {imgs[activeImg] ? <img src={imgs[activeImg]} alt={title} /> : <div className="ph" />}
 
                   <div className="imgBadge">
                     <span className="b1">JUSP</span>
@@ -482,7 +494,6 @@ export default function ProductPage() {
             </div>
           </section>
 
-          {/* INFO */}
           <section className="info">
             <div className="card">
               <div className="head">
@@ -630,8 +641,7 @@ export default function ProductPage() {
           padding-right: 16px;
           min-height: 100vh;
           background: radial-gradient(1200px 500px at 20% 0%, rgba(212, 175, 55, 0.08), transparent 60%),
-            radial-gradient(900px 500px at 90% 10%, rgba(0, 0, 0, 0.04), transparent 55%),
-            #ffffff;
+            radial-gradient(900px 500px at 90% 10%, rgba(0, 0, 0, 0.04), transparent 55%), #ffffff;
         }
 
         .wrap {
@@ -708,7 +718,6 @@ export default function ProductPage() {
           align-items: start;
         }
 
-        /* MEDIA */
         .mediaCard {
           border-radius: 22px;
           border: 1px solid var(--b2);
@@ -764,13 +773,8 @@ export default function ProductPage() {
           border: 1px solid rgba(0, 0, 0, 0.08);
           background: radial-gradient(500px 240px at 40% 20%, rgba(212, 175, 55, 0.12), transparent 60%), #fafafa;
           overflow: hidden;
-
-          /* ✅ FIX: antes 4/3 (muy bajo) → ahora 3/4 para fotos verticales */
           aspect-ratio: 3 / 4;
-
-          /* ✅ altura premium para que no “aplastes” la imagen */
           min-height: 520px;
-
           display: grid;
           place-items: center;
           box-shadow: var(--shadow2);
@@ -779,13 +783,8 @@ export default function ProductPage() {
         .imgBox img {
           width: 100%;
           height: 100%;
-
-          /* ✅ mantiene la imagen completa */
           object-fit: contain;
-
-          /* ✅ menos padding para que no “recorte visualmente” */
           padding: 12px;
-
           display: block;
           user-select: none;
           -webkit-user-select: none;
@@ -839,7 +838,6 @@ export default function ProductPage() {
           font-size: 12px;
         }
 
-        /* INFO CARD */
         .card {
           border-radius: 22px;
           padding: 18px;
