@@ -217,8 +217,10 @@ const ALL_PRODUCTS: TopItem[] = (PRODUCTS ?? []).map((p: any, idx: number) => {
   const brand = String(p?.brand ?? p?.marca ?? "JUSP").trim() || "JUSP";
   const gender = normalizeHomeGender(p?.gender);
 
-  // ✅ Preferimos el estándar de carpeta por slug: /products/<slug>/1.jpg
-  const imgBase = slug ? `/products/${slug}/1` : firstImageFromProduct(p as Product, slug);
+  // ✅ Usar primero la imagen REAL definida en PRODUCTS.
+  // No inventar rutas por slug en la home, porque eso rompe en producción
+  // cuando el asset real está en otra ruta o con otra extensión.
+  const imgBase = firstImageFromProduct(p as Product, slug);
 
   const href = slug ? `/product/${encodeURIComponent(slug)}` : "/products";
   const priceNum = minPriceFromProduct(p);
