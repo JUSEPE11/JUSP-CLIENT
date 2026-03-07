@@ -1,4 +1,3 @@
-// app/product/[slug]/page.tsx
 "use client";
 
 import Link from "next/link";
@@ -15,35 +14,34 @@ const IMAGE_FOLDER_ALIASES: Record<string, string> = {
   "nike-dunk-low-retro": "nike-dunk-low-retro",
   "nike-air-force-1-07": "nike-air-force-1-07",
   "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women":
-    "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women",
+    "nike-Dri-Fit-Quick-Dry-Running-Compression-Training-Sports-Tank-Top-Women",
   "nike-sports-pants-womens-purple": "nike-sports-pants-womens-purple",
-  "jordan-club-cap": "jordan-club-cap",
+  "jordan-club-cap": "jordan-Club-Cap",
 };
 
-function uniqueStrings(arr: string[]) {
-  return Array.from(new Set(arr.map((x) => String(x || "").trim()).filter(Boolean)));
-}
+const IMAGE_COUNTS: Record<string, number> = {
+  "nike-dunk-low-retro": 8,
+  "nike-air-force-1-07": 8,
+  "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women": 5,
+  "nike-sports-pants-womens-purple": 6,
+  "jordan-club-cap": 6,
+};
 
-function folderCandidatesForSlug(slug: string) {
-  const exactFolder = IMAGE_FOLDER_ALIASES[slug] || slug;
-
-  const counts: Record<string, number> = {
-    "nike-dunk-low-retro": 8,
-    "nike-air-force-1-07": 8,
-    "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women": 5,
-    "nike-sports-pants-womens-purple": 6,
-    "jordan-club-cap": 6,
-  };
-
-  const count = counts[slug] || 8;
-  const folderNames = uniqueStrings([exactFolder, slug]);
-
+function uniqueStringsCaseInsensitive(arr: string[]) {
+  const seen = new Set<string>();
   const out: string[] = [];
-  for (const folder of folderNames) {
-    for (let i = 1; i <= count; i++) {
-      out.push(`/products/${folder}/${i}.jpg`);
-    }
+
+  for (const item of arr) {
+    const value = String(item || "").trim();
+    if (!value) continue;
+
+    const key = value.toLowerCase();
+    if (seen.has(key)) continue;
+
+    seen.add(key);
+    out.push(value);
   }
+
   return out;
 }
 
@@ -58,24 +56,40 @@ function pickImgs(p: Product, slug: string): string[] {
   const isAbs = (s: string) => /^https?:\/\//i.test(s);
   const hasExt = (s: string) => /\.(png|jpe?g|webp|gif|avif)$/i.test(s);
 
+  const realFolder = IMAGE_FOLDER_ALIASES[slug] || slug;
+  const count = IMAGE_COUNTS[slug] || 8;
+
   const normalizeOne = (s: string) => {
     const v = String(s || "").trim();
     if (!v) return "";
     if (isAbs(v)) return v;
-    if (v.startsWith("/")) return v;
-    if (v.startsWith("products/")) return `/${v}`;
-    if (hasExt(v)) return `/products/${v}`;
-    return "";
+
+    let normalized = v;
+
+    if (normalized.startsWith("products/")) {
+      normalized = `/${normalized}`;
+    } else if (!normalized.startsWith("/") && hasExt(normalized)) {
+      normalized = `/products/${normalized}`;
+    }
+
+    if (!normalized.startsWith("/")) return "";
+
+    const match = normalized.match(/^\/products\/([^/]+)\/([^/]+\.(?:png|jpe?g|webp|gif|avif))$/i);
+    if (match) {
+      const fileName = match[2];
+      return `/products/${realFolder}/${fileName}`;
+    }
+
+    return normalized;
   };
 
-  const explicit = uniqueStrings(raw.map(normalizeOne).filter(Boolean));
-  const folderBased = folderCandidatesForSlug(slug);
+  const explicit = uniqueStringsCaseInsensitive(raw.map(normalizeOne).filter(Boolean));
 
-  // FIX REAL:
-  // 1) usar primero las rutas explícitas del producto (lib/products.ts)
-  // 2) evitar duplicar image + images[0]
-  // 3) usar fallback por carpeta SOLO si el producto no trae imágenes válidas
-  return explicit.length ? explicit : uniqueStrings(folderBased);
+  if (explicit.length) {
+    return explicit;
+  }
+
+  return Array.from({ length: count }, (_, i) => `/products/${realFolder}/${i + 1}.jpg`);
 }
 
 type GenderScope = "men" | "women" | "kids";
@@ -324,19 +338,8 @@ export default function ProductPage() {
     [product]
   );
 
-  const allImgs = useMemo(() => (product ? pickImgs(product, slug) : []), [product, slug]);
+  const imgs = useMemo(() => (product ? pickImgs(product, slug) : []), [product, slug]);
   const variants = useMemo(() => (product ? normalizeVariants(product) : []), [product]);
-
-  const [failedSrcs, setFailedSrcs] = useState<string[]>([]);
-
-  useEffect(() => {
-    setFailedSrcs([]);
-  }, [slug, allImgs]);
-
-  const imgs = useMemo(() => {
-    if (!allImgs.length) return [];
-    return allImgs.filter((src) => !failedSrcs.includes(src));
-  }, [allImgs, failedSrcs]);
 
   const sizingMode = useMemo<SizingMode>(() => {
     if (!product) return "shoe";
@@ -391,6 +394,7 @@ export default function ProductPage() {
       setActiveImg(0);
       return;
     }
+
     setActiveImg((prev) => (prev >= imgs.length ? 0 : prev));
   }, [imgs]);
 
@@ -444,10 +448,6 @@ export default function ProductPage() {
 
   const { addToCart, openCart } = useStore();
 
-  function markSrcAsFailed(src: string) {
-    setFailedSrcs((prev) => (prev.includes(src) ? prev : [...prev, src]));
-  }
-
   function onBuyReal(mode: "add" | "now") {
     setAttemptedBuy(true);
 
@@ -500,38 +500,45 @@ export default function ProductPage() {
           <section className="media">
             <div className="mediaCard">
               <div className="gallery">
-                <div className="thumbCol" aria-label="Miniaturas">
-                  {(imgs.length ? imgs : [""]).slice(0, 10).map((src, i) => (
-                    <button
-                      key={`${src || "placeholder"}-${i}`}
-                      type="button"
-                      className={`thBtn ${activeImg === i ? "on" : ""}`}
-                      onClick={() => {
-                        if (src) setActiveImg(i);
-                      }}
-                      aria-label={`Ver imagen ${i + 1}`}
-                    >
-                      {src ? (
+                {imgs.length > 1 ? (
+                  <div className="thumbCol" aria-label="Miniaturas">
+                    {imgs.slice(0, 10).map((src, i) => (
+                      <button
+                        key={`${src}-${i}`}
+                        type="button"
+                        className={`thBtn ${activeImg === i ? "on" : ""}`}
+                        onClick={() => setActiveImg(i)}
+                        aria-label={`Ver imagen ${i + 1}`}
+                      >
                         <img
                           className="th"
                           src={src}
                           alt=""
                           aria-hidden="true"
-                          onError={() => markSrcAsFailed(src)}
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.visibility = "hidden";
+                          }}
                         />
-                      ) : (
-                        <div className="thPh" />
-                      )}
-                    </button>
-                  ))}
-                </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
 
                 <div className="imgBox">
                   {imgs[activeImg] ? (
                     <img
                       src={imgs[activeImg]}
                       alt={title}
-                      onError={() => markSrcAsFailed(imgs[activeImg])}
+                      onError={(e) => {
+                        const img = e.currentTarget as HTMLImageElement;
+                        img.style.display = "none";
+                        const parent = img.parentElement;
+                        if (parent && !parent.querySelector(".ph")) {
+                          const ph = document.createElement("div");
+                          ph.className = "ph";
+                          parent.appendChild(ph);
+                        }
+                      }}
                     />
                   ) : (
                     <div className="ph" />
@@ -794,8 +801,6 @@ export default function ProductPage() {
           gap: 10px;
           position: sticky;
           top: calc(var(--jusp-header-h, 64px) + 16px);
-          align-content: start;
-          min-width: 98px;
         }
 
         .thBtn {
@@ -805,7 +810,6 @@ export default function ProductPage() {
           padding: 6px;
           cursor: pointer;
           transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
-          min-height: 98px;
         }
         .thBtn:hover {
           transform: translateY(-1px);
@@ -816,8 +820,7 @@ export default function ProductPage() {
           box-shadow: 0 0 0 3px var(--jusp-gold-soft), 0 14px 34px rgba(0, 0, 0, 0.08);
         }
 
-        .th,
-        .thPh {
+        .th {
           width: 86px;
           height: 86px;
           border-radius: 12px;
@@ -976,7 +979,6 @@ export default function ProductPage() {
         .priceMeta {
           display: grid;
           gap: 6px;
-          min-height: 58px;
         }
         .range {
           font-weight: 900;
@@ -1044,8 +1046,6 @@ export default function ProductPage() {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 10px;
-          min-height: 116px;
-          align-content: start;
         }
 
         .op {
@@ -1059,7 +1059,6 @@ export default function ProductPage() {
           text-align: left;
           box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
           transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease, background 140ms ease;
-          min-height: 56px;
         }
         .op:hover {
           background: #fff;
@@ -1315,15 +1314,10 @@ export default function ProductPage() {
             overflow: auto;
             -webkit-overflow-scrolling: touch;
             gap: 10px;
-            min-width: 0;
           }
-          .th,
-          .thPh {
+          .th {
             width: 78px;
             height: 78px;
-          }
-          .thBtn {
-            min-height: auto;
           }
           .card {
             position: relative;
@@ -1340,7 +1334,6 @@ export default function ProductPage() {
           }
           .gridOps {
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            min-height: 0;
           }
         }
 
