@@ -83,13 +83,25 @@ function SmartImg({ baseSrc, alt, style, className, loading = "lazy", fetchPrior
   // y también con extensión normal (/home/stories/story-01.jpg).
   const hasExt = useMemo(() => /\.[a-zA-Z0-9]+$/.test(safeBaseSrc), [safeBaseSrc]);
 
-  // Cuando NO hay extensión, primero probamos el baseSrc "tal cual"
-  // (sirve si el archivo real en /public no tiene extensión).
   const candidates = useMemo(() => {
     if (!safeBaseSrc) return [];
-    // Si ya trae extensión, úsalo tal cual. Si no, usamos .jpg (nuestras imágenes del repo).
     if (hasExt) return [safeBaseSrc];
-    return [`${safeBaseSrc}.jpg`];
+
+    const raw = [
+      safeBaseSrc,
+      `${safeBaseSrc}.jpg`,
+      `${safeBaseSrc}.jpeg`,
+      `${safeBaseSrc}.png`,
+      `${safeBaseSrc}.webp`,
+      `${safeBaseSrc}.avif`,
+      `${safeBaseSrc.toLowerCase()}.jpg`,
+      `${safeBaseSrc.toLowerCase()}.jpeg`,
+      `${safeBaseSrc.toLowerCase()}.png`,
+      `${safeBaseSrc.toLowerCase()}.webp`,
+      `${safeBaseSrc.toLowerCase()}.avif`,
+    ];
+
+    return Array.from(new Set(raw.filter(Boolean)));
   }, [safeBaseSrc, hasExt]);
 
   const [idx, setIdx] = useState(0);
@@ -1874,7 +1886,7 @@ export default function Page() {
           }}
         >
           <div style={{ position: "relative", background: "#f7f7f7" }}>
-            <div style={{ height: 220, position: "relative" }}>
+            <div className="__jusp_home_product_media" style={{ height: 220, position: "relative" }}>
               <SmartImg
                 baseSrc={p.imgBase}
                 alt={p.name}
@@ -1895,7 +1907,34 @@ export default function Page() {
     {/* Grid fijo: 5 productos por fila */}
     <style>{`
       .__jusp_all_products_grid {
+        width: 100%;
         grid-template-columns: repeat(5, minmax(0, 1fr));
+      }
+
+      .__jusp_all_products_grid > a {
+        min-width: 0;
+      }
+
+      .__jusp_home_product_media {
+        height: 220px;
+      }
+
+      .__jusp_home_product_media img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: contain !important;
+        display: block !important;
+      }
+
+      @media (max-width: 767px) {
+        .__jusp_all_products_grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          gap: 12px !important;
+        }
+
+        .__jusp_home_product_media {
+          height: 160px !important;
+        }
       }
     `}</style>
   </div>
