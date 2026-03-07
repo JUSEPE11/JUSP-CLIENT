@@ -28,7 +28,19 @@ function uniqueStringsCaseInsensitive(arr: string[]) {
   return out;
 }
 
-function pickImgs(p: Product): string[] {
+function slugifyLikeFolder(v: string) {
+  return String(v || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .replace(/['".,()[\]{}]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase();
+}
+
+function pickImgs(p: Product, pageSlug?: string): string[] {
   const imgs = Array.isArray((p as any).images) ? ((p as any).images as string[]) : [];
   const main = (typeof (p as any).image === "string" ? (p as any).image : "").trim();
 
@@ -49,7 +61,22 @@ function pickImgs(p: Product): string[] {
     return "";
   };
 
-  return uniqueStringsCaseInsensitive(raw.map(normalizeOne).filter(Boolean));
+  const candidateSlugs = uniqueStringsCaseInsensitive(
+    [
+      String(pageSlug || "").trim(),
+      String((p as any)?.slug || "").trim(),
+      String((p as any)?.id || "").trim(),
+      String((p as any)?.product_code || "").trim(),
+      slugifyLikeFolder(String((p as any)?.title || "")),
+      slugifyLikeFolder(String((p as any)?.name || "")),
+    ].filter(Boolean)
+  ).map((x) => x.toLowerCase());
+
+  const localCandidates = candidateSlugs.flatMap((s) =>
+    [1, 2, 3, 4, 5].map((i) => `/products/${s}/${i}.jpg`)
+  );
+
+  return uniqueStringsCaseInsensitive([...localCandidates, ...raw.map(normalizeOne).filter(Boolean)]);
 }
 
 type GenderScope = "men" | "women" | "kids";
@@ -253,17 +280,17 @@ export default function ProductPage() {
   const searchParams = useSearchParams();
   const gParam = searchParams?.get("g");
 
-  const slug = decodeURIComponent(String(params?.slug || ""));
+  const slug = decodeURIComponent(String(params?.slug || "")).trim().toLowerCase();
 
   const product = useMemo(() => {
     const list = PRODUCTS ?? [];
-    const s = String(slug || "").trim();
+    const s = String(slug || "").trim().toLowerCase();
     if (!s) return undefined;
 
     return list.find((p: any) => {
-      const pid = String(p?.id ?? "").trim();
-      const pslug = String((p as any)?.slug ?? "").trim();
-      const pcode = String((p as any)?.product_code ?? "").trim();
+      const pid = String(p?.id ?? "").trim().toLowerCase();
+      const pslug = String((p as any)?.slug ?? "").trim().toLowerCase();
+      const pcode = String((p as any)?.product_code ?? "").trim().toLowerCase();
       return pid === s || pslug === s || pcode === s;
     }) as Product | undefined;
   }, [slug]);
@@ -298,7 +325,7 @@ export default function ProductPage() {
     [product]
   );
 
-  const imgs = useMemo(() => (product ? pickImgs(product) : []), [product]);
+  const imgs = useMemo(() => (product ? pickImgs(product, slug) : []), [product, slug]);
   const variants = useMemo(() => (product ? normalizeVariants(product) : []), [product]);
 
   const sizingMode = useMemo<SizingMode>(() => {
