@@ -40,7 +40,7 @@ function slugifyLikeFolder(v: string) {
     .toLowerCase();
 }
 
-function pickImgs(p: Product, pageSlug?: string): string[] {
+function buildImageCandidates(p: Product, pageSlug?: string): string[] {
   const imgs = Array.isArray((p as any).images) ? ((p as any).images as string[]) : [];
   const main = (typeof (p as any).image === "string" ? (p as any).image : "").trim();
 
@@ -77,6 +77,15 @@ function pickImgs(p: Product, pageSlug?: string): string[] {
   );
 
   return uniqueStringsCaseInsensitive([...localCandidates, ...raw.map(normalizeOne).filter(Boolean)]);
+}
+
+function loadImage(src: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = src;
+  });
 }
 
 type GenderScope = "men" | "women" | "kids";
@@ -304,6 +313,7 @@ export default function ProductPage() {
   }, [gParam, product]);
 
   const [scope, setScope] = useState<GenderScope>(initialScope);
+  const [imgs, setImgs] = useState<string[]>([]);
 
   useEffect(() => {
     setScope(initialScope);
@@ -325,8 +335,38 @@ export default function ProductPage() {
     [product]
   );
 
-  const imgs = useMemo(() => (product ? pickImgs(product, slug) : []), [product, slug]);
+  const imageCandidates = useMemo(() => (product ? buildImageCandidates(product, slug) : []), [product, slug]);
   const variants = useMemo(() => (product ? normalizeVariants(product) : []), [product]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function resolveImgs() {
+      if (!imageCandidates.length) {
+        if (!cancelled) setImgs([]);
+        return;
+      }
+
+      const checks = await Promise.all(
+        imageCandidates.map(async (src) => ({
+          src,
+          ok: await loadImage(src),
+        }))
+      );
+
+      const valid = checks.filter((x) => x.ok).map((x) => x.src);
+
+      if (!cancelled) {
+        setImgs(uniqueStringsCaseInsensitive(valid));
+      }
+    }
+
+    resolveImgs();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [imageCandidates]);
 
   const sizingMode = useMemo<SizingMode>(() => {
     if (!product) return "shoe";
@@ -497,39 +537,14 @@ export default function ProductPage() {
                         onClick={() => setActiveImg(i)}
                         aria-label={`Ver imagen ${i + 1}`}
                       >
-                        <img
-                          className="th"
-                          src={src}
-                          alt=""
-                          aria-hidden="true"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).style.visibility = "hidden";
-                          }}
-                        />
+                        <img className="th" src={src} alt="" aria-hidden="true" />
                       </button>
                     ))}
                   </div>
                 ) : null}
 
                 <div className="imgBox">
-                  {imgs[activeImg] ? (
-                    <img
-                      src={imgs[activeImg]}
-                      alt={title}
-                      onError={(e) => {
-                        const img = e.currentTarget as HTMLImageElement;
-                        img.style.display = "none";
-                        const parent = img.parentElement;
-                        if (parent && !parent.querySelector(".ph")) {
-                          const ph = document.createElement("div");
-                          ph.className = "ph";
-                          parent.appendChild(ph);
-                        }
-                      }}
-                    />
-                  ) : (
-                    <div className="ph" />
-                  )}
+                  {imgs[activeImg] ? <img src={imgs[activeImg]} alt={title} /> : <div className="ph" />}
 
                   <div className="imgBadge">
                     <span className="b1">JUSP</span>
