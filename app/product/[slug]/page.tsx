@@ -13,14 +13,11 @@ function moneyCOP(n: number) {
 
 function pickImgs(p: Product, slug: string): string[] {
   const imgs = Array.isArray((p as any).images) ? ((p as any).images as string[]) : [];
-  const main = (imgs?.[0] || (typeof (p as any).image === "string" ? (p as any).image : "") || "").trim();
-  const alt = (imgs?.[1] || "").trim();
-  const rest = imgs
-    .slice(2)
+  const main = (typeof (p as any).image === "string" ? (p as any).image : "").trim();
+
+  const raw = [main, ...imgs]
     .map((x) => String(x || "").trim())
     .filter(Boolean);
-
-  const raw = [main, alt, ...rest].filter(Boolean) as string[];
 
   const isAbs = (s: string) => /^https?:\/\//i.test(s);
   const hasExt = (s: string) => /\.(png|jpe?g|webp|gif|avif)$/i.test(s);
@@ -32,26 +29,16 @@ function pickImgs(p: Product, slug: string): string[] {
     if (v.startsWith("/")) return v;
     if (v.startsWith("products/")) return `/${v}`;
     if (hasExt(v)) return `/products/${v}`;
-    return v;
+    return "";
   };
 
   const normalized = raw.map(normalizeOne).filter(Boolean);
+  const deduped = Array.from(new Set(normalized));
 
-  const looksFlat = (s: string) => {
-    const a = String(s || "").trim();
-    if (!a) return false;
-    if (!slug) return false;
-    return a === `/products/${slug}.jpg` || a.startsWith(`/products/${slug}-`);
-  };
+  if (deduped.length) return deduped;
 
-  const shouldPreferFolder = !normalized.length || normalized.some(looksFlat);
-
-  if (shouldPreferFolder) {
-    const count = 8;
-    return Array.from({ length: count }, (_, i) => `/products/${slug}/${i + 1}.jpg`);
-  }
-
-  return normalized;
+  const count = 8;
+  return Array.from({ length: count }, (_, i) => `/products/${slug}/${i + 1}.jpg`);
 }
 
 type GenderScope = "men" | "women" | "kids";
@@ -191,7 +178,6 @@ function findVariantBySize(product: Product, scope: GenderScope, displayedSize: 
 
   const ds = (displayedSize ?? "").trim();
 
-  // Primero intenta exacto. Esto arregla gorras, ropa y tallas especiales.
   if (ds) {
     const exact = variants.filter((v) => String((v as any).size ?? "").trim() === ds);
     if (exact.length) {
@@ -204,7 +190,6 @@ function findVariantBySize(product: Product, scope: GenderScope, displayedSize: 
     }
   }
 
-  // Solo si no hubo exacto y es una talla numérica visible de women, intenta convertir a men.
   const normalizedDs = ds;
   const maybeConverted =
     scope === "women" && normalizedDs && !/[a-zA-Z/]/.test(normalizedDs) ? convertWomenToMenUS(normalizedDs) : normalizedDs;
@@ -272,7 +257,6 @@ export default function ProductPage() {
     }) as Product | undefined;
   }, [slug]);
 
-  // SSR-safe: nunca leer localStorage durante el render.
   const initialScope = useMemo<GenderScope>(() => {
     const fromQuery = normalizeGenderScope(gParam);
     if (fromQuery) return fromQuery;
@@ -290,10 +274,8 @@ export default function ProductPage() {
   useEffect(() => {
     if (gParam) return;
     const stored = readStoredScope();
-    if (stored && stored !== scope) {
-      setScope(stored);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!stored) return;
+    setScope((prev) => (prev === stored ? prev : stored));
   }, [gParam]);
 
   useEffect(() => {
@@ -316,16 +298,13 @@ export default function ProductPage() {
   const rawSizes = useMemo(() => {
     if (!product) return [];
 
-    // 1) Si hay variantes reales, SIEMPRE mandan.
     if (variants.length) {
       return uniq(variants.map((v: any) => String(v?.size ?? "").trim()).filter(Boolean));
     }
 
-    // 2) Si el producto trae sizes, usar esos.
     const ps = safeArr((product as any).sizes);
     if (ps.length) return uniq(ps);
 
-    // 3) Fallbacks solo cuando no hay info real.
     if (sizingMode === "apparel") return APPAREL_SIZES;
     if (scope === "women") return WOMEN_SHOE_FULL_US.map(convertWomenToMenUS);
     if (scope === "kids") return KIDS_DEFAULT;
@@ -333,9 +312,7 @@ export default function ProductPage() {
   }, [product, variants, scope, sizingMode]);
 
   const sizes = useMemo(() => {
-    // Si hay variantes reales, NO transformar nada. Mostrar exacto.
     if (variants.length) return rawSizes;
-
     if (sizingMode === "apparel") return rawSizes;
     if (scope === "women") return applyScopeToSizes(rawSizes, scope);
     return rawSizes;
@@ -473,14 +450,39 @@ export default function ProductPage() {
                         onClick={() => setActiveImg(i)}
                         aria-label={`Ver imagen ${i + 1}`}
                       >
-                        <img className="th" src={src} alt="" aria-hidden="true" />
+                        <img
+                          className="th"
+                          src={src}
+                          alt=""
+                          aria-hidden="true"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.visibility = "hidden";
+                          }}
+                        />
                       </button>
                     ))}
                   </div>
                 ) : null}
 
                 <div className="imgBox">
-                  {imgs[activeImg] ? <img src={imgs[activeImg]} alt={title} /> : <div className="ph" />}
+                  {imgs[activeImg] ? (
+                    <img
+                      src={imgs[activeImg]}
+                      alt={title}
+                      onError={(e) => {
+                        const img = e.currentTarget as HTMLImageElement;
+                        img.style.display = "none";
+                        const parent = img.parentElement;
+                        if (parent && !parent.querySelector(".ph")) {
+                          const ph = document.createElement("div");
+                          ph.className = "ph";
+                          parent.appendChild(ph);
+                        }
+                      }}
+                    />
+                  ) : (
+                    <div className="ph" />
+                  )}
 
                   <div className="imgBadge">
                     <span className="b1">JUSP</span>
