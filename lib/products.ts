@@ -40,7 +40,6 @@ export type Product = {
   bestSeller?: boolean;
   stockHint?: number;
 
-  // 🔥 NUEVO: estilo Taobao
   variants?: ProductVariant[];
 };
 
@@ -67,7 +66,6 @@ export const PRODUCTS: Product[] = [
     stockHint: 8,
     image: "/products/nike-dunk-low-retro/1.jpg",
     images: [
-      "/products/nike-dunk-low-retro/1.jpg",
       "/products/nike-dunk-low-retro/2.jpg",
       "/products/nike-dunk-low-retro/3.jpg",
       "/products/nike-dunk-low-retro/4.jpg",
@@ -76,18 +74,14 @@ export const PRODUCTS: Product[] = [
       "/products/nike-dunk-low-retro/7.jpg",
       "/products/nike-dunk-low-retro/8.jpg",
     ],
-
     variants: [
       { key: "black-7", color: "Black", size: "7", price: 99900, supplierPrice: 25000, stock: 5 },
       { key: "black-8", color: "Black", size: "8", price: 119900, supplierPrice: 28000, stock: 3 },
       { key: "black-9", color: "Black", size: "9", price: 149900, supplierPrice: 35000, stock: 2 },
-
       { key: "white-8", color: "White", size: "8", price: 139900, supplierPrice: 33000, stock: 4 },
       { key: "white-9", color: "White", size: "9", price: 159900, supplierPrice: 38000, stock: 2 },
-
       { key: "red-9", color: "Red", size: "9", price: 179900, supplierPrice: 42000, stock: 1 },
     ],
-
     colors: ["Black", "White", "Red"],
     sizes: ["7", "8", "9"],
     price: 0,
@@ -105,7 +99,6 @@ export const PRODUCTS: Product[] = [
     bestSeller: true,
     image: "/products/nike-air-force-1-07/1.jpg",
     images: [
-      "/products/nike-air-force-1-07/1.jpg",
       "/products/nike-air-force-1-07/2.jpg",
       "/products/nike-air-force-1-07/3.jpg",
       "/products/nike-air-force-1-07/4.jpg",
@@ -114,13 +107,11 @@ export const PRODUCTS: Product[] = [
       "/products/nike-air-force-1-07/7.jpg",
       "/products/nike-air-force-1-07/8.jpg",
     ],
-
     variants: [
       { key: "white-7", color: "White", size: "7", price: 149900 },
       { key: "white-8", color: "White", size: "8", price: 159900 },
       { key: "black-8", color: "Black", size: "8", price: 169900 },
     ],
-
     colors: ["White", "Black"],
     sizes: ["7", "8"],
     price: 0,
@@ -138,13 +129,12 @@ export const PRODUCTS: Product[] = [
     isNew: true,
     stockHint: 6,
     image:
-      "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/1.jpg",
+      "/products/nike-Dri-Fit-Quick-Dry-Running-Compression-Training-Sports-Tank-Top-Women/1.jpg",
     images: [
-      "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/1.jpg",
-      "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/2.jpg",
-      "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/3.jpg",
-      "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/4.jpg",
-      "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/5.jpg",
+      "/products/nike-Dri-Fit-Quick-Dry-Running-Compression-Training-Sports-Tank-Top-Women/2.jpg",
+      "/products/nike-Dri-Fit-Quick-Dry-Running-Compression-Training-Sports-Tank-Top-Women/3.jpg",
+      "/products/nike-Dri-Fit-Quick-Dry-Running-Compression-Training-Sports-Tank-Top-Women/4.jpg",
+      "/products/nike-Dri-Fit-Quick-Dry-Running-Compression-Training-Sports-Tank-Top-Women/5.jpg",
     ],
     variants: [{ key: "women-l", size: "L", price: 129990 }],
     sizes: ["L"],
@@ -165,7 +155,6 @@ export const PRODUCTS: Product[] = [
     stockHint: 8,
     image: "/products/nike-sports-pants-womens-purple/1.jpg",
     images: [
-      "/products/nike-sports-pants-womens-purple/1.jpg",
       "/products/nike-sports-pants-womens-purple/2.jpg",
       "/products/nike-sports-pants-womens-purple/3.jpg",
       "/products/nike-sports-pants-womens-purple/4.jpg",
@@ -192,14 +181,13 @@ export const PRODUCTS: Product[] = [
     gender: "men",
     isNew: true,
     stockHint: 10,
-    image: "/products/jordan-club-cap/1.jpg",
+    image: "/products/jordan-Club-Cap/1.jpg",
     images: [
-      "/products/jordan-club-cap/1.jpg",
-      "/products/jordan-club-cap/2.jpg",
-      "/products/jordan-club-cap/3.jpg",
-      "/products/jordan-club-cap/4.jpg",
-      "/products/jordan-club-cap/5.jpg",
-      "/products/jordan-club-cap/6.jpg",
+      "/products/jordan-Club-Cap/2.jpg",
+      "/products/jordan-Club-Cap/3.jpg",
+      "/products/jordan-Club-Cap/4.jpg",
+      "/products/jordan-Club-Cap/5.jpg",
+      "/products/jordan-Club-Cap/6.jpg",
     ],
     variants: [
       { key: "cap-sm", size: "S/M", price: 75990 },
