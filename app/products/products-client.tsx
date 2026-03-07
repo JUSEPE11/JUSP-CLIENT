@@ -1131,13 +1131,13 @@ function GridSkeleton({ count }: { count: number }) {
 
         @media (max-width: 1320px) {
           .sk {
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 22px 16px;
           }
         }
         @media (max-width: 980px) {
           .sk {
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 16px 12px;
           }
         }
@@ -1642,7 +1642,7 @@ const ProductCard = memo(function ProductCard({
   compareOn: boolean;
   onToggleCompare: (id: string) => void;
 }) {
-  const { main } = pickImgs(p);
+  const { main, alt } = pickImgs(p);
   const price = Number((p as any).price ?? 0) || 0;
   const disc = Number((p as any).discountPercent ?? (p as any).discount ?? 0);
   const sale = computeSale(price, disc);
@@ -1661,31 +1661,49 @@ const ProductCard = memo(function ProductCard({
   const moreColors = Math.max(0, colors.length - colorDots.length);
 
   const [imgReady, setImgReady] = useState(false);
+  const [currentImg, setCurrentImg] = useState<string | null>(main);
+
+  useEffect(() => {
+    setCurrentImg(main);
+    setImgReady(false);
+  }, [main, alt]);
 
   return (
     <article className={`card ${imgReady ? "ready" : ""}`} style={{ contentVisibility: "auto", containIntrinsicSize: "360px 560px" as any }}>
       <div className="imgWrap">
         <Link className="img" href={href} prefetch={false} onMouseEnter={() => onPrefetch(href)} onFocus={() => onPrefetch(href)}>
-          {main ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <div style={{position:"relative",width:"100%",height:"260px",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+          {currentImg ? (
+            <div className="mediaBox">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={main}
+                src={currentImg}
                 alt={String((p as any).name || "Producto")}
                 loading="lazy"
                 decoding="async"
                 fetchPriority="low"
                 onLoad={() => setImgReady(true)}
-                style={{maxHeight:"240px",width:"auto",objectFit:"contain",transition:"opacity .25s"}}
+                onError={() => {
+                  if (alt && currentImg !== alt) {
+                    setCurrentImg(alt);
+                    return;
+                  }
+                  setCurrentImg(null);
+                }}
+                className="mainImg"
               />
-              {(p as any).images?.[1] ? (
-                <img
-                  src={(p as any).images[1]}
-                  alt=""
-                  style={{position:"absolute",maxHeight:"240px",width:"auto",objectFit:"contain",opacity:0,transition:"opacity .25s"}}
-                  onMouseEnter={(e)=>{(e.currentTarget.style.opacity="1")}}
-                  onMouseLeave={(e)=>{(e.currentTarget.style.opacity="0")}}
-                />
+
+              {alt && alt !== currentImg ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={alt}
+                    alt=""
+                    className="hoverImg"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                </>
               ) : null}
             </div>
           ) : (
@@ -1777,21 +1795,51 @@ const ProductCard = memo(function ProductCard({
           pointer-events: none;
         }
 
-        .img :global(img) {
-          width: 78%;
-          height: 78%;
-          max-width: 260px;
-          max-height: 260px;
-          object-fit: contain;
+        .mediaBox {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          min-height: 220px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          padding: 14px;
+        }
+
+        .mainImg,
+        .hoverImg {
           display: block;
+          width: 100%;
+          height: 100%;
+          max-width: 100%;
+          max-height: 100%;
+          object-fit: contain;
+          object-position: center;
           margin: auto;
-          padding: 0;
           transform: translateZ(0);
-          transition: transform 240ms ease, filter 240ms ease;
+          transition: opacity 220ms ease, transform 240ms ease, filter 240ms ease;
           filter: saturate(1.02) contrast(1.02);
         }
-        article:hover .img :global(img) {
+
+        .hoverImg {
+          position: absolute;
+          inset: 14px;
+          width: calc(100% - 28px);
+          height: calc(100% - 28px);
+          opacity: 0;
+          pointer-events: none;
+        }
+
+        article:hover .mainImg,
+        article:hover .hoverImg {
           transform: scale(1.02);
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+          article:hover .hoverImg {
+            opacity: 1;
+          }
         }
 
         .ph {
@@ -3256,7 +3304,7 @@ const brandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, brand
 
         .grid {
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
+          grid-template-columns: repeat(5, minmax(0, 1fr));
           gap: 26px 18px;
           padding-top: 8px;
           transition: opacity 180ms ease, filter 180ms ease;
@@ -3270,7 +3318,7 @@ const brandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, brand
 
         @media (max-width: 1320px) {
           .grid {
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 22px 16px;
           }
           .title {
@@ -3369,11 +3417,6 @@ const brandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, brand
           }
         }
 
-        @media (max-width: 520px) {
-          .grid {
-            grid-template-columns: 1fr;
-          }
-        }
 
         .mBackdrop {
           position: fixed;
