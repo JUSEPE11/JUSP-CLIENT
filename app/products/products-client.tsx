@@ -29,22 +29,27 @@ function uniq(arr: string[]) {
   for (const a of arr) if (a && !out.includes(a)) out.push(a);
   return out;
 }
-function pickImgs(p: Product): { main: string | null; alt: string | null } {
+function pickImgs(p: Product): { main: string | null; alt: string | null; fallbacks: string[] } {
   const imgs = Array.isArray((p as any).images) ? ((p as any).images as string[]) : [];
+  const image = typeof (p as any).image === "string" ? (p as any).image.trim() : "";
   const slug = String((p as any).slug || "").trim();
 
-  const main = (
-    imgs?.[0] ||
-    (typeof (p as any).image === "string" ? (p as any).image : "") ||
-    (slug ? `/products/${slug}/1.jpg` : "")
-  ).trim();
+  const slugMain = slug ? `/products/${slug}/1.jpg` : "";
+  const slugAlt = slug ? `/products/${slug}/2.jpg` : "";
 
-  const alt = (
-    imgs?.[1] ||
-    (slug ? `/products/${slug}/2.jpg` : "")
-  ).trim();
+  const fallbacks = uniq([
+    imgs?.[0]?.trim?.() || "",
+    image,
+    slugMain,
+    imgs?.[1]?.trim?.() || "",
+    slugAlt,
+  ].filter(Boolean));
 
-  return { main: main || null, alt: alt || null };
+  return {
+    main: fallbacks[0] || null,
+    alt: fallbacks[1] || null,
+    fallbacks,
+  };
 }
 function genderLabel(g?: Product["gender"]) {
   if (g === "men") return "Men's Shoes";
@@ -1653,7 +1658,7 @@ const ProductCard = memo(function ProductCard({
   compareOn: boolean;
   onToggleCompare: (id: string) => void;
 }) {
-  const { main, alt } = pickImgs(p);
+  const { main, alt, fallbacks } = pickImgs(p);
   const price = Number((p as any).price ?? 0) || 0;
   const disc = Number((p as any).discountPercent ?? (p as any).discount ?? 0);
   const sale = computeSale(price, disc);
@@ -1672,12 +1677,13 @@ const ProductCard = memo(function ProductCard({
   const moreColors = Math.max(0, colors.length - colorDots.length);
 
   const [imgReady, setImgReady] = useState(false);
-  const [currentImg, setCurrentImg] = useState<string | null>(main);
+  const [imgIndex, setImgIndex] = useState(0);
+  const currentImg = fallbacks[imgIndex] || null;
 
   useEffect(() => {
-    setCurrentImg(main);
+    setImgIndex(0);
     setImgReady(false);
-  }, [main, alt]);
+  }, [main, alt, JSON.stringify(fallbacks)]);
 
   return (
     <article className={`card ${imgReady ? "ready" : ""}`} style={{ contentVisibility: "auto", containIntrinsicSize: "360px 560px" as any }}>
@@ -1694,11 +1700,10 @@ const ProductCard = memo(function ProductCard({
                 fetchPriority="low"
                 onLoad={() => setImgReady(true)}
                 onError={() => {
-                  if (alt && currentImg !== alt) {
-                    setCurrentImg(alt);
+                  if (imgIndex < fallbacks.length - 1) {
+                    setImgIndex((v) => v + 1);
                     return;
                   }
-                  setCurrentImg(null);
                 }}
                 className="mainImg"
               />
