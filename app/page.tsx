@@ -143,6 +143,7 @@ type TopItem = {
   brand?: string;
   price?: string;
   gender?: "men" | "women" | "kids";
+  searchBlob?: string;
 };
 
 const TOP_ITEMS: TopItem[] = [
@@ -178,6 +179,34 @@ function minPriceFromProduct(p: any): number | null {
   const base = Number(p?.price);
   if (Number.isFinite(base) && base > 0) return base;
   return null;
+}
+
+function matchesHomeProductFilter(item: TopItem, filter: "all" | "men" | "women" | "accessories" | "kids") {
+  if (filter === "all") return true;
+  if (filter === "men") return item.gender === "men";
+  if (filter === "women") return item.gender === "women";
+  if (filter === "kids") return item.gender === "kids";
+
+  const blob = String(item.searchBlob ?? `${item.name} ${item.brand ?? ""}`).toLowerCase();
+  return [
+    "accesorio",
+    "accessor",
+    "gorra",
+    "cap",
+    "mochila",
+    "bag",
+    "bolso",
+    "media",
+    "sock",
+    "cintur",
+    "belt",
+    "botella",
+    "glove",
+    "guante",
+    "beanie",
+    "hat",
+    "wallet",
+  ].some((term) => blob.includes(term));
 }
 
 
@@ -225,6 +254,20 @@ const ALL_PRODUCTS: TopItem[] = (PRODUCTS ?? []).map((p: any, idx: number) => {
   const href = slug ? `/product/${encodeURIComponent(slug)}` : "/products";
   const priceNum = minPriceFromProduct(p);
   const price = typeof priceNum === "number" && priceNum > 0 ? `$${formatCOP(priceNum)}` : undefined;
+  const searchBlob = [
+    title,
+    brand,
+    slug,
+    p?.gender,
+    p?.category,
+    p?.subcategory,
+    p?.collection,
+    p?.sport,
+    ...(Array.isArray(p?.tags) ? p.tags : []),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
 
   return {
     id: slug || `p${idx + 1}`,
@@ -234,6 +277,7 @@ const ALL_PRODUCTS: TopItem[] = (PRODUCTS ?? []).map((p: any, idx: number) => {
     brand,
     price,
     gender,
+    searchBlob,
   } as TopItem;
 });
 
@@ -410,6 +454,7 @@ export default function Page() {
   const [savedTopIds, setSavedTopIds] = useLocalStorageStringArray(SAVED_TOP_KEY);
 
   const [topQuery, setTopQuery] = useState("");
+  const [homeProductFilter, setHomeProductFilter] = useState<"all" | "men" | "women" | "accessories" | "kids">("all");
   const TOP_CHIPS = useMemo(() => ["Nike", "Jordan", "Adidas", "Dunk", "Air Max", "Tech Fleece"], []);
   const runTopSearch = (q: string) => {
     const query = (q || "").trim();
@@ -1826,35 +1871,32 @@ export default function Page() {
       {/* BLOQUE 5 · TODOS LOS PRODUCTOS */}
 <section style={{ padding: "26px 0 44px", borderTop: "1px solid rgba(0,0,0,0.06)" }}>
   <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px" }}>
-    <div style={{ display: "flex", alignItems: "end", justifyContent: "space-between", gap: 12 }}>
-      <div>
-        <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.2, opacity: 0.7 }}>TODOS</div>
-        <div style={{ fontSize: 28, fontWeight: 1000, marginTop: 8 }}>Todos los productos</div>
-        <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75 }}>
-          Grid tipo marketplace: rápido de escanear, directo al producto.
-        </div>
-      </div>
-    </div>
-
     {/* Tabs */}
-    <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
-      {["Te podría gustar", "Deportes", "Moda", "Accesorios", "Niños"].map((t) => (
+    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+      {[
+        { key: "all" as const, label: "Te podría gustar" },
+        { key: "men" as const, label: "Hombre" },
+        { key: "women" as const, label: "Mujer" },
+        { key: "accessories" as const, label: "Accesorios" },
+        { key: "kids" as const, label: "Niños" },
+      ].map((tab) => (
         <button
-          key={t}
-          onClick={() => setTopQuery(t === "Te podría gustar" ? "" : t)}
+          key={tab.key}
+          type="button"
+          onClick={() => setHomeProductFilter(tab.key)}
           style={{
             padding: "10px 12px",
             borderRadius: 999,
             border: "1px solid rgba(0,0,0,0.10)",
-            background: (topQuery || "") === (t === "Te podría gustar" ? "" : t) ? "rgba(0,0,0,0.92)" : "white",
-            color: (topQuery || "") === (t === "Te podría gustar" ? "" : t) ? "white" : "rgba(0,0,0,0.85)",
+            background: homeProductFilter === tab.key ? "rgba(0,0,0,0.92)" : "white",
+            color: homeProductFilter === tab.key ? "white" : "rgba(0,0,0,0.85)",
             fontWeight: 900,
             fontSize: 12,
             letterSpacing: 0.2,
             cursor: "pointer",
           }}
         >
-          {t}
+          {tab.label}
         </button>
       ))}
     </div>
@@ -1868,11 +1910,7 @@ export default function Page() {
                 gap: 14,
       }}
     >
-      {ALL_PRODUCTS.filter((p) => {
-        const q = (topQuery || "").trim().toLowerCase();
-        if (!q) return true;
-        return (p.name + " " + (p.brand ?? "")).toLowerCase().includes(q);
-      }).map((p) => (
+      {ALL_PRODUCTS.filter((p) => matchesHomeProductFilter(p, homeProductFilter)).map((p) => (
         <a
           key={p.id}
           href={p.href}
