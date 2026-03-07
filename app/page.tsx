@@ -78,40 +78,34 @@ type SmartImgProps = {
 };;
 
 function SmartImg({ baseSrc, alt, style, className, loading = "lazy", fetchPriority = "auto", onLoad }: SmartImgProps) {
-  const safeBaseSrc = String((baseSrc as any) ?? "");
-  // ✅ Soporta archivos SIN extensión (por ejemplo: /home/stories/story-01)
-  // y también con extensión normal (/home/stories/story-01.jpg).
-  const hasExt = useMemo(() => /\.[a-zA-Z0-9]+$/.test(safeBaseSrc), [safeBaseSrc]);
+  const safeBaseSrc = String((baseSrc as any) ?? "").trim();
+  const hasExt = useMemo(() => /\.[a-zA-Z0-9]+(?:\?.*)?$/.test(safeBaseSrc), [safeBaseSrc]);
 
   const candidates = useMemo(() => {
-    if (!safeBaseSrc) return [];
-    if (hasExt) return [safeBaseSrc];
+    if (!safeBaseSrc) return [] as string[];
 
-    const raw = [
-      safeBaseSrc,
-      `${safeBaseSrc}.jpg`,
-      `${safeBaseSrc}.jpeg`,
-      `${safeBaseSrc}.png`,
-      `${safeBaseSrc}.webp`,
-      `${safeBaseSrc}.avif`,
-      `${safeBaseSrc.toLowerCase()}.jpg`,
-      `${safeBaseSrc.toLowerCase()}.jpeg`,
-      `${safeBaseSrc.toLowerCase()}.png`,
-      `${safeBaseSrc.toLowerCase()}.webp`,
-      `${safeBaseSrc.toLowerCase()}.avif`,
-    ];
+    const clean = safeBaseSrc.replace(/\?.*$/, "").replace(/\/$/, "");
+    const list = [safeBaseSrc];
 
-    return Array.from(new Set(raw.filter(Boolean)));
+    if (!hasExt) {
+      list.push(clean);
+      list.push(`${clean}.jpg`);
+      list.push(`${clean}.jpeg`);
+      list.push(`${clean}.png`);
+      list.push(`${clean}.webp`);
+      list.push(`${clean}.avif`);
+    }
+
+    return Array.from(new Set(list.filter(Boolean)));
   }, [safeBaseSrc, hasExt]);
 
   const [idx, setIdx] = useState(0);
 
-  // Resetea el índice si cambia la imagen
   useEffect(() => {
     setIdx(0);
   }, [safeBaseSrc]);
 
-  const src = candidates[Math.min(idx, candidates.length - 1)];
+  const src = candidates[Math.min(idx, Math.max(candidates.length - 1, 0))] || "";
 
   return (
     <img
@@ -124,13 +118,12 @@ function SmartImg({ baseSrc, alt, style, className, loading = "lazy", fetchPrior
       fetchPriority={fetchPriority}
       onLoad={onLoad}
       onError={() => {
-        if (idx < candidates.length - 1) setIdx((i) => Math.min(i + 1, candidates.length - 1));
+        if (idx < candidates.length - 1) {
+          setIdx((i) => Math.min(i + 1, candidates.length - 1));
+        }
       }}
     />
   );
-
-
-
 }
 
 
@@ -217,8 +210,9 @@ const ALL_PRODUCTS: TopItem[] = (PRODUCTS ?? []).map((p: any, idx: number) => {
   const brand = String(p?.brand ?? p?.marca ?? "JUSP").trim() || "JUSP";
   const gender = normalizeHomeGender(p?.gender);
 
-  // ✅ Preferimos el estándar de carpeta por slug: /products/<slug>/1.jpg
-  const imgBase = slug ? `/products/${slug}/1` : firstImageFromProduct(p as Product, slug);
+  // ✅ Primero usamos la imagen real del producto; si no existe, caemos al fallback por slug.
+  const explicitImg = firstImageFromProduct(p as Product, slug);
+  const imgBase = explicitImg || (slug ? `/products/${slug}/1` : "");
 
   const href = slug ? `/product/${encodeURIComponent(slug)}` : "/products";
   const priceNum = minPriceFromProduct(p);
@@ -1886,7 +1880,7 @@ export default function Page() {
           }}
         >
           <div style={{ position: "relative", background: "#f7f7f7" }}>
-            <div className="__jusp_home_product_media" style={{ height: 220, position: "relative" }}>
+            <div style={{ height: 220, position: "relative" }}>
               <SmartImg
                 baseSrc={p.imgBase}
                 alt={p.name}
@@ -1907,33 +1901,12 @@ export default function Page() {
     {/* Grid fijo: 5 productos por fila */}
     <style>{`
       .__jusp_all_products_grid {
-        width: 100%;
         grid-template-columns: repeat(5, minmax(0, 1fr));
-      }
-
-      .__jusp_all_products_grid > a {
-        min-width: 0;
-      }
-
-      .__jusp_home_product_media {
-        height: 220px;
-      }
-
-      .__jusp_home_product_media img {
-        width: 100% !important;
-        height: 100% !important;
-        object-fit: contain !important;
-        display: block !important;
       }
 
       @media (max-width: 767px) {
         .__jusp_all_products_grid {
           grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-          gap: 12px !important;
-        }
-
-        .__jusp_home_product_media {
-          height: 160px !important;
         }
       }
     `}</style>
