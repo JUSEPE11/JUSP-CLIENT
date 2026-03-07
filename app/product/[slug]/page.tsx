@@ -10,23 +10,6 @@ function moneyCOP(n: number) {
   return Math.round(n).toLocaleString("es-CO");
 }
 
-const IMAGE_FOLDER_ALIASES: Record<string, string> = {
-  "nike-dunk-low-retro": "nike-dunk-low-retro",
-  "nike-air-force-1-07": "nike-air-force-1-07",
-  "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women":
-    "nike-Dri-Fit-Quick-Dry-Running-Compression-Training-Sports-Tank-Top-Women",
-  "nike-sports-pants-womens-purple": "nike-sports-pants-womens-purple",
-  "jordan-club-cap": "jordan-Club-Cap",
-};
-
-const IMAGE_COUNTS: Record<string, number> = {
-  "nike-dunk-low-retro": 8,
-  "nike-air-force-1-07": 8,
-  "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women": 5,
-  "nike-sports-pants-womens-purple": 6,
-  "jordan-club-cap": 6,
-};
-
 function uniqueStringsCaseInsensitive(arr: string[]) {
   const seen = new Set<string>();
   const out: string[] = [];
@@ -45,7 +28,7 @@ function uniqueStringsCaseInsensitive(arr: string[]) {
   return out;
 }
 
-function pickImgs(p: Product, slug: string): string[] {
+function pickImgs(p: Product): string[] {
   const imgs = Array.isArray((p as any).images) ? ((p as any).images as string[]) : [];
   const main = (typeof (p as any).image === "string" ? (p as any).image : "").trim();
 
@@ -56,40 +39,17 @@ function pickImgs(p: Product, slug: string): string[] {
   const isAbs = (s: string) => /^https?:\/\//i.test(s);
   const hasExt = (s: string) => /\.(png|jpe?g|webp|gif|avif)$/i.test(s);
 
-  const realFolder = IMAGE_FOLDER_ALIASES[slug] || slug;
-  const count = IMAGE_COUNTS[slug] || 8;
-
   const normalizeOne = (s: string) => {
     const v = String(s || "").trim();
     if (!v) return "";
     if (isAbs(v)) return v;
-
-    let normalized = v;
-
-    if (normalized.startsWith("products/")) {
-      normalized = `/${normalized}`;
-    } else if (!normalized.startsWith("/") && hasExt(normalized)) {
-      normalized = `/products/${normalized}`;
-    }
-
-    if (!normalized.startsWith("/")) return "";
-
-    const match = normalized.match(/^\/products\/([^/]+)\/([^/]+\.(?:png|jpe?g|webp|gif|avif))$/i);
-    if (match) {
-      const fileName = match[2];
-      return `/products/${realFolder}/${fileName}`;
-    }
-
-    return normalized;
+    if (v.startsWith("/")) return v;
+    if (v.startsWith("products/")) return `/${v}`;
+    if (hasExt(v)) return `/products/${v}`;
+    return "";
   };
 
-  const explicit = uniqueStringsCaseInsensitive(raw.map(normalizeOne).filter(Boolean));
-
-  if (explicit.length) {
-    return explicit;
-  }
-
-  return Array.from({ length: count }, (_, i) => `/products/${realFolder}/${i + 1}.jpg`);
+  return uniqueStringsCaseInsensitive(raw.map(normalizeOne).filter(Boolean));
 }
 
 type GenderScope = "men" | "women" | "kids";
@@ -338,7 +298,7 @@ export default function ProductPage() {
     [product]
   );
 
-  const imgs = useMemo(() => (product ? pickImgs(product, slug) : []), [product, slug]);
+  const imgs = useMemo(() => (product ? pickImgs(product) : []), [product]);
   const variants = useMemo(() => (product ? normalizeVariants(product) : []), [product]);
 
   const sizingMode = useMemo<SizingMode>(() => {

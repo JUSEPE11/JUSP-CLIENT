@@ -38,7 +38,6 @@ export type Product = {
   bestSeller?: boolean;
   stockHint?: number;
 
-  // 🔥 NUEVO: estilo Taobao
   variants?: ProductVariant[];
 };
 
@@ -136,13 +135,13 @@ export const PRODUCTS: Product[] = [
     isNew: true,
     stockHint: 6,
     image:
-      "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/1.jpg",
+      "/products/nike-Dri-Fit-Quick-Dry-Running-Compression-Training-Sports-Tank-Top-Women/1.jpg",
     images: [
-      "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/1.jpg",
-      "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/2.jpg",
-      "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/3.jpg",
-      "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/4.jpg",
-      "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/5.jpg",
+      "/products/nike-Dri-Fit-Quick-Dry-Running-Compression-Training-Sports-Tank-Top-Women/1.jpg",
+      "/products/nike-Dri-Fit-Quick-Dry-Running-Compression-Training-Sports-Tank-Top-Women/2.jpg",
+      "/products/nike-Dri-Fit-Quick-Dry-Running-Compression-Training-Sports-Tank-Top-Women/3.jpg",
+      "/products/nike-Dri-Fit-Quick-Dry-Running-Compression-Training-Sports-Tank-Top-Women/4.jpg",
+      "/products/nike-Dri-Fit-Quick-Dry-Running-Compression-Training-Sports-Tank-Top-Women/5.jpg",
     ],
     variants: [{ key: "women-l", size: "L", price: 129990 }],
     sizes: ["L"],
@@ -190,14 +189,14 @@ export const PRODUCTS: Product[] = [
     gender: "men",
     isNew: true,
     stockHint: 10,
-    image: "/products/jordan-club-cap/1.jpg",
+    image: "/products/jordan-Club-Cap/1.jpg",
     images: [
-      "/products/jordan-club-cap/1.jpg",
-      "/products/jordan-club-cap/2.jpg",
-      "/products/jordan-club-cap/3.jpg",
-      "/products/jordan-club-cap/4.jpg",
-      "/products/jordan-club-cap/5.jpg",
-      "/products/jordan-club-cap/6.jpg",
+      "/products/jordan-Club-Cap/1.jpg",
+      "/products/jordan-Club-Cap/2.jpg",
+      "/products/jordan-Club-Cap/3.jpg",
+      "/products/jordan-Club-Cap/4.jpg",
+      "/products/jordan-Club-Cap/5.jpg",
+      "/products/jordan-Club-Cap/6.jpg",
     ],
     variants: [
       { key: "cap-sm", size: "S/M", price: 75990 },
