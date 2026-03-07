@@ -11,6 +11,42 @@ function moneyCOP(n: number) {
   return Math.round(n).toLocaleString("es-CO");
 }
 
+const IMAGE_FOLDER_ALIASES: Record<string, string> = {
+  "nike-dunk-low-retro": "nike-dunk-low-retro",
+  "nike-air-force-1-07": "nike-air-force-1-07",
+  "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women":
+    "nike-Dri-Fit-Quick-Dry-Running-Compression-Training-Sports-Tank-Top-Women",
+  "nike-sports-pants-womens-purple": "nike-sports-pants-womens-purple",
+  "jordan-club-cap": "jordan-Club-Cap",
+};
+
+function uniqueStrings(arr: string[]) {
+  return Array.from(new Set(arr.map((x) => String(x || "").trim()).filter(Boolean)));
+}
+
+function folderCandidatesForSlug(slug: string) {
+  const exactFolder = IMAGE_FOLDER_ALIASES[slug] || slug;
+
+  const counts: Record<string, number> = {
+    "nike-dunk-low-retro": 8,
+    "nike-air-force-1-07": 8,
+    "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women": 5,
+    "nike-sports-pants-womens-purple": 6,
+    "jordan-club-cap": 6,
+  };
+
+  const count = counts[slug] || 8;
+  const folderNames = uniqueStrings([exactFolder, slug]);
+
+  const out: string[] = [];
+  for (const folder of folderNames) {
+    for (let i = 1; i <= count; i++) {
+      out.push(`/products/${folder}/${i}.jpg`);
+    }
+  }
+  return out;
+}
+
 function pickImgs(p: Product, slug: string): string[] {
   const imgs = Array.isArray((p as any).images) ? ((p as any).images as string[]) : [];
   const main = (typeof (p as any).image === "string" ? (p as any).image : "").trim();
@@ -32,13 +68,14 @@ function pickImgs(p: Product, slug: string): string[] {
     return "";
   };
 
-  const normalized = raw.map(normalizeOne).filter(Boolean);
-  const deduped = Array.from(new Set(normalized));
+  const explicit = raw.map(normalizeOne).filter(Boolean);
 
-  if (deduped.length) return deduped;
+  // Regla visual:
+  // 1) usar primero la carpeta real del producto para que TODOS se vean uniformes
+  // 2) complementar con image/images del producto
+  const folderBased = folderCandidatesForSlug(slug);
 
-  const count = 8;
-  return Array.from({ length: count }, (_, i) => `/products/${slug}/${i + 1}.jpg`);
+  return uniqueStrings([...folderBased, ...explicit]);
 }
 
 type GenderScope = "men" | "women" | "kids";
@@ -287,8 +324,19 @@ export default function ProductPage() {
     [product]
   );
 
-  const imgs = useMemo(() => (product ? pickImgs(product, slug) : []), [product, slug]);
+  const allImgs = useMemo(() => (product ? pickImgs(product, slug) : []), [product, slug]);
   const variants = useMemo(() => (product ? normalizeVariants(product) : []), [product]);
+
+  const [failedSrcs, setFailedSrcs] = useState<string[]>([]);
+
+  useEffect(() => {
+    setFailedSrcs([]);
+  }, [slug]);
+
+  const imgs = useMemo(() => {
+    if (!allImgs.length) return [];
+    return allImgs.filter((src) => !failedSrcs.includes(src));
+  }, [allImgs, failedSrcs]);
 
   const sizingMode = useMemo<SizingMode>(() => {
     if (!product) return "shoe";
@@ -337,6 +385,14 @@ export default function ProductPage() {
       setSize(null);
     }
   }, [slug, sizes]);
+
+  useEffect(() => {
+    if (!imgs.length) {
+      setActiveImg(0);
+      return;
+    }
+    setActiveImg((prev) => (prev >= imgs.length ? 0 : prev));
+  }, [imgs]);
 
   const hasRealVariants = useMemo(() => variants.length > 0, [variants]);
 
@@ -387,6 +443,10 @@ export default function ProductPage() {
   }, [hasRealVariants, attemptedBuy, selectionMissing]);
 
   const { addToCart, openCart } = useStore();
+
+  function markSrcAsFailed(src: string) {
+    setFailedSrcs((prev) => (prev.includes(src) ? prev : [...prev, src]));
+  }
 
   function onBuyReal(mode: "add" | "now") {
     setAttemptedBuy(true);
@@ -440,45 +500,38 @@ export default function ProductPage() {
           <section className="media">
             <div className="mediaCard">
               <div className="gallery">
-                {imgs.length > 1 ? (
-                  <div className="thumbCol" aria-label="Miniaturas">
-                    {imgs.slice(0, 10).map((src, i) => (
-                      <button
-                        key={`${src}-${i}`}
-                        type="button"
-                        className={`thBtn ${activeImg === i ? "on" : ""}`}
-                        onClick={() => setActiveImg(i)}
-                        aria-label={`Ver imagen ${i + 1}`}
-                      >
+                <div className="thumbCol" aria-label="Miniaturas">
+                  {(imgs.length ? imgs : [""]).slice(0, 10).map((src, i) => (
+                    <button
+                      key={`${src || "placeholder"}-${i}`}
+                      type="button"
+                      className={`thBtn ${activeImg === i ? "on" : ""}`}
+                      onClick={() => {
+                        if (src) setActiveImg(i);
+                      }}
+                      aria-label={`Ver imagen ${i + 1}`}
+                    >
+                      {src ? (
                         <img
                           className="th"
                           src={src}
                           alt=""
                           aria-hidden="true"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).style.visibility = "hidden";
-                          }}
+                          onError={() => markSrcAsFailed(src)}
                         />
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
+                      ) : (
+                        <div className="thPh" />
+                      )}
+                    </button>
+                  ))}
+                </div>
 
                 <div className="imgBox">
                   {imgs[activeImg] ? (
                     <img
                       src={imgs[activeImg]}
                       alt={title}
-                      onError={(e) => {
-                        const img = e.currentTarget as HTMLImageElement;
-                        img.style.display = "none";
-                        const parent = img.parentElement;
-                        if (parent && !parent.querySelector(".ph")) {
-                          const ph = document.createElement("div");
-                          ph.className = "ph";
-                          parent.appendChild(ph);
-                        }
-                      }}
+                      onError={() => markSrcAsFailed(imgs[activeImg])}
                     />
                   ) : (
                     <div className="ph" />
@@ -741,6 +794,8 @@ export default function ProductPage() {
           gap: 10px;
           position: sticky;
           top: calc(var(--jusp-header-h, 64px) + 16px);
+          align-content: start;
+          min-width: 98px;
         }
 
         .thBtn {
@@ -750,6 +805,7 @@ export default function ProductPage() {
           padding: 6px;
           cursor: pointer;
           transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+          min-height: 98px;
         }
         .thBtn:hover {
           transform: translateY(-1px);
@@ -760,7 +816,8 @@ export default function ProductPage() {
           box-shadow: 0 0 0 3px var(--jusp-gold-soft), 0 14px 34px rgba(0, 0, 0, 0.08);
         }
 
-        .th {
+        .th,
+        .thPh {
           width: 86px;
           height: 86px;
           border-radius: 12px;
@@ -919,6 +976,7 @@ export default function ProductPage() {
         .priceMeta {
           display: grid;
           gap: 6px;
+          min-height: 58px;
         }
         .range {
           font-weight: 900;
@@ -986,6 +1044,8 @@ export default function ProductPage() {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 10px;
+          min-height: 116px;
+          align-content: start;
         }
 
         .op {
@@ -999,6 +1059,7 @@ export default function ProductPage() {
           text-align: left;
           box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
           transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease, background 140ms ease;
+          min-height: 56px;
         }
         .op:hover {
           background: #fff;
@@ -1254,10 +1315,15 @@ export default function ProductPage() {
             overflow: auto;
             -webkit-overflow-scrolling: touch;
             gap: 10px;
+            min-width: 0;
           }
-          .th {
+          .th,
+          .thPh {
             width: 78px;
             height: 78px;
+          }
+          .thBtn {
+            min-height: auto;
           }
           .card {
             position: relative;
@@ -1274,6 +1340,7 @@ export default function ProductPage() {
           }
           .gridOps {
             grid-template-columns: repeat(2, minmax(0, 1fr));
+            min-height: 0;
           }
         }
 
