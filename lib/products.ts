@@ -70,9 +70,13 @@ export const PRODUCTS: Product[] = [
       "/products/nike-dunk-low-retro/1.jpg",
       "/products/nike-dunk-low-retro/2.jpg",
       "/products/nike-dunk-low-retro/3.jpg",
+      "/products/nike-dunk-low-retro/4.jpg",
+      "/products/nike-dunk-low-retro/5.jpg",
+      "/products/nike-dunk-low-retro/6.jpg",
+      "/products/nike-dunk-low-retro/7.jpg",
+      "/products/nike-dunk-low-retro/8.jpg",
     ],
 
-    // 🔥 PRECIO POR TALLA
     variants: [
       { key: "black-7", color: "Black", size: "7", price: 99900, supplierPrice: 25000, stock: 5 },
       { key: "black-8", color: "Black", size: "8", price: 119900, supplierPrice: 28000, stock: 3 },
@@ -86,7 +90,7 @@ export const PRODUCTS: Product[] = [
 
     colors: ["Black", "White", "Red"],
     sizes: ["7", "8", "9"],
-    price: 0, // se calculará abajo
+    price: 0,
   },
 
   {
@@ -100,7 +104,16 @@ export const PRODUCTS: Product[] = [
     gender: "unisex",
     bestSeller: true,
     image: "/products/nike-air-force-1-07/1.jpg",
-    images: ["/products/nike-air-force-1-07/1.jpg"],
+    images: [
+      "/products/nike-air-force-1-07/1.jpg",
+      "/products/nike-air-force-1-07/2.jpg",
+      "/products/nike-air-force-1-07/3.jpg",
+      "/products/nike-air-force-1-07/4.jpg",
+      "/products/nike-air-force-1-07/5.jpg",
+      "/products/nike-air-force-1-07/6.jpg",
+      "/products/nike-air-force-1-07/7.jpg",
+      "/products/nike-air-force-1-07/8.jpg",
+    ],
 
     variants: [
       { key: "white-7", color: "White", size: "7", price: 149900 },
@@ -199,7 +212,6 @@ export const PRODUCTS: Product[] = [
   },
 ];
 
-// 🔥 Calcula automáticamente el precio "desde"
 PRODUCTS.forEach((p) => {
   if (p.variants?.length) {
     p.price = derivePriceFromVariants(p.variants);
