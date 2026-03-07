@@ -15,9 +15,9 @@ const IMAGE_FOLDER_ALIASES: Record<string, string> = {
   "nike-dunk-low-retro": "nike-dunk-low-retro",
   "nike-air-force-1-07": "nike-air-force-1-07",
   "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women":
-    "nike-Dri-Fit-Quick-Dry-Running-Compression-Training-Sports-Tank-Top-Women",
+    "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women",
   "nike-sports-pants-womens-purple": "nike-sports-pants-womens-purple",
-  "jordan-club-cap": "jordan-Club-Cap",
+  "jordan-club-cap": "jordan-club-cap",
 };
 
 function uniqueStrings(arr: string[]) {
@@ -68,14 +68,14 @@ function pickImgs(p: Product, slug: string): string[] {
     return "";
   };
 
-  const explicit = raw.map(normalizeOne).filter(Boolean);
-
-  // Regla visual:
-  // 1) usar primero la carpeta real del producto para que TODOS se vean uniformes
-  // 2) complementar con image/images del producto
+  const explicit = uniqueStrings(raw.map(normalizeOne).filter(Boolean));
   const folderBased = folderCandidatesForSlug(slug);
 
-  return uniqueStrings([...folderBased, ...explicit]);
+  // FIX REAL:
+  // 1) usar primero las rutas explícitas del producto (lib/products.ts)
+  // 2) evitar duplicar image + images[0]
+  // 3) usar fallback por carpeta SOLO si el producto no trae imágenes válidas
+  return explicit.length ? explicit : uniqueStrings(folderBased);
 }
 
 type GenderScope = "men" | "women" | "kids";
@@ -331,7 +331,7 @@ export default function ProductPage() {
 
   useEffect(() => {
     setFailedSrcs([]);
-  }, [slug]);
+  }, [slug, allImgs]);
 
   const imgs = useMemo(() => {
     if (!allImgs.length) return [];
