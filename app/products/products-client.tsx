@@ -31,8 +31,19 @@ function uniq(arr: string[]) {
 }
 function pickImgs(p: Product): { main: string | null; alt: string | null } {
   const imgs = Array.isArray((p as any).images) ? ((p as any).images as string[]) : [];
-  const main = (imgs?.[0] || (typeof (p as any).image === "string" ? (p as any).image : "") || "").trim();
-  const alt = (imgs?.[1] || "").trim();
+  const slug = String((p as any).slug || "").trim();
+
+  const main = (
+    imgs?.[0] ||
+    (typeof (p as any).image === "string" ? (p as any).image : "") ||
+    (slug ? `/products/${slug}/1.jpg` : "")
+  ).trim();
+
+  const alt = (
+    imgs?.[1] ||
+    (slug ? `/products/${slug}/2.jpg` : "")
+  ).trim();
+
   return { main: main || null, alt: alt || null };
 }
 function genderLabel(g?: Product["gender"]) {
@@ -1714,10 +1725,6 @@ const ProductCard = memo(function ProductCard({
 
         {sale.has ? <div className="sale">-{sale.d}%</div> : null}
 
-        <button type="button" className={`cmp ${compareOn ? "on" : ""}`} onClick={() => onToggleCompare(favKey)} aria-pressed={compareOn} aria-label="Toggle compare">
-          Compare
-        </button>
-
         <div className="dotsRow" aria-label="Available colors">
           <div className="dots" aria-hidden="true">
             {colorDots.map((c) => (
@@ -1731,12 +1738,6 @@ const ProductCard = memo(function ProductCard({
         <button type="button" className={`heart ${fav ? "on" : ""}`} onClick={() => onToggleFav(favKey)} aria-label="Favorite" suppressHydrationWarning>
           ♥
         </button>
-
-        <div className="qs" aria-hidden="true">
-          <Link href={href} prefetch={false} className="qsBtn" onMouseEnter={() => onPrefetch(href)} onFocus={() => onPrefetch(href)}>
-            Quick Shop
-          </Link>
-        </div>
       </div>
 
       <div className="meta">
