@@ -365,7 +365,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
         </button>
       ) : null}
 
-      <div className="pageWrap" style={{ paddingTop: "var(--jusp-header-h)" }}>
+      <div className="pageWrap">
         <main className="pageMain" style={{ touchAction: "manipulation" }}>
           {children}
         </main>
@@ -620,7 +620,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
 
       <style jsx>{`
         .pageWrap {
-          min-height: calc(100vh - var(--jusp-header-h, 64px));
+          min-height: 100vh;
           display: flex;
           flex-direction: column;
         }
