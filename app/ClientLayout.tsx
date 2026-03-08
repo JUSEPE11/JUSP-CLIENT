@@ -103,9 +103,6 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const hideHeader = false;
   const isCartOpen = state.ui.panel === "cart";
 
-  // =========================
-  // ✅ FIX CRÍTICO: Host canónico
-  // =========================
   useEffect(() => {
     try {
       if (typeof window === "undefined") return;
@@ -124,14 +121,10 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // =========================
-  // ✅ PRO MAX REAL: Prefetch seguro (SIN deps variables)
-  // =========================
   const prefetch = useCallback(
     (href: string) => {
       try {
         if (!href || !href.startsWith("/")) return;
-        // Next router en App Router soporta prefetch
         // @ts-ignore
         if (typeof (router as any)?.prefetch === "function") (router as any).prefetch(href);
       } catch {
@@ -141,7 +134,6 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     [router]
   );
 
-  // Prefetch 1 vez, en idle, para rutas clave
   useEffect(() => {
     try {
       if (typeof window === "undefined") return;
@@ -169,9 +161,6 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     }
   }, [prefetch]);
 
-  // =========================
-  // ✅ PRO MAX: Toast + Auto-open (solo producto)
-  // =========================
   const [toast, setToast] = useState<{ open: boolean; title: string; sub?: string; canUndo?: boolean }>({
     open: false,
     title: "",
@@ -342,9 +331,6 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [isCartOpen, closePanel]);
 
-  // =========================
-  // ✅ Mega footer (NO fijo): solo al final REAL
-  // =========================
   const [megaOpen, setMegaOpen] = useState(true);
 
   useEffect(() => {
@@ -395,7 +381,6 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
               </div>
 
               <div className="dockRight">
-                {/* ✅ SOLO DEJAR "Mostrar/Ocultar" */}
                 <button type="button" className="megaToggle" onClick={onToggleMega} aria-expanded={megaOpen}>
                   {megaOpen ? "Ocultar" : "Mostrar"} ▾
                 </button>
@@ -433,19 +418,61 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
                   })}
                 </div>
 
+                <div className="megaLegalCard" aria-label="Información legal JUSP">
+                  <div className="megaLegalEyebrow">Información legal</div>
+                  <div className="megaLegalTitle">JUSP CLUB INTERNACIONAL S.A.S.</div>
+
+                  <div className="megaLegalMeta">
+                    <span className="chip">JUSP S.A.S.</span>
+                    <span className="chip">NIT 902044152</span>
+                    <a className="chip chipLink" href="mailto:DIRECTOR@JUSPCO.COM">
+                      DIRECTOR@JUSPCO.COM
+                    </a>
+                  </div>
+
+                  <p className="megaLegalText">
+                    JUSP actúa como intermediario en la gestión de compras internacionales entre clientes y proveedores globales.
+                    Los productos son enviados directamente desde proveedores internacionales al cliente final.
+                  </p>
+                </div>
+
                 <div className="megaBar">
                   <div className="copy">© {currentYear()} JUSP. Todos los derechos reservados.</div>
                   <div className="legal">
-                    <Link href="/help" className="l" onMouseEnter={() => prefetch("/help")} onTouchStart={() => prefetch("/help")} onFocus={() => prefetch("/help")}>
+                    <Link
+                      href="/help"
+                      className="l"
+                      onMouseEnter={() => prefetch("/help")}
+                      onTouchStart={() => prefetch("/help")}
+                      onFocus={() => prefetch("/help")}
+                    >
                       Centro de ayuda
                     </Link>
-                    <Link href="/terms" className="l" onMouseEnter={() => prefetch("/terms")} onTouchStart={() => prefetch("/terms")} onFocus={() => prefetch("/terms")}>
+                    <Link
+                      href="/terms"
+                      className="l"
+                      onMouseEnter={() => prefetch("/terms")}
+                      onTouchStart={() => prefetch("/terms")}
+                      onFocus={() => prefetch("/terms")}
+                    >
                       Términos
                     </Link>
-                    <Link href="/privacy" className="l" onMouseEnter={() => prefetch("/privacy")} onTouchStart={() => prefetch("/privacy")} onFocus={() => prefetch("/privacy")}>
+                    <Link
+                      href="/privacy"
+                      className="l"
+                      onMouseEnter={() => prefetch("/privacy")}
+                      onTouchStart={() => prefetch("/privacy")}
+                      onFocus={() => prefetch("/privacy")}
+                    >
                       Privacidad
                     </Link>
-                    <Link href="/help/pqr" className="l" onMouseEnter={() => prefetch("/help/pqr")} onTouchStart={() => prefetch("/help/pqr")} onFocus={() => prefetch("/help/pqr")}>
+                    <Link
+                      href="/help/pqr"
+                      className="l"
+                      onMouseEnter={() => prefetch("/help/pqr")}
+                      onTouchStart={() => prefetch("/help/pqr")}
+                      onFocus={() => prefetch("/help/pqr")}
+                    >
                       PQR
                     </Link>
                   </div>
@@ -592,7 +619,6 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       ) : null}
 
       <style jsx>{`
-        /* ✅ Footer al final real */
         .pageWrap {
           min-height: calc(100vh - var(--jusp-header-h, 64px));
           display: flex;
@@ -603,7 +629,6 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           position: relative;
         }
 
-        /* ✅ Empuja footer SOLO donde el fondo “fake” engaña visualmente */
         .footerSpacer {
           height: clamp(220px, 42vh, 520px);
           pointer-events: none;
@@ -651,14 +676,12 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           border: 1px solid rgba(255, 255, 255, 0.18);
         }
 
-        /* ✅ Mega footer NO fijo */
         .mega {
           background: rgba(255, 255, 255, 0.92);
           backdrop-filter: blur(14px);
           -webkit-backdrop-filter: blur(14px);
           border-top: 1px solid rgba(0, 0, 0, 0.08);
           box-shadow: 0 -14px 40px rgba(0, 0, 0, 0.08);
-
           user-select: none;
           -webkit-user-select: none;
         }
@@ -767,6 +790,60 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           border-color: rgba(255, 214, 10, 0.55);
         }
 
+        .megaLegalCard {
+          margin-top: 2px;
+          padding: 18px 20px;
+          border-top: 1px solid rgba(0, 0, 0, 0.06);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.18));
+        }
+        .megaLegalEyebrow {
+          font-size: 11px;
+          font-weight: 900;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: rgba(0, 0, 0, 0.48);
+        }
+        .megaLegalTitle {
+          margin-top: 6px;
+          font-size: 20px;
+          line-height: 1.1;
+          font-weight: 950;
+          letter-spacing: -0.03em;
+          color: #111;
+        }
+        .megaLegalMeta {
+          margin-top: 10px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .chip {
+          display: inline-flex;
+          align-items: center;
+          min-height: 32px;
+          padding: 7px 12px;
+          border-radius: 999px;
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          background: rgba(255, 255, 255, 0.72);
+          color: rgba(0, 0, 0, 0.72);
+          font-size: 12px;
+          font-weight: 900;
+          text-decoration: none;
+        }
+        .chipLink:hover {
+          color: #111;
+          border-color: rgba(0, 0, 0, 0.18);
+        }
+        .megaLegalText {
+          margin-top: 12px;
+          max-width: 900px;
+          font-size: 13px;
+          line-height: 1.7;
+          font-weight: 800;
+          color: rgba(0, 0, 0, 0.62);
+        }
+
         .megaBar {
           display: flex;
           align-items: center;
@@ -806,6 +883,9 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           .dockRight {
             justify-content: flex-start;
           }
+          .megaLegalTitle {
+            font-size: 18px;
+          }
         }
         @media (max-width: 640px) {
           .megaInner {
@@ -819,6 +899,12 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           }
           .footerSpacer {
             height: clamp(160px, 34vh, 420px);
+          }
+          .megaLegalCard {
+            padding: 16px 14px;
+          }
+          .megaLegalText {
+            font-size: 12px;
           }
         }
 
