@@ -96,7 +96,6 @@ function pickAccountLabel(user: SessionUser | null) {
   return "Mi cuenta";
 }
 
-/* ===== ICONS (ELEGANTES, SIN DEPENDENCIAS) ===== */
 function DrawerIcon({ name }: { name: string }) {
   const common = {
     width: 18,
@@ -163,12 +162,7 @@ function DrawerIcon({ name }: { name: string }) {
             strokeLinecap="round"
             strokeLinejoin="round"
           />
-          <path
-            d="M9.5 18h5"
-            stroke="currentColor"
-            strokeWidth="1.9"
-            strokeLinecap="round"
-          />
+          <path d="M9.5 18h5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
         </svg>
       );
     case "ninos":
@@ -204,8 +198,6 @@ function DrawerIcon({ name }: { name: string }) {
           />
         </svg>
       );
-
-    /* ✅ FIX: “Colecciones” ahora es una CAJA premium (no lista) */
     case "colecciones":
       return (
         <svg {...common} aria-hidden="true">
@@ -240,7 +232,6 @@ function DrawerIcon({ name }: { name: string }) {
           />
         </svg>
       );
-
     case "snkrs":
       return (
         <svg {...common} aria-hidden="true">
@@ -284,12 +275,7 @@ function DrawerIcon({ name }: { name: string }) {
             strokeLinecap="round"
             strokeLinejoin="round"
           />
-          <path
-            d="M9 12v1M15 12v1"
-            stroke="currentColor"
-            strokeWidth="1.9"
-            strokeLinecap="round"
-          />
+          <path d="M9 12v1M15 12v1" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
         </svg>
       );
     case "exclusivo":
@@ -334,18 +320,16 @@ function iconNameForKey(key: Exclude<MegaKey, null>, label: string): string {
   if (key === "accesorios") return "accesorios";
   if (key === "exclusivo") return "exclusivo";
   if (key === "ofertas") return "ofertas";
-  // “Colecciones” en tu config usa key "jordan"
   if (label.toLowerCase().includes("colecciones") || key === "jordan") return "colecciones";
   return "colecciones";
 }
 
 export default function Header() {
-  // ✅ STORE (conteo + abrir carrito) — ahora viene de Zustand + persist
   const { cartCount, openCart } = useStore();
 
-  // ✅ micro-animación cuando sube el conteo
   const prevCartCount = useRef<number>(cartCount);
   const [cartBump, setCartBump] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
     const prev = prevCartCount.current;
@@ -357,34 +341,32 @@ export default function Header() {
     }
   }, [cartCount]);
 
-  // MEGA
-  const [active, setActive] = useState<MegaKey>(null);
+  useEffect(() => {
+    const onScroll = () => setIsScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
-  // SEARCH (full screen)
+  const [active, setActive] = useState<MegaKey>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [q, setQ] = useState("");
   const [recents, setRecents] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  // SEARCH results
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState<SearchProduct[]>([]);
   const lastReq = useRef(0);
-
-  // ✅ Abort controller real (por request)
   const searchAbortRef = useRef<AbortController | null>(null);
 
-  // ACCOUNT mega
   const [accountOpen, setAccountOpen] = useState(false);
 
-  // SESSION (PRO)
   const [sessionLoading, setSessionLoading] = useState(true);
   const [user, setUser] = useState<SessionUser | null>(null);
   const isAuthed = !!user && user?.profile !== undefined;
   const hasProfile = !!user && user?.profile != null;
   const accountTitle = useMemo(() => pickAccountLabel(user), [user]);
 
-  // Detecta móvil/touch para no depender de hover
   const [isCoarsePointer, setIsCoarsePointer] = useState(false);
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -400,7 +382,6 @@ export default function Header() {
     }
   }, []);
 
-  // Keep account mega open while moving the mouse into it
   const accountCloseT = useRef<number | null>(null);
   const cancelAccountClose = () => {
     if (accountCloseT.current) {
@@ -410,12 +391,9 @@ export default function Header() {
   };
   const scheduleAccountClose = () => {
     cancelAccountClose();
-    accountCloseT.current = window.setTimeout(() => {
-      setAccountOpen(false);
-    }, 220);
+    accountCloseT.current = window.setTimeout(() => setAccountOpen(false), 220);
   };
 
-  // HOVER SAFE CLOSE
   const closeTimerRef = useRef<number | null>(null);
   const cancelHoverClose = () => {
     if (closeTimerRef.current) {
@@ -431,7 +409,6 @@ export default function Header() {
     }, 140);
   };
 
-  // MOBILE PRO (drawer right)
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const menus: MegaConfig[] = useMemo(
@@ -813,7 +790,6 @@ export default function Header() {
       }
       return;
     }
-    // ✅ abort request anterior
     if (searchAbortRef.current) searchAbortRef.current.abort();
     const ctrl = new AbortController();
     searchAbortRef.current = ctrl;
@@ -831,7 +807,7 @@ export default function Header() {
       if (ctrl.signal.aborted) return;
       if (lastReq.current !== reqId) return;
       setProducts(items.slice(0, 12));
-    } catch (err: any) {
+    } catch {
       if (ctrl.signal.aborted) return;
       if (lastReq.current !== reqId) return;
       setProducts([]);
@@ -840,7 +816,6 @@ export default function Header() {
     }
   }
 
-  // Session bootstrap
   useEffect(() => {
     let alive = true;
     const ctrl = new AbortController();
@@ -923,7 +898,6 @@ export default function Header() {
     return () => clearTimeout(t);
   }, [q]);
 
-  // ✅ cleanup: abort al desmontar
   useEffect(() => {
     return () => {
       if (searchAbortRef.current) searchAbortRef.current.abort();
@@ -931,7 +905,11 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="jusp-header" onMouseEnter={cancelHoverClose} onMouseLeave={scheduleHoverClose}>
+    <header
+      className={`jusp-header ${isScrolled ? "jusp-header-scrolled" : ""}`}
+      onMouseEnter={cancelHoverClose}
+      onMouseLeave={scheduleHoverClose}
+    >
       <div className="jusp-header-inner">
         <Link href="/" className="jusp-logo" aria-label="JUSP Home">
           JUSP
@@ -1163,7 +1141,6 @@ export default function Header() {
         ) : null}
       </div>
 
-      {/* SEARCH full screen */}
       {searchOpen ? (
         <div className="jusp-search-overlay" role="dialog" aria-modal="true">
           <div className="jusp-search-panel">
@@ -1303,7 +1280,6 @@ export default function Header() {
         </div>
       ) : null}
 
-      {/* MOBILE drawer */}
       {mobileOpen ? (
         <div className="jusp-mdrawer-wrap" role="dialog" aria-modal="true">
           <button
@@ -1416,11 +1392,6 @@ export default function Header() {
           --jusp-mid: 220ms;
         }
 
-        /* ✅ Offset automático del layout por header fijo */
-        body {
-          padding-top: var(--jusp-header-h);
-        }
-
         .sr-only {
           position: absolute;
           width: 1px;
@@ -1439,12 +1410,21 @@ export default function Header() {
           left: 0;
           right: 0;
           z-index: 2000;
-          background: rgba(255, 255, 255, 0.88);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-          transition: background var(--jusp-mid) var(--jusp-ease), box-shadow var(--jusp-mid) var(--jusp-ease);
+          background: rgba(255, 255, 255, 0.82);
+          backdrop-filter: blur(12px) saturate(1.08);
+          -webkit-backdrop-filter: blur(12px) saturate(1.08);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+          transition: background var(--jusp-mid) var(--jusp-ease), box-shadow var(--jusp-mid) var(--jusp-ease),
+            border-color var(--jusp-mid) var(--jusp-ease);
           will-change: background, box-shadow;
+        }
+
+        .jusp-header.jusp-header-scrolled {
+          background: rgba(255, 255, 255, 0.92);
+          backdrop-filter: blur(18px) saturate(1.16);
+          -webkit-backdrop-filter: blur(18px) saturate(1.16);
+          border-bottom-color: rgba(0, 0, 0, 0.08);
+          box-shadow: 0 10px 34px rgba(0, 0, 0, 0.07);
         }
 
         .jusp-header-inner {
@@ -1456,6 +1436,12 @@ export default function Header() {
           grid-template-columns: auto 1fr auto;
           align-items: center;
           gap: 12px;
+          transition: padding var(--jusp-mid) var(--jusp-ease);
+        }
+
+        .jusp-header.jusp-header-scrolled .jusp-header-inner {
+          padding-top: 10px;
+          padding-bottom: 10px;
         }
 
         .jusp-logo {
@@ -1511,7 +1497,7 @@ export default function Header() {
           place-items: center;
           border-radius: 10px;
           border: 1px solid rgba(0, 0, 0, 0.12);
-          background: #fff;
+          background: rgba(255, 255, 255, 0.94);
           text-decoration: none;
           color: #111;
           cursor: pointer;
@@ -1523,7 +1509,7 @@ export default function Header() {
         }
 
         .jusp-icon:hover {
-          background: rgba(0, 0, 0, 0.04);
+          background: rgba(255, 255, 255, 0.98);
           transform: scale(1.03);
           box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
         }
@@ -2044,7 +2030,6 @@ export default function Header() {
           gap: 22px;
         }
 
-        /* ===== MOBILE DRAWER (PRO MAX WHITE GLASS) ===== */
         .jusp-mdrawer-wrap {
           position: fixed;
           inset: 0;
@@ -2068,21 +2053,17 @@ export default function Header() {
           right: 0;
           bottom: 0;
           width: min(380px, 92vw);
-
           background: rgba(255, 255, 255, 0.78);
           backdrop-filter: blur(24px) saturate(1.3);
           -webkit-backdrop-filter: blur(24px) saturate(1.3);
-
           border-left: 1px solid rgba(0, 0, 0, 0.08);
           box-shadow: -28px 0 90px rgba(0, 0, 0, 0.18);
-
           padding: 12px 14px 16px;
           transform: translateX(12px) scale(0.995);
           opacity: 0;
           animation: juspDrawerIn var(--jusp-fast) var(--jusp-ease) forwards;
           will-change: transform, opacity;
           isolation: isolate;
-
           color: rgba(0, 0, 0, 0.88);
         }
 
@@ -2142,7 +2123,6 @@ export default function Header() {
           transition: transform var(--jusp-fast) var(--jusp-ease), background var(--jusp-fast) var(--jusp-ease),
             border-color var(--jusp-fast) var(--jusp-ease), box-shadow var(--jusp-fast) var(--jusp-ease);
           box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
-
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -2153,7 +2133,6 @@ export default function Header() {
           transform: translateY(1px);
         }
 
-        /* ✅ left group (icon + label pill) */
         .jusp-mdrawer-left {
           display: inline-flex;
           align-items: center;
@@ -2161,7 +2140,6 @@ export default function Header() {
           min-width: 0;
         }
 
-        /* ✅ icon bubble (logo elegante) */
         .jusp-mdrawer-icobubble {
           width: 44px;
           height: 44px;
@@ -2191,7 +2169,6 @@ export default function Header() {
           flex: 0 0 auto;
         }
 
-        /* pill (texto) — lo conservamos */
         .jusp-mdrawer-linktext {
           display: inline-flex;
           align-items: center;
@@ -2205,7 +2182,6 @@ export default function Header() {
           box-shadow: 0 10px 26px rgba(0, 0, 0, 0.06);
           backdrop-filter: blur(10px);
           -webkit-backdrop-filter: blur(10px);
-
           max-width: 100%;
           white-space: nowrap;
           overflow: hidden;
@@ -2227,7 +2203,6 @@ export default function Header() {
           transition: transform var(--jusp-fast) var(--jusp-ease), background var(--jusp-fast) var(--jusp-ease),
             border-color var(--jusp-fast) var(--jusp-ease), box-shadow var(--jusp-fast) var(--jusp-ease);
           box-shadow: 0 14px 34px rgba(0, 0, 0, 0.06);
-
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -2257,7 +2232,6 @@ export default function Header() {
           color: rgba(198, 31, 31, 0.85);
         }
 
-        /* ✅ FIX VISUAL: Colecciones como “caja premium” */
         .jusp-mdrawer-link.jusp-mdrawer-collections {
           border-color: rgba(0, 0, 0, 0.14);
           background: rgba(255, 255, 255, 0.62);
