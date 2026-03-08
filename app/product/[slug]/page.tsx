@@ -28,18 +28,6 @@ function uniqueStringsCaseInsensitive(arr: string[]) {
   return out;
 }
 
-function slugifyLikeFolder(v: string) {
-  return String(v || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .replace(/['".,()[\]{}]/g, "")
-    .replace(/[^a-zA-Z0-9]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .toLowerCase();
-}
-
 function buildImageCandidates(p: Product, pageSlug?: string): string[] {
   const imgs = Array.isArray((p as any).images) ? ((p as any).images as string[]) : [];
   const main = (typeof (p as any).image === "string" ? (p as any).image : "").trim();
@@ -67,8 +55,6 @@ function buildImageCandidates(p: Product, pageSlug?: string): string[] {
       String((p as any)?.slug || "").trim(),
       String((p as any)?.id || "").trim(),
       String((p as any)?.product_code || "").trim(),
-      slugifyLikeFolder(String((p as any)?.title || "")),
-      slugifyLikeFolder(String((p as any)?.name || "")),
     ].filter(Boolean)
   ).map((x) => x.toLowerCase());
 
@@ -76,7 +62,7 @@ function buildImageCandidates(p: Product, pageSlug?: string): string[] {
     [1, 2, 3, 4, 5].map((i) => `/products/${s}/${i}.jpg`)
   );
 
-  return uniqueStringsCaseInsensitive([...localCandidates, ...raw.map(normalizeOne).filter(Boolean)]);
+  return uniqueStringsCaseInsensitive([...raw.map(normalizeOne).filter(Boolean), ...localCandidates]);
 }
 
 function loadImage(src: string): Promise<boolean> {
@@ -699,7 +685,7 @@ export default function ProductPage() {
         }
 
         .root {
-          padding-top: calc(var(--jusp-header-h, 64px) + 18px);
+          padding-top: 8px;
           padding-bottom: 124px;
           padding-left: 16px;
           padding-right: 16px;
