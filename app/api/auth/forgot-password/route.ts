@@ -26,7 +26,7 @@ function appUrl() {
   return (
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.NEXT_PUBLIC_SITE_URL ||
-    "http://localhost:3000"
+    "http://192.168.1.87:3000"
   );
 }
 
@@ -78,9 +78,7 @@ async function logSecurityEvent(params: {
       p_user_agent: params.userAgent,
       p_meta: params.meta ?? {},
     });
-  } catch {
-    // No rompemos el flujo por auditoría
-  }
+  } catch {}
 }
 
 async function recordResetAttempt(params: {
@@ -99,9 +97,7 @@ async function recordResetAttempt(params: {
       p_outcome: params.outcome,
       p_meta: params.meta ?? {},
     });
-  } catch {
-    // No rompemos el flujo por auditoría
-  }
+  } catch {}
 }
 
 async function canRequestPasswordReset(email: string, ip: string | null) {
@@ -194,16 +190,15 @@ export async function POST(req: Request) {
       ]);
 
       return NextResponse.json(
-        {
-          ok: false,
-          error: "Demasiados intentos. Intenta de nuevo más tarde.",
-        },
+        { ok: false, error: "Demasiados intentos. Intenta de nuevo más tarde." },
         { status: 429, headers: { "Cache-Control": "no-store" } }
       );
     }
 
     const supabase = await createSupabaseServerClient();
-    const redirectTo = `${appUrl()}/reset-password`;
+    const redirectTo = `${appUrl()}/auth/confirm?next=/reset-password`;
+
+    console.log("JUSP forgot-password redirectTo =", redirectTo);
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo,
