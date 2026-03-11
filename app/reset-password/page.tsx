@@ -1,38 +1,94 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { Suspense, useMemo, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type Status = "idle" | "loading" | "success" | "error";
 
-async function safeJson(res: Response) {
-  try {
-    return await res.json();
-  } catch {
-    return null;
+function createBrowserSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !anon) {
+    throw new Error("Faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY");
   }
+
+  return createClient(url, anon, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: true,
+    },
+  });
 }
 
-function ResetPasswordContent() {
-  const params = useSearchParams();
-  const token = params.get("token");
+export default function ResetPasswordPage() {
+  const supabaseRef = useRef<any>(null);
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [err, setErr] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
+  const [recoveryReady, setRecoveryReady] = useState(false);
 
-  const tokenOk = !!token && token.trim().length > 0;
   const passwordOk = password.length >= 6;
   const matchOk = password === confirmPassword;
 
   const canSubmit = useMemo(() => {
-    if (!tokenOk) return false;
+    if (!ready) return false;
+    if (!recoveryReady) return false;
     if (!passwordOk) return false;
     if (!matchOk) return false;
     return status !== "loading";
-  }, [tokenOk, passwordOk, matchOk, status]);
+  }, [ready, recoveryReady, passwordOk, matchOk, status]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    try {
+      const supabase = createBrowserSupabase();
+      supabaseRef.current = supabase;
+
+      const boot = async () => {
+        const { data: sessionData } = await supabase.auth.getSession();
+
+        if (!mounted) return;
+
+        if (sessionData.session) {
+          setRecoveryReady(true);
+          setReady(true);
+          return;
+        }
+
+        setReady(true);
+      };
+
+      boot();
+
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((event, session) => {
+        if (!mounted) return;
+
+        if (event === "PASSWORD_RECOVERY" || !!session) {
+          setRecoveryReady(true);
+          setErr(null);
+        }
+      });
+
+      return () => {
+        mounted = false;
+        subscription.unsubscribe();
+      };
+    } catch {
+      if (mounted) {
+        setErr("No se pudo iniciar la recuperación de contraseña.");
+        setReady(true);
+      }
+    }
+  }, []);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -40,8 +96,8 @@ function ResetPasswordContent() {
 
     setErr(null);
 
-    if (!tokenOk) {
-      setErr("El enlace no es válido o el token no existe.");
+    if (!recoveryReady) {
+      setErr("El enlace de recuperación no es válido o ya expiró.");
       return;
     }
 
@@ -68,26 +124,19 @@ function ResetPasswordContent() {
     setStatus("loading");
 
     try {
-      const res = await fetch("/api/auth/reset-password", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          token,
-          password,
-        }),
-        cache: "no-store",
+      const supabase = supabaseRef.current;
+      if (!supabase) {
+        setErr("No se pudo iniciar la sesión de recuperación.");
+        setStatus("error");
+        return;
+      }
+
+      const { error } = await supabase.auth.updateUser({
+        password,
       });
 
-      const data = await safeJson(res);
-
-      if (!res.ok) {
-        const msg =
-          (data && (data.error || data.message)) ||
-          "No se pudo restablecer la contraseña. Intenta de nuevo.";
-
-        setErr(String(msg));
+      if (error) {
+        setErr(error.message || "No se pudo actualizar la contraseña.");
         setStatus("error");
         return;
       }
@@ -111,15 +160,19 @@ function ResetPasswordContent() {
             </p>
           </div>
 
-          {!tokenOk ? (
+          {!ready ? (
+            <div className="rp-info" role="status" aria-live="polite">
+              Preparando recuperación de contraseña…
+            </div>
+          ) : !recoveryReady && status !== "success" ? (
             <div className="rp-invalid" role="alert" aria-live="polite">
               <div className="rp-alert-ico" aria-hidden="true">
                 !
               </div>
               <div>
-                <h2 className="rp-invalid-title">Enlace inválido</h2>
+                <h2 className="rp-invalid-title">Enlace inválido o expirado</h2>
                 <p className="rp-invalid-text">
-                  Este enlace de recuperación no es válido o está incompleto.
+                  Este enlace de recuperación no es válido, ya expiró o no abrió una sesión de recuperación.
                 </p>
                 <div className="rp-actions">
                   <Link className="rp-btn rp-btn-ghost" href="/forgot-password">
@@ -260,6 +313,14 @@ function ResetPasswordContent() {
           font-size: 14px;
           line-height: 1.6;
         }
+        .rp-info {
+          margin-top: 10px;
+          border-radius: 14px;
+          padding: 12px 14px;
+          background: rgba(0, 0, 0, 0.04);
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          color: rgba(0, 0, 0, 0.72);
+        }
         .rp-alert,
         .rp-invalid {
           margin: 10px 0 0;
@@ -382,80 +443,5 @@ function ResetPasswordContent() {
         }
       `}</style>
     </main>
-  );
-}
-
-function ResetPasswordFallback() {
-  return (
-    <main className="rp-root">
-      <div className="rp-shell">
-        <div className="rp-card">
-          <div className="rp-head">
-            <div className="rp-kicker">Cuenta</div>
-            <h1 className="rp-title">Nueva contraseña</h1>
-            <p className="rp-sub">Cargando recuperación de contraseña…</p>
-          </div>
-        </div>
-      </div>
-
-      <style jsx global>{`
-        body {
-          background: radial-gradient(1200px 600px at 20% 0%, rgba(0, 0, 0, 0.06), transparent 55%),
-            radial-gradient(900px 520px at 90% 15%, rgba(0, 0, 0, 0.04), transparent 60%),
-            #f7f7f7;
-        }
-      `}</style>
-
-      <style jsx>{`
-        .rp-root {
-          min-height: 100vh;
-          padding: calc(var(--jusp-header-h, 64px) + 24px) 16px 32px;
-        }
-        .rp-shell {
-          max-width: 560px;
-          margin: 0 auto;
-        }
-        .rp-card {
-          border-radius: 24px;
-          background: rgba(255, 255, 255, 0.92);
-          border: 1px solid rgba(0, 0, 0, 0.08);
-          box-shadow: 0 22px 60px rgba(0, 0, 0, 0.08);
-          padding: 20px;
-          backdrop-filter: blur(10px);
-        }
-        .rp-head {
-          margin-bottom: 14px;
-        }
-        .rp-kicker {
-          font-weight: 900;
-          font-size: 11px;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          color: rgba(0, 0, 0, 0.55);
-        }
-        .rp-title {
-          margin: 8px 0 6px;
-          font-size: 30px;
-          line-height: 1.05;
-          font-weight: 950;
-          letter-spacing: -0.02em;
-          color: #111;
-        }
-        .rp-sub {
-          margin: 0;
-          color: rgba(0, 0, 0, 0.72);
-          font-size: 14px;
-          line-height: 1.6;
-        }
-      `}</style>
-    </main>
-  );
-}
-
-export default function ResetPasswordPage() {
-  return (
-    <Suspense fallback={<ResetPasswordFallback />}>
-      <ResetPasswordContent />
-    </Suspense>
   );
 }
