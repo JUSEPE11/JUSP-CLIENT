@@ -1,4 +1,3 @@
-// app/login/page.tsx
 "use client";
 
 import Link from "next/link";
@@ -238,9 +237,15 @@ export default function LoginPage() {
                 <span className="mini-dot" />
                 <span>Sesión segura</span>
               </div>
-              <Link className="link" href="/ayuda">
-                ¿Necesitas ayuda?
-              </Link>
+
+              <div className="auth-links-right">
+                <Link className="link subtle-link" href="/forgot-password">
+                  ¿Olvidaste tu contraseña?
+                </Link>
+                <Link className="link" href="/ayuda">
+                  ¿Necesitas ayuda?
+                </Link>
+              </div>
             </div>
 
             <button className="btn" type="submit" disabled={!canSubmit} aria-busy={status === "loading"}>
@@ -469,6 +474,13 @@ export default function LoginPage() {
           align-items: center;
           flex-wrap: wrap;
         }
+        .auth-links-right {
+          display: inline-flex;
+          align-items: center;
+          gap: 14px;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+        }
         .mini {
           display: inline-flex;
           align-items: center;
@@ -553,6 +565,12 @@ export default function LoginPage() {
         .link:hover {
           text-decoration: underline;
         }
+        .subtle-link {
+          color: rgba(0, 0, 0, 0.66);
+        }
+        .subtle-link:hover {
+          color: #111;
+        }
         @keyframes spin {
           to {
             transform: rotate(360deg);
@@ -567,6 +585,16 @@ export default function LoginPage() {
           }
           .auth-title {
             font-size: 28px;
+          }
+        }
+        @media (max-width: 560px) {
+          .auth-row {
+            align-items: flex-start;
+          }
+          .auth-links-right {
+            width: 100%;
+            justify-content: space-between;
+            gap: 8px 12px;
           }
         }
       `}</style>
