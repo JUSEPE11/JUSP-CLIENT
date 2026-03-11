@@ -1,27 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { createClient } from "@supabase/supabase-js";
+import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type Status = "idle" | "loading" | "success" | "error";
-
-function createBrowserSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !anon) {
-    throw new Error("Faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY");
-  }
-
-  return createClient(url, anon, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: true,
-    },
-  });
-}
 
 export default function ResetPasswordPage() {
   const supabaseRef = useRef<any>(null);
@@ -48,39 +31,32 @@ export default function ResetPasswordPage() {
     let mounted = true;
 
     try {
-      const supabase = createBrowserSupabase();
+      const supabase = createSupabaseBrowserClient();
       supabaseRef.current = supabase;
 
       const boot = async () => {
-        const { data: sessionData } = await supabase.auth.getSession();
+        const { data, error } = await supabase.auth.getSession();
 
         if (!mounted) return;
 
-        if (sessionData.session) {
-          setRecoveryReady(true);
+        if (error) {
+          setErr("No se pudo validar la sesión de recuperación.");
           setReady(true);
           return;
+        }
+
+        if (data.session) {
+          setRecoveryReady(true);
+          setErr(null);
         }
 
         setReady(true);
       };
 
-      boot();
-
-      const {
-        data: { subscription },
-      } = supabase.auth.onAuthStateChange((event, session) => {
-        if (!mounted) return;
-
-        if (event === "PASSWORD_RECOVERY" || !!session) {
-          setRecoveryReady(true);
-          setErr(null);
-        }
-      });
+      void boot();
 
       return () => {
         mounted = false;
-        subscription.unsubscribe();
       };
     } catch {
       if (mounted) {
@@ -125,6 +101,7 @@ export default function ResetPasswordPage() {
 
     try {
       const supabase = supabaseRef.current;
+
       if (!supabase) {
         setErr("No se pudo iniciar la sesión de recuperación.");
         setStatus("error");
