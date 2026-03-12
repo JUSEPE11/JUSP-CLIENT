@@ -31,17 +31,29 @@ const KEYS_CANDIDATES = ["jusp_favorites", "favorites", "wishlist", "jusp_wishli
  *  Helpers (SAFE)
  *  ========================= */
 function safeNum(v: unknown): number | null {
+  if (v == null) return null;
+
+  if (typeof v === "number") {
+    return Number.isFinite(v) ? v : null;
+  }
+
   if (typeof v === "string") {
-    const cleaned = v
+    const raw = v.trim();
+    if (!raw) return null;
+
+    const cleaned = raw
       .replace(/[^\d.,-]/g, "")
       .replace(/\.(?=\d{3}(\D|$))/g, "")
-      .replace(",", ".");
+      .replace(",", ".")
+      .trim();
+
+    if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === "-.") return null;
+
     const n = Number(cleaned);
     return Number.isFinite(n) ? n : null;
   }
 
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
+  return null;
 }
 
 function safeMoneyCOP(n: number): string {
@@ -257,27 +269,31 @@ function firstPriceFromUnknown(...values: unknown[]): number | null {
 
     if (typeof value === "number" || typeof value === "string") {
       const n = safeNum(value);
-      if (n !== null) return n;
+      if (n !== null && n > 0) return n;
       continue;
     }
 
     if (typeof value === "object") {
       const v = value as any;
 
-      const nested =
-        safeNum(v.value) ??
-        safeNum(v.amount) ??
-        safeNum(v.price) ??
-        safeNum(v.sale_price) ??
-        safeNum(v.salePrice) ??
-        safeNum(v.retail_price) ??
-        safeNum(v.retailPrice) ??
-        safeNum(v.min) ??
-        safeNum(v.max) ??
-        safeNum(v.current) ??
-        safeNum(v.unit_amount);
+      const nestedCandidates = [
+        v.value,
+        v.amount,
+        v.price,
+        v.sale_price,
+        v.salePrice,
+        v.retail_price,
+        v.retailPrice,
+        v.min,
+        v.max,
+        v.current,
+        v.unit_amount,
+      ];
 
-      if (nested !== null) return nested;
+      for (const candidate of nestedCandidates) {
+        const parsed = safeNum(candidate);
+        if (parsed !== null && parsed > 0) return parsed;
+      }
 
       const deepNested = firstPriceFromUnknown(
         v.price,
@@ -288,7 +304,7 @@ function firstPriceFromUnknown(...values: unknown[]): number | null {
         v.max,
       );
 
-      if (deepNested !== null) return deepNested;
+      if (deepNested !== null && deepNested > 0) return deepNested;
     }
   }
 
@@ -380,6 +396,10 @@ function productFolderImageCandidates(item: FavoriteItem): string[] {
   const direct = item.image ? [normalizeImageUrl(item.image)] : [];
 
   const orderedProductFiles = [
+    "1.jpg",
+    "1.jpeg",
+    "1.png",
+    "1.webp",
     "2.jpg",
     "2.jpeg",
     "2.png",
@@ -408,10 +428,6 @@ function productFolderImageCandidates(item: FavoriteItem): string[] {
     "main.jpeg",
     "main.png",
     "main.webp",
-    "1.jpg",
-    "1.jpeg",
-    "1.png",
-    "1.webp",
   ];
 
   const derived: string[] = [];
@@ -684,7 +700,6 @@ function FavoriteCardImage({ item, title }: { item: FavoriteItem; title: string 
   }
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={currentSrc}
       alt={title}
@@ -768,8 +783,11 @@ export default function FavoritesPage() {
 
   const kpis = useMemo(() => {
     const total = items.length;
-    const withPrice = items.filter((x) => typeof x.price === "number" && Number.isFinite(x.price)).length;
-    const sum = items.reduce((acc, x) => acc + (typeof x.price === "number" ? x.price : 0), 0);
+    const pricedItems = items.filter(
+      (x) => typeof x.price === "number" && Number.isFinite(x.price) && x.price > 0,
+    );
+    const withPrice = pricedItems.length;
+    const sum = pricedItems.reduce((acc, x) => acc + (x.price || 0), 0);
     return { total, withPrice, sum };
   }, [items]);
 
@@ -817,8 +835,8 @@ export default function FavoritesPage() {
       list.sort((a, b) => String(a.title).localeCompare(String(b.title), "es"));
     } else {
       list.sort((a, b) => {
-        const ap = typeof a.price === "number" ? 1 : 0;
-        const bp = typeof b.price === "number" ? 1 : 0;
+        const ap = typeof a.price === "number" && a.price > 0 ? 1 : 0;
+        const bp = typeof b.price === "number" && b.price > 0 ? 1 : 0;
         const ai = productFolderImageCandidates(a).length ? 1 : 0;
         const bi = productFolderImageCandidates(b).length ? 1 : 0;
         const scoreA = ai * 2 + ap;
@@ -1004,7 +1022,7 @@ export default function FavoritesPage() {
           <div className="grid enter">
             {filtered.map((p, idx) => {
               const title = p.title || "Producto";
-              const price = typeof p.price === "number" ? p.price : null;
+              const price = typeof p.price === "number" && p.price > 0 ? p.price : null;
               const chipsLocal: string[] = [];
               if (p.brand) chipsLocal.push(String(p.brand));
               if (p.size) chipsLocal.push(`Talla ${p.size}`);
