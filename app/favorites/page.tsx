@@ -37,10 +37,14 @@ function safeStr(v: unknown, max = 2000) {
 
 function safeNum(v: unknown) {
   if (typeof v === "string") {
-    const cleaned = v.replace(/[^\d.,-]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".");
+    const cleaned = v
+      .replace(/[^\d.,-]/g, "")
+      .replace(/\.(?=\d{3}(\D|$))/g, "")
+      .replace(",", ".");
     const n = Number(cleaned);
     return Number.isFinite(n) ? n : null;
   }
+
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 }
@@ -71,37 +75,42 @@ function firstNonEmptyString(...values: unknown[]) {
   return "";
 }
 
-function firstImageFromUnknown(value: unknown): string | null {
-  if (!value) return null;
+function firstImageFromUnknown(...values: unknown[]): string | null {
+  for (const value of values) {
+    if (!value) continue;
 
-  if (typeof value === "string") {
-    const s = value.trim();
-    return s || null;
-  }
-
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      const found = firstImageFromUnknown(item);
-      if (found) return found;
+    if (typeof value === "string") {
+      const s = value.trim();
+      if (s) return s;
+      continue;
     }
-    return null;
-  }
 
-  if (typeof value === "object") {
-    const v = value as any;
-    return (
-      firstNonEmptyString(
-        v.url,
-        v.src,
-        v.secure_url,
-        v.secureUrl,
-        v.original,
-        v.original_url,
-        v.originalUrl,
-        v.thumbnail,
-        v.image,
-      ) || null
-    );
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const found = firstImageFromUnknown(item);
+        if (found) return found;
+      }
+      continue;
+    }
+
+    if (typeof value === "object") {
+      const v = value as any;
+
+      const direct =
+        firstNonEmptyString(
+          v.url,
+          v.src,
+          v.secure_url,
+          v.secureUrl,
+          v.original,
+          v.original_url,
+          v.originalUrl,
+          v.thumbnail,
+          v.image,
+        ) || "";
+
+      if (direct) return direct;
+    }
   }
 
   return null;
@@ -152,7 +161,13 @@ function normalizeHrefCandidate(raw: any, id: string) {
   if (direct) return direct;
 
   const slug =
-    firstNonEmptyString(raw?.slug, raw?.handle, raw?.product?.slug, raw?.product?.handle, raw?.product_id) || id;
+    firstNonEmptyString(
+      raw?.slug,
+      raw?.handle,
+      raw?.product?.slug,
+      raw?.product?.handle,
+      raw?.product_id,
+    ) || id;
 
   return `/product/${encodeURIComponent(slug)}`;
 }
@@ -173,14 +188,28 @@ function normalizeOne(raw: FavAny): FavoriteItem | null {
   const r = raw as any;
 
   const id =
-    firstNonEmptyString(r.id, r.product_id, r.productId, r.sku, r.slug, r.handle, r.product?.id, r.product?.slug) ||
-    "";
+    firstNonEmptyString(
+      r.id,
+      r.product_id,
+      r.productId,
+      r.sku,
+      r.slug,
+      r.handle,
+      r.product?.id,
+      r.product?.slug,
+    ) || "";
 
   if (!id) return null;
 
   const title =
-    firstNonEmptyString(r.title, r.name, r.product_title, r.label, r.product?.title, r.product?.name) ||
-    "Producto guardado";
+    firstNonEmptyString(
+      r.title,
+      r.name,
+      r.product_title,
+      r.label,
+      r.product?.title,
+      r.product?.name,
+    ) || "Producto guardado";
 
   const price = firstPriceFromUnknown(
     r.price,
@@ -197,27 +226,33 @@ function normalizeOne(raw: FavAny): FavoriteItem | null {
     r.product?.amount,
   );
 
-  const image =
-    firstImageFromUnknown(
-      r.image,
-      r.img,
-      r.thumbnail,
-      r.cover,
-      r.image_url,
-      r.imageUrl,
-      r.featuredImage,
-      r.featured_image,
-      r.images,
-      r.gallery,
-      r.media,
-      r.product?.image,
-      r.product?.thumbnail,
-      r.product?.featuredImage,
-      r.product?.images,
-    ) || null;
+  const image = firstImageFromUnknown(
+    r.image,
+    r.img,
+    r.thumbnail,
+    r.cover,
+    r.image_url,
+    r.imageUrl,
+    r.featuredImage,
+    r.featured_image,
+    r.images,
+    r.gallery,
+    r.media,
+    r.product?.image,
+    r.product?.thumbnail,
+    r.product?.featuredImage,
+    r.product?.images,
+  );
 
   const brand =
-    firstNonEmptyString(r.brand, r.marca, r.vendor, r.manufacturer, r.product?.brand, r.product?.vendor) || null;
+    firstNonEmptyString(
+      r.brand,
+      r.marca,
+      r.vendor,
+      r.manufacturer,
+      r.product?.brand,
+      r.product?.vendor,
+    ) || null;
 
   const size =
     firstNonEmptyString(
@@ -241,7 +276,14 @@ function normalizeOne(raw: FavAny): FavoriteItem | null {
   const href = normalizeHrefCandidate(r, id);
 
   const createdAt =
-    firstNonEmptyString(r.createdAt, r.created_at, r.savedAt, r.saved_at, r.updatedAt, r.updated_at) || null;
+    firstNonEmptyString(
+      r.createdAt,
+      r.created_at,
+      r.savedAt,
+      r.saved_at,
+      r.updatedAt,
+      r.updated_at,
+    ) || null;
 
   return {
     id,
@@ -412,7 +454,11 @@ export default function FavoritesPage() {
     if (chip) {
       const cl = chip.toLowerCase();
       list = list.filter((x) => {
-        const all = [x.brand ? String(x.brand) : "", x.size ? `Talla ${x.size}` : "", x.color ? String(x.color) : ""]
+        const all = [
+          x.brand ? String(x.brand) : "",
+          x.size ? `Talla ${x.size}` : "",
+          x.color ? String(x.color) : "",
+        ]
           .join(" · ")
           .toLowerCase();
         return all.includes(cl);
@@ -997,8 +1043,7 @@ export default function FavoritesPage() {
           font-weight: 950;
         }
 
-        .noimg,
-        .sheet-noimg {
+        .noimg {
           height: 100%;
           display: grid;
           place-items: center;
