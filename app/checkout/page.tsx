@@ -16,6 +16,8 @@ function centsCOP(cop: number) {
 
 const ORDERS_KEY = "jusp_orders_v1";
 const SHIPPING_KEY = "jusp_checkout_shipping_v1";
+const SHIPPING_PRICE = 99990;
+const FREE_SHIPPING_MIN_ITEMS = 4;
 
 function safeParse(raw: string | null) {
   if (!raw) return null;
@@ -60,10 +62,12 @@ export default function CheckoutPage() {
 
   // ✅ Hooks arriba
   const summary = useMemo(() => {
+    const shipping = cartCount >= FREE_SHIPPING_MIN_ITEMS ? 0 : SHIPPING_PRICE;
+
     return {
       subtotal: cartTotal,
-      shipping: cartCount > 0 ? 0 : 0,
-      total: cartTotal,
+      shipping,
+      total: cartTotal + shipping,
     };
   }, [cartTotal, cartCount]);
 
@@ -364,7 +368,7 @@ export default function CheckoutPage() {
                 </div>
                 <div className="r">
                   <span>Envío</span>
-                  <b>${moneyCOP(summary.shipping)}</b>
+                  <b>{summary.shipping === 0 ? "Envío gratis" : `$${moneyCOP(summary.shipping)}`}</b>
                 </div>
                 <div className="r tot">
                   <span>Total</span>
