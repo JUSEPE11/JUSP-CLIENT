@@ -30,12 +30,12 @@ const KEYS_CANDIDATES = ["jusp_favorites", "favorites", "wishlist", "jusp_wishli
 /** =========================
  *  Helpers (SAFE)
  *  ========================= */
-function safeStr(v: unknown, max = 2000) {
+function safeStr(v: unknown, max = 2000): string {
   const s = typeof v === "string" ? v : "";
   return s.length > max ? s.slice(0, max) : s;
 }
 
-function safeNum(v: unknown) {
+function safeNum(v: unknown): number | null {
   if (typeof v === "string") {
     const cleaned = v
       .replace(/[^\d.,-]/g, "")
@@ -49,12 +49,12 @@ function safeNum(v: unknown) {
   return Number.isFinite(n) ? n : null;
 }
 
-function safeMoneyCOP(n: number) {
+function safeMoneyCOP(n: number): string {
   const rounded = Math.round(n);
   return rounded.toLocaleString("es-CO");
 }
 
-function compactId(id: string) {
+function compactId(id: string): string {
   const s = String(id || "");
   if (s.length <= 14) return s;
   return `${s.slice(0, 8)}…${s.slice(-4)}`;
@@ -68,14 +68,14 @@ function tryParseJSON<T>(raw: string): T | null {
   }
 }
 
-function firstNonEmptyString(...values: unknown[]) {
+function firstNonEmptyString(...values: unknown[]): string {
   for (const value of values) {
     if (typeof value === "string" && value.trim()) return value.trim();
   }
   return "";
 }
 
-function titleFromSlug(slugLike: string) {
+function titleFromSlug(slugLike: string): string {
   const raw = String(slugLike || "").trim();
   if (!raw) return "Producto guardado";
 
@@ -88,11 +88,10 @@ function titleFromSlug(slugLike: string) {
     .join(" ");
 }
 
-function normalizeProductPath(input: string) {
+function normalizeProductPath(input: string): string {
   const raw = String(input || "").trim();
   if (!raw) return "";
 
-  // URL absoluta
   if (/^https?:\/\//i.test(raw)) {
     try {
       const url = new URL(raw);
@@ -103,15 +102,12 @@ function normalizeProductPath(input: string) {
     }
   }
 
-  // ya correcta
   if (raw.startsWith("/product/")) return raw;
 
-  // corregir plural roto
   if (raw.startsWith("/products/")) {
     return `/product/${raw.slice("/products/".length)}`;
   }
 
-  // slug suelto
   if (!raw.startsWith("/")) {
     return `/product/${encodeURIComponent(raw)}`;
   }
@@ -179,7 +175,7 @@ function firstImageFromUnknown(...values: unknown[]): string | null {
   return null;
 }
 
-function firstPriceFromUnknown(...values: unknown[]) {
+function firstPriceFromUnknown(...values: unknown[]): number | null {
   for (const value of values) {
     if (value == null) continue;
 
@@ -223,7 +219,7 @@ function firstPriceFromUnknown(...values: unknown[]) {
   return null;
 }
 
-function normalizeHrefCandidate(raw: any, id: string) {
+function normalizeHrefCandidate(raw: any, id: string): string {
   const direct =
     firstNonEmptyString(
       raw?.href,
@@ -463,7 +459,7 @@ function readFavoritesRaw(): { key: string | null; value: unknown } {
   return { key: null, value: null };
 }
 
-function writeFavorites(key: string, items: FavoriteItem[]) {
+function writeFavorites(key: string, items: FavoriteItem[]): void {
   if (typeof window === "undefined") return;
   const payload = items.map((x) => ({
     id: x.id,
@@ -479,7 +475,7 @@ function writeFavorites(key: string, items: FavoriteItem[]) {
   window.localStorage.setItem(key, JSON.stringify(payload));
 }
 
-function uniq(arr: string[]) {
+function uniq(arr: string[]): string[] {
   const out: string[] = [];
   for (const a of arr) if (a && !out.includes(a)) out.push(a);
   return out;
@@ -502,7 +498,7 @@ export default function FavoritesPage() {
   const mounted = useRef(true);
   const toastTimer = useRef<any>(null);
 
-  function showToast(msg: string) {
+  function showToast(msg: string): void {
     if (!mounted.current) return;
     setToast(msg);
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -511,7 +507,7 @@ export default function FavoritesPage() {
     }, 2200);
   }
 
-  function reload() {
+  function reload(): void {
     setLoading(true);
     try {
       const { key, value } = readFavoritesRaw();
@@ -604,7 +600,7 @@ export default function FavoritesPage() {
     return list;
   }, [items, query, sort, chip]);
 
-  function clearAll() {
+  function clearAll(): void {
     setItems([]);
     try {
       window.localStorage.setItem(storeKey, JSON.stringify([]));
@@ -612,7 +608,7 @@ export default function FavoritesPage() {
     showToast("Favoritos vacíos");
   }
 
-  function productHrefFrom(item: FavoriteItem) {
+  function productHrefFrom(item: FavoriteItem): string {
     const h = normalizeProductPath(item.href || "");
     if (h) return h;
     return `/product/${encodeURIComponent(item.id)}`;
