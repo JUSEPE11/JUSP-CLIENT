@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 /** =========================
@@ -811,6 +812,9 @@ function FavoriteCardImage({ item, title }: { item: FavoriteItem; title: string 
  *  Page
  *  ========================= */
 export default function FavoritesPage() {
+  const router = useRouter();
+
+  const [authState, setAuthState] = useState<AuthState>("checking");
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<FavoriteItem[]>([]);
   const [query, setQuery] = useState("");
@@ -830,19 +834,82 @@ export default function FavoritesPage() {
   }
 
   function reload(): void {
+    if (authState !== "authed") return;
+
     setLoading(true);
     try {
       const { value } = readFavoritesRaw();
       const normalized = normalizeList(value);
       setItems(normalized);
     } finally {
-      setTimeout(() => setLoading(false), 120);
+      setTimeout(() => {
+        if (mounted.current) setLoading(false);
+      }, 120);
     }
   }
 
   useEffect(() => {
     mounted.current = true;
-    reload();
+
+    return () => {
+      mounted.current = false;
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    const ctrl = new AbortController();
+
+    (async () => {
+      setAuthState("checking");
+      setLoading(true);
+
+      try {
+        const res = await fetch("/api/auth/me", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+          signal: ctrl.signal,
+        });
+
+        let json: any = null;
+        try {
+          json = await res.json();
+        } catch {}
+
+        if (!alive) return;
+
+        if (res.ok && json?.ok === true && json?.user?.id) {
+          setAuthState("authed");
+          const { value } = readFavoritesRaw();
+          const normalized = normalizeList(value);
+          setItems(normalized);
+          setLoading(false);
+          return;
+        }
+
+        setAuthState("guest");
+        setItems([]);
+        setLoading(false);
+        router.replace("/login");
+      } catch {
+        if (!alive) return;
+        setAuthState("guest");
+        setItems([]);
+        setLoading(false);
+        router.replace("/login");
+      }
+    })();
+
+    return () => {
+      alive = false;
+      ctrl.abort();
+    };
+  }, [router]);
+
+  useEffect(() => {
+    if (authState !== "authed") return;
 
     const onStorage = (e: StorageEvent) => {
       if (!e.key) return;
@@ -857,12 +924,10 @@ export default function FavoritesPage() {
     window.addEventListener("jusp:favorites", onFavoritesChanged);
 
     return () => {
-      mounted.current = false;
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("jusp:favorites", onFavoritesChanged);
-      if (toastTimer.current) clearTimeout(toastTimer.current);
     };
-  }, []);
+  }, [authState]);
 
   const totalSaved = useMemo(() => items.length, [items]);
 
@@ -923,6 +988,308 @@ export default function FavoritesPage() {
   }
 
   const emptyByFilter = !loading && items.length > 0 && filtered.length === 0;
+  const isCheckingAuth = authState === "checking";
+  const shouldHidePage = authState !== "authed";
+
+  if (isCheckingAuth || shouldHidePage) {
+    return (
+      <main className="fv-root">
+        <div className="fv-wrap">
+          <section className="hero isLoading">
+            <div className="hero-copy">
+              <div className="kicker">CUENTA · FAVORITOS</div>
+              <h1 className="title">Verificando tu sesión…</h1>
+              <p className="sub">Protegiendo tu colección guardada.</p>
+
+              <div className="stats">
+                <div className="stat stat-main">
+                  <div className="stat-l">Acceso</div>
+                  <div className="stat-v">Privado</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="hero-side">
+              <div className="hero-note">Redirigiendo…</div>
+            </div>
+
+            <div className="hero-glow" />
+          </section>
+
+          <div className="grid">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="card sk">
+                <div className="sk-img" />
+                <div className="sk-body">
+                  <div className="sk-line w70" />
+                  <div className="sk-line w55" />
+                  <div className="sk-row">
+                    <div className="sk-pill w25" />
+                    <div className="sk-pill w35" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <style jsx>{`
+          :global(html) {
+            scroll-behavior: smooth;
+          }
+
+          .fv-root {
+            padding-top: calc(var(--jusp-header-h, 64px) + 18px);
+            padding-left: 16px;
+            padding-right: 16px;
+            padding-bottom: 42px;
+            background:
+              radial-gradient(920px 380px at 12% 0%, rgba(255, 214, 0, 0.09), transparent 58%),
+              linear-gradient(180deg, #f7f7f7 0%, #efefef 100%);
+            min-height: 100vh;
+          }
+
+          .fv-wrap {
+            max-width: 1180px;
+            margin: 0 auto;
+          }
+
+          .hero {
+            position: relative;
+            overflow: hidden;
+            border-radius: 28px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 247, 247, 0.95));
+            box-shadow: 0 22px 60px rgba(0, 0, 0, 0.08);
+            padding: 22px;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(320px, 0.9fr);
+            gap: 16px;
+            opacity: 1;
+            transform: translateY(0);
+          }
+
+          .hero-glow {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background:
+              radial-gradient(640px 240px at 0% 0%, rgba(255, 214, 0, 0.16), transparent 58%),
+              linear-gradient(135deg, rgba(255, 255, 255, 0.15), transparent 40%);
+            opacity: 0.8;
+          }
+
+          .hero-copy,
+          .hero-side {
+            position: relative;
+            z-index: 1;
+          }
+
+          .kicker {
+            font-size: 11px;
+            font-weight: 950;
+            letter-spacing: 0.16em;
+            color: rgba(0, 0, 0, 0.5);
+          }
+
+          .title {
+            margin: 8px 0 8px;
+            font-size: 34px;
+            line-height: 0.98;
+            font-weight: 1000;
+            letter-spacing: -0.045em;
+            color: #111;
+          }
+
+          .sub {
+            margin: 0;
+            max-width: 560px;
+            font-size: 14px;
+            line-height: 1.65;
+            font-weight: 700;
+            color: rgba(0, 0, 0, 0.7);
+          }
+
+          .stats {
+            margin-top: 16px;
+            display: grid;
+            grid-template-columns: minmax(180px, 220px);
+            gap: 10px;
+          }
+
+          .stat {
+            border-radius: 20px;
+            padding: 14px;
+            background: rgba(255, 255, 255, 0.78);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+          }
+
+          .stat-main {
+            background: linear-gradient(180deg, rgba(255, 245, 196, 0.72), rgba(255, 255, 255, 0.92));
+          }
+
+          .stat-l {
+            font-size: 11px;
+            font-weight: 950;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: rgba(0, 0, 0, 0.52);
+          }
+
+          .stat-v {
+            margin-top: 8px;
+            font-size: 24px;
+            line-height: 1;
+            font-weight: 1000;
+            letter-spacing: -0.04em;
+            color: #111;
+          }
+
+          .hero-side {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 12px;
+          }
+
+          .hero-note {
+            font-size: 12px;
+            font-weight: 900;
+            color: rgba(0, 0, 0, 0.58);
+            text-align: right;
+          }
+
+          .grid {
+            margin-top: 18px;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+          }
+
+          .card {
+            text-align: left;
+            overflow: hidden;
+            border-radius: 22px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 246, 246, 0.96));
+            box-shadow: 0 16px 42px rgba(0, 0, 0, 0.07);
+          }
+
+          .sk {
+            opacity: 1;
+            transform: none;
+            animation: none;
+            cursor: default;
+          }
+
+          .sk-img {
+            height: 220px;
+            background: rgba(0, 0, 0, 0.06);
+            position: relative;
+            overflow: hidden;
+          }
+
+          .sk-body {
+            padding: 14px;
+            display: grid;
+            gap: 10px;
+          }
+
+          .sk-line,
+          .sk-pill {
+            position: relative;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.06);
+            border-radius: 999px;
+          }
+
+          .sk-line {
+            height: 12px;
+          }
+
+          .sk-pill {
+            height: 26px;
+          }
+
+          .sk-row {
+            display: flex;
+            gap: 10px;
+          }
+
+          .sk-img::after,
+          .sk-line::after,
+          .sk-pill::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            transform: translateX(-100%);
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+            animation: shimmer 1.2s infinite;
+          }
+
+          @keyframes shimmer {
+            to {
+              transform: translateX(100%);
+            }
+          }
+
+          .w25 {
+            width: 25%;
+          }
+
+          .w35 {
+            width: 35%;
+          }
+
+          .w55 {
+            width: 55%;
+          }
+
+          .w70 {
+            width: 70%;
+          }
+
+          @media (max-width: 1100px) {
+            .hero {
+              grid-template-columns: 1fr;
+            }
+
+            .hero-note {
+              text-align: left;
+            }
+
+            .grid {
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+          }
+
+          @media (max-width: 820px) {
+            .title {
+              font-size: 30px;
+            }
+          }
+
+          @media (max-width: 560px) {
+            .grid {
+              grid-template-columns: 1fr;
+            }
+
+            .hero {
+              border-radius: 22px;
+            }
+
+            .sk-img {
+              height: 210px;
+            }
+
+            .stats {
+              grid-template-columns: 1fr;
+            }
+          }
+        `}</style>
+      </main>
+    );
+  }
 
   return (
     <main className="fv-root">

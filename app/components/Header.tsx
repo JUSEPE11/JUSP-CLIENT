@@ -930,9 +930,11 @@ export default function Header() {
             ⌕<span className="sr-only">Buscar</span>
           </button>
 
-          <Link href="/favorites" className="jusp-icon" aria-label="Favoritos">
-            ♡
-          </Link>
+          {!sessionLoading && isAuthed ? (
+            <Link href="/favorites" className="jusp-icon" aria-label="Favoritos">
+              ♡
+            </Link>
+          ) : null}
 
           <button
             type="button"
@@ -1031,9 +1033,6 @@ export default function Header() {
                         </Link>
                         <Link className="jusp-account-link" href="/register" onClick={() => setAccountOpen(false)}>
                           Registrarse
-                        </Link>
-                        <Link className="jusp-account-link" href="/favorites" onClick={() => setAccountOpen(false)}>
-                          Favoritos
                         </Link>
                       </>
                     ) : null}
@@ -1337,9 +1336,11 @@ export default function Header() {
             </div>
 
             <div className="jusp-mdrawer-actions">
-              <Link href="/favorites" onClick={() => setMobileOpen(false)}>
-                Favoritos
-              </Link>
+              {!sessionLoading && isAuthed ? (
+                <Link href="/favorites" onClick={() => setMobileOpen(false)}>
+                  Favoritos
+                </Link>
+              ) : null}
 
               <button
                 type="button"
