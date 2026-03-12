@@ -88,6 +88,20 @@ function titleFromSlug(slugLike: string): string {
     .join(" ");
 }
 
+function slugify(input: string): string {
+  const raw = String(input || "").trim().toLowerCase();
+  if (!raw) return "";
+
+  return raw
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/['".,()[\]{}]+/g, "")
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 function normalizeProductPath(input: string): string {
   const raw = String(input || "").trim();
   if (!raw) return "";
@@ -340,29 +354,54 @@ function slugFromHrefOrId(href?: string | null, id?: string | null): string {
   return "";
 }
 
-function productFolderImageCandidates(item: FavoriteItem): string[] {
-  const slug = slugFromHrefOrId(item.href, item.id);
-  if (!slug) return [];
+function slugCandidatesFromItem(item: FavoriteItem): string[] {
+  const raw: string[] = [];
 
-  const safeSlug = slug.replace(/^\/+|\/+$/g, "");
-  if (!safeSlug) return [];
+  const fromHrefOrId = slugFromHrefOrId(item.href, item.id);
+  if (fromHrefOrId) raw.push(fromHrefOrId);
+
+  const idClean = String(item.id || "").trim();
+  if (idClean) {
+    raw.push(idClean);
+    raw.push(slugify(idClean));
+  }
+
+  const titleClean = String(item.title || "").trim();
+  if (titleClean) raw.push(slugify(titleClean));
+
+  const out: string[] = [];
+  for (const value of raw) {
+    const s = String(value || "")
+      .trim()
+      .replace(/^\/+|\/+$/g, "");
+    if (s && !out.includes(s)) out.push(s);
+  }
+
+  return out;
+}
+
+function productFolderImageCandidates(item: FavoriteItem): string[] {
+  const slugs = slugCandidatesFromItem(item);
 
   const direct = item.image ? [normalizeImageUrl(item.image)] : [];
 
-  const derived = [
-    `/products/${safeSlug}/1.jpg`,
-    `/products/${safeSlug}/1.jpeg`,
-    `/products/${safeSlug}/1.png`,
-    `/products/${safeSlug}/1.webp`,
-    `/products/${safeSlug}/cover.jpg`,
-    `/products/${safeSlug}/cover.jpeg`,
-    `/products/${safeSlug}/cover.png`,
-    `/products/${safeSlug}/cover.webp`,
-    `/products/${safeSlug}/main.jpg`,
-    `/products/${safeSlug}/main.jpeg`,
-    `/products/${safeSlug}/main.png`,
-    `/products/${safeSlug}/main.webp`,
-  ];
+  const derived: string[] = [];
+  for (const slug of slugs) {
+    derived.push(
+      `/products/${slug}/1.jpg`,
+      `/products/${slug}/1.jpeg`,
+      `/products/${slug}/1.png`,
+      `/products/${slug}/1.webp`,
+      `/products/${slug}/cover.jpg`,
+      `/products/${slug}/cover.jpeg`,
+      `/products/${slug}/cover.png`,
+      `/products/${slug}/cover.webp`,
+      `/products/${slug}/main.jpg`,
+      `/products/${slug}/main.jpeg`,
+      `/products/${slug}/main.png`,
+      `/products/${slug}/main.webp`,
+    );
+  }
 
   const out: string[] = [];
   for (const value of [...direct, ...derived]) {
@@ -596,22 +635,6 @@ function readFavoritesRaw(): { key: string | null; value: unknown } {
   return { key: null, value: null };
 }
 
-function writeFavorites(key: string, items: FavoriteItem[]): void {
-  if (typeof window === "undefined") return;
-  const payload = items.map((x) => ({
-    id: x.id,
-    title: x.title,
-    price: x.price ?? null,
-    image: x.image ?? null,
-    brand: x.brand ?? null,
-    size: x.size ?? null,
-    color: x.color ?? null,
-    href: x.href ?? null,
-    createdAt: x.createdAt ?? null,
-  }));
-  window.localStorage.setItem(key, JSON.stringify(payload));
-}
-
 function uniq(arr: string[]): string[] {
   const out: string[] = [];
   for (const a of arr) if (a && !out.includes(a)) out.push(a);
@@ -624,14 +647,16 @@ function uniq(arr: string[]): string[] {
 function FavoriteCardImage({ item, title }: { item: FavoriteItem; title: string }) {
   const candidates = useMemo(() => productFolderImageCandidates(item), [item]);
   const [index, setIndex] = useState(0);
+  const [failedAll, setFailedAll] = useState(false);
 
   useEffect(() => {
     setIndex(0);
+    setFailedAll(false);
   }, [candidates.join("|")]);
 
   const currentSrc = candidates[index] || "";
 
-  if (!currentSrc) {
+  if (!currentSrc || failedAll) {
     return (
       <div className="noimg">
         <span className="noimg-dot" />
@@ -648,8 +673,12 @@ function FavoriteCardImage({ item, title }: { item: FavoriteItem; title: string 
       loading="lazy"
       onError={() => {
         setIndex((prev) => {
-          if (prev >= candidates.length - 1) return prev;
-          return prev + 1;
+          const next = prev + 1;
+          if (next >= candidates.length) {
+            setFailedAll(true);
+            return prev;
+          }
+          return next;
         });
       }}
     />
@@ -702,6 +731,7 @@ export default function FavoritesPage() {
       if (!e.key) return;
       if (KEYS_CANDIDATES.includes(e.key)) reload();
     };
+
     window.addEventListener("storage", onStorage);
 
     return () => {
@@ -742,6 +772,7 @@ export default function FavoritesPage() {
         ]
           .join(" · ")
           .toLowerCase();
+
         return all.includes(cl);
       });
     }
