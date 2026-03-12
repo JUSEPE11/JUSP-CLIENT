@@ -6,7 +6,7 @@ import { useStore } from "./store";
 
 type BadgeInfo = {
   isNew: boolean;
-  discountPct: number; // 0 = none
+  discountPct: number;
 };
 
 function hashString(str: string) {
@@ -15,10 +15,6 @@ function hashString(str: string) {
   return h;
 }
 
-/**
- * Badge placeholder PRO (determinístico) sin tocar el modelo.
- * Cuando luego agregues campos reales (isNew, discountPct, etc.), solo cambiamos esta función.
- */
 function deriveBadges(product: Product): BadgeInfo {
   const id = product.id || "";
   const h = hashString(id);
@@ -27,9 +23,8 @@ function deriveBadges(product: Product): BadgeInfo {
     id.includes("new") ||
     id.includes("nuevo") ||
     id.includes("2026") ||
-    (h % 100) < 28; // ~28% nuevos
+    h % 100 < 28;
 
-  // Descuento determinístico: 0 / 10 / 20 / 30
   const discountOptions = [0, 0, 0, 10, 20, 30];
   const discountPct = discountOptions[h % discountOptions.length];
 
@@ -49,33 +44,29 @@ export default function ProductCardClient({
 
   const fav = isFav(product.id);
   const img = product.images?.[0];
-
   const { isNew, discountPct } = deriveBadges(product);
-
   const cardHeight = variant === "compact" ? 220 : 300;
 
   return (
     <article className="jusp-card jusp-hover" style={{ overflow: "hidden", position: "relative" }}>
-      {/* Badges */}
       <div className="jusp-badges">
         {isBestSeller ? <span className="jusp-badge-pill jusp-badge-dark">Lo más vendido</span> : null}
         {isNew ? <span className="jusp-badge-pill">Nuevo</span> : null}
         {discountPct > 0 ? <span className="jusp-badge-pill jusp-badge-sale">-{discountPct}% OFF</span> : null}
       </div>
 
-      {/* Favorito */}
       <button
         className="jusp-iconbtn"
         style={{ position: "absolute", top: 12, right: 12, zIndex: 3 }}
-        onClick={() => toggleFav(product.id)}
+        onClick={() => toggleFav(product.id, product)}
         aria-label="Favorito"
         title="Favorito"
+        type="button"
       >
         {fav ? "❤" : "♡"}
       </button>
 
       <Link href={`/product/${product.id}`} style={{ display: "block" }}>
-        {/* Imagen */}
         <div
           style={{
             width: "100%",
@@ -105,7 +96,6 @@ export default function ProductCardClient({
           )}
         </div>
 
-        {/* Info */}
         <div className="jusp-card-pad">
           <h3
             style={{
@@ -119,7 +109,9 @@ export default function ProductCardClient({
             {product.name}
           </h3>
 
-          <div style={{ fontSize: 15, fontWeight: 900 }}>${product.price.toLocaleString()}</div>
+          <div style={{ fontSize: 15, fontWeight: 900 }}>
+            ${Number(product.price || 0).toLocaleString("es-CO")}
+          </div>
 
           <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
             <span className="jusp-btn" style={{ padding: "10px 14px", fontSize: 13 }}>
@@ -133,6 +125,7 @@ export default function ProductCardClient({
                 addToCart(product, { qty: 1 });
                 openCart();
               }}
+              type="button"
             >
               Añadir
             </button>
