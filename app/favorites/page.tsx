@@ -377,25 +377,48 @@ function slugCandidatesFromItem(item: FavoriteItem): string[] {
 
 function productFolderImageCandidates(item: FavoriteItem): string[] {
   const slugs = slugCandidatesFromItem(item);
-
   const direct = item.image ? [normalizeImageUrl(item.image)] : [];
+
+  const orderedProductFiles = [
+    "2.jpg",
+    "2.jpeg",
+    "2.png",
+    "2.webp",
+    "3.jpg",
+    "3.jpeg",
+    "3.png",
+    "3.webp",
+    "4.jpg",
+    "4.jpeg",
+    "4.png",
+    "4.webp",
+    "5.jpg",
+    "5.jpeg",
+    "5.png",
+    "5.webp",
+    "6.jpg",
+    "6.jpeg",
+    "6.png",
+    "6.webp",
+    "cover.jpg",
+    "cover.jpeg",
+    "cover.png",
+    "cover.webp",
+    "main.jpg",
+    "main.jpeg",
+    "main.png",
+    "main.webp",
+    "1.jpg",
+    "1.jpeg",
+    "1.png",
+    "1.webp",
+  ];
 
   const derived: string[] = [];
   for (const slug of slugs) {
-    derived.push(
-      `/products/${slug}/1.jpg`,
-      `/products/${slug}/1.jpeg`,
-      `/products/${slug}/1.png`,
-      `/products/${slug}/1.webp`,
-      `/products/${slug}/cover.jpg`,
-      `/products/${slug}/cover.jpeg`,
-      `/products/${slug}/cover.png`,
-      `/products/${slug}/cover.webp`,
-      `/products/${slug}/main.jpg`,
-      `/products/${slug}/main.jpeg`,
-      `/products/${slug}/main.png`,
-      `/products/${slug}/main.webp`,
-    );
+    for (const file of orderedProductFiles) {
+      derived.push(`/products/${slug}/${file}`);
+    }
   }
 
   const out: string[] = [];
@@ -666,6 +689,13 @@ function FavoriteCardImage({ item, title }: { item: FavoriteItem; title: string 
       src={currentSrc}
       alt={title}
       loading="lazy"
+      style={{
+        width: "100%",
+        height: "100%",
+        objectFit: "contain",
+        objectPosition: "center center",
+        display: "block",
+      }}
       onError={() => {
         setIndex((prev) => {
           const next = prev + 1;
