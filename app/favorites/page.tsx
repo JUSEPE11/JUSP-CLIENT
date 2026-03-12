@@ -75,6 +75,50 @@ function firstNonEmptyString(...values: unknown[]) {
   return "";
 }
 
+function titleFromSlug(slugLike: string) {
+  const raw = String(slugLike || "").trim();
+  if (!raw) return "Producto guardado";
+
+  return raw
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(" ")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function normalizeProductPath(input: string) {
+  const raw = String(input || "").trim();
+  if (!raw) return "";
+
+  // URL absoluta
+  if (/^https?:\/\//i.test(raw)) {
+    try {
+      const url = new URL(raw);
+      const path = `${url.pathname}${url.search}${url.hash}`;
+      return normalizeProductPath(path);
+    } catch {
+      return raw;
+    }
+  }
+
+  // ya correcta
+  if (raw.startsWith("/product/")) return raw;
+
+  // corregir plural roto
+  if (raw.startsWith("/products/")) {
+    return `/product/${raw.slice("/products/".length)}`;
+  }
+
+  // slug suelto
+  if (!raw.startsWith("/")) {
+    return `/product/${encodeURIComponent(raw)}`;
+  }
+
+  return raw;
+}
+
 function firstImageFromUnknown(...values: unknown[]): string | null {
   for (const value of values) {
     if (!value) continue;
@@ -107,9 +151,28 @@ function firstImageFromUnknown(...values: unknown[]): string | null {
           v.originalUrl,
           v.thumbnail,
           v.image,
+          v.image_url,
+          v.imageUrl,
+          v.cover,
+          v.photo,
+          v.photo_url,
+          v.photoUrl,
         ) || "";
 
       if (direct) return direct;
+
+      const nested = firstImageFromUnknown(
+        v.image,
+        v.images,
+        v.gallery,
+        v.media,
+        v.featuredImage,
+        v.featured_image,
+        v.thumbnail,
+        v.cover,
+      );
+
+      if (nested) return nested;
     }
   }
 
@@ -128,16 +191,32 @@ function firstPriceFromUnknown(...values: unknown[]) {
 
     if (typeof value === "object") {
       const v = value as any;
+
       const nested =
         safeNum(v.value) ??
         safeNum(v.amount) ??
         safeNum(v.price) ??
         safeNum(v.sale_price) ??
         safeNum(v.salePrice) ??
+        safeNum(v.retail_price) ??
+        safeNum(v.retailPrice) ??
         safeNum(v.min) ??
-        safeNum(v.max);
+        safeNum(v.max) ??
+        safeNum(v.current) ??
+        safeNum(v.unit_amount);
 
       if (nested !== null) return nested;
+
+      const deepNested = firstPriceFromUnknown(
+        v.price,
+        v.sale_price,
+        v.salePrice,
+        v.amount,
+        v.min,
+        v.max,
+      );
+
+      if (deepNested !== null) return deepNested;
     }
   }
 
@@ -153,12 +232,14 @@ function normalizeHrefCandidate(raw: any, id: string) {
       raw?.permalink,
       raw?.productUrl,
       raw?.product_url,
+      raw?.pathname,
       raw?.product?.href,
       raw?.product?.url,
       raw?.product?.link,
+      raw?.product?.permalink,
     ) || "";
 
-  if (direct) return direct;
+  if (direct) return normalizeProductPath(direct);
 
   const slug =
     firstNonEmptyString(
@@ -167,6 +248,7 @@ function normalizeHrefCandidate(raw: any, id: string) {
       raw?.product?.slug,
       raw?.product?.handle,
       raw?.product_id,
+      raw?.id,
     ) || id;
 
   return `/product/${encodeURIComponent(slug)}`;
@@ -176,12 +258,20 @@ function normalizeOne(raw: FavAny): FavoriteItem | null {
   if (typeof raw === "string") {
     const id = raw.trim();
     if (!id) return null;
-    return { id, title: "Producto guardado", href: `/product/${encodeURIComponent(id)}` };
+    return {
+      id,
+      title: titleFromSlug(id),
+      href: `/product/${encodeURIComponent(id)}`,
+    };
   }
 
   if (typeof raw === "number" && Number.isFinite(raw)) {
     const id = String(raw);
-    return { id, title: "Producto guardado", href: `/product/${encodeURIComponent(id)}` };
+    return {
+      id,
+      title: titleFromSlug(id),
+      href: `/product/${encodeURIComponent(id)}`,
+    };
   }
 
   if (!raw || typeof raw !== "object") return null;
@@ -197,11 +287,12 @@ function normalizeOne(raw: FavAny): FavoriteItem | null {
       r.handle,
       r.product?.id,
       r.product?.slug,
+      r.product?.handle,
     ) || "";
 
   if (!id) return null;
 
-  const title =
+  const rawTitle =
     firstNonEmptyString(
       r.title,
       r.name,
@@ -209,7 +300,12 @@ function normalizeOne(raw: FavAny): FavoriteItem | null {
       r.label,
       r.product?.title,
       r.product?.name,
-    ) || "Producto guardado";
+    ) || "";
+
+  const slugForTitle =
+    firstNonEmptyString(r.slug, r.handle, r.product?.slug, r.product?.handle, id) || id;
+
+  const title = rawTitle || titleFromSlug(slugForTitle);
 
   const price = firstPriceFromUnknown(
     r.price,
@@ -221,9 +317,16 @@ function normalizeOne(raw: FavAny): FavoriteItem | null {
     r.value,
     r.pricing,
     r.money,
+    r.selectedPrice,
+    r.selected_price,
+    r.variantPrice,
+    r.variant_price,
+    Array.isArray(r.variants) ? r.variants[0]?.price : null,
+    Array.isArray(r.sizes) ? r.sizes[0]?.price : null,
     r.product?.price,
     r.product?.sale_price,
     r.product?.amount,
+    r.product?.pricing,
   );
 
   const image = firstImageFromUnknown(
@@ -238,10 +341,16 @@ function normalizeOne(raw: FavAny): FavoriteItem | null {
     r.images,
     r.gallery,
     r.media,
+    r.photo,
+    r.photos,
+    Array.isArray(r.variants) ? r.variants[0]?.image : null,
     r.product?.image,
     r.product?.thumbnail,
     r.product?.featuredImage,
+    r.product?.featured_image,
     r.product?.images,
+    r.product?.gallery,
+    r.product?.media,
   );
 
   const brand =
@@ -269,11 +378,12 @@ function normalizeOne(raw: FavAny): FavoriteItem | null {
       r.colour,
       r.colorway,
       Array.isArray(r.colors) ? r.colors[0] : "",
+      Array.isArray(r.variants) ? r.variants[0]?.color : "",
       r.product?.color,
       r.product?.colour,
     ) || null;
 
-  const href = normalizeHrefCandidate(r, id);
+  const href = normalizeHrefCandidate(r, slugForTitle);
 
   const createdAt =
     firstNonEmptyString(
@@ -503,7 +613,7 @@ export default function FavoritesPage() {
   }
 
   function productHrefFrom(item: FavoriteItem) {
-    const h = (item.href || "").trim();
+    const h = normalizeProductPath(item.href || "");
     if (h) return h;
     return `/product/${encodeURIComponent(item.id)}`;
   }
