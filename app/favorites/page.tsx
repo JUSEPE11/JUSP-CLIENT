@@ -20,21 +20,19 @@ type FavoriteItem = {
   createdAt?: string | null;
 };
 
-type SortKey = "recommended" | "price_desc" | "price_asc" | "title_asc";
-
 /** =========================
  *  Storage keys candidates
  *  ========================= */
 const KEYS_CANDIDATES = ["jusp_favorites", "favorites", "wishlist", "jusp_wishlist"];
 
 /** =========================
- *  Helpers (SAFE)
+ *  Helpers
  *  ========================= */
 function safeNum(v: unknown): number | null {
   if (v == null) return null;
 
   if (typeof v === "number") {
-    return Number.isFinite(v) ? v : null;
+    return Number.isFinite(v) && v > 0 ? v : null;
   }
 
   if (typeof v === "string") {
@@ -50,15 +48,10 @@ function safeNum(v: unknown): number | null {
     if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === "-.") return null;
 
     const n = Number(cleaned);
-    return Number.isFinite(n) ? n : null;
+    return Number.isFinite(n) && n > 0 ? n : null;
   }
 
   return null;
-}
-
-function safeMoneyCOP(n: number): string {
-  const rounded = Math.round(n);
-  return rounded.toLocaleString("es-CO");
 }
 
 function compactId(id: string): string {
@@ -208,7 +201,7 @@ function firstImageDeep(value: unknown, depth = 0, seen = new WeakSet<object>())
     obj.previewUrl,
     obj.small,
     obj.medium,
-    obj.large,
+    obj.large
   );
 
   if (direct) {
@@ -302,6 +295,7 @@ function firstPriceFromUnknown(...values: unknown[]): number | null {
         v.amount,
         v.min,
         v.max,
+        v.variants
       );
 
       if (deepNested !== null && deepNested > 0) return deepNested;
@@ -324,7 +318,7 @@ function normalizeHrefCandidate(raw: any, id: string): string {
       raw?.product?.href,
       raw?.product?.url,
       raw?.product?.link,
-      raw?.product?.permalink,
+      raw?.product?.permalink
     ) || "";
 
   if (direct) return normalizeProductPath(direct);
@@ -336,7 +330,7 @@ function normalizeHrefCandidate(raw: any, id: string): string {
       raw?.product?.slug,
       raw?.product?.handle,
       raw?.product_id,
-      raw?.id,
+      raw?.id
     ) || id;
 
   return `/product/${encodeURIComponent(slug)}`;
@@ -420,6 +414,14 @@ function productFolderImageCandidates(item: FavoriteItem): string[] {
     "6.jpeg",
     "6.png",
     "6.webp",
+    "7.jpg",
+    "7.jpeg",
+    "7.png",
+    "7.webp",
+    "8.jpg",
+    "8.jpeg",
+    "8.png",
+    "8.webp",
     "cover.jpg",
     "cover.jpeg",
     "cover.png",
@@ -479,7 +481,7 @@ function normalizeOne(raw: FavAny): FavoriteItem | null {
       r.handle,
       r.product?.id,
       r.product?.slug,
-      r.product?.handle,
+      r.product?.handle
     ) || "";
 
   if (!id) return null;
@@ -491,7 +493,7 @@ function normalizeOne(raw: FavAny): FavoriteItem | null {
       r.product_title,
       r.label,
       r.product?.title,
-      r.product?.name,
+      r.product?.name
     ) || "";
 
   const slugForTitle =
@@ -513,12 +515,14 @@ function normalizeOne(raw: FavAny): FavoriteItem | null {
     r.selected_price,
     r.variantPrice,
     r.variant_price,
+    r.variants,
     Array.isArray(r.variants) ? r.variants[0]?.price : null,
     Array.isArray(r.sizes) ? r.sizes[0]?.price : null,
     r.product?.price,
     r.product?.sale_price,
     r.product?.amount,
     r.product?.pricing,
+    r.product?.variants
   );
 
   const image = firstImageFromUnknown(
@@ -556,7 +560,7 @@ function normalizeOne(raw: FavAny): FavoriteItem | null {
     r.product?.images,
     r.product?.gallery,
     r.product?.media,
-    r.product?.assets,
+    r.product?.assets
   );
 
   const brand =
@@ -566,7 +570,7 @@ function normalizeOne(raw: FavAny): FavoriteItem | null {
       r.vendor,
       r.manufacturer,
       r.product?.brand,
-      r.product?.vendor,
+      r.product?.vendor
     ) || null;
 
   const size =
@@ -575,7 +579,7 @@ function normalizeOne(raw: FavAny): FavoriteItem | null {
       r.talla,
       Array.isArray(r.sizes) ? r.sizes[0] : "",
       Array.isArray(r.variants) ? r.variants[0]?.size : "",
-      r.product?.size,
+      r.product?.size
     ) || null;
 
   const color =
@@ -586,7 +590,7 @@ function normalizeOne(raw: FavAny): FavoriteItem | null {
       Array.isArray(r.colors) ? r.colors[0] : "",
       Array.isArray(r.variants) ? r.variants[0]?.color : "",
       r.product?.color,
-      r.product?.colour,
+      r.product?.colour
     ) || null;
 
   const href = normalizeHrefCandidate(r, slugForTitle);
@@ -598,7 +602,7 @@ function normalizeOne(raw: FavAny): FavoriteItem | null {
       r.savedAt,
       r.saved_at,
       r.updatedAt,
-      r.updated_at,
+      r.updated_at
     ) || null;
 
   return {
@@ -644,15 +648,87 @@ function normalizeList(input: unknown): FavoriteItem[] {
   return out;
 }
 
-function readFavoritesRaw(): { key: string | null; value: unknown } {
-  if (typeof window === "undefined") return { key: null, value: null };
+function mergeFavoriteLists(lists: FavoriteItem[][]): FavoriteItem[] {
+  const out: FavoriteItem[] = [];
+
+  for (const list of lists) {
+    for (const item of list) {
+      const idx = out.findIndex((x) => x.id === item.id);
+
+      if (idx === -1) {
+        out.push(item);
+        continue;
+      }
+
+      const cur = out[idx];
+
+      out[idx] = {
+        ...cur,
+        ...item,
+        title: item.title || cur.title,
+        price: item.price ?? cur.price ?? null,
+        image: item.image ?? cur.image ?? null,
+        brand: item.brand ?? cur.brand ?? null,
+        size: item.size ?? cur.size ?? null,
+        color: item.color ?? cur.color ?? null,
+        href: item.href || cur.href || null,
+        createdAt: cur.createdAt || item.createdAt || null,
+      };
+    }
+  }
+
+  return out;
+}
+
+function writeFavoritesToKey(key: string, items: FavoriteItem[]) {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(items));
+  } catch {}
+}
+
+function removeFavoriteEverywhere(id: string) {
+  for (const key of KEYS_CANDIDATES) {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) continue;
+
+    const parsed = tryParseJSON<any>(raw);
+    if (parsed === null) continue;
+
+    const list = normalizeList(parsed).filter((item) => item.id !== id);
+    writeFavoritesToKey(key, list);
+  }
+
+  try {
+    window.dispatchEvent(new Event("jusp:favorites"));
+  } catch {}
+}
+
+function clearFavoritesEverywhere() {
+  for (const key of KEYS_CANDIDATES) {
+    try {
+      window.localStorage.setItem(key, JSON.stringify([]));
+    } catch {}
+  }
+
+  try {
+    window.dispatchEvent(new Event("jusp:favorites"));
+  } catch {}
+}
+
+function readFavoritesRaw(): { value: unknown } {
+  if (typeof window === "undefined") return { value: null };
+
+  const normalizedLists: FavoriteItem[][] = [];
 
   for (const k of KEYS_CANDIDATES) {
     const raw = window.localStorage.getItem(k);
     if (!raw) continue;
 
     const parsed = tryParseJSON<any>(raw);
-    if (parsed !== null) return { key: k, value: parsed };
+    if (parsed !== null) {
+      normalizedLists.push(normalizeList(parsed));
+      continue;
+    }
 
     const trimmed = raw.trim();
     if (trimmed.includes(",")) {
@@ -660,13 +736,17 @@ function readFavoritesRaw(): { key: string | null; value: unknown } {
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
-      return { key: k, value: arr };
+      normalizedLists.push(normalizeList(arr));
+      continue;
     }
 
-    return { key: k, value: trimmed };
+    normalizedLists.push(normalizeList(trimmed));
   }
 
-  return { key: null, value: null };
+  if (!normalizedLists.length) return { value: null };
+
+  const merged = mergeFavoriteLists(normalizedLists);
+  return { value: merged };
 }
 
 function uniq(arr: string[]): string[] {
@@ -730,13 +810,9 @@ function FavoriteCardImage({ item, title }: { item: FavoriteItem; title: string 
  *  ========================= */
 export default function FavoritesPage() {
   const [loading, setLoading] = useState(true);
-  const [storeKey, setStoreKey] = useState<string>("jusp_favorites");
   const [items, setItems] = useState<FavoriteItem[]>([]);
-
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<SortKey>("recommended");
   const [chip, setChip] = useState<string | null>(null);
-
   const [toast, setToast] = useState<string | null>(null);
 
   const mounted = useRef(true);
@@ -754,12 +830,11 @@ export default function FavoritesPage() {
   function reload(): void {
     setLoading(true);
     try {
-      const { key, value } = readFavoritesRaw();
+      const { value } = readFavoritesRaw();
       const normalized = normalizeList(value);
-      setStoreKey(key || "jusp_favorites");
       setItems(normalized);
     } finally {
-      setTimeout(() => setLoading(false), 180);
+      setTimeout(() => setLoading(false), 120);
     }
   }
 
@@ -772,24 +847,22 @@ export default function FavoritesPage() {
       if (KEYS_CANDIDATES.includes(e.key)) reload();
     };
 
+    const onFavoritesChanged = () => {
+      reload();
+    };
+
     window.addEventListener("storage", onStorage);
+    window.addEventListener("jusp:favorites", onFavoritesChanged);
 
     return () => {
       mounted.current = false;
       window.removeEventListener("storage", onStorage);
+      window.removeEventListener("jusp:favorites", onFavoritesChanged);
       if (toastTimer.current) clearTimeout(toastTimer.current);
     };
   }, []);
 
-  const kpis = useMemo(() => {
-    const total = items.length;
-    const pricedItems = items.filter(
-      (x) => typeof x.price === "number" && Number.isFinite(x.price) && x.price > 0,
-    );
-    const withPrice = pricedItems.length;
-    const sum = pricedItems.reduce((acc, x) => acc + (x.price || 0), 0);
-    return { total, withPrice, sum };
-  }, [items]);
+  const totalSaved = useMemo(() => items.length, [items]);
 
   const chips = useMemo(() => {
     const c: string[] = [];
@@ -798,7 +871,7 @@ export default function FavoritesPage() {
       if (it.size) c.push(`Talla ${it.size}`);
       if (it.color) c.push(it.color);
     }
-    return uniq(c).slice(0, 12);
+    return uniq(c).slice(0, 10);
   }, [items]);
 
   const filtered = useMemo(() => {
@@ -827,33 +900,12 @@ export default function FavoritesPage() {
       });
     }
 
-    if (sort === "price_desc") {
-      list.sort((a, b) => (Number(b.price ?? -1) || -1) - (Number(a.price ?? -1) || -1));
-    } else if (sort === "price_asc") {
-      list.sort((a, b) => (Number(a.price ?? 1e18) || 1e18) - (Number(b.price ?? 1e18) || 1e18));
-    } else if (sort === "title_asc") {
-      list.sort((a, b) => String(a.title).localeCompare(String(b.title), "es"));
-    } else {
-      list.sort((a, b) => {
-        const ap = typeof a.price === "number" && a.price > 0 ? 1 : 0;
-        const bp = typeof b.price === "number" && b.price > 0 ? 1 : 0;
-        const ai = productFolderImageCandidates(a).length ? 1 : 0;
-        const bi = productFolderImageCandidates(b).length ? 1 : 0;
-        const scoreA = ai * 2 + ap;
-        const scoreB = bi * 2 + bp;
-        if (scoreB !== scoreA) return scoreB - scoreA;
-        return String(a.title).localeCompare(String(b.title), "es");
-      });
-    }
-
     return list;
-  }, [items, query, sort, chip]);
+  }, [items, query, chip]);
 
   function clearAll(): void {
     setItems([]);
-    try {
-      window.localStorage.setItem(storeKey, JSON.stringify([]));
-    } catch {}
+    clearFavoritesEverywhere();
     showToast("Favoritos vacíos");
   }
 
@@ -863,6 +915,11 @@ export default function FavoritesPage() {
     return `/product/${encodeURIComponent(item.id)}`;
   }
 
+  function removeOne(item: FavoriteItem) {
+    removeFavoriteEverywhere(item.id);
+    showToast("Favorito eliminado");
+  }
+
   const emptyByFilter = !loading && items.length > 0 && filtered.length === 0;
 
   return (
@@ -870,27 +927,16 @@ export default function FavoritesPage() {
       <div className="fv-wrap">
         <section className={`hero ${loading ? "isLoading" : "ready"}`}>
           <div className="hero-copy">
-            <div className="kicker">CUENTA</div>
-            <h1 className="title">Favoritos</h1>
+            <div className="kicker">CUENTA · FAVORITOS</div>
+            <h1 className="title">Tu selección guardada</h1>
             <p className="sub">
-              Tu selección guardada en JUSP. Limpia, elegante y lista para volver a lo que más te
-              gustó.
+              Lo que te gustó sigue aquí. Limpio, claro y listo para volver rápido.
             </p>
 
             <div className="stats">
               <div className="stat stat-main">
                 <div className="stat-l">Guardados</div>
-                <div className="stat-v">{loading ? "—" : kpis.total}</div>
-              </div>
-
-              <div className="stat">
-                <div className="stat-l">Con precio</div>
-                <div className="stat-v">{loading ? "—" : kpis.withPrice}</div>
-              </div>
-
-              <div className="stat">
-                <div className="stat-l">Total visible</div>
-                <div className="stat-v">{loading ? "—" : `$${safeMoneyCOP(kpis.sum)}`}</div>
+                <div className="stat-v">{loading ? "—" : totalSaved}</div>
               </div>
             </div>
           </div>
@@ -910,7 +956,7 @@ export default function FavoritesPage() {
               </button>
             </div>
 
-            <div className="controls">
+            <div className="controls controls-one">
               <div className="search">
                 <span className="search-ico">⌕</span>
                 <input
@@ -924,15 +970,6 @@ export default function FavoritesPage() {
                     ×
                   </button>
                 ) : null}
-              </div>
-
-              <div className="sort">
-                <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="Ordenar">
-                  <option value="recommended">Recomendado</option>
-                  <option value="price_desc">Precio: mayor a menor</option>
-                  <option value="price_asc">Precio: menor a mayor</option>
-                  <option value="title_asc">Nombre: A → Z</option>
-                </select>
               </div>
             </div>
 
@@ -965,7 +1002,7 @@ export default function FavoritesPage() {
 
         {loading ? (
           <div className="grid">
-            {Array.from({ length: 8 }).map((_, i) => (
+            {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="card sk">
                 <div className="sk-img" />
                 <div className="sk-body">
@@ -980,22 +1017,21 @@ export default function FavoritesPage() {
             ))}
           </div>
         ) : items.length === 0 ? (
-          <div className="empty">
-            <div className="empty-card">
+          <div className="empty brutal">
+            <div className="empty-card brutal">
               <div className="empty-badge">Tu selección está vacía</div>
-              <div className="empty-h">Empieza a guardar lo mejor de JUSP</div>
+              <div className="empty-h">Guarda lo mejor de JUSP</div>
               <div className="empty-p">
-                Marca tus productos favoritos y vuelve aquí para verlos en una colección más limpia,
-                rápida y premium.
+                Marca tus productos favoritos y vuelve aquí para verlos en una colección limpia, rápida y más premium.
               </div>
 
               <div className="empty-actions">
                 <Link className="btn" href="/products">
-                  Ver productos
+                  Explorar productos
                 </Link>
 
-                <Link className="btn ghost" href="/account">
-                  Ir a mi cuenta
+                <Link className="btn ghost" href="/offers">
+                  Ver ofertas
                 </Link>
               </div>
             </div>
@@ -1004,8 +1040,8 @@ export default function FavoritesPage() {
           <div className="empty small">
             <div className="empty-card small">
               <div className="empty-badge">Sin resultados</div>
-              <div className="empty-h">No hay coincidencias con ese filtro</div>
-              <div className="empty-p">Prueba otra búsqueda o vuelve a mostrar toda tu colección.</div>
+              <div className="empty-h">No hay coincidencias con esa búsqueda</div>
+              <div className="empty-p">Prueba otra palabra o borra letras para volver a ver toda tu selección.</div>
 
               <div className="empty-actions">
                 <button className="btn" onClick={() => setQuery("")} type="button">
@@ -1021,8 +1057,7 @@ export default function FavoritesPage() {
         ) : (
           <div className="grid enter">
             {filtered.map((p, idx) => {
-              const title = p.title || "Producto";
-              const price = typeof p.price === "number" && p.price > 0 ? p.price : null;
+              const title = p.title || titleFromSlug(p.id) || "Producto";
               const chipsLocal: string[] = [];
               if (p.brand) chipsLocal.push(String(p.brand));
               if (p.size) chipsLocal.push(`Talla ${p.size}`);
@@ -1032,29 +1067,24 @@ export default function FavoritesPage() {
                 <Link
                   key={p.id}
                   href={productHrefFrom(p)}
-                  className="card card-link"
-                  style={{ animationDelay: `${Math.min(idx * 16, 180)}ms` }}
+                  className="card card-link premium-card"
+                  style={{ animationDelay: `${Math.min(idx * 14, 140)}ms` }}
                 >
-                  <div className="img">
+                  <div className="img premium-img">
                     <FavoriteCardImage item={p} title={title} />
 
                     <div className="topline">
-                      {price !== null ? (
-                        <span className="tag price">${safeMoneyCOP(price)}</span>
-                      ) : (
-                        <span className="tag soft">Favorito</span>
-                      )}
-
+                      <span className="tag soft">Favorito</span>
                       <span className="tag mono">{compactId(p.id)}</span>
                     </div>
                   </div>
 
-                  <div className="body">
+                  <div className="body premium-body">
                     <div className="t">{title}</div>
 
                     <div className="chips">
                       {chipsLocal.length ? (
-                        chipsLocal.slice(0, 3).map((c) => (
+                        chipsLocal.slice(0, 2).map((c) => (
                           <span key={c} className="chip static">
                             {c}
                           </span>
@@ -1062,6 +1092,20 @@ export default function FavoritesPage() {
                       ) : (
                         <span className="chip soft static">Guardado</span>
                       )}
+                    </div>
+
+                    <div className="quick-row">
+                      <button
+                        type="button"
+                        className="quick-action danger"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          removeOne(p);
+                        }}
+                      >
+                        Quitar
+                      </button>
                     </div>
                   </div>
                 </Link>
@@ -1082,11 +1126,10 @@ export default function FavoritesPage() {
           padding-top: calc(var(--jusp-header-h, 64px) + 18px);
           padding-left: 16px;
           padding-right: 16px;
-          padding-bottom: 38px;
+          padding-bottom: 42px;
           background:
-            radial-gradient(920px 380px at 12% 0%, rgba(255, 214, 0, 0.11), transparent 58%),
-            radial-gradient(980px 520px at 100% 10%, rgba(0, 0, 0, 0.04), transparent 60%),
-            linear-gradient(180deg, #f7f7f7 0%, #f0f0f0 100%);
+            radial-gradient(920px 380px at 12% 0%, rgba(255, 214, 0, 0.09), transparent 58%),
+            linear-gradient(180deg, #f7f7f7 0%, #efefef 100%);
           min-height: 100vh;
         }
 
@@ -1098,17 +1141,17 @@ export default function FavoritesPage() {
         .hero {
           position: relative;
           overflow: hidden;
-          border-radius: 30px;
+          border-radius: 28px;
           border: 1px solid rgba(0, 0, 0, 0.08);
-          background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(247, 247, 247, 0.95));
-          box-shadow: 0 28px 80px rgba(0, 0, 0, 0.09);
-          padding: 24px;
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 247, 247, 0.95));
+          box-shadow: 0 22px 60px rgba(0, 0, 0, 0.08);
+          padding: 22px;
           display: grid;
-          grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
-          gap: 18px;
+          grid-template-columns: minmax(0, 1fr) minmax(320px, 0.9fr);
+          gap: 16px;
           transform: translateY(10px);
           opacity: 0;
-          animation: heroIn 420ms ease forwards;
+          animation: heroIn 360ms ease forwards;
         }
 
         .hero.isLoading {
@@ -1128,8 +1171,8 @@ export default function FavoritesPage() {
           inset: 0;
           pointer-events: none;
           background:
-            radial-gradient(720px 320px at 0% 0%, rgba(255, 214, 0, 0.2), transparent 58%),
-            linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent 40%);
+            radial-gradient(640px 240px at 0% 0%, rgba(255, 214, 0, 0.16), transparent 58%),
+            linear-gradient(135deg, rgba(255, 255, 255, 0.15), transparent 40%);
           opacity: 0.8;
         }
 
@@ -1143,13 +1186,13 @@ export default function FavoritesPage() {
           font-size: 11px;
           font-weight: 950;
           letter-spacing: 0.16em;
-          color: rgba(0, 0, 0, 0.52);
+          color: rgba(0, 0, 0, 0.5);
         }
 
         .title {
           margin: 8px 0 8px;
-          font-size: 40px;
-          line-height: 0.95;
+          font-size: 34px;
+          line-height: 0.98;
           font-weight: 1000;
           letter-spacing: -0.045em;
           color: #111;
@@ -1157,30 +1200,29 @@ export default function FavoritesPage() {
 
         .sub {
           margin: 0;
-          max-width: 640px;
+          max-width: 560px;
           font-size: 14px;
-          line-height: 1.72;
+          line-height: 1.65;
           font-weight: 700;
           color: rgba(0, 0, 0, 0.7);
         }
 
         .stats {
-          margin-top: 18px;
+          margin-top: 16px;
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 12px;
+          grid-template-columns: minmax(180px, 220px);
+          gap: 10px;
         }
 
         .stat {
-          border-radius: 22px;
-          padding: 16px;
-          background: rgba(255, 255, 255, 0.7);
+          border-radius: 20px;
+          padding: 14px;
+          background: rgba(255, 255, 255, 0.78);
           border: 1px solid rgba(0, 0, 0, 0.06);
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
         }
 
         .stat-main {
-          background: linear-gradient(180deg, rgba(255, 245, 196, 0.76), rgba(255, 255, 255, 0.88));
+          background: linear-gradient(180deg, rgba(255, 245, 196, 0.72), rgba(255, 255, 255, 0.92));
         }
 
         .stat-l {
@@ -1198,14 +1240,13 @@ export default function FavoritesPage() {
           font-weight: 1000;
           letter-spacing: -0.04em;
           color: #111;
-          word-break: break-word;
         }
 
         .hero-side {
           display: flex;
           flex-direction: column;
           justify-content: center;
-          gap: 14px;
+          gap: 12px;
         }
 
         .actions {
@@ -1217,18 +1258,21 @@ export default function FavoritesPage() {
 
         .controls {
           display: grid;
-          grid-template-columns: 1fr 230px;
           gap: 10px;
+        }
+
+        .controls-one {
+          grid-template-columns: 1fr;
         }
 
         .search {
           display: flex;
           align-items: center;
           gap: 8px;
-          min-height: 48px;
+          min-height: 46px;
           border-radius: 999px;
           border: 1px solid rgba(0, 0, 0, 0.1);
-          background: rgba(255, 255, 255, 0.9);
+          background: rgba(255, 255, 255, 0.94);
           padding: 0 14px;
         }
 
@@ -1248,28 +1292,14 @@ export default function FavoritesPage() {
         }
 
         .x {
-          width: 26px;
-          height: 26px;
+          width: 24px;
+          height: 24px;
           border-radius: 999px;
           border: 0;
           background: rgba(0, 0, 0, 0.06);
           color: #111;
           cursor: pointer;
           font-weight: 950;
-        }
-
-        .sort select {
-          width: 100%;
-          min-height: 48px;
-          border-radius: 999px;
-          border: 1px solid rgba(0, 0, 0, 0.1);
-          background: rgba(255, 255, 255, 0.9);
-          padding: 0 14px;
-          outline: none;
-          color: #111;
-          font-size: 13px;
-          font-weight: 900;
-          cursor: pointer;
         }
 
         .chipbar {
@@ -1287,37 +1317,35 @@ export default function FavoritesPage() {
         }
 
         .grid {
-          margin-top: 16px;
+          margin-top: 18px;
           display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
+          grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 14px;
         }
 
         .card {
           text-align: left;
-          padding: 0;
           overflow: hidden;
-          border-radius: 24px;
+          border-radius: 22px;
           border: 1px solid rgba(0, 0, 0, 0.08);
-          background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(246, 246, 246, 0.95));
-          box-shadow: 0 22px 64px rgba(0, 0, 0, 0.08);
-          transform: translateY(10px);
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 246, 246, 0.96));
+          box-shadow: 0 16px 42px rgba(0, 0, 0, 0.07);
+          transform: translateY(8px);
           opacity: 0;
-          animation: pop 360ms ease forwards;
-          transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+          animation: pop 300ms ease forwards;
+          transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+        }
+
+        .premium-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.1);
+          border-color: rgba(0, 0, 0, 0.11);
         }
 
         .card-link {
           display: block;
           text-decoration: none;
           color: inherit;
-          cursor: pointer;
-        }
-
-        .card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 30px 84px rgba(0, 0, 0, 0.12);
-          border-color: rgba(0, 0, 0, 0.12);
         }
 
         @keyframes pop {
@@ -1330,13 +1358,19 @@ export default function FavoritesPage() {
         .img {
           position: relative;
           overflow: hidden;
-          height: 250px;
+          height: 220px;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 18px;
-          background: linear-gradient(180deg, rgba(0, 0, 0, 0.035), rgba(0, 0, 0, 0.02));
+          padding: 14px;
+          background: linear-gradient(180deg, rgba(0, 0, 0, 0.025), rgba(0, 0, 0, 0.015));
           border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        }
+
+        .premium-img {
+          background:
+            radial-gradient(220px 90px at 50% 100%, rgba(0, 0, 0, 0.06), transparent 58%),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(244, 244, 244, 0.92));
         }
 
         .img img {
@@ -1345,11 +1379,11 @@ export default function FavoritesPage() {
           object-fit: contain;
           object-position: center center;
           display: block;
-          transition: transform 240ms ease;
+          transition: transform 220ms ease;
         }
 
         .card:hover .img img {
-          transform: scale(1.03);
+          transform: scale(1.02);
         }
 
         .topline {
@@ -1366,26 +1400,19 @@ export default function FavoritesPage() {
         .tag {
           display: inline-flex;
           align-items: center;
-          min-height: 30px;
+          min-height: 28px;
           border-radius: 999px;
           padding: 0 10px;
           font-size: 12px;
           font-weight: 950;
           white-space: nowrap;
-          background: rgba(255, 255, 255, 0.9);
+          background: rgba(255, 255, 255, 0.92);
           color: rgba(0, 0, 0, 0.78);
-          border: 1px solid rgba(0, 0, 0, 0.1);
-          backdrop-filter: blur(8px);
-        }
-
-        .tag.price {
-          background: rgba(17, 17, 17, 0.92);
-          color: #fff;
-          border-color: rgba(255, 255, 255, 0.12);
+          border: 1px solid rgba(0, 0, 0, 0.08);
         }
 
         .tag.soft {
-          background: rgba(255, 214, 0, 0.62);
+          background: rgba(255, 214, 0, 0.68);
           color: #111;
         }
 
@@ -1419,15 +1446,16 @@ export default function FavoritesPage() {
         }
 
         .t {
-          font-size: 15px;
-          line-height: 1.3;
-          font-weight: 950;
+          font-size: 16px;
+          line-height: 1.24;
+          font-weight: 1000;
           letter-spacing: -0.02em;
           color: #111;
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
+          min-height: 40px;
         }
 
         .chips {
@@ -1439,29 +1467,19 @@ export default function FavoritesPage() {
         .chip {
           display: inline-flex;
           align-items: center;
-          min-height: 32px;
+          min-height: 30px;
           border-radius: 999px;
           padding: 0 10px;
           font-size: 12px;
           font-weight: 900;
-          border: 1px solid rgba(0, 0, 0, 0.1);
+          border: 1px solid rgba(0, 0, 0, 0.08);
           background: rgba(0, 0, 0, 0.03);
           color: rgba(0, 0, 0, 0.78);
           white-space: nowrap;
-          cursor: pointer;
-          transition: transform 120ms ease;
-        }
-
-        .chip:active {
-          transform: scale(0.98);
-        }
-
-        .chip.static {
-          cursor: default;
         }
 
         .chip.soft {
-          background: rgba(255, 214, 0, 0.45);
+          background: rgba(255, 214, 0, 0.42);
           color: #111;
         }
 
@@ -1471,11 +1489,35 @@ export default function FavoritesPage() {
           color: #fff;
         }
 
+        .quick-row {
+          display: flex;
+          gap: 8px;
+          padding-top: 2px;
+        }
+
+        .quick-action {
+          min-height: 32px;
+          border-radius: 999px;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          background: rgba(255, 255, 255, 0.96);
+          padding: 0 12px;
+          font-size: 12px;
+          font-weight: 950;
+          color: #111;
+          cursor: pointer;
+        }
+
+        .quick-action.danger:hover {
+          background: rgba(239, 68, 68, 0.94);
+          color: #fff;
+          border-color: rgba(239, 68, 68, 0.94);
+        }
+
         .btn {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          min-height: 46px;
+          min-height: 44px;
           padding: 0 16px;
           border-radius: 999px;
           border: 0;
@@ -1499,7 +1541,7 @@ export default function FavoritesPage() {
         }
 
         .btn.ghost {
-          background: rgba(255, 255, 255, 0.92);
+          background: rgba(255, 255, 255, 0.94);
           color: #111;
           border: 1px solid rgba(0, 0, 0, 0.12);
         }
@@ -1524,21 +1566,25 @@ export default function FavoritesPage() {
         }
 
         .empty.small {
-          min-height: 42vh;
+          min-height: 40vh;
+        }
+
+        .empty.brutal {
+          min-height: 56vh;
         }
 
         .empty-card {
           width: 100%;
-          max-width: 700px;
-          border-radius: 30px;
+          max-width: 620px;
+          border-radius: 28px;
           padding: 26px;
           border: 1px solid rgba(0, 0, 0, 0.08);
           background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 246, 246, 0.96));
-          box-shadow: 0 30px 90px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 24px 70px rgba(0, 0, 0, 0.08);
         }
 
-        .empty-card.small {
-          max-width: 620px;
+        .empty-card.brutal {
+          max-width: 720px;
         }
 
         .empty-badge {
@@ -1557,7 +1603,7 @@ export default function FavoritesPage() {
         .empty-h {
           margin-top: 14px;
           font-size: 30px;
-          line-height: 1.04;
+          line-height: 1.02;
           font-weight: 1000;
           letter-spacing: -0.045em;
           color: #111;
@@ -1602,7 +1648,7 @@ export default function FavoritesPage() {
         }
 
         .sk-img {
-          height: 250px;
+          height: 220px;
           background: rgba(0, 0, 0, 0.06);
           position: relative;
           overflow: hidden;
@@ -1673,10 +1719,6 @@ export default function FavoritesPage() {
             grid-template-columns: 1fr;
           }
 
-          .stats {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-          }
-
           .actions,
           .chipbar,
           .hero-note {
@@ -1685,50 +1727,34 @@ export default function FavoritesPage() {
           }
 
           .grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: repeat(2, minmax(0, 1fr));
           }
         }
 
-        @media (max-width: 900px) {
-          .controls {
-            grid-template-columns: 1fr;
-          }
-
-          .grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-
-          .title {
-            font-size: 34px;
+        @media (max-width: 820px) {
+          .title,
+          .empty-h {
+            font-size: 30px;
           }
         }
 
         @media (max-width: 560px) {
-          .stats {
-            grid-template-columns: 1fr;
-          }
-
           .grid {
             grid-template-columns: 1fr;
           }
 
           .hero,
           .empty-card {
-            border-radius: 24px;
-          }
-
-          .title {
-            font-size: 30px;
-          }
-
-          .empty-h {
-            font-size: 24px;
+            border-radius: 22px;
           }
 
           .img,
           .sk-img {
-            height: 230px;
-            padding: 14px;
+            height: 210px;
+          }
+
+          .stats {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>
