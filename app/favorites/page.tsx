@@ -30,11 +30,6 @@ const KEYS_CANDIDATES = ["jusp_favorites", "favorites", "wishlist", "jusp_wishli
 /** =========================
  *  Helpers (SAFE)
  *  ========================= */
-function safeStr(v: unknown, max = 2000): string {
-  const s = typeof v === "string" ? v : "";
-  return s.length > max ? s.slice(0, max) : s;
-}
-
 function safeNum(v: unknown): number | null {
   if (typeof v === "string") {
     const cleaned = v
@@ -1287,21 +1282,26 @@ export default function FavoritesPage() {
         .img {
           position: relative;
           overflow: hidden;
-          height: 210px;
-          background: rgba(0, 0, 0, 0.04);
+          height: 250px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 18px;
+          background: linear-gradient(180deg, rgba(0, 0, 0, 0.035), rgba(0, 0, 0, 0.02));
           border-bottom: 1px solid rgba(0, 0, 0, 0.06);
         }
 
         .img img {
           width: 100%;
           height: 100%;
-          object-fit: cover;
+          object-fit: contain;
+          object-position: center center;
           display: block;
           transition: transform 240ms ease;
         }
 
         .card:hover .img img {
-          transform: scale(1.04);
+          transform: scale(1.03);
         }
 
         .topline {
@@ -1349,6 +1349,7 @@ export default function FavoritesPage() {
 
         .noimg {
           height: 100%;
+          width: 100%;
           display: grid;
           place-items: center;
           gap: 8px;
@@ -1553,7 +1554,7 @@ export default function FavoritesPage() {
         }
 
         .sk-img {
-          height: 210px;
+          height: 250px;
           background: rgba(0, 0, 0, 0.06);
           position: relative;
           overflow: hidden;
@@ -1674,6 +1675,12 @@ export default function FavoritesPage() {
 
           .empty-h {
             font-size: 24px;
+          }
+
+          .img,
+          .sk-img {
+            height: 230px;
+            padding: 14px;
           }
         }
       `}</style>
