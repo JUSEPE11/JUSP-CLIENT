@@ -362,6 +362,48 @@ function slugFromHrefOrId(href?: string | null, id?: string | null): string {
   return "";
 }
 
+function isGenericProductTitle(value: unknown): boolean {
+  const raw = String(value || "")
+    .trim()
+    .toLowerCase();
+
+  if (!raw) return true;
+
+  const normalized = raw
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const genericTitles = new Set([
+    "producto",
+    "product",
+    "item",
+    "articulo",
+    "artículo",
+    "producto guardado",
+    "product saved",
+    "saved product",
+    "favorito",
+    "favorite",
+    "wishlist item",
+  ]);
+
+  return genericTitles.has(normalized);
+}
+
+function preferredTitle(...values: unknown[]): string {
+  for (const value of values) {
+    if (typeof value !== "string") continue;
+    const trimmed = value.trim();
+    if (!trimmed) continue;
+    if (isGenericProductTitle(trimmed)) continue;
+    return trimmed;
+  }
+  return "";
+}
+
 function slugCandidatesFromItem(item: FavoriteItem): string[] {
   const raw: string[] = [];
 
@@ -451,6 +493,27 @@ function productFolderImageCandidates(item: FavoriteItem): string[] {
   return out;
 }
 
+function resolveFavoriteTitle(raw: any, id: string, hrefCandidate: string): string {
+  const explicitTitle = preferredTitle(
+    raw?.title,
+    raw?.name,
+    raw?.product_title,
+    raw?.label,
+    raw?.product?.title,
+    raw?.product?.name
+  );
+
+  if (explicitTitle) return explicitTitle;
+
+  const slugFromHref = slugFromHrefOrId(hrefCandidate, id);
+  if (slugFromHref) return titleFromSlug(slugFromHref);
+
+  const slugForTitle =
+    firstNonEmptyString(raw?.slug, raw?.handle, raw?.product?.slug, raw?.product?.handle, id) || id;
+
+  return titleFromSlug(slugForTitle);
+}
+
 function normalizeOne(raw: FavAny): FavoriteItem | null {
   if (typeof raw === "string") {
     const id = raw.trim();
@@ -489,20 +552,8 @@ function normalizeOne(raw: FavAny): FavoriteItem | null {
 
   if (!id) return null;
 
-  const rawTitle =
-    firstNonEmptyString(
-      r.title,
-      r.name,
-      r.product_title,
-      r.label,
-      r.product?.title,
-      r.product?.name
-    ) || "";
-
-  const slugForTitle =
-    firstNonEmptyString(r.slug, r.handle, r.product?.slug, r.product?.handle, id) || id;
-
-  const title = rawTitle || titleFromSlug(slugForTitle);
+  const href = normalizeHrefCandidate(r, id);
+  const title = resolveFavoriteTitle(r, id, href);
 
   const price = firstPriceFromUnknown(
     r.price,
@@ -596,8 +647,6 @@ function normalizeOne(raw: FavAny): FavoriteItem | null {
       r.product?.colour
     ) || null;
 
-  const href = normalizeHrefCandidate(r, slugForTitle);
-
   const createdAt =
     firstNonEmptyString(
       r.createdAt,
@@ -668,7 +717,7 @@ function mergeFavoriteLists(lists: FavoriteItem[][]): FavoriteItem[] {
       out[idx] = {
         ...cur,
         ...item,
-        title: item.title || cur.title,
+        title: preferredTitle(item.title, cur.title, titleFromSlug(item.id), titleFromSlug(cur.id)),
         price: item.price ?? cur.price ?? null,
         image: item.image ?? cur.image ?? null,
         brand: item.brand ?? cur.brand ?? null,
@@ -1298,9 +1347,7 @@ export default function FavoritesPage() {
           <div className="hero-copy">
             <div className="kicker">CUENTA · FAVORITOS</div>
             <h1 className="title">Tu selección guardada</h1>
-            <p className="sub">
-              Lo que te gustó sigue aquí
-            </p>
+            <p className="sub">Lo que te gustó sigue aquí</p>
 
             <div className="stats">
               <div className="stat stat-main">
@@ -1426,7 +1473,7 @@ export default function FavoritesPage() {
         ) : (
           <div className="grid enter">
             {filtered.map((p, idx) => {
-              const title = p.title || titleFromSlug(p.id) || "Producto";
+              const title = preferredTitle(p.title, titleFromSlug(slugFromHrefOrId(p.href, p.id)), titleFromSlug(p.id)) || "Producto guardado";
               const chipsLocal: string[] = [];
               if (p.brand) chipsLocal.push(String(p.brand));
               if (p.size) chipsLocal.push(`Talla ${p.size}`);
