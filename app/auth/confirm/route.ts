@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { createServerClient } from "@supabase/ssr";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,21 +9,65 @@ function safeNext(next: string | null) {
   return next;
 }
 
+function withError(url: URL, error: string, description?: string) {
+  const target = new URL("/forgot-password", url.origin);
+  target.searchParams.set("error", error);
+  if (description) target.searchParams.set("error_description", description);
+  return target;
+}
+
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const code = url.searchParams.get("code");
+  const tokenHash = url.searchParams.get("token_hash");
+  const type = url.searchParams.get("type");
   const next = safeNext(url.searchParams.get("next"));
 
-  if (!code) {
-    return NextResponse.redirect(new URL("/forgot-password", url.origin));
+  if (!tokenHash) {
+    return NextResponse.redirect(
+      withError(url, "missing_token_hash", "El enlace no trae token_hash.")
+    );
   }
 
-  const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  if (type !== "recovery") {
+    return NextResponse.redirect(
+      withError(url, "invalid_type", "El tipo del enlace no es recovery.")
+    );
+  }
+
+  const response = NextResponse.redirect(new URL(next, url.origin));
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return req.cookies.get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          response.cookies.set({ name, value, ...options });
+        },
+        remove(name: string, options: any) {
+          response.cookies.set({ name, value: "", ...options });
+        },
+      },
+    }
+  );
+
+  const { error } = await supabase.auth.verifyOtp({
+    token_hash: tokenHash,
+    type: "recovery",
+  });
 
   if (error) {
-    return NextResponse.redirect(new URL("/forgot-password", url.origin));
+    return NextResponse.redirect(
+      withError(
+        url,
+        error.name || "verify_otp_failed",
+        error.message || "No se pudo validar el enlace de recuperación."
+      )
+    );
   }
 
-  return NextResponse.redirect(new URL(next, url.origin));
+  return response;
 }
