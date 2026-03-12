@@ -97,23 +97,138 @@ function normalizeImageFromProduct(product?: Product): string | null {
   return typeof direct === "string" && direct.trim() ? direct.trim() : null;
 }
 
+function parsePriceLike(value: unknown): number | null {
+  if (value == null) return null;
+
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value > 0 ? value : null;
+  }
+
+  if (typeof value === "string") {
+    const raw = value.trim();
+    if (!raw) return null;
+
+    const cleaned = raw
+      .replace(/[^\d.,-]/g, "")
+      .replace(/\.(?=\d{3}(\D|$))/g, "")
+      .replace(",", ".")
+      .trim();
+
+    if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === "-.") return null;
+
+    const n = Number(cleaned);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+
+  return null;
+}
+
+function firstValidPrice(...values: unknown[]): number | null {
+  for (const value of values) {
+    if (value == null) continue;
+
+    if (typeof value === "number" || typeof value === "string") {
+      const parsed = parsePriceLike(value);
+      if (parsed !== null) return parsed;
+      continue;
+    }
+
+    if (typeof value === "object") {
+      const v = value as any;
+
+      const directCandidates = [
+        v?.price,
+        v?.amount,
+        v?.value,
+        v?.sale_price,
+        v?.salePrice,
+        v?.retail_price,
+        v?.retailPrice,
+        v?.current,
+        v?.min,
+        v?.max,
+        v?.unit_amount,
+      ];
+
+      for (const candidate of directCandidates) {
+        const parsed = parsePriceLike(candidate);
+        if (parsed !== null) return parsed;
+      }
+
+      const deep = firstValidPrice(
+        v?.pricing,
+        v?.money,
+        v?.priceRange,
+        v?.price_range,
+        v?.selectedPrice,
+        v?.selected_price
+      );
+
+      if (deep !== null) return deep;
+    }
+  }
+
+  return null;
+}
+
 function normalizePriceFromProduct(product?: Product): number | null {
   if (!product) return null;
-  const raw = (product as any)?.price;
-  return typeof raw === "number" && Number.isFinite(raw) ? raw : null;
+
+  const anyProduct = product as any;
+
+  return firstValidPrice(
+    anyProduct?.price,
+    anyProduct?.salePrice,
+    anyProduct?.sale_price,
+    anyProduct?.amount,
+    anyProduct?.value,
+    anyProduct?.pricing,
+    anyProduct?.money,
+    anyProduct?.priceRange,
+    anyProduct?.price_range,
+    anyProduct?.selectedPrice,
+    anyProduct?.selected_price,
+    Array.isArray(anyProduct?.variants) ? anyProduct.variants[0]?.price : null,
+    Array.isArray(anyProduct?.variants) ? anyProduct.variants[0]?.salePrice : null,
+    Array.isArray(anyProduct?.variants) ? anyProduct.variants[0]?.sale_price : null,
+    Array.isArray(anyProduct?.sizes) ? anyProduct.sizes[0]?.price : null,
+    Array.isArray(anyProduct?.sizes) ? anyProduct.sizes[0]?.salePrice : null,
+    Array.isArray(anyProduct?.sizes) ? anyProduct.sizes[0]?.sale_price : null
+  );
 }
 
 function normalizeTitleFromProduct(product?: Product, id?: string): string {
-  const title = (product as any)?.name;
+  const anyProduct = product as any;
+
+  const title =
+    anyProduct?.name ??
+    anyProduct?.title ??
+    anyProduct?.product_title ??
+    null;
+
   if (typeof title === "string" && title.trim()) return title.trim();
   return id || "Producto";
 }
 
 function normalizeHrefFromProduct(product?: Product, id?: string): string {
-  const rawId =
-    ((product as any)?.id && String((product as any).id).trim()) ||
-    (id ? String(id).trim() : "") ||
+  const anyProduct = product as any;
+
+  const rawHref =
+    (typeof anyProduct?.href === "string" && anyProduct.href.trim()) ||
+    (typeof anyProduct?.url === "string" && anyProduct.url.trim()) ||
+    (typeof anyProduct?.link === "string" && anyProduct.link.trim()) ||
     "";
+
+  if (rawHref) {
+    if (rawHref.startsWith("/product/")) return rawHref;
+    if (rawHref.startsWith("/products/")) return `/product/${rawHref.slice("/products/".length)}`;
+    if (rawHref.startsWith("/")) return rawHref;
+  }
+
+  const rawId =
+    ((anyProduct?.id && String(anyProduct.id).trim()) ||
+      (id ? String(id).trim() : "") ||
+      "");
 
   return rawId ? `/product/${encodeURIComponent(rawId)}` : "/products";
 }
@@ -160,10 +275,7 @@ function normalizeFavoritesArray(input: unknown): FavoriteStored[] {
           typeof (item as any).title === "string" && (item as any).title.trim()
             ? (item as any).title.trim()
             : id,
-        price:
-          typeof (item as any).price === "number" && Number.isFinite((item as any).price)
-            ? (item as any).price
-            : null,
+        price: parsePriceLike((item as any).price),
         image:
           typeof (item as any).image === "string" && (item as any).image.trim()
             ? (item as any).image.trim()
@@ -293,12 +405,14 @@ export const useStore = create<StoreShape>((set, get) => ({
     const color = opts?.color ?? null;
     const size = opts?.size ?? null;
 
+    const resolvedPrice = normalizePriceFromProduct(product) ?? 0;
+
     const newItem: CartItem = {
       id,
       qty,
-      name: product.name ?? "Producto",
-      price: product.price,
-      image: (product as any).images?.[0] ?? (product as any).image ?? undefined,
+      name: normalizeTitleFromProduct(product, product.id),
+      price: resolvedPrice,
+      image: normalizeImageFromProduct(product) ?? undefined,
       color,
       size,
     };
