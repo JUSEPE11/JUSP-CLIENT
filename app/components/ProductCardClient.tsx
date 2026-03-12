@@ -31,6 +31,104 @@ function deriveBadges(product: Product): BadgeInfo {
   return { isNew, discountPct };
 }
 
+function parsePriceLike(value: unknown): number | null {
+  if (value == null) return null;
+
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value > 0 ? value : null;
+  }
+
+  if (typeof value === "string") {
+    const raw = value.trim();
+    if (!raw) return null;
+
+    const cleaned = raw
+      .replace(/[^\d.,-]/g, "")
+      .replace(/\.(?=\d{3}(\D|$))/g, "")
+      .replace(",", ".")
+      .trim();
+
+    if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === "-.") return null;
+
+    const n = Number(cleaned);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+
+  return null;
+}
+
+function firstValidPrice(...values: unknown[]): number | null {
+  for (const value of values) {
+    if (value == null) continue;
+
+    if (typeof value === "number" || typeof value === "string") {
+      const parsed = parsePriceLike(value);
+      if (parsed !== null) return parsed;
+      continue;
+    }
+
+    if (typeof value === "object") {
+      const v = value as any;
+
+      const directCandidates = [
+        v?.price,
+        v?.amount,
+        v?.value,
+        v?.sale_price,
+        v?.salePrice,
+        v?.retail_price,
+        v?.retailPrice,
+        v?.current,
+        v?.min,
+        v?.max,
+        v?.unit_amount,
+      ];
+
+      for (const candidate of directCandidates) {
+        const parsed = parsePriceLike(candidate);
+        if (parsed !== null) return parsed;
+      }
+
+      const deep = firstValidPrice(
+        v?.pricing,
+        v?.money,
+        v?.priceRange,
+        v?.price_range,
+        v?.selectedPrice,
+        v?.selected_price
+      );
+
+      if (deep !== null) return deep;
+    }
+  }
+
+  return null;
+}
+
+function resolveProductPrice(product: Product): number | null {
+  const p = product as any;
+
+  return firstValidPrice(
+    p?.price,
+    p?.salePrice,
+    p?.sale_price,
+    p?.amount,
+    p?.value,
+    p?.pricing,
+    p?.money,
+    p?.priceRange,
+    p?.price_range,
+    p?.selectedPrice,
+    p?.selected_price,
+    Array.isArray(p?.variants) ? p.variants[0]?.price : null,
+    Array.isArray(p?.variants) ? p.variants[0]?.salePrice : null,
+    Array.isArray(p?.variants) ? p.variants[0]?.sale_price : null,
+    Array.isArray(p?.sizes) ? p.sizes[0]?.price : null,
+    Array.isArray(p?.sizes) ? p.sizes[0]?.salePrice : null,
+    Array.isArray(p?.sizes) ? p.sizes[0]?.sale_price : null
+  );
+}
+
 export default function ProductCardClient({
   product,
   variant = "grid",
@@ -46,6 +144,7 @@ export default function ProductCardClient({
   const img = product.images?.[0];
   const { isNew, discountPct } = deriveBadges(product);
   const cardHeight = variant === "compact" ? 220 : 300;
+  const resolvedPrice = resolveProductPrice(product);
 
   return (
     <article className="jusp-card jusp-hover" style={{ overflow: "hidden", position: "relative" }}>
@@ -58,7 +157,12 @@ export default function ProductCardClient({
       <button
         className="jusp-iconbtn"
         style={{ position: "absolute", top: 12, right: 12, zIndex: 3 }}
-        onClick={() => toggleFav(product.id, product)}
+        onClick={() =>
+          toggleFav(product.id, {
+            ...(product as any),
+            price: resolvedPrice,
+          } as Product)
+        }
         aria-label="Favorito"
         title="Favorito"
         type="button"
@@ -110,7 +214,7 @@ export default function ProductCardClient({
           </h3>
 
           <div style={{ fontSize: 15, fontWeight: 900 }}>
-            ${Number(product.price || 0).toLocaleString("es-CO")}
+            ${Number(resolvedPrice || 0).toLocaleString("es-CO")}
           </div>
 
           <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -122,7 +226,13 @@ export default function ProductCardClient({
               className="jusp-btn jusp-btn-primary"
               onClick={(e) => {
                 e.preventDefault();
-                addToCart(product, { qty: 1 });
+                addToCart(
+                  {
+                    ...(product as any),
+                    price: resolvedPrice ?? 0,
+                  } as Product,
+                  { qty: 1 }
+                );
                 openCart();
               }}
               type="button"

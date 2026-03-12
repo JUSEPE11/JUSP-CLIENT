@@ -16,14 +16,41 @@ export type JuspFavorite = {
   createdAt: string; // ISO
 };
 
+type FavoriteVariantLike = {
+  price?: number | string | null;
+  color?: string | null;
+  size?: string | null;
+};
+
 function safeStr(v: unknown, max = 1400) {
   const s = typeof v === "string" ? v : "";
   return s.length > max ? s.slice(0, max) : s;
 }
 
 function safeNum(v: unknown) {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
+  if (v == null) return null;
+
+  if (typeof v === "number") {
+    return Number.isFinite(v) && v > 0 ? v : null;
+  }
+
+  if (typeof v === "string") {
+    const raw = v.trim();
+    if (!raw) return null;
+
+    const cleaned = raw
+      .replace(/[^\d.,-]/g, "")
+      .replace(/\.(?=\d{3}(\D|$))/g, "")
+      .replace(",", ".")
+      .trim();
+
+    if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === "-.") return null;
+
+    const n = Number(cleaned);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+
+  return null;
 }
 
 function normalizeId(raw: unknown) {
@@ -38,6 +65,55 @@ function safeFirstString(arr: unknown, maxLen: number) {
     if (s) return s;
   }
   return null;
+}
+
+function safeFirstImage(arr: unknown, maxLen = 1400) {
+  if (!Array.isArray(arr)) return null;
+  for (const x of arr) {
+    const s = safeStr(x, maxLen).trim();
+    if (s) return s;
+  }
+  return null;
+}
+
+function minPriceFromVariants(variants: unknown): number | null {
+  if (!Array.isArray(variants) || !variants.length) return null;
+
+  const prices = variants
+    .map((v) => safeNum((v as FavoriteVariantLike)?.price))
+    .filter((n): n is number => typeof n === "number" && Number.isFinite(n) && n > 0);
+
+  if (!prices.length) return null;
+  return Math.min(...prices);
+}
+
+function firstColorFromVariants(variants: unknown): string | null {
+  if (!Array.isArray(variants)) return null;
+
+  for (const v of variants) {
+    const color = safeStr((v as FavoriteVariantLike)?.color ?? "", 60).trim();
+    if (color) return color;
+  }
+
+  return null;
+}
+
+function firstSizeFromVariants(variants: unknown): string | null {
+  if (!Array.isArray(variants)) return null;
+
+  for (const v of variants) {
+    const size = safeStr((v as FavoriteVariantLike)?.size ?? "", 60).trim();
+    if (size) return size;
+  }
+
+  return null;
+}
+
+function resolveFavoritePrice(input: {
+  price?: number | string | null;
+  variants?: Array<{ price?: number | string | null }> | null;
+}) {
+  return safeNum(input.price) ?? minPriceFromVariants(input.variants) ?? null;
 }
 
 function readRaw(): unknown {
@@ -66,12 +142,26 @@ export function readFavorites(): JuspFavorite[] {
     out.push({
       id,
       title: safeStr(r.title ?? "Producto", 220).trim() || "Producto",
-      price: safeNum(r.price),
-      image: safeStr(r.image ?? "", 1400).trim() || null,
+      price: resolveFavoritePrice({
+        price: r.price,
+        variants: r.variants,
+      }),
+      image:
+        safeStr(r.image ?? "", 1400).trim() ||
+        safeFirstImage(r.images, 1400) ||
+        null,
       brand: safeStr(r.brand ?? "", 120).trim() || null,
-      size: safeStr(r.size ?? "", 60).trim() || null,
-      color: safeStr(r.color ?? "", 60).trim() || null,
-      href: safeStr(r.href ?? "", 600).trim() || `/products/${encodeURIComponent(id)}`,
+      size:
+        safeStr(r.size ?? "", 60).trim() ||
+        safeFirstString(r.sizes, 60) ||
+        firstSizeFromVariants(r.variants) ||
+        null,
+      color:
+        safeStr(r.color ?? "", 60).trim() ||
+        safeFirstString(r.colors, 60) ||
+        firstColorFromVariants(r.variants) ||
+        null,
+      href: safeStr(r.href ?? "", 600).trim() || `/product/${encodeURIComponent(id)}`,
       createdAt: safeStr(r.createdAt ?? "", 80).trim() || new Date().toISOString(),
     });
   }
@@ -84,7 +174,6 @@ export function writeFavorites(list: JuspFavorite[]) {
     window.localStorage.setItem(JUSP_FAV_KEY, JSON.stringify(list));
   } catch {}
 
-  // ✅ Micro-pulido #1: evento en la MISMA pestaña (storage no dispara en same-tab)
   try {
     window.dispatchEvent(new Event("jusp:favorites"));
   } catch {}
@@ -103,35 +192,30 @@ export function clearFavorites() {
     window.localStorage.removeItem(JUSP_FAV_KEY);
   } catch {}
 
-  // ✅ Micro-pulido #1: avisar a la UI
   try {
     window.dispatchEvent(new Event("jusp:favorites"));
   } catch {}
 }
 
-/**
- * ✅ toggleFavorite PRO MAX
- * - Si existe => elimina
- * - Si no existe => guarda el objeto completo (price/image/brand/size/color/href)
- * - Devuelve { ok, added, count }
- *
- * ✅ Micro-pulido #2:
- * - Si NO llega size/color pero llega sizes[]/colors[] => toma la primera opción
- */
 export function toggleFavorite(input: {
   id: string;
   title?: string | null;
   price?: number | string | null;
   image?: string | null;
+  images?: string[] | null;
   brand?: string | null;
 
-  // preferidos (si ya los tienes)
   size?: string | null;
   color?: string | null;
 
-  // ✅ fallback PRO (si aún no hay selector real)
   sizes?: string[] | null;
   colors?: string[] | null;
+
+  variants?: Array<{
+    price?: number | string | null;
+    color?: string | null;
+    size?: string | null;
+  }> | null;
 
   href?: string | null;
 }): { ok: boolean; added: boolean; count: number } {
@@ -149,18 +233,37 @@ export function toggleFavorite(input: {
     return { ok: true, added: false, count: next.length };
   }
 
-  const pickedSize = safeStr(input.size ?? "", 60).trim() || safeFirstString(input.sizes, 60);
-  const pickedColor = safeStr(input.color ?? "", 60).trim() || safeFirstString(input.colors, 60);
+  const pickedSize =
+    safeStr(input.size ?? "", 60).trim() ||
+    safeFirstString(input.sizes, 60) ||
+    firstSizeFromVariants(input.variants) ||
+    null;
+
+  const pickedColor =
+    safeStr(input.color ?? "", 60).trim() ||
+    safeFirstString(input.colors, 60) ||
+    firstColorFromVariants(input.variants) ||
+    null;
+
+  const resolvedPrice = resolveFavoritePrice({
+    price: input.price,
+    variants: input.variants,
+  });
+
+  const resolvedImage =
+    safeStr(input.image ?? "", 1400).trim() ||
+    safeFirstImage(input.images, 1400) ||
+    null;
 
   const fav: JuspFavorite = {
     id,
     title: safeStr(input.title ?? "Producto", 220).trim() || "Producto",
-    price: safeNum(input.price),
-    image: safeStr(input.image ?? "", 1400).trim() || null,
+    price: resolvedPrice,
+    image: resolvedImage,
     brand: safeStr(input.brand ?? "", 120).trim() || null,
-    size: pickedSize || null,
-    color: pickedColor || null,
-    href: safeStr(input.href ?? "", 600).trim() || `/products/${encodeURIComponent(id)}`,
+    size: pickedSize,
+    color: pickedColor,
+    href: safeStr(input.href ?? "", 600).trim() || `/product/${encodeURIComponent(id)}`,
     createdAt: new Date().toISOString(),
   };
 
@@ -169,12 +272,20 @@ export function toggleFavorite(input: {
   return { ok: true, added: true, count: next.length };
 }
 
-// ✅ updateFavorite PRO MAX
-// - Actualiza un favorito existente (sin toggle)
-// - Ideal para: si el usuario cambia talla/color y ya está guardado
 export function updateFavorite(
   id: string,
-  patch: Partial<Pick<JuspFavorite, "title" | "price" | "image" | "brand" | "size" | "color" | "href">>
+  patch: Partial<
+    Pick<JuspFavorite, "title" | "price" | "image" | "brand" | "size" | "color" | "href">
+  > & {
+    images?: string[] | null;
+    sizes?: string[] | null;
+    colors?: string[] | null;
+    variants?: Array<{
+      price?: number | string | null;
+      color?: string | null;
+      size?: string | null;
+    }> | null;
+  }
 ): { ok: boolean; updated: boolean } {
   if (typeof window === "undefined") return { ok: false, updated: false };
   const sid = normalizeId(id);
@@ -186,19 +297,46 @@ export function updateFavorite(
 
   const cur = list[idx];
 
+  const resolvedPrice =
+    patch.price !== undefined || patch.variants !== undefined
+      ? resolveFavoritePrice({
+          price: patch.price,
+          variants: patch.variants,
+        })
+      : cur.price;
+
+  const resolvedImage =
+    patch.image !== undefined || patch.images !== undefined
+      ? safeStr(patch.image ?? "", 1400).trim() || safeFirstImage(patch.images, 1400) || null
+      : cur.image;
+
+  const resolvedSize =
+    patch.size !== undefined || patch.sizes !== undefined || patch.variants !== undefined
+      ? safeStr(patch.size ?? "", 60).trim() ||
+        safeFirstString(patch.sizes, 60) ||
+        firstSizeFromVariants(patch.variants) ||
+        null
+      : cur.size;
+
+  const resolvedColor =
+    patch.color !== undefined || patch.colors !== undefined || patch.variants !== undefined
+      ? safeStr(patch.color ?? "", 60).trim() ||
+        safeFirstString(patch.colors, 60) ||
+        firstColorFromVariants(patch.variants) ||
+        null
+      : cur.color;
+
   const nextItem: JuspFavorite = {
     ...cur,
     title: patch.title !== undefined ? safeStr(patch.title ?? "", 220).trim() || "Producto" : cur.title,
-    price: patch.price !== undefined ? safeNum(patch.price) : cur.price,
-    image: patch.image !== undefined ? safeStr(patch.image ?? "", 1400).trim() || null : cur.image,
+    price: resolvedPrice,
+    image: resolvedImage,
     brand: patch.brand !== undefined ? safeStr(patch.brand ?? "", 120).trim() || null : cur.brand,
-    size: patch.size !== undefined ? safeStr(patch.size ?? "", 60).trim() || null : cur.size,
-    color: patch.color !== undefined ? safeStr(patch.color ?? "", 60).trim() || null : cur.color,
+    size: resolvedSize,
+    color: resolvedColor,
     href: patch.href !== undefined ? safeStr(patch.href ?? "", 600).trim() || cur.href : cur.href,
-    // createdAt se conserva (no lo tocamos)
   };
 
-  // Evitar write si no cambió nada real
   const changed =
     nextItem.title !== cur.title ||
     nextItem.price !== cur.price ||
