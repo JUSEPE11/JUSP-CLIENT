@@ -8,6 +8,8 @@ type Status = "idle" | "loading" | "success" | "error";
 
 export default function ResetPasswordPage() {
   const supabaseRef = useRef<any>(null);
+  const mountedRef = useRef(true);
+  const recoveryResolvedRef = useRef(false);
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -28,40 +30,95 @@ export default function ResetPasswordPage() {
   }, [ready, recoveryReady, passwordOk, matchOk, status]);
 
   useEffect(() => {
-    let mounted = true;
+    mountedRef.current = true;
+
+    const markReady = (isRecoveryReady: boolean, errorMessage?: string | null) => {
+      if (!mountedRef.current) return;
+      recoveryResolvedRef.current = true;
+      setRecoveryReady(isRecoveryReady);
+      setErr(errorMessage ?? null);
+      setReady(true);
+      setStatus("idle");
+    };
 
     try {
       const supabase = createSupabaseBrowserClient();
       supabaseRef.current = supabase;
 
-      const boot = async () => {
-        const { data, error } = await supabase.auth.getSession();
+      const fallbackTimer = window.setTimeout(async () => {
+        if (recoveryResolvedRef.current) return;
 
-        if (!mounted) return;
+        try {
+          const { data, error } = await supabase.auth.getSession();
 
-        if (error) {
-          setErr("No se pudo validar la sesión de recuperación.");
-          setReady(true);
+          if (error) {
+            markReady(false, "No se pudo validar la sesión de recuperación.");
+            return;
+          }
+
+          if (data?.session) {
+            markReady(true, null);
+            return;
+          }
+
+          markReady(false, "El enlace de recuperación no es válido o ya expiró.");
+        } catch {
+          markReady(false, "No se pudo validar la sesión de recuperación.");
+        }
+      }, 1200);
+
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (!mountedRef.current) return;
+
+        if (event === "PASSWORD_RECOVERY") {
+          window.clearTimeout(fallbackTimer);
+          markReady(true, null);
           return;
         }
 
-        if (data.session) {
-          setRecoveryReady(true);
-          setErr(null);
+        if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session) {
+          window.clearTimeout(fallbackTimer);
+          markReady(true, null);
+          return;
         }
+      });
 
-        setReady(true);
-      };
+      void (async () => {
+        try {
+          const { data, error } = await supabase.auth.getSession();
 
-      void boot();
+          if (!mountedRef.current || recoveryResolvedRef.current) return;
+
+          if (error) {
+            window.clearTimeout(fallbackTimer);
+            markReady(false, "No se pudo validar la sesión de recuperación.");
+            return;
+          }
+
+          if (data?.session) {
+            window.clearTimeout(fallbackTimer);
+            markReady(true, null);
+          }
+        } catch {
+          if (!mountedRef.current || recoveryResolvedRef.current) return;
+          window.clearTimeout(fallbackTimer);
+          markReady(false, "No se pudo validar la sesión de recuperación.");
+        }
+      })();
 
       return () => {
-        mounted = false;
+        mountedRef.current = false;
+        window.clearTimeout(fallbackTimer);
+        subscription.unsubscribe();
       };
     } catch {
-      if (mounted) {
+      if (mountedRef.current) {
         setErr("No se pudo iniciar la recuperación de contraseña.");
         setReady(true);
+        setRecoveryReady(false);
+        setStatus("error");
       }
     }
   }, []);
@@ -74,26 +131,31 @@ export default function ResetPasswordPage() {
 
     if (!recoveryReady) {
       setErr("El enlace de recuperación no es válido o ya expiró.");
+      setStatus("error");
       return;
     }
 
     if (!password) {
       setErr("Escribe tu nueva contraseña.");
+      setStatus("error");
       return;
     }
 
     if (password.length < 6) {
       setErr("La contraseña debe tener mínimo 6 caracteres.");
+      setStatus("error");
       return;
     }
 
     if (!confirmPassword) {
       setErr("Confirma tu nueva contraseña.");
+      setStatus("error");
       return;
     }
 
     if (password !== confirmPassword) {
       setErr("Las contraseñas no coinciden.");
+      setStatus("error");
       return;
     }
 
@@ -119,6 +181,7 @@ export default function ResetPasswordPage() {
       }
 
       setStatus("success");
+      setErr(null);
     } catch {
       setErr("Error de red. Revisa tu conexión e intenta de nuevo.");
       setStatus("error");
@@ -149,7 +212,7 @@ export default function ResetPasswordPage() {
               <div>
                 <h2 className="rp-invalid-title">Enlace inválido o expirado</h2>
                 <p className="rp-invalid-text">
-                  Este enlace de recuperación no es válido, ya expiró o no abrió una sesión de recuperación.
+                  {err || "Este enlace de recuperación no es válido, ya expiró o no abrió una sesión de recuperación."}
                 </p>
                 <div className="rp-actions">
                   <Link className="rp-btn rp-btn-ghost" href="/forgot-password">
@@ -243,7 +306,8 @@ export default function ResetPasswordPage() {
 
       <style jsx global>{`
         body {
-          background: radial-gradient(1200px 600px at 20% 0%, rgba(0, 0, 0, 0.06), transparent 55%),
+          background:
+            radial-gradient(1200px 600px at 20% 0%, rgba(0, 0, 0, 0.06), transparent 55%),
             radial-gradient(900px 520px at 90% 15%, rgba(0, 0, 0, 0.04), transparent 60%),
             #f7f7f7;
         }
