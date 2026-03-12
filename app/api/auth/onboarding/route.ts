@@ -1,4 +1,3 @@
-// app/api/auth/onboarding/route.ts
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase-admin";
@@ -22,7 +21,6 @@ function safeEmailName(email: string) {
 
 export async function POST(req: Request) {
   try {
-    // ✅ Gate: requiere sesión (cookie HttpOnly)
     const store = await cookies();
     const at = store.get(COOKIE_AT)?.value;
 
@@ -30,7 +28,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "No session" }, { status: 401 });
     }
 
-    // ✅ Valida token y extrae identidad
     const decoded: any = await verifyAccessToken(at);
     const userId = decoded?.sub ? String(decoded.sub) : null;
     const email = decoded?.email ? String(decoded.email).toLowerCase() : null;
@@ -42,36 +39,62 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}));
     const incomingProfile = body?.profile ?? body ?? {};
 
-    // ✅ Persistir en DB (user_registry.profile) + name NOT NULL
-    // Si ya existe row, lo actualiza. Si no existe, lo crea.
     const admin = supabaseAdmin();
 
-    // name fallback: si no viene en profile, usa parte del email
     const nameFromBody =
       typeof incomingProfile?.name === "string" ? incomingProfile.name.trim() : "";
     const safeName = nameFromBody || safeEmailName(email);
 
-    // Upsert robusto
-    const { error: upsertErr } = await admin
+    // 1) Buscar primero por user_id (fuente real de identidad)
+    const { data: existingByUserId, error: findErr } = await admin
       .from("user_registry")
-      .upsert(
-        {
-          user_id: userId,
-          email,
-          name: safeName,          // ✅ evita NOT NULL
-          profile: incomingProfile // ✅ jsonb
-        },
-        { onConflict: "email" }
-      );
+      .select("user_id")
+      .eq("user_id", userId)
+      .maybeSingle();
 
-    if (upsertErr) {
+    if (findErr) {
       return NextResponse.json(
-        { ok: false, error: upsertErr.message || "DB error" },
+        { ok: false, error: findErr.message || "DB read error" },
         { status: 500 }
       );
     }
 
-    // ✅ Cookie de perfil (lo que tu UI lee por /api/auth/me)
+    if (existingByUserId) {
+      // 2) Si existe ese user_id, actualizar SOLO campos mutables
+      const { error: updateErr } = await admin
+        .from("user_registry")
+        .update({
+          email,
+          name: safeName,
+          profile: incomingProfile,
+        })
+        .eq("user_id", userId);
+
+      if (updateErr) {
+        return NextResponse.json(
+          { ok: false, error: updateErr.message || "DB update error" },
+          { status: 500 }
+        );
+      }
+    } else {
+      // 3) Si no existe ese user_id, insertar nuevo registro
+      const { error: insertErr } = await admin
+        .from("user_registry")
+        .insert({
+          user_id: userId,
+          email,
+          name: safeName,
+          profile: incomingProfile,
+        });
+
+      if (insertErr) {
+        return NextResponse.json(
+          { ok: false, error: insertErr.message || "DB insert error" },
+          { status: 500 }
+        );
+      }
+    }
+
     const value = encodeProfile(incomingProfile);
 
     const res = NextResponse.json({ ok: true }, { status: 200 });
