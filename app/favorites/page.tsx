@@ -1299,7 +1299,7 @@ export default function FavoritesPage() {
             <div className="kicker">CUENTA · FAVORITOS</div>
             <h1 className="title">Tu selección guardada</h1>
             <p className="sub">
-              Lo que te gustó sigue aquí. Limpio, claro y listo para volver rápido.
+              Lo que te gustó sigue aquí
             </p>
 
             <div className="stats">
