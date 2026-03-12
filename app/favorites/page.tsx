@@ -115,63 +115,130 @@ function normalizeProductPath(input: string): string {
   return raw;
 }
 
-function firstImageFromUnknown(...values: unknown[]): string | null {
-  for (const value of values) {
-    if (!value) continue;
+function normalizeImageUrl(value: string): string {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
 
-    if (typeof value === "string") {
-      const s = value.trim();
-      if (s) return s;
-      continue;
+  if (raw.startsWith("//")) return `https:${raw}`;
+  if (/^https?:\/\//i.test(raw)) return raw;
+  if (raw.startsWith("/")) return raw;
+
+  if (/^[a-z0-9_\-/]+\.(jpg|jpeg|png|webp|gif|avif|svg)(\?.*)?$/i.test(raw)) {
+    return `/${raw.replace(/^\/+/, "")}`;
+  }
+
+  return raw;
+}
+
+function objectValuesSafe(obj: Record<string, unknown>): unknown[] {
+  try {
+    return Object.values(obj);
+  } catch {
+    return [];
+  }
+}
+
+function firstImageDeep(value: unknown, depth = 0, seen = new WeakSet<object>()): string | null {
+  if (depth > 6 || value == null) return null;
+
+  if (typeof value === "string") {
+    const normalized = normalizeImageUrl(value);
+    return normalized || null;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = firstImageDeep(item, depth + 1, seen);
+      if (found) return found;
     }
+    return null;
+  }
 
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        const found = firstImageFromUnknown(item);
-        if (found) return found;
-      }
-      continue;
-    }
+  if (typeof value !== "object") return null;
 
-    if (typeof value === "object") {
-      const v = value as any;
+  const obj = value as Record<string, unknown>;
+  if (seen.has(obj)) return null;
+  seen.add(obj);
 
-      const direct =
-        firstNonEmptyString(
-          v.url,
-          v.src,
-          v.secure_url,
-          v.secureUrl,
-          v.original,
-          v.original_url,
-          v.originalUrl,
-          v.thumbnail,
-          v.image,
-          v.image_url,
-          v.imageUrl,
-          v.cover,
-          v.photo,
-          v.photo_url,
-          v.photoUrl,
-        ) || "";
+  const direct = firstNonEmptyString(
+    obj.url,
+    obj.src,
+    obj.href,
+    obj.path,
+    obj.secure_url,
+    obj.secureUrl,
+    obj.original,
+    obj.original_url,
+    obj.originalUrl,
+    obj.thumbnail,
+    obj.thumbnail_url,
+    obj.thumbnailUrl,
+    obj.image,
+    obj.image_url,
+    obj.imageUrl,
+    obj.cover,
+    obj.cover_url,
+    obj.coverUrl,
+    obj.photo,
+    obj.photo_url,
+    obj.photoUrl,
+    obj.preview,
+    obj.preview_url,
+    obj.previewUrl,
+    obj.small,
+    obj.medium,
+    obj.large,
+  );
 
-      if (direct) return direct;
+  if (direct) {
+    const normalized = normalizeImageUrl(direct);
+    if (normalized) return normalized;
+  }
 
-      const nested = firstImageFromUnknown(
-        v.image,
-        v.images,
-        v.gallery,
-        v.media,
-        v.featuredImage,
-        v.featured_image,
-        v.thumbnail,
-        v.cover,
-      );
+  const priorityNestedKeys = [
+    "node",
+    "nodes",
+    "edge",
+    "edges",
+    "image",
+    "images",
+    "gallery",
+    "media",
+    "assets",
+    "featuredImage",
+    "featured_image",
+    "featuredMedia",
+    "featured_media",
+    "featuredAsset",
+    "featured_asset",
+    "thumbnail",
+    "cover",
+    "photo",
+    "photos",
+    "previewImage",
+    "preview_image",
+  ];
 
-      if (nested) return nested;
+  for (const key of priorityNestedKeys) {
+    if (key in obj) {
+      const found = firstImageDeep(obj[key], depth + 1, seen);
+      if (found) return found;
     }
   }
 
+  for (const v of objectValuesSafe(obj)) {
+    const found = firstImageDeep(v, depth + 1, seen);
+    if (found) return found;
+  }
+
+  return null;
+}
+
+function firstImageFromUnknown(...values: unknown[]): string | null {
+  for (const value of values) {
+    const found = firstImageDeep(value);
+    if (found) return found;
+  }
   return null;
 }
 
@@ -248,6 +315,62 @@ function normalizeHrefCandidate(raw: any, id: string): string {
     ) || id;
 
   return `/product/${encodeURIComponent(slug)}`;
+}
+
+function slugFromHrefOrId(href?: string | null, id?: string | null): string {
+  const rawHref = String(href || "").trim();
+  const rawId = String(id || "").trim();
+
+  const tryDecode = (s: string) => {
+    try {
+      return decodeURIComponent(s);
+    } catch {
+      return s;
+    }
+  };
+
+  if (rawHref) {
+    const normalized = normalizeProductPath(rawHref);
+    const match = normalized.match(/^\/product\/([^/?#]+)/i);
+    if (match?.[1]) return tryDecode(match[1]).trim();
+  }
+
+  if (rawId) return tryDecode(rawId).trim();
+
+  return "";
+}
+
+function productFolderImageCandidates(item: FavoriteItem): string[] {
+  const slug = slugFromHrefOrId(item.href, item.id);
+  if (!slug) return [];
+
+  const safeSlug = slug.replace(/^\/+|\/+$/g, "");
+  if (!safeSlug) return [];
+
+  const direct = item.image ? [normalizeImageUrl(item.image)] : [];
+
+  const derived = [
+    `/products/${safeSlug}/1.jpg`,
+    `/products/${safeSlug}/1.jpeg`,
+    `/products/${safeSlug}/1.png`,
+    `/products/${safeSlug}/1.webp`,
+    `/products/${safeSlug}/cover.jpg`,
+    `/products/${safeSlug}/cover.jpeg`,
+    `/products/${safeSlug}/cover.png`,
+    `/products/${safeSlug}/cover.webp`,
+    `/products/${safeSlug}/main.jpg`,
+    `/products/${safeSlug}/main.jpeg`,
+    `/products/${safeSlug}/main.png`,
+    `/products/${safeSlug}/main.webp`,
+  ];
+
+  const out: string[] = [];
+  for (const value of [...direct, ...derived]) {
+    const s = String(value || "").trim();
+    if (s && !out.includes(s)) out.push(s);
+  }
+
+  return out;
 }
 
 function normalizeOne(raw: FavAny): FavoriteItem | null {
@@ -334,19 +457,33 @@ function normalizeOne(raw: FavAny): FavoriteItem | null {
     r.imageUrl,
     r.featuredImage,
     r.featured_image,
+    r.featuredMedia,
+    r.featured_media,
+    r.featuredAsset,
+    r.featured_asset,
+    r.previewImage,
+    r.preview_image,
     r.images,
     r.gallery,
     r.media,
+    r.assets,
     r.photo,
     r.photos,
     Array.isArray(r.variants) ? r.variants[0]?.image : null,
+    Array.isArray(r.variants) ? r.variants[0]?.images : null,
     r.product?.image,
+    r.product?.img,
     r.product?.thumbnail,
     r.product?.featuredImage,
     r.product?.featured_image,
+    r.product?.featuredMedia,
+    r.product?.featured_media,
+    r.product?.featuredAsset,
+    r.product?.featured_asset,
     r.product?.images,
     r.product?.gallery,
     r.product?.media,
+    r.product?.assets,
   );
 
   const brand =
@@ -482,6 +619,44 @@ function uniq(arr: string[]): string[] {
 }
 
 /** =========================
+ *  UI helpers
+ *  ========================= */
+function FavoriteCardImage({ item, title }: { item: FavoriteItem; title: string }) {
+  const candidates = useMemo(() => productFolderImageCandidates(item), [item]);
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    setIndex(0);
+  }, [candidates.join("|")]);
+
+  const currentSrc = candidates[index] || "";
+
+  if (!currentSrc) {
+    return (
+      <div className="noimg">
+        <span className="noimg-dot" />
+        <span>Sin imagen</span>
+      </div>
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={currentSrc}
+      alt={title}
+      loading="lazy"
+      onError={() => {
+        setIndex((prev) => {
+          if (prev >= candidates.length - 1) return prev;
+          return prev + 1;
+        });
+      }}
+    />
+  );
+}
+
+/** =========================
  *  Page
  *  ========================= */
 export default function FavoritesPage() {
@@ -588,8 +763,8 @@ export default function FavoritesPage() {
       list.sort((a, b) => {
         const ap = typeof a.price === "number" ? 1 : 0;
         const bp = typeof b.price === "number" ? 1 : 0;
-        const ai = a.image ? 1 : 0;
-        const bi = b.image ? 1 : 0;
+        const ai = productFolderImageCandidates(a).length ? 1 : 0;
+        const bi = productFolderImageCandidates(b).length ? 1 : 0;
         const scoreA = ai * 2 + ap;
         const scoreB = bi * 2 + bp;
         if (scoreB !== scoreA) return scoreB - scoreA;
@@ -787,15 +962,7 @@ export default function FavoritesPage() {
                   style={{ animationDelay: `${Math.min(idx * 16, 180)}ms` }}
                 >
                   <div className="img">
-                    {p.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p.image} alt={title} loading="lazy" />
-                    ) : (
-                      <div className="noimg">
-                        <span className="noimg-dot" />
-                        <span>Sin imagen</span>
-                      </div>
-                    )}
+                    <FavoriteCardImage item={p} title={title} />
 
                     <div className="topline">
                       {price !== null ? (
