@@ -27,12 +27,6 @@ async function readProfileCookie() {
   }
 }
 
-/**
- * Logout local por Server Action:
- * - borra cookies HttpOnly del host actual
- * - evita navegar a JSON
- * - redirige a /login
- */
 async function logoutAction() {
   "use server";
 
@@ -66,15 +60,17 @@ function completionTone(completion: number) {
       accent: "#22c55e",
       soft: "rgba(34,197,94,0.14)",
       border: "rgba(34,197,94,0.28)",
+      message: "Tu experiencia JUSP ya está totalmente afinada.",
     };
   }
 
   if (completion >= 75) {
     return {
-      label: "Perfil muy completo",
+      label: "Perfil casi listo",
       accent: "#f59e0b",
       soft: "rgba(245,158,11,0.14)",
       border: "rgba(245,158,11,0.28)",
+      message: "Solo faltan unos detalles para mejorar aún más tus recomendaciones.",
     };
   }
 
@@ -83,6 +79,7 @@ function completionTone(completion: number) {
     accent: "#60a5fa",
     soft: "rgba(96,165,250,0.14)",
     border: "rgba(96,165,250,0.28)",
+    message: "Completar tu perfil ayuda a mostrarte mejores productos, tallas y colecciones.",
   };
 }
 
@@ -114,10 +111,6 @@ export default async function AccountPage() {
   const profile = await readProfileCookie();
   if (!profile) redirect("/onboarding");
 
-  const role = profile?.role ? String(profile.role) : "User";
-  const userId = profile?.id ? String(profile.id) : null;
-  const shortId = userId ? `${userId.slice(0, 8)}…` : "—";
-
   const completion = profileCompletion(profile);
   const tone = completionTone(completion);
 
@@ -130,12 +123,10 @@ export default async function AccountPage() {
     String(profile?.first_name ?? profile?.name ?? profile?.full_name ?? "")
       .trim()
       .split(" ")
-      .filter(Boolean)[0] || "JUSP Member";
+      .filter(Boolean)[0] || "Member";
 
-  const email =
-    String(profile?.email ?? profile?.customer_email ?? "").trim() || "Cuenta protegida";
   const city =
-    String(profile?.city ?? profile?.location ?? "").trim() || "Ubicación no definida";
+    String(profile?.city ?? profile?.location ?? "").trim() || "Por definir";
 
   const progressWidth = `${Math.max(8, Math.min(completion, 100))}%`;
 
@@ -143,12 +134,12 @@ export default async function AccountPage() {
     <main
       style={{
         minHeight: "100vh",
-        paddingTop: "calc(var(--jusp-header-h, 64px) + 20px)",
+        paddingTop: "calc(var(--jusp-header-h, 64px) + 22px)",
         paddingRight: 16,
-        paddingBottom: 48,
+        paddingBottom: 64,
         paddingLeft: 16,
         background:
-          "radial-gradient(circle at top, rgba(255,255,255,0.92) 0%, rgba(248,248,248,1) 30%, rgba(239,239,239,1) 100%)",
+          "radial-gradient(circle at top, rgba(255,255,255,0.96) 0%, rgba(246,246,246,1) 32%, rgba(237,237,237,1) 100%)",
       }}
     >
       <div style={{ maxWidth: 1180, margin: "0 auto" }}>
@@ -156,11 +147,10 @@ export default async function AccountPage() {
           style={{
             position: "relative",
             overflow: "hidden",
-            borderRadius: 32,
-            background:
-              "linear-gradient(135deg, #050505 0%, #0f0f0f 45%, #171717 100%)",
+            borderRadius: 34,
+            background: "linear-gradient(135deg, #050505 0%, #101010 48%, #181818 100%)",
             border: "1px solid rgba(255,255,255,0.08)",
-            boxShadow: "0 30px 90px rgba(0,0,0,0.22)",
+            boxShadow: "0 32px 100px rgba(0,0,0,0.22)",
             padding: 24,
           }}
         >
@@ -168,26 +158,26 @@ export default async function AccountPage() {
             aria-hidden="true"
             style={{
               position: "absolute",
-              top: -80,
-              right: -60,
-              width: 240,
-              height: 240,
+              top: -90,
+              right: -50,
+              width: 250,
+              height: 250,
               borderRadius: "50%",
               background: "rgba(255,255,255,0.08)",
-              filter: "blur(30px)",
+              filter: "blur(34px)",
             }}
           />
           <div
             aria-hidden="true"
             style={{
               position: "absolute",
-              bottom: -100,
-              left: -40,
-              width: 220,
-              height: 220,
+              bottom: -120,
+              left: -60,
+              width: 240,
+              height: 240,
               borderRadius: "50%",
               background: "rgba(255,255,255,0.05)",
-              filter: "blur(24px)",
+              filter: "blur(30px)",
             }}
           />
 
@@ -196,7 +186,7 @@ export default async function AccountPage() {
               position: "relative",
               zIndex: 1,
               display: "grid",
-              gridTemplateColumns: "minmax(0, 1.35fr) minmax(300px, 0.9fr)",
+              gridTemplateColumns: "minmax(0, 1.35fr) minmax(300px, 0.92fr)",
               gap: 18,
             }}
           >
@@ -235,10 +225,10 @@ export default async function AccountPage() {
                     display: "inline-block",
                   }}
                 />
-                Cuenta protegida
+                Tu espacio JUSP
               </div>
 
-              <div style={{ marginTop: 18 }}>
+              <div style={{ marginTop: 20 }}>
                 <div
                   style={{
                     fontSize: 13,
@@ -254,35 +244,34 @@ export default async function AccountPage() {
 
                 <h1
                   style={{
-                    margin: "8px 0 0",
-                    fontSize: 42,
-                    lineHeight: 1,
+                    margin: "10px 0 0",
+                    fontSize: 44,
+                    lineHeight: 0.98,
                     fontWeight: 1000,
                     color: "#fff",
-                    letterSpacing: "-0.04em",
+                    letterSpacing: "-0.045em",
                   }}
                 >
-                  Mi cuenta
+                  Hola, {firstName}
                 </h1>
 
                 <p
                   style={{
                     marginTop: 14,
-                    maxWidth: 700,
+                    maxWidth: 720,
                     fontSize: 15,
-                    lineHeight: 1.7,
-                    color: "rgba(255,255,255,0.76)",
+                    lineHeight: 1.75,
+                    color: "rgba(255,255,255,0.78)",
                   }}
                 >
-                  Sesión verificada por <b style={{ color: "#fff" }}>cookies HttpOnly</b>. Tu
-                  cuenta está lista para personalizar catálogo, recomendaciones, pedidos y
-                  experiencia JUSP.
+                  Aquí puedes ver tus pedidos, ajustar tu perfil y mantener una experiencia JUSP
+                  más personalizada, clara y premium.
                 </p>
               </div>
 
               <div
                 style={{
-                  marginTop: 20,
+                  marginTop: 22,
                   display: "flex",
                   flexWrap: "wrap",
                   gap: 10,
@@ -327,29 +316,13 @@ export default async function AccountPage() {
                     fontWeight: 900,
                   }}
                 >
-                  ID: {shortId}
-                </span>
-
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    borderRadius: 999,
-                    padding: "10px 14px",
-                    border: "1px solid rgba(255,255,255,0.12)",
-                    background: "rgba(255,255,255,0.06)",
-                    color: "#fff",
-                    fontSize: 13,
-                    fontWeight: 900,
-                  }}
-                >
-                  Rol: {role}
+                  Experiencia personalizada activa
                 </span>
               </div>
 
               <div
                 style={{
-                  marginTop: 26,
+                  marginTop: 28,
                   display: "flex",
                   flexWrap: "wrap",
                   gap: 12,
@@ -361,9 +334,9 @@ export default async function AccountPage() {
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    minHeight: 48,
+                    minHeight: 50,
                     borderRadius: 999,
-                    padding: "0 18px",
+                    padding: "0 20px",
                     background: "#fff",
                     color: "#111",
                     textDecoration: "none",
@@ -381,9 +354,9 @@ export default async function AccountPage() {
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    minHeight: 48,
+                    minHeight: 50,
                     borderRadius: 999,
-                    padding: "0 18px",
+                    padding: "0 20px",
                     border: "1px solid rgba(255,255,255,0.14)",
                     background: "rgba(255,255,255,0.06)",
                     color: "#fff",
@@ -392,16 +365,16 @@ export default async function AccountPage() {
                     fontWeight: 950,
                   }}
                 >
-                  Mejorar perfil
+                  Editar perfil
                 </Link>
 
                 <form action={logoutAction} style={{ margin: 0 }}>
                   <button
                     type="submit"
                     style={{
-                      minHeight: 48,
+                      minHeight: 50,
                       borderRadius: 999,
-                      padding: "0 18px",
+                      padding: "0 20px",
                       border: "1px solid rgba(255,255,255,0.14)",
                       background: "rgba(255,255,255,0.02)",
                       color: "#fff",
@@ -436,16 +409,16 @@ export default async function AccountPage() {
                     fontWeight: 900,
                     letterSpacing: "0.14em",
                     textTransform: "uppercase",
-                    color: "rgba(255,255,255,0.62)",
+                    color: "rgba(255,255,255,0.60)",
                   }}
                 >
-                  Estado del perfil
+                  Estado de tu perfil
                 </div>
 
                 <div
                   style={{
                     marginTop: 12,
-                    fontSize: 40,
+                    fontSize: 42,
                     fontWeight: 1000,
                     lineHeight: 1,
                     color: "#fff",
@@ -459,12 +432,11 @@ export default async function AccountPage() {
                   style={{
                     marginTop: 10,
                     fontSize: 14,
-                    lineHeight: 1.65,
+                    lineHeight: 1.72,
                     color: "rgba(255,255,255,0.74)",
                   }}
                 >
-                  Tu cuenta ya está protegida. Completar bien tus gustos mejora la precisión del
-                  catálogo, recomendaciones y experiencia de compra.
+                  {tone.message}
                 </p>
               </div>
 
@@ -499,7 +471,7 @@ export default async function AccountPage() {
                   {[
                     { label: "Segmento", value: segment },
                     { label: "Talla", value: size },
-                    { label: "Vibe", value: vibe },
+                    { label: "Estilo", value: vibe },
                     { label: "Ciudad", value: city },
                   ].map((item) => (
                     <div
@@ -545,14 +517,14 @@ export default async function AccountPage() {
           style={{
             marginTop: 18,
             display: "grid",
-            gridTemplateColumns: "minmax(0, 1.2fr) minmax(0, 0.8fr)",
+            gridTemplateColumns: "minmax(0, 1.02fr) minmax(0, 0.98fr)",
             gap: 18,
           }}
         >
           <div
             style={{
               borderRadius: 28,
-              background: "rgba(255,255,255,0.84)",
+              background: "rgba(255,255,255,0.88)",
               border: "1px solid rgba(0,0,0,0.08)",
               boxShadow: "0 22px 60px rgba(0,0,0,0.06)",
               padding: 22,
@@ -567,20 +539,20 @@ export default async function AccountPage() {
                 color: "rgba(0,0,0,0.50)",
               }}
             >
-              Resumen de cuenta
+              Tu perfil
             </div>
 
             <h2
               style={{
                 margin: "10px 0 0",
-                fontSize: 28,
-                lineHeight: 1.05,
+                fontSize: 30,
+                lineHeight: 1.04,
                 fontWeight: 1000,
-                letterSpacing: "-0.04em",
+                letterSpacing: "-0.045em",
                 color: "#111",
               }}
             >
-              Todo lo importante, claro y premium.
+              Preferencias que hacen tu experiencia más precisa.
             </h2>
 
             <div
@@ -593,20 +565,20 @@ export default async function AccountPage() {
             >
               {[
                 {
-                  title: "Cuenta verificada",
-                  text: "Protección activa con cookies HttpOnly como fuente de verdad.",
+                  title: "Talla base",
+                  text: size,
                 },
                 {
-                  title: "Experiencia personalizada",
-                  text: "Tu perfil ayuda a mostrar mejor catálogo, talla y estilo.",
+                  title: "Tu estilo",
+                  text: vibe,
                 },
                 {
-                  title: "Historial listo",
-                  text: "Acceso rápido a pedidos, trazabilidad y seguimiento.",
+                  title: "Segmento",
+                  text: segment,
                 },
                 {
-                  title: "Base para recomendaciones",
-                  text: "Tus intereses y vibe alimentan una experiencia más precisa.",
+                  title: "Ubicación",
+                  text: city,
                 },
               ].map((item) => (
                 <div
@@ -615,30 +587,32 @@ export default async function AccountPage() {
                     borderRadius: 22,
                     border: "1px solid rgba(0,0,0,0.08)",
                     background:
-                      "linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,248,248,0.96))",
+                      "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,247,247,0.96))",
                     padding: 18,
                   }}
                 >
                   <div
                     style={{
-                      fontSize: 16,
-                      fontWeight: 950,
-                      color: "#111",
-                      lineHeight: 1.25,
+                      fontSize: 11,
+                      fontWeight: 900,
+                      color: "rgba(0,0,0,0.48)",
+                      letterSpacing: "0.12em",
+                      textTransform: "uppercase",
                     }}
                   >
                     {item.title}
                   </div>
-                  <p
+                  <div
                     style={{
-                      marginTop: 8,
-                      fontSize: 14,
-                      lineHeight: 1.65,
-                      color: "rgba(0,0,0,0.68)",
+                      marginTop: 10,
+                      fontSize: 18,
+                      fontWeight: 950,
+                      color: "#111",
+                      lineHeight: 1.3,
                     }}
                   >
                     {item.text}
-                  </p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -662,47 +636,47 @@ export default async function AccountPage() {
                 color: "rgba(0,0,0,0.50)",
               }}
             >
-              Tu identidad JUSP
+              Tu experiencia JUSP
             </div>
 
             <div style={{ marginTop: 16, display: "grid", gap: 12 }}>
               {[
-                { label: "Nombre", value: firstName },
-                { label: "Correo", value: email },
-                { label: "Rol", value: role },
-                { label: "ID visible", value: shortId },
-              ].map((item) => (
+                "Recomendaciones más precisas según tu estilo.",
+                "Mejor selección por talla y preferencias.",
+                "Acceso rápido a tus pedidos y seguimiento.",
+                "Experiencia más alineada con tus intereses.",
+              ].map((text) => (
                 <div
-                  key={item.label}
+                  key={text}
                   style={{
                     borderRadius: 18,
                     border: "1px solid rgba(0,0,0,0.08)",
                     background: "rgba(0,0,0,0.02)",
-                    padding: 14,
+                    padding: 16,
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 12,
                   }}
                 >
-                  <div
+                  <span
                     style={{
-                      fontSize: 11,
-                      fontWeight: 900,
-                      letterSpacing: "0.12em",
-                      textTransform: "uppercase",
-                      color: "rgba(0,0,0,0.48)",
-                    }}
-                  >
-                    {item.label}
-                  </div>
-                  <div
-                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: "50%",
+                      background: "#111",
                       marginTop: 6,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <div
+                    style={{
                       fontSize: 15,
-                      fontWeight: 900,
+                      fontWeight: 800,
                       color: "#111",
-                      lineHeight: 1.4,
-                      wordBreak: "break-word",
+                      lineHeight: 1.55,
                     }}
                   >
-                    {item.value}
+                    {text}
                   </div>
                 </div>
               ))}
@@ -714,7 +688,7 @@ export default async function AccountPage() {
           style={{
             marginTop: 18,
             display: "grid",
-            gridTemplateColumns: "minmax(0, 0.9fr) minmax(0, 1.1fr)",
+            gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
             gap: 18,
           }}
         >
@@ -736,95 +710,20 @@ export default async function AccountPage() {
                 color: "rgba(0,0,0,0.50)",
               }}
             >
-              ADN de estilo
+              Intereses
             </div>
 
             <h3
               style={{
                 margin: "10px 0 0",
-                fontSize: 24,
+                fontSize: 26,
                 fontWeight: 1000,
                 letterSpacing: "-0.04em",
                 color: "#111",
                 lineHeight: 1.08,
               }}
             >
-              Perfil pensado para una experiencia más inteligente.
-            </h3>
-
-            <div style={{ marginTop: 18, display: "grid", gap: 12 }}>
-              {[
-                { label: "Segmento", value: segment },
-                { label: "Talla base", value: size },
-                { label: "Vibe", value: vibe },
-              ].map((item) => (
-                <div
-                  key={item.label}
-                  style={{
-                    borderRadius: 20,
-                    border: "1px solid rgba(0,0,0,0.08)",
-                    background: "linear-gradient(180deg, #fff, #f6f6f6)",
-                    padding: 16,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 900,
-                      letterSpacing: "0.12em",
-                      textTransform: "uppercase",
-                      color: "rgba(0,0,0,0.46)",
-                    }}
-                  >
-                    {item.label}
-                  </div>
-                  <div
-                    style={{
-                      marginTop: 8,
-                      fontSize: 17,
-                      fontWeight: 950,
-                      color: "#111",
-                    }}
-                  >
-                    {item.value}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div
-            style={{
-              borderRadius: 28,
-              background: "#0e0e0e",
-              border: "1px solid rgba(255,255,255,0.08)",
-              boxShadow: "0 28px 70px rgba(0,0,0,0.18)",
-              padding: 22,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 900,
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: "rgba(255,255,255,0.58)",
-              }}
-            >
-              Intereses destacados
-            </div>
-
-            <h3
-              style={{
-                margin: "10px 0 0",
-                fontSize: 24,
-                fontWeight: 1000,
-                letterSpacing: "-0.04em",
-                color: "#fff",
-                lineHeight: 1.08,
-              }}
-            >
-              Esto ayuda a afinar tu experiencia JUSP.
+              Esto ayuda a afinar lo que ves dentro de JUSP.
             </h3>
 
             <div
@@ -843,12 +742,12 @@ export default async function AccountPage() {
                       display: "inline-flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      minHeight: 38,
+                      minHeight: 40,
                       borderRadius: 999,
                       padding: "0 14px",
-                      border: "1px solid rgba(255,255,255,0.10)",
-                      background: "rgba(255,255,255,0.06)",
-                      color: "#fff",
+                      border: "1px solid rgba(0,0,0,0.08)",
+                      background: "linear-gradient(180deg, #fff, #f5f5f5)",
+                      color: "#111",
                       fontSize: 13,
                       fontWeight: 900,
                     }}
@@ -861,18 +760,89 @@ export default async function AccountPage() {
                   style={{
                     width: "100%",
                     borderRadius: 20,
-                    border: "1px solid rgba(255,255,255,0.10)",
-                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(0,0,0,0.08)",
+                    background: "rgba(0,0,0,0.02)",
                     padding: 16,
-                    color: "rgba(255,255,255,0.72)",
+                    color: "rgba(0,0,0,0.68)",
                     fontSize: 14,
                     lineHeight: 1.7,
                   }}
                 >
-                  Aún no hay intereses definidos. Completar tu onboarding mejora la selección de
-                  productos, colecciones y recomendaciones.
+                  Aún no has definido tus intereses. Completar esa parte mejora tus sugerencias,
+                  colecciones y descubrimiento de producto.
                 </div>
               )}
+            </div>
+          </div>
+
+          <div
+            style={{
+              borderRadius: 28,
+              background: "linear-gradient(135deg, #090909 0%, #111111 50%, #191919 100%)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              boxShadow: "0 28px 70px rgba(0,0,0,0.18)",
+              padding: 22,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 900,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: "rgba(255,255,255,0.58)",
+              }}
+            >
+              Qué sigue
+            </div>
+
+            <h3
+              style={{
+                margin: "10px 0 0",
+                fontSize: 26,
+                fontWeight: 1000,
+                letterSpacing: "-0.045em",
+                color: "#fff",
+                lineHeight: 1.08,
+              }}
+            >
+              Lleva tu experiencia JUSP al siguiente nivel.
+            </h3>
+
+            <p
+              style={{
+                marginTop: 14,
+                fontSize: 14,
+                lineHeight: 1.75,
+                color: "rgba(255,255,255,0.74)",
+              }}
+            >
+              Ajusta tu perfil para descubrir productos más alineados contigo, mejorar tu selección
+              por talla y hacer que tu experiencia se sienta aún más personalizada.
+            </p>
+
+            <div style={{ marginTop: 18, display: "grid", gap: 10 }}>
+              {[
+                "Completa los detalles que faltan en tu perfil.",
+                "Afina tu talla base y tu estilo principal.",
+                "Mejora la precisión de tus recomendaciones.",
+              ].map((item) => (
+                <div
+                  key={item}
+                  style={{
+                    borderRadius: 18,
+                    border: "1px solid rgba(255,255,255,0.10)",
+                    background: "rgba(255,255,255,0.04)",
+                    padding: 14,
+                    color: "#fff",
+                    fontSize: 14,
+                    fontWeight: 800,
+                    lineHeight: 1.55,
+                  }}
+                >
+                  {item}
+                </div>
+              ))}
             </div>
 
             <div
@@ -888,7 +858,7 @@ export default async function AccountPage() {
                   display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  minHeight: 46,
+                  minHeight: 48,
                   borderRadius: 999,
                   padding: "0 18px",
                   background: "#fff",
@@ -898,7 +868,7 @@ export default async function AccountPage() {
                   fontWeight: 950,
                 }}
               >
-                Ajustar mi perfil
+                Actualizar perfil
               </Link>
             </div>
           </div>
