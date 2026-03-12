@@ -36,6 +36,11 @@ function safeStr(v: unknown, max = 2000) {
 }
 
 function safeNum(v: unknown) {
+  if (typeof v === "string") {
+    const cleaned = v.replace(/[^\d.,-]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".");
+    const n = Number(cleaned);
+    return Number.isFinite(n) ? n : null;
+  }
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 }
@@ -59,6 +64,99 @@ function tryParseJSON<T>(raw: string): T | null {
   }
 }
 
+function firstNonEmptyString(...values: unknown[]) {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "";
+}
+
+function firstImageFromUnknown(value: unknown): string | null {
+  if (!value) return null;
+
+  if (typeof value === "string") {
+    const s = value.trim();
+    return s || null;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = firstImageFromUnknown(item);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  if (typeof value === "object") {
+    const v = value as any;
+    return (
+      firstNonEmptyString(
+        v.url,
+        v.src,
+        v.secure_url,
+        v.secureUrl,
+        v.original,
+        v.original_url,
+        v.originalUrl,
+        v.thumbnail,
+        v.image,
+      ) || null
+    );
+  }
+
+  return null;
+}
+
+function firstPriceFromUnknown(...values: unknown[]) {
+  for (const value of values) {
+    if (value == null) continue;
+
+    if (typeof value === "number" || typeof value === "string") {
+      const n = safeNum(value);
+      if (n !== null) return n;
+      continue;
+    }
+
+    if (typeof value === "object") {
+      const v = value as any;
+      const nested =
+        safeNum(v.value) ??
+        safeNum(v.amount) ??
+        safeNum(v.price) ??
+        safeNum(v.sale_price) ??
+        safeNum(v.salePrice) ??
+        safeNum(v.min) ??
+        safeNum(v.max);
+
+      if (nested !== null) return nested;
+    }
+  }
+
+  return null;
+}
+
+function normalizeHrefCandidate(raw: any, id: string) {
+  const direct =
+    firstNonEmptyString(
+      raw?.href,
+      raw?.url,
+      raw?.link,
+      raw?.permalink,
+      raw?.productUrl,
+      raw?.product_url,
+      raw?.product?.href,
+      raw?.product?.url,
+      raw?.product?.link,
+    ) || "";
+
+  if (direct) return direct;
+
+  const slug =
+    firstNonEmptyString(raw?.slug, raw?.handle, raw?.product?.slug, raw?.product?.handle, raw?.product_id) || id;
+
+  return `/product/${encodeURIComponent(slug)}`;
+}
+
 function normalizeOne(raw: FavAny): FavoriteItem | null {
   if (typeof raw === "string") {
     const id = raw.trim();
@@ -75,60 +173,75 @@ function normalizeOne(raw: FavAny): FavoriteItem | null {
   const r = raw as any;
 
   const id =
-    safeStr(r.id, 160).trim() ||
-    safeStr(r.product_id, 160).trim() ||
-    safeStr(r.sku, 160).trim() ||
-    safeStr(r.slug, 160).trim();
+    firstNonEmptyString(r.id, r.product_id, r.productId, r.sku, r.slug, r.handle, r.product?.id, r.product?.slug) ||
+    "";
 
   if (!id) return null;
 
   const title =
-    safeStr(r.title, 220).trim() ||
-    safeStr(r.name, 220).trim() ||
-    safeStr(r.product_title, 220).trim() ||
+    firstNonEmptyString(r.title, r.name, r.product_title, r.label, r.product?.title, r.product?.name) ||
     "Producto guardado";
 
-  const price =
-    safeNum(r.price) ??
-    safeNum(r.amount) ??
-    safeNum(r.sale_price) ??
-    safeNum(r.retail_price) ??
-    safeNum(r.value) ??
-    null;
+  const price = firstPriceFromUnknown(
+    r.price,
+    r.amount,
+    r.sale_price,
+    r.salePrice,
+    r.retail_price,
+    r.retailPrice,
+    r.value,
+    r.pricing,
+    r.money,
+    r.product?.price,
+    r.product?.sale_price,
+    r.product?.amount,
+  );
 
   const image =
-    safeStr(r.image, 1400).trim() ||
-    safeStr(r.img, 1400).trim() ||
-    safeStr(r.thumbnail, 1400).trim() ||
-    safeStr(r.cover, 1400).trim() ||
-    null;
+    firstImageFromUnknown(
+      r.image,
+      r.img,
+      r.thumbnail,
+      r.cover,
+      r.image_url,
+      r.imageUrl,
+      r.featuredImage,
+      r.featured_image,
+      r.images,
+      r.gallery,
+      r.media,
+      r.product?.image,
+      r.product?.thumbnail,
+      r.product?.featuredImage,
+      r.product?.images,
+    ) || null;
 
-  const brand = safeStr(r.brand, 120).trim() || safeStr(r.marca, 120).trim() || null;
+  const brand =
+    firstNonEmptyString(r.brand, r.marca, r.vendor, r.manufacturer, r.product?.brand, r.product?.vendor) || null;
 
   const size =
-    safeStr(r.size, 60).trim() ||
-    safeStr(r.talla, 60).trim() ||
-    (Array.isArray(r.sizes) && r.sizes[0] ? safeStr(r.sizes[0], 60).trim() : "") ||
-    null;
+    firstNonEmptyString(
+      r.size,
+      r.talla,
+      Array.isArray(r.sizes) ? r.sizes[0] : "",
+      Array.isArray(r.variants) ? r.variants[0]?.size : "",
+      r.product?.size,
+    ) || null;
 
   const color =
-    safeStr(r.color, 60).trim() ||
-    safeStr(r.colour, 60).trim() ||
-    safeStr(r.colorway, 60).trim() ||
-    (Array.isArray(r.colors) && r.colors[0] ? safeStr(r.colors[0], 60).trim() : "") ||
-    null;
+    firstNonEmptyString(
+      r.color,
+      r.colour,
+      r.colorway,
+      Array.isArray(r.colors) ? r.colors[0] : "",
+      r.product?.color,
+      r.product?.colour,
+    ) || null;
 
-  const href =
-    safeStr(r.href, 600).trim() ||
-    safeStr(r.url, 600).trim() ||
-    safeStr(r.link, 600).trim() ||
-    (id ? `/product/${encodeURIComponent(id)}` : "/products");
+  const href = normalizeHrefCandidate(r, id);
 
   const createdAt =
-    safeStr(r.createdAt, 60).trim() ||
-    safeStr(r.created_at, 60).trim() ||
-    safeStr(r.savedAt, 60).trim() ||
-    null;
+    firstNonEmptyString(r.createdAt, r.created_at, r.savedAt, r.saved_at, r.updatedAt, r.updated_at) || null;
 
   return {
     id,
@@ -136,8 +249,8 @@ function normalizeOne(raw: FavAny): FavoriteItem | null {
     price,
     image,
     brand,
-    size: size || null,
-    color: color || null,
+    size,
+    color,
     href: href || null,
     createdAt,
   };
@@ -153,6 +266,7 @@ function normalizeList(input: unknown): FavoriteItem[] {
       (Array.isArray(maybeObj.items) && maybeObj.items) ||
       (Array.isArray(maybeObj.favorites) && maybeObj.favorites) ||
       (Array.isArray(maybeObj.list) && maybeObj.list) ||
+      (Array.isArray(maybeObj.data) && maybeObj.data) ||
       null;
 
     if (arr) return normalizeList(arr);
@@ -188,7 +302,6 @@ function readFavoritesRaw(): { key: string | null; value: unknown } {
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
-
       return { key: k, value: arr };
     }
 
@@ -200,7 +313,6 @@ function readFavoritesRaw(): { key: string | null; value: unknown } {
 
 function writeFavorites(key: string, items: FavoriteItem[]) {
   if (typeof window === "undefined") return;
-
   const payload = items.map((x) => ({
     id: x.id,
     title: x.title,
@@ -212,7 +324,6 @@ function writeFavorites(key: string, items: FavoriteItem[]) {
     href: x.href ?? null,
     createdAt: x.createdAt ?? null,
   }));
-
   window.localStorage.setItem(key, JSON.stringify(payload));
 }
 
@@ -235,7 +346,6 @@ export default function FavoritesPage() {
   const [chip, setChip] = useState<string | null>(null);
 
   const [toast, setToast] = useState<string | null>(null);
-  const [active, setActive] = useState<FavoriteItem | null>(null);
 
   const mounted = useRef(true);
   const toastTimer = useRef<any>(null);
@@ -243,9 +353,7 @@ export default function FavoritesPage() {
   function showToast(msg: string) {
     if (!mounted.current) return;
     setToast(msg);
-
     if (toastTimer.current) clearTimeout(toastTimer.current);
-
     toastTimer.current = setTimeout(() => {
       if (mounted.current) setToast(null);
     }, 2200);
@@ -271,19 +379,11 @@ export default function FavoritesPage() {
       if (!e.key) return;
       if (KEYS_CANDIDATES.includes(e.key)) reload();
     };
-
     window.addEventListener("storage", onStorage);
-
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setActive(null);
-    };
-
-    window.addEventListener("keydown", onKey);
 
     return () => {
       mounted.current = false;
       window.removeEventListener("storage", onStorage);
-      window.removeEventListener("keydown", onKey);
       if (toastTimer.current) clearTimeout(toastTimer.current);
     };
   }, []);
@@ -302,7 +402,7 @@ export default function FavoritesPage() {
       if (it.size) c.push(`Talla ${it.size}`);
       if (it.color) c.push(it.color);
     }
-    return uniq(c).slice(0, 14);
+    return uniq(c).slice(0, 12);
   }, [items]);
 
   const filtered = useMemo(() => {
@@ -312,14 +412,9 @@ export default function FavoritesPage() {
     if (chip) {
       const cl = chip.toLowerCase();
       list = list.filter((x) => {
-        const all = [
-          x.brand ? String(x.brand) : "",
-          x.size ? `Talla ${x.size}` : "",
-          x.color ? String(x.color) : "",
-        ]
+        const all = [x.brand ? String(x.brand) : "", x.size ? `Talla ${x.size}` : "", x.color ? String(x.color) : ""]
           .join(" · ")
           .toLowerCase();
-
         return all.includes(cl);
       });
     }
@@ -353,44 +448,12 @@ export default function FavoritesPage() {
     return list;
   }, [items, query, sort, chip]);
 
-  function remove(id: string) {
-    const next = items.filter((x) => x.id !== id);
-    setItems(next);
-    writeFavorites(storeKey, next);
-    showToast("Eliminado de favoritos");
-    if (active?.id === id) setActive(null);
-  }
-
   function clearAll() {
     setItems([]);
     try {
       window.localStorage.setItem(storeKey, JSON.stringify([]));
     } catch {}
     showToast("Favoritos vacíos");
-    setActive(null);
-  }
-
-  function copyText(label: string, value: string) {
-    if (!value) {
-      showToast("Nada para copiar");
-      return;
-    }
-
-    try {
-      navigator.clipboard.writeText(value);
-      showToast(`${label} copiado`);
-    } catch {
-      showToast("No se pudo copiar");
-    }
-  }
-
-  function applyChipFromModal(value: string) {
-    const v = String(value || "").trim();
-    if (!v) return;
-    setActive(null);
-    setQuery("");
-    setChip(v);
-    showToast(`Filtrando: ${v}`);
   }
 
   function productHrefFrom(item: FavoriteItem) {
@@ -405,53 +468,35 @@ export default function FavoritesPage() {
     <main className="fv-root">
       <div className="fv-wrap">
         <section className={`hero ${loading ? "isLoading" : "ready"}`}>
-          <div className="hero-left">
-            <div className="eyebrow-row">
-              <div className="kicker">CUENTA</div>
-              <div className="eyebrow-pill">Colección personal</div>
-            </div>
-
+          <div className="hero-copy">
+            <div className="kicker">CUENTA</div>
             <h1 className="title">Favoritos</h1>
-
             <p className="sub">
-              Todo lo que guardas en JUSP, en un solo lugar. Más limpio, más premium y listo para volver
-              cuando quieras.
+              Tu selección guardada en JUSP. Limpia, elegante y lista para volver a lo que más te
+              gustó.
             </p>
 
             <div className="stats">
-              <div className="stat stat-featured">
+              <div className="stat stat-main">
                 <div className="stat-l">Guardados</div>
                 <div className="stat-v">{loading ? "—" : kpis.total}</div>
-                <div className="stat-s">Tus piezas guardadas</div>
               </div>
 
               <div className="stat">
                 <div className="stat-l">Con precio</div>
                 <div className="stat-v">{loading ? "—" : kpis.withPrice}</div>
-                <div className="stat-s">Listos para comparar</div>
               </div>
 
               <div className="stat">
-                <div className="stat-l">Valor visible</div>
+                <div className="stat-l">Total visible</div>
                 <div className="stat-v">{loading ? "—" : `$${safeMoneyCOP(kpis.sum)}`}</div>
-                <div className="stat-s">Suma referencial</div>
-              </div>
-
-              <div className="stat">
-                <div className="stat-l">Estado</div>
-                <div className="stat-v mono">{loading ? "—" : items.length ? "ACTIVO" : "VACÍO"}</div>
-                <div className="stat-s">{loading ? "Cargando" : items.length ? "Tu selección vive aquí" : "Listo para empezar"}</div>
               </div>
             </div>
           </div>
 
-          <div className="hero-right">
-            <div className="hero-topline">
-              <div className="hero-badge">{loading ? "Preparando vista…" : filtered.length === 1 ? "1 favorito visible" : `${filtered.length} favoritos visibles`}</div>
-            </div>
-
+          <div className="hero-side">
             <div className="actions">
-              <Link className="btn ghost bright" href="/products">
+              <Link className="btn ghost" href="/products">
                 Seguir comprando
               </Link>
 
@@ -508,23 +553,23 @@ export default function FavoritesPage() {
                 ))}
               </div>
             ) : (
-              <div className="hint">Tu colección se irá refinando a medida que guardes más productos.</div>
+              <div className="hero-note">
+                {loading ? "Preparando tu colección…" : "Guarda productos para empezar tu selección."}
+              </div>
             )}
           </div>
 
           <div className="hero-glow" />
-          <div className="hero-grid-shine" />
         </section>
 
         {loading ? (
           <div className="grid">
-            {Array.from({ length: 10 }).map((_, i) => (
+            {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="card sk">
                 <div className="sk-img" />
                 <div className="sk-body">
                   <div className="sk-line w70" />
                   <div className="sk-line w55" />
-                  <div className="sk-line w35" />
                   <div className="sk-row">
                     <div className="sk-pill w25" />
                     <div className="sk-pill w35" />
@@ -536,12 +581,11 @@ export default function FavoritesPage() {
         ) : items.length === 0 ? (
           <div className="empty">
             <div className="empty-card">
-              <div className="empty-orb" />
-              <div className="empty-badge">Tu selección aún está vacía</div>
+              <div className="empty-badge">Tu selección está vacía</div>
               <div className="empty-h">Empieza a guardar lo mejor de JUSP</div>
               <div className="empty-p">
-                Cuando marques un producto como favorito, aparecerá aquí con una vista más limpia,
-                más rápida y mucho más premium.
+                Marca tus productos favoritos y vuelve aquí para verlos en una colección más limpia,
+                rápida y premium.
               </div>
 
               <div className="empty-actions">
@@ -556,8 +600,8 @@ export default function FavoritesPage() {
             </div>
           </div>
         ) : emptyByFilter ? (
-          <div className="empty">
-            <div className="empty-card compact">
+          <div className="empty small">
+            <div className="empty-card small">
               <div className="empty-badge">Sin resultados</div>
               <div className="empty-h">No hay coincidencias con ese filtro</div>
               <div className="empty-p">Prueba otra búsqueda o vuelve a mostrar toda tu colección.</div>
@@ -579,18 +623,16 @@ export default function FavoritesPage() {
               const title = p.title || "Producto";
               const price = typeof p.price === "number" ? p.price : null;
               const chipsLocal: string[] = [];
-
               if (p.brand) chipsLocal.push(String(p.brand));
               if (p.size) chipsLocal.push(`Talla ${p.size}`);
               if (p.color) chipsLocal.push(String(p.color));
 
               return (
-                <button
+                <Link
                   key={p.id}
-                  className="card"
+                  href={productHrefFrom(p)}
+                  className="card card-link"
                   style={{ animationDelay: `${Math.min(idx * 16, 180)}ms` }}
-                  onClick={() => setActive(p)}
-                  type="button"
                 >
                   <div className="img">
                     {p.image ? (
@@ -603,16 +645,14 @@ export default function FavoritesPage() {
                       </div>
                     )}
 
-                    <div className="img-shade" />
-
                     <div className="topline">
-                      <span className="tag mono">{compactId(p.id)}</span>
-
                       {price !== null ? (
                         <span className="tag price">${safeMoneyCOP(price)}</span>
                       ) : (
-                        <span className="tag soft">Guardado</span>
+                        <span className="tag soft">Favorito</span>
                       )}
+
+                      <span className="tag mono">{compactId(p.id)}</span>
                     </div>
                   </div>
 
@@ -622,135 +662,20 @@ export default function FavoritesPage() {
                     <div className="chips">
                       {chipsLocal.length ? (
                         chipsLocal.slice(0, 3).map((c) => (
-                          <span key={c} className="chip">
+                          <span key={c} className="chip static">
                             {c}
                           </span>
                         ))
                       ) : (
-                        <span className="chip soft">Favorito</span>
+                        <span className="chip soft static">Guardado</span>
                       )}
                     </div>
-
-                    <div className="hintline">
-                      <span>Ver detalle</span>
-                      <span className="arrow">→</span>
-                    </div>
                   </div>
-                </button>
+                </Link>
               );
             })}
           </div>
         )}
-
-        {active ? (
-          <div
-            className="modal"
-            role="dialog"
-            aria-modal="true"
-            onMouseDown={(e) => {
-              if (e.target === e.currentTarget) setActive(null);
-            }}
-          >
-            <div className="sheet" role="document">
-              <div className="sheet-top">
-                <div>
-                  <div className="sheet-k">FAVORITO</div>
-                  <div className="sheet-h">{active.title}</div>
-
-                  <div className="sheet-sub">
-                    <span className="mono">{compactId(active.id)}</span>
-                    {typeof active.price === "number" ? (
-                      <>
-                        <span className="dot">•</span>
-                        <span className="price">${safeMoneyCOP(active.price)}</span>
-                      </>
-                    ) : null}
-                  </div>
-                </div>
-
-                <button className="x2" onClick={() => setActive(null)} type="button" aria-label="Cerrar">
-                  ×
-                </button>
-              </div>
-
-              <div className="sheet-body">
-                <div className="sheet-img">
-                  {active.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={active.image} alt={active.title} />
-                  ) : (
-                    <div className="sheet-noimg">
-                      <span className="noimg-dot" />
-                      <span>Sin imagen</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="sheet-meta">
-                  <div className="meta-grid">
-                    <div className="meta">
-                      <div className="meta-l">Marca</div>
-                      <div className="meta-v">{active.brand || "—"}</div>
-                    </div>
-
-                    <div className="meta">
-                      <div className="meta-l">Talla</div>
-                      <div className="meta-v">{active.size ? `Talla ${active.size}` : "—"}</div>
-                    </div>
-
-                    <div className="meta">
-                      <div className="meta-l">Color</div>
-                      <div className="meta-v">{active.color || "—"}</div>
-                    </div>
-
-                    <div className="meta">
-                      <div className="meta-l">Destino</div>
-                      <div className="meta-v mono">{productHrefFrom(active) ? "DISPONIBLE" : "—"}</div>
-                    </div>
-                  </div>
-
-                  <div className="sheet-actions">
-                    <Link className="btn ghost" href={productHrefFrom(active)}>
-                      Ver producto
-                    </Link>
-
-                    <button className="btn ghost" onClick={() => copyText("ID", active.id)} type="button">
-                      Copiar ID
-                    </button>
-
-                    <button className="btn ghost" onClick={() => copyText("Link", productHrefFrom(active))} type="button">
-                      Copiar link
-                    </button>
-
-                    <button className="btn" onClick={() => remove(active.id)} type="button">
-                      Quitar de favoritos
-                    </button>
-                  </div>
-
-                  <div className="sheet-chipbar">
-                    {active.brand ? (
-                      <button type="button" className="chip" onClick={() => applyChipFromModal(active.brand!)}>
-                        {active.brand}
-                      </button>
-                    ) : null}
-
-                    {active.size ? (
-                      <button type="button" className="chip" onClick={() => applyChipFromModal(`Talla ${active.size}`)}>
-                        Talla {active.size}
-                      </button>
-                    ) : null}
-
-                    {active.color ? (
-                      <button type="button" className="chip" onClick={() => applyChipFromModal(active.color!)}>
-                        {active.color}
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : null}
 
         {toast ? <div className="toast">{toast}</div> : null}
       </div>
@@ -764,11 +689,11 @@ export default function FavoritesPage() {
           padding-top: calc(var(--jusp-header-h, 64px) + 18px);
           padding-left: 16px;
           padding-right: 16px;
-          padding-bottom: 42px;
+          padding-bottom: 38px;
           background:
-            radial-gradient(1200px 620px at 14% -2%, rgba(255, 214, 0, 0.12), transparent 48%),
-            radial-gradient(900px 520px at 95% 8%, rgba(0, 0, 0, 0.06), transparent 58%),
-            linear-gradient(180deg, #f7f7f7 0%, #f1f1f1 100%);
+            radial-gradient(920px 380px at 12% 0%, rgba(255, 214, 0, 0.11), transparent 58%),
+            radial-gradient(980px 520px at 100% 10%, rgba(0, 0, 0, 0.04), transparent 60%),
+            linear-gradient(180deg, #f7f7f7 0%, #f0f0f0 100%);
           min-height: 100vh;
         }
 
@@ -779,21 +704,23 @@ export default function FavoritesPage() {
 
         .hero {
           position: relative;
-          border-radius: 32px;
           overflow: hidden;
+          border-radius: 30px;
           border: 1px solid rgba(0, 0, 0, 0.08);
-          background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 248, 248, 0.96));
-          box-shadow:
-            0 26px 80px rgba(0, 0, 0, 0.1),
-            inset 0 1px 0 rgba(255, 255, 255, 0.7);
-          padding: 22px;
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(247, 247, 247, 0.95));
+          box-shadow: 0 28px 80px rgba(0, 0, 0, 0.09);
+          padding: 24px;
           display: grid;
-          grid-template-columns: 1.15fr 1fr;
-          gap: 16px;
+          grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+          gap: 18px;
           transform: translateY(10px);
           opacity: 0;
           animation: heroIn 420ms ease forwards;
-          isolation: isolate;
+        }
+
+        .hero.isLoading {
+          opacity: 1;
+          transform: translateY(0);
         }
 
         @keyframes heroIn {
@@ -803,155 +730,92 @@ export default function FavoritesPage() {
           }
         }
 
-        .hero.isLoading {
-          opacity: 1;
-          transform: translateY(0);
-        }
-
         .hero-glow {
-          position: absolute;
-          inset: -1px;
-          pointer-events: none;
-          background:
-            radial-gradient(900px 420px at 10% 0%, rgba(255, 214, 0, 0.22), transparent 54%),
-            radial-gradient(760px 420px at 100% 0%, rgba(0, 0, 0, 0.05), transparent 60%);
-          mix-blend-mode: multiply;
-          z-index: 0;
-        }
-
-        .hero-grid-shine {
           position: absolute;
           inset: 0;
           pointer-events: none;
-          background: linear-gradient(125deg, rgba(255, 255, 255, 0.26), transparent 35%, transparent 70%, rgba(255, 255, 255, 0.18));
-          opacity: 0.65;
-          z-index: 0;
+          background:
+            radial-gradient(720px 320px at 0% 0%, rgba(255, 214, 0, 0.2), transparent 58%),
+            linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent 40%);
+          opacity: 0.8;
         }
 
-        .hero-left,
-        .hero-right {
+        .hero-copy,
+        .hero-side {
           position: relative;
           z-index: 1;
         }
 
-        .eyebrow-row {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          flex-wrap: wrap;
-        }
-
-        .eyebrow-pill {
-          display: inline-flex;
-          align-items: center;
-          min-height: 30px;
-          border-radius: 999px;
-          padding: 0 12px;
-          font-size: 12px;
-          font-weight: 950;
-          color: #111;
-          background: rgba(255, 214, 0, 0.38);
-          border: 1px solid rgba(0, 0, 0, 0.08);
-          box-shadow: 0 10px 24px rgba(255, 214, 0, 0.14);
-        }
-
         .kicker {
-          font-weight: 950;
           font-size: 11px;
+          font-weight: 950;
           letter-spacing: 0.16em;
-          color: rgba(0, 0, 0, 0.54);
+          color: rgba(0, 0, 0, 0.52);
         }
 
         .title {
           margin: 8px 0 8px;
-          font-size: 42px;
-          line-height: 0.96;
+          font-size: 40px;
+          line-height: 0.95;
           font-weight: 1000;
           letter-spacing: -0.045em;
-          color: #0f0f0f;
+          color: #111;
         }
 
         .sub {
           margin: 0;
-          max-width: 720px;
-          color: rgba(0, 0, 0, 0.72);
+          max-width: 640px;
           font-size: 14px;
           line-height: 1.72;
           font-weight: 700;
-        }
-
-        .mono {
-          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
-            monospace;
-          font-weight: 950;
+          color: rgba(0, 0, 0, 0.7);
         }
 
         .stats {
-          margin-top: 16px;
+          margin-top: 18px;
           display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 10px;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
         }
 
         .stat {
-          position: relative;
-          border-radius: 20px;
-          background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(244, 244, 244, 0.9));
+          border-radius: 22px;
+          padding: 16px;
+          background: rgba(255, 255, 255, 0.7);
           border: 1px solid rgba(0, 0, 0, 0.06);
-          padding: 14px;
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.56);
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
         }
 
-        .stat-featured {
-          background: linear-gradient(180deg, rgba(255, 245, 184, 0.74), rgba(255, 255, 255, 0.9));
+        .stat-main {
+          background: linear-gradient(180deg, rgba(255, 245, 196, 0.76), rgba(255, 255, 255, 0.88));
         }
 
         .stat-l {
           font-size: 11px;
           font-weight: 950;
           letter-spacing: 0.14em;
-          color: rgba(0, 0, 0, 0.55);
           text-transform: uppercase;
+          color: rgba(0, 0, 0, 0.52);
         }
 
         .stat-v {
           margin-top: 8px;
-          font-size: 21px;
+          font-size: 24px;
+          line-height: 1;
           font-weight: 1000;
+          letter-spacing: -0.04em;
           color: #111;
           word-break: break-word;
-          letter-spacing: -0.03em;
         }
 
-        .stat-s {
-          margin-top: 6px;
-          font-size: 12px;
-          line-height: 1.45;
-          color: rgba(0, 0, 0, 0.58);
-          font-weight: 800;
-        }
-
-        .hero-topline {
+        .hero-side {
           display: flex;
-          justify-content: flex-end;
-        }
-
-        .hero-badge {
-          display: inline-flex;
-          align-items: center;
-          min-height: 34px;
-          border-radius: 999px;
-          padding: 0 14px;
-          font-size: 12px;
-          font-weight: 950;
-          color: #111;
-          background: rgba(255, 255, 255, 0.84);
-          border: 1px solid rgba(0, 0, 0, 0.08);
-          box-shadow: 0 14px 28px rgba(0, 0, 0, 0.06);
+          flex-direction: column;
+          justify-content: center;
+          gap: 14px;
         }
 
         .actions {
-          margin-top: 10px;
           display: flex;
           gap: 10px;
           flex-wrap: wrap;
@@ -959,21 +823,20 @@ export default function FavoritesPage() {
         }
 
         .controls {
-          margin-top: 14px;
           display: grid;
           grid-template-columns: 1fr 230px;
           gap: 10px;
         }
 
         .search {
-          border-radius: 999px;
-          border: 1px solid rgba(0, 0, 0, 0.1);
-          background: rgba(255, 255, 255, 0.88);
           display: flex;
           align-items: center;
           gap: 8px;
-          padding: 11px 14px;
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+          min-height: 48px;
+          border-radius: 999px;
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          background: rgba(255, 255, 255, 0.9);
+          padding: 0 14px;
         }
 
         .search-ico {
@@ -982,102 +845,101 @@ export default function FavoritesPage() {
         }
 
         .search input {
+          width: 100%;
           border: 0;
           outline: none;
-          width: 100%;
+          background: transparent;
+          color: #111;
           font-size: 13px;
           font-weight: 900;
-          color: #111;
-          background: transparent;
         }
 
         .x {
-          border: 0;
-          background: rgba(0, 0, 0, 0.06);
-          color: #111;
           width: 26px;
           height: 26px;
           border-radius: 999px;
+          border: 0;
+          background: rgba(0, 0, 0, 0.06);
+          color: #111;
           cursor: pointer;
           font-weight: 950;
         }
 
         .sort select {
           width: 100%;
+          min-height: 48px;
           border-radius: 999px;
           border: 1px solid rgba(0, 0, 0, 0.1);
-          background: rgba(255, 255, 255, 0.88);
-          padding: 11px 14px;
-          font-size: 13px;
-          font-weight: 900;
+          background: rgba(255, 255, 255, 0.9);
+          padding: 0 14px;
           outline: none;
           color: #111;
+          font-size: 13px;
+          font-weight: 900;
           cursor: pointer;
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
         }
 
         .chipbar {
-          margin-top: 14px;
           display: flex;
           gap: 8px;
           flex-wrap: wrap;
           justify-content: flex-end;
         }
 
-        .hint {
-          margin-top: 14px;
-          color: rgba(0, 0, 0, 0.6);
+        .hero-note {
           font-size: 12px;
           font-weight: 900;
+          color: rgba(0, 0, 0, 0.58);
           text-align: right;
         }
 
         .grid {
+          margin-top: 16px;
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 14px;
-          margin-top: 16px;
         }
 
         .card {
           text-align: left;
-          border-radius: 24px;
-          background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 247, 247, 0.94));
-          border: 1px solid rgba(0, 0, 0, 0.08);
-          box-shadow:
-            0 24px 64px rgba(0, 0, 0, 0.08),
-            inset 0 1px 0 rgba(255, 255, 255, 0.72);
+          padding: 0;
           overflow: hidden;
-          cursor: pointer;
+          border-radius: 24px;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(246, 246, 246, 0.95));
+          box-shadow: 0 22px 64px rgba(0, 0, 0, 0.08);
           transform: translateY(10px);
           opacity: 0;
           animation: pop 360ms ease forwards;
           transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
-          padding: 0;
-          position: relative;
+        }
+
+        .card-link {
+          display: block;
+          text-decoration: none;
+          color: inherit;
+          cursor: pointer;
         }
 
         .card:hover {
           transform: translateY(-4px);
-          box-shadow:
-            0 32px 84px rgba(0, 0, 0, 0.12),
-            inset 0 1px 0 rgba(255, 255, 255, 0.72);
+          box-shadow: 0 30px 84px rgba(0, 0, 0, 0.12);
           border-color: rgba(0, 0, 0, 0.12);
         }
 
         @keyframes pop {
           to {
-            transform: translateY(0px);
+            transform: translateY(0);
             opacity: 1;
           }
         }
 
         .img {
-          height: 208px;
-          background: linear-gradient(180deg, rgba(0, 0, 0, 0.03), rgba(0, 0, 0, 0.05));
-          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
           position: relative;
           overflow: hidden;
+          height: 210px;
+          background: rgba(0, 0, 0, 0.04);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
         }
 
         .img img {
@@ -1085,19 +947,11 @@ export default function FavoritesPage() {
           height: 100%;
           object-fit: cover;
           display: block;
-          transform: scale(1.02);
           transition: transform 240ms ease;
         }
 
         .card:hover .img img {
-          transform: scale(1.06);
-        }
-
-        .img-shade {
-          position: absolute;
-          inset: 0;
-          pointer-events: none;
-          background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.08));
+          transform: scale(1.04);
         }
 
         .topline {
@@ -1106,27 +960,30 @@ export default function FavoritesPage() {
           left: 12px;
           right: 12px;
           display: flex;
+          align-items: flex-start;
           justify-content: space-between;
-          gap: 10px;
-          pointer-events: none;
+          gap: 8px;
         }
 
         .tag {
+          display: inline-flex;
+          align-items: center;
+          min-height: 30px;
           border-radius: 999px;
-          padding: 7px 10px;
+          padding: 0 10px;
           font-size: 12px;
           font-weight: 950;
-          background: rgba(255, 255, 255, 0.88);
-          border: 1px solid rgba(0, 0, 0, 0.1);
-          color: rgba(0, 0, 0, 0.78);
-          backdrop-filter: blur(8px);
           white-space: nowrap;
+          background: rgba(255, 255, 255, 0.9);
+          color: rgba(0, 0, 0, 0.78);
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          backdrop-filter: blur(8px);
         }
 
         .tag.price {
           background: rgba(17, 17, 17, 0.92);
+          color: #fff;
           border-color: rgba(255, 255, 255, 0.12);
-          color: rgba(255, 255, 255, 0.94);
         }
 
         .tag.soft {
@@ -1134,12 +991,19 @@ export default function FavoritesPage() {
           color: #111;
         }
 
-        .noimg {
+        .mono {
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+            monospace;
+          font-weight: 950;
+        }
+
+        .noimg,
+        .sheet-noimg {
           height: 100%;
           display: grid;
           place-items: center;
           gap: 8px;
-          color: rgba(0, 0, 0, 0.55);
+          color: rgba(0, 0, 0, 0.56);
           font-weight: 900;
         }
 
@@ -1151,21 +1015,21 @@ export default function FavoritesPage() {
         }
 
         .body {
-          padding: 14px;
           display: grid;
           gap: 10px;
+          padding: 14px;
         }
 
         .t {
-          font-weight: 950;
-          color: #111;
           font-size: 15px;
-          line-height: 1.28;
+          line-height: 1.3;
+          font-weight: 950;
+          letter-spacing: -0.02em;
+          color: #111;
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
-          letter-spacing: -0.02em;
         }
 
         .chips {
@@ -1175,8 +1039,11 @@ export default function FavoritesPage() {
         }
 
         .chip {
+          display: inline-flex;
+          align-items: center;
+          min-height: 32px;
           border-radius: 999px;
-          padding: 7px 10px;
+          padding: 0 10px;
           font-size: 12px;
           font-weight: 900;
           border: 1px solid rgba(0, 0, 0, 0.1);
@@ -1184,57 +1051,44 @@ export default function FavoritesPage() {
           color: rgba(0, 0, 0, 0.78);
           white-space: nowrap;
           cursor: pointer;
-          transition: transform 120ms ease, background 120ms ease, color 120ms ease;
+          transition: transform 120ms ease;
         }
 
         .chip:active {
           transform: scale(0.98);
         }
 
+        .chip.static {
+          cursor: default;
+        }
+
         .chip.soft {
           background: rgba(255, 214, 0, 0.45);
-          border-color: rgba(0, 0, 0, 0.12);
           color: #111;
         }
 
         .chip.on {
           background: rgba(17, 17, 17, 0.94);
-          border-color: rgba(255, 255, 255, 0.16);
-          color: rgba(255, 255, 255, 0.94);
-        }
-
-        .hintline {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          font-size: 12px;
-          font-weight: 900;
-          color: rgba(0, 0, 0, 0.62);
-          padding-top: 8px;
-          border-top: 1px solid rgba(0, 0, 0, 0.06);
-        }
-
-        .arrow {
-          font-weight: 950;
-          color: rgba(0, 0, 0, 0.55);
+          border-color: rgba(255, 255, 255, 0.12);
+          color: #fff;
         }
 
         .btn {
-          border: 0;
-          border-radius: 999px;
-          padding: 12px 14px;
-          font-weight: 950;
-          cursor: pointer;
-          background: #111;
-          color: #fff;
-          font-size: 13px;
-          text-decoration: none;
           display: inline-flex;
           align-items: center;
           justify-content: center;
+          min-height: 46px;
+          padding: 0 16px;
+          border-radius: 999px;
+          border: 0;
+          cursor: pointer;
+          text-decoration: none;
           line-height: 1;
-          transition: transform 140ms ease, opacity 140ms ease, background 140ms ease, box-shadow 140ms ease;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+          font-size: 13px;
+          font-weight: 950;
+          background: #111;
+          color: #fff;
+          transition: transform 140ms ease, opacity 140ms ease, background 140ms ease;
         }
 
         .btn:active {
@@ -1249,16 +1103,11 @@ export default function FavoritesPage() {
         .btn.ghost {
           background: rgba(255, 255, 255, 0.92);
           color: #111;
-          border: 1px solid rgba(0, 0, 0, 0.14);
-          box-shadow: 0 10px 26px rgba(0, 0, 0, 0.05);
+          border: 1px solid rgba(0, 0, 0, 0.12);
         }
 
         .btn.ghost:hover {
           background: rgba(0, 0, 0, 0.03);
-        }
-
-        .btn.ghost.bright {
-          background: #fff;
         }
 
         .btn.danger {
@@ -1271,77 +1120,58 @@ export default function FavoritesPage() {
 
         .empty {
           margin-top: 18px;
+          min-height: 52vh;
           display: grid;
           place-items: center;
-          min-height: 52vh;
+        }
+
+        .empty.small {
+          min-height: 42vh;
         }
 
         .empty-card {
-          position: relative;
-          max-width: 720px;
           width: 100%;
+          max-width: 700px;
           border-radius: 30px;
-          overflow: hidden;
-          background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 246, 246, 0.96));
+          padding: 26px;
           border: 1px solid rgba(0, 0, 0, 0.08);
-          box-shadow:
-            0 30px 90px rgba(0, 0, 0, 0.1),
-            inset 0 1px 0 rgba(255, 255, 255, 0.72);
-          padding: 24px;
-          isolation: isolate;
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 246, 246, 0.96));
+          box-shadow: 0 30px 90px rgba(0, 0, 0, 0.1);
         }
 
-        .empty-card.compact {
+        .empty-card.small {
           max-width: 620px;
-        }
-
-        .empty-orb {
-          position: absolute;
-          top: -100px;
-          right: -40px;
-          width: 220px;
-          height: 220px;
-          border-radius: 999px;
-          background: radial-gradient(circle, rgba(255, 214, 0, 0.28), transparent 70%);
-          pointer-events: none;
-          z-index: 0;
-        }
-
-        .empty-badge,
-        .empty-h,
-        .empty-p,
-        .empty-actions {
-          position: relative;
-          z-index: 1;
         }
 
         .empty-badge {
           display: inline-flex;
+          align-items: center;
+          min-height: 32px;
           border-radius: 999px;
-          padding: 8px 12px;
+          padding: 0 12px;
           font-size: 12px;
           font-weight: 950;
-          border: 1px solid rgba(0, 0, 0, 0.12);
-          background: rgba(255, 214, 0, 0.55);
+          background: rgba(255, 214, 0, 0.58);
           color: #111;
+          border: 1px solid rgba(0, 0, 0, 0.12);
         }
 
         .empty-h {
-          margin-top: 12px;
-          font-size: 28px;
+          margin-top: 14px;
+          font-size: 30px;
           line-height: 1.04;
           font-weight: 1000;
+          letter-spacing: -0.045em;
           color: #111;
-          letter-spacing: -0.04em;
         }
 
         .empty-p {
           margin-top: 10px;
+          max-width: 560px;
           font-size: 14px;
-          color: rgba(0, 0, 0, 0.7);
           line-height: 1.72;
           font-weight: 800;
-          max-width: 560px;
+          color: rgba(0, 0, 0, 0.7);
         }
 
         .empty-actions {
@@ -1351,181 +1181,11 @@ export default function FavoritesPage() {
           flex-wrap: wrap;
         }
 
-        .modal {
-          position: fixed;
-          inset: 0;
-          background: rgba(0, 0, 0, 0.38);
-          display: grid;
-          place-items: center;
-          padding: 16px;
-          z-index: 80;
-          animation: fade 160ms ease forwards;
-        }
-
-        @keyframes fade {
-          to {
-            background: rgba(0, 0, 0, 0.5);
-          }
-        }
-
-        .sheet {
-          width: min(980px, 100%);
-          border-radius: 28px;
-          background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 248, 248, 0.96));
-          border: 1px solid rgba(255, 255, 255, 0.22);
-          box-shadow: 0 38px 120px rgba(0, 0, 0, 0.34);
-          overflow: hidden;
-          transform: translateY(10px);
-          opacity: 0;
-          animation: sheetIn 220ms ease forwards;
-        }
-
-        @keyframes sheetIn {
-          to {
-            transform: translateY(0);
-            opacity: 1;
-          }
-        }
-
-        .sheet-top {
-          padding: 16px 16px 12px;
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          gap: 10px;
-          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-        }
-
-        .sheet-k {
-          font-weight: 950;
-          font-size: 11px;
-          letter-spacing: 0.14em;
-          color: rgba(0, 0, 0, 0.55);
-        }
-
-        .sheet-h {
-          margin-top: 6px;
-          font-size: 22px;
-          line-height: 1.06;
-          font-weight: 1000;
-          color: #111;
-          letter-spacing: -0.03em;
-        }
-
-        .sheet-sub {
-          margin-top: 8px;
-          font-size: 12px;
-          color: rgba(0, 0, 0, 0.62);
-          font-weight: 900;
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-          align-items: center;
-        }
-
-        .dot {
-          opacity: 0.5;
-        }
-
-        .price {
-          color: rgba(0, 0, 0, 0.78);
-        }
-
-        .x2 {
-          border: 0;
-          background: rgba(0, 0, 0, 0.06);
-          color: #111;
-          width: 36px;
-          height: 36px;
-          border-radius: 999px;
-          cursor: pointer;
-          font-weight: 950;
-          font-size: 18px;
-        }
-
-        .sheet-body {
-          padding: 16px;
-          display: grid;
-          grid-template-columns: 0.92fr 1.08fr;
-          gap: 16px;
-        }
-
-        .sheet-img {
-          border-radius: 22px;
-          overflow: hidden;
-          border: 1px solid rgba(0, 0, 0, 0.08);
-          background: rgba(0, 0, 0, 0.03);
-          height: 380px;
-        }
-
-        .sheet-img img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          display: block;
-        }
-
-        .sheet-noimg {
-          height: 100%;
-          display: grid;
-          place-items: center;
-          gap: 8px;
-          color: rgba(0, 0, 0, 0.55);
-          font-weight: 900;
-        }
-
-        .sheet-meta {
-          display: grid;
-          gap: 12px;
-          align-content: start;
-        }
-
-        .meta-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 10px;
-        }
-
-        .meta {
-          border-radius: 18px;
-          background: rgba(0, 0, 0, 0.02);
-          border: 1px solid rgba(0, 0, 0, 0.06);
-          padding: 12px;
-        }
-
-        .meta-l {
-          font-size: 11px;
-          font-weight: 900;
-          letter-spacing: 0.12em;
-          color: rgba(0, 0, 0, 0.55);
-          text-transform: uppercase;
-        }
-
-        .meta-v {
-          margin-top: 6px;
-          font-size: 13px;
-          font-weight: 950;
-          color: rgba(0, 0, 0, 0.8);
-          word-break: break-word;
-        }
-
-        .sheet-actions {
-          display: flex;
-          gap: 10px;
-          flex-wrap: wrap;
-        }
-
-        .sheet-chipbar {
-          margin-top: 2px;
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-        }
-
         .toast {
           position: fixed;
           right: 16px;
           bottom: 16px;
+          z-index: 90;
           border-radius: 999px;
           padding: 10px 12px;
           background: rgba(17, 17, 17, 0.94);
@@ -1534,7 +1194,6 @@ export default function FavoritesPage() {
           font-weight: 950;
           border: 1px solid rgba(255, 255, 255, 0.14);
           box-shadow: 0 18px 44px rgba(0, 0, 0, 0.25);
-          z-index: 90;
         }
 
         .sk {
@@ -1545,7 +1204,7 @@ export default function FavoritesPage() {
         }
 
         .sk-img {
-          height: 208px;
+          height: 210px;
           background: rgba(0, 0, 0, 0.06);
           position: relative;
           overflow: hidden;
@@ -1612,77 +1271,60 @@ export default function FavoritesPage() {
         }
 
         @media (max-width: 1100px) {
-          .grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-          }
-
-          .stats {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-
           .hero {
             grid-template-columns: 1fr;
           }
 
-          .actions,
-          .hero-topline {
-            justify-content: flex-start;
+          .stats {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
           }
 
+          .actions,
           .chipbar,
-          .hint {
+          .hero-note {
             justify-content: flex-start;
             text-align: left;
+          }
+
+          .grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
           }
         }
 
         @media (max-width: 900px) {
-          .grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-
           .controls {
             grid-template-columns: 1fr;
           }
 
-          .sheet-body {
-            grid-template-columns: 1fr;
-          }
-
-          .sheet-img {
-            height: 300px;
-          }
-
-          .meta-grid {
-            grid-template-columns: 1fr 1fr;
+          .grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
           }
 
           .title {
-            font-size: 36px;
+            font-size: 34px;
           }
         }
 
-        @media (max-width: 520px) {
-          .grid {
-            grid-template-columns: 1fr;
-          }
-
+        @media (max-width: 560px) {
           .stats {
             grid-template-columns: 1fr;
           }
 
-          .meta-grid {
+          .grid {
             grid-template-columns: 1fr;
           }
 
-          .title {
-            font-size: 32px;
+          .hero,
+          .empty-card {
+            border-radius: 24px;
           }
 
-          .hero,
-          .empty-card,
-          .sheet {
-            border-radius: 24px;
+          .title {
+            font-size: 30px;
+          }
+
+          .empty-h {
+            font-size: 24px;
           }
         }
       `}</style>
