@@ -20,6 +20,8 @@ type FavoriteItem = {
   createdAt?: string | null;
 };
 
+type AuthState = "checking" | "authed" | "guest";
+
 /** =========================
  *  Storage keys candidates
  *  ========================= */
