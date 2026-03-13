@@ -2,14 +2,9 @@
 
 /**
  * JUSP — Orders/Logs repository (Supabase REST)
- * ✅ No dependency on @supabase/supabase-js (avoids module-not-found)
- * ✅ Works from client using NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_ANON_KEY
- *
- * Tables expected (can be created later):
- * - public.orders
- * - public.logs
- *
- * If tables don't exist yet, functions will throw (and UI should show toast/error).
+ * - En servidor usa SUPABASE_SERVICE_ROLE_KEY
+ * - En cliente usa NEXT_PUBLIC_SUPABASE_ANON_KEY
+ * - Evita module-not-found de @supabase/supabase-js
  */
 
 export type OrderStatus =
@@ -61,10 +56,8 @@ export type Order = {
   risk_score?: number | null;
   tracking_code?: string | null;
 
-  // free-form payloads
   items?: OrderItem[] | null;
 
-  // admin
   admin_note?: string | null;
 };
 
@@ -79,24 +72,37 @@ export type LogRow = {
   user_email?: string | null;
 };
 
-type Env = { url: string; anonKey: string };
+type Env = { url: string; key: string };
 
 function getEnv(): Env {
   const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
   const anonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "").trim();
-  if (!url || !anonKey) {
+  const serviceRoleKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
+
+  if (!url) {
+    throw new Error("Missing env var: NEXT_PUBLIC_SUPABASE_URL");
+  }
+
+  const isServer = typeof window === "undefined";
+
+  const key = isServer ? serviceRoleKey || anonKey : anonKey;
+
+  if (!key) {
     throw new Error(
-      "Missing Supabase env vars: NEXT_PUBLIC_SUPABASE_URL and/or NEXT_PUBLIC_SUPABASE_ANON_KEY"
+      isServer
+        ? "Missing env var: SUPABASE_SERVICE_ROLE_KEY (or fallback NEXT_PUBLIC_SUPABASE_ANON_KEY)"
+        : "Missing env var: NEXT_PUBLIC_SUPABASE_ANON_KEY"
     );
   }
-  return { url, anonKey };
+
+  return { url, key };
 }
 
 function headers(): HeadersInit {
-  const { anonKey } = getEnv();
+  const { key } = getEnv();
   return {
-    apikey: anonKey,
-    Authorization: `Bearer ${anonKey}`,
+    apikey: key,
+    Authorization: `Bearer ${key}`,
     "Content-Type": "application/json",
   };
 }
@@ -112,16 +118,19 @@ async function rest<T>(
 ): Promise<{ data: T; status: number; raw: string }> {
   const res = await fetch(input, init);
   const raw = await res.text();
+
   if (!res.ok) {
     const msg = raw || res.statusText || "Supabase REST error";
     throw new Error(`${res.status} ${msg}`);
   }
+
   let data: any = null;
   try {
     data = raw ? JSON.parse(raw) : null;
   } catch {
     data = raw as any;
   }
+
   return { data: data as T, status: res.status, raw };
 }
 
@@ -140,32 +149,45 @@ export async function dbUpsertOrder(order: Order): Promise<Order> {
   const url = restUrl("orders") + "?on_conflict=id";
   const { data } = await rest<Order[] | null>(url, {
     method: "POST",
-    headers: { ...headers(), Prefer: "resolution=merge-duplicates,return=representation" },
+    headers: {
+      ...headers(),
+      Prefer: "resolution=merge-duplicates,return=representation",
+    },
     body: JSON.stringify(order),
   });
+
   if (Array.isArray(data) && data.length) return data[0] as Order;
   return order;
 }
 
-/** List orders for a given customer email (client "My Orders") */
+/** List orders for a given customer email */
 export async function myListOrdersByEmail(email: string): Promise<Order[]> {
   const url =
     restUrl("orders") +
     `?select=*&customer_email=eq.${encodeURIComponent(email)}&order=created_at.desc`;
-  const { data } = await rest<Order[]>(url, { method: "GET", headers: headers() });
+  const { data } = await rest<Order[]>(url, {
+    method: "GET",
+    headers: headers(),
+  });
   return Array.isArray(data) ? data : [];
 }
 
-/** Admin list (basic) — on client this is only for demo; use RLS on your DB */
+/** Admin list (basic) */
 export async function adminListOrders(limit = 50): Promise<Order[]> {
   const url = restUrl("orders") + `?select=*&order=created_at.desc&limit=${limit}`;
-  const { data } = await rest<Order[]>(url, { method: "GET", headers: headers() });
+  const { data } = await rest<Order[]>(url, {
+    method: "GET",
+    headers: headers(),
+  });
   return Array.isArray(data) ? data : [];
 }
 
-/** Admin list logs (basic) — on client this is only for demo; use RLS on your DB */
+/** Admin list logs (basic) */
 export async function adminListLogs(limit = 100): Promise<LogRow[]> {
   const url = restUrl("logs") + `?select=*&order=created_at.desc&limit=${limit}`;
-  const { data } = await rest<LogRow[]>(url, { method: "GET", headers: headers() });
+  const { data } = await rest<LogRow[]>(url, {
+    method: "GET",
+    headers: headers(),
+  });
   return Array.isArray(data) ? data : [];
 }
