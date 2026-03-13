@@ -1,4 +1,3 @@
-// src/app/api/wompi/checkout-url/route.ts
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { dbInsertLog, dbUpsertOrder, type OrderItem } from "@/lib/ordersRepo";
@@ -157,11 +156,11 @@ export async function POST(req: Request) {
     }
 
     const redirectUrl = `${origin}/checkout/success?reference=${encodeURIComponent(reference)}`;
-
     const signature = sha256Hex(`${reference}${amountInCents}${currency}${integrity}`);
 
     await dbUpsertOrder({
-      id: reference,
+      order_code: reference,
+      wompi_reference: reference,
       status: "pending",
       total_amount: totalCalculated,
       currency,
@@ -169,6 +168,7 @@ export async function POST(req: Request) {
       phone,
       country,
       city,
+      address: addressLine1,
       items_count: sumQty(items),
       provider: "wompi",
       payment_id: null,
