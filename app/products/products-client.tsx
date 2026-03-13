@@ -52,22 +52,18 @@ function pickImgs(p: Product): { main: string | null; alt: string | null; fallba
   };
 }
 function genderLabel(g?: Product["gender"]) {
-  if (g === "men") return "Men's";
-  if (g === "women") return "Women's";
-  if (g === "kids") return "Kids'";
-  if (g === "unisex") return "Unisex";
-  return "Unisex";
+  if (g === "men") return "Men's Shoes";
+  if (g === "women") return "Women's Shoes";
+  if (g === "kids") return "Kids";
+  if (g === "unisex") return "Men's Shoes";
+  return "Men's Shoes";
 }
-function typeLabel(category?: string, explicitType?: string) {
-  const t = normKey(explicitType || "");
-  if (t === "accessory") return "Accessories";
-  if (t === "clothing") return "Clothing";
-  if (t === "shoes") return "Shoes";
+function typeLabel(category?: string) {
   const c = (category || "").toLowerCase();
   if (c.includes("sandal")) return "Sandals";
   if (c.includes("slides")) return "Slides";
   if (c.includes("access")) return "Accessories";
-  if (c.includes("clothing") || c.includes("apparel")) return "Clothing";
+  if (c.includes("clothing")) return "Clothing";
   return "Shoes";
 }
 function emitFavEvent() {
@@ -76,112 +72,13 @@ function emitFavEvent() {
   } catch {}
 }
 function normKey(v: string) {
-  return (v || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLowerCase();
+  return (v || "").trim().toLowerCase();
 }
 function includesLoose(haystack: string, needle: string) {
   const h = normKey(haystack);
   const n = normKey(needle);
   if (!n) return true;
   return h.includes(n);
-}
-function productTypeOf(p: Product): "shoes" | "clothing" | "accessory" {
-  const explicit = normKey(String((p as any).productType || ""));
-  if (explicit === "shoes" || explicit === "clothing" || explicit === "accessory") return explicit as any;
-  return isShoeLikeProduct(p) ? "shoes" : typeLabel((p as any).category) === "Accessories" ? "accessory" : "clothing";
-}
-function catOrTabValue(cat: string | null, tab: string | null) {
-  return normKey(cat || tab || "");
-}
-function productTags(p: Product) {
-  return safeArr((p as any).tags).map(normKey);
-}
-function productSports(p: Product) {
-  return safeArr((p as any).sport).map(normKey);
-}
-function productModels(p: Product) {
-  return safeArr((p as any).models).map(normKey);
-}
-function productKind(p: Product) {
-  return normKey(String((p as any).kind || ""));
-}
-function matchesSearchToken(p: Product, token: string) {
-  const t = normKey(token);
-  if (!t) return true;
-  const hay = [
-    String((p as any).title || ""),
-    String((p as any).name || ""),
-    String((p as any).brand || ""),
-    String((p as any).category || ""),
-    String((p as any).gender || ""),
-    String((p as any).kind || ""),
-    ...safeArr((p as any).tags),
-    ...safeArr((p as any).sport),
-    ...safeArr((p as any).models),
-  ].map(normKey).join(" ");
-  return hay.includes(t);
-}
-function matchesTagQuery(p: Product, rawTag: string) {
-  const tag = normKey(rawTag);
-  if (!tag) return true;
-  const tags = productTags(p);
-  const title = normKey(String((p as any).title || (p as any).name || ""));
-  const brand = normKey(String((p as any).brand || ""));
-
-  if (tag === "nuevo") return Boolean((p as any).isNew) || tags.includes(tag);
-  if (tag === "bestseller") return Boolean((p as any).bestSeller) || tags.includes(tag);
-  if (tag === "ofertas" || tag === "sale") return Number((p as any).discountPercent || 0) > 0 || tags.includes(tag);
-  if (tag === "premium") return Boolean((p as any).isExclusive) || tags.includes(tag);
-  if (tag === "editors") return tags.includes(tag) || Boolean((p as any).isCollection);
-  if (tag === "top" || tag === "trending") return Boolean((p as any).bestSeller) || tags.includes(tag);
-  if (tag === "limited" || tag === "private" || tag === "early" || tag === "prelaunch" || tag === "reserve") {
-    return Boolean((p as any).isExclusive) || tags.includes(tag);
-  }
-  if (tag === "auth" || tag === "trace" || tag === "clean" || tag === "quality" || tag === "materials" || tag === "curated") {
-    return Boolean((p as any).isExclusive) || tags.includes(tag);
-  }
-  if (tag === "retro") return title.includes("retro") || productModels(p).includes("retro") || tags.includes(tag);
-  if (tag === "50") return Number((p as any).discountPercent || 0) >= 50;
-  return tags.includes(tag) || title.includes(tag) || brand.includes(tag);
-}
-function matchesKindQuery(p: Product, rawKind: string) {
-  const kind = normKey(rawKind);
-  if (!kind) return true;
-  const pk = productKind(p);
-  const title = normKey(String((p as any).title || (p as any).name || ""));
-  if (pk === kind) return true;
-  const kindAliases: Record<string, string[]> = {
-    poleras: ["top", "tee", "shirt", "polera"],
-    tops: ["top", "sports bra", "tank top"],
-    pantalones: ["pant", "pants", "jogger"],
-    leggings: ["legging", "tights", "pants"],
-    shorts: ["short"],
-    chaquetas: ["jacket", "chaqueta", "hoodie"],
-    buzos: ["buzo", "set", "jogger", "sweat"],
-    gorras: ["cap", "hat", "gorra"],
-    bolsos: ["bag", "bolso"],
-    mochilas: ["backpack", "mochila"],
-    calcetines: ["sock", "calcetin", "calcetines"],
-    balones: ["ball", "balon"],
-    zapatillas: ["shoe", "sneaker", "zapatilla"],
-  };
-  return (kindAliases[kind] || [kind]).some((alias) => title.includes(normKey(alias)));
-}
-function matchesModelQuery(p: Product, rawModel: string) {
-  const model = normKey(rawModel);
-  if (!model) return true;
-  const title = normKey(String((p as any).title || (p as any).name || ""));
-  const models = productModels(p);
-  const aliases: Record<string, string[]> = {
-    dunk: ["dunk"],
-    af1: ["af1", "air force 1"],
-    airmax: ["air max"],
-    retro: ["retro"],
-  };
-  return (aliases[model] || [model]).some((alias) => title.includes(alias) || models.includes(alias));
 }
 
 /** =========================
@@ -1782,7 +1679,7 @@ const ProductCard = memo(function ProductCard({
   onToggleCompare,
 }: {
   p: Product;
-  scope: GenderScope;
+  scope: GenderScopeParam;
   mounted: boolean;
   favTick: number;
   onToggleFav: (favKey: string) => void;
@@ -1880,7 +1777,7 @@ const ProductCard = memo(function ProductCard({
       <div className="meta">
         <div className="name">{String((p as any).name || "Producto")}</div>
         <div className="sub">
-          {genderLabel((p as any).gender)} · {typeLabel((p as any).category, (p as any).productType)}
+          {genderLabel((p as any).gender)} · {typeLabel((p as any).category)}
         </div>
 
         <div className="priceRow">
@@ -2218,82 +2115,41 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
   // ✅ Detecta si estás en MEN / WOMEN / KIDS
   const catParam = searchParams?.get("cat");
   const subParam = searchParams?.get("sub");
-  const tabParam = searchParams?.get("tab");
-  const tagParam = searchParams?.get("tag");
-  const modelParam = searchParams?.get("model");
-  const kindParam = searchParams?.get("kind");
-  const sportParam = searchParams?.get("sport");
-  const qParam = searchParams?.get("q");
   const catKey = useMemo(() => String(catParam || "").trim().toLowerCase(), [catParam]);
   const subKey = useMemo(() => String(subParam || "").trim().toLowerCase(), [subParam]);
-  const navKey = useMemo(() => catOrTabValue(catParam, tabParam), [catParam, tabParam]);
 
   // ✅ Scope estable (sin hooks condicionales) y SIN permitir "all" en el tipo.
   const scope = useMemo((): GenderScopeParam => {
-    const cp = navKey;
+    const cp = (catParam || "").toLowerCase();
 
     if (cp === "snkrs") return "men-women";
     if (cp === "hombre") return "men";
     if (cp === "mujer") return "women";
-    if (cp === "ninos" || cp === "niños") return "kids";
+    if (cp === "niños" || cp === "ninos") return "kids";
 
     const fromPath = genderScopeFromPathname(pathname || "");
     if (fromPath === "all") return "men";
     return fromPath;
-  }, [navKey, pathname]);
+  }, [catParam, pathname]);
 
 // ✅ Base list por sección: SOLO men/women/kids (+ unisex en men/women)
   const all = useMemo(() => {
     let list = allRaw.filter((p) => matchesGenderScope((p as any).gender, scope));
 
-    if (navKey === "snkrs") {
-      list = list.filter((p) => productTypeOf(p) === "shoes");
+    if (catKey === "snkrs") {
+      list = list.filter((p) => isShoeLikeProduct(p));
     }
 
-    if (navKey === "accesorios") {
-      list = list.filter((p) => productTypeOf(p) === "accessory");
-    }
-
-    if (navKey === "ofertas") {
-      list = list.filter((p) => Number((p as any).discountPercent ?? 0) > 0);
-    }
-
-    if (navKey === "collections" || navKey === "colecciones") {
-      list = list.filter((p) => Boolean((p as any).isCollection) || Number((p as any).price ?? 0) > 200000);
-    }
-
-    if (navKey === "exclusivo") {
-      list = list.filter((p) => Boolean((p as any).isExclusive));
+    if (catKey === "collections" || catKey === "colecciones") {
+      list = list.filter((p) => Number((p as any).price ?? 0) > 200000);
     }
 
     if (subKey === "zapatillas") {
-      list = list.filter((p) => productTypeOf(p) === "shoes");
-    }
-    if (subKey === "ropa") {
-      list = list.filter((p) => productTypeOf(p) === "clothing");
-    }
-    if (subKey === "accesorios") {
-      list = list.filter((p) => productTypeOf(p) === "accessory");
-    }
-
-    if (kindParam) {
-      list = list.filter((p) => matchesKindQuery(p, kindParam));
-    }
-    if (sportParam) {
-      list = list.filter((p) => productSports(p).includes(normKey(sportParam)) || matchesSearchToken(p, sportParam));
-    }
-    if (modelParam) {
-      list = list.filter((p) => matchesModelQuery(p, modelParam));
-    }
-    if (tagParam) {
-      list = list.filter((p) => matchesTagQuery(p, tagParam));
-    }
-    if (qParam) {
-      list = list.filter((p) => matchesSearchToken(p, qParam));
+      list = list.filter((p) => isShoeLikeProduct(p));
     }
 
     return list;
-  }, [allRaw, scope, navKey, subKey, kindParam, sportParam, modelParam, tagParam, qParam]);
+  }, [allRaw, scope, catKey, subKey]);
 
   const { mounted, tick: favTick } = useFavoritesSignal();
 
@@ -2428,7 +2284,7 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
   }, [filtersOpen, mobileOpen]);
 
   // ✅ Listas por sección (men/women/kids)
-  const types = useMemo(() => uniq(all.map((p) => typeLabel((p as any).category, (p as any).productType))).sort(), [all]);
+  const types = useMemo(() => uniq(all.map((p) => typeLabel((p as any).category))).sort(), [all]);
 
   const brands = useMemo(() => {
     // Solo marcas del catálogo de ESA sección + lista completa global
@@ -2459,8 +2315,8 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
       });
     }
 
-    if (type) list = list.filter((p) => normKey(typeLabel((p as any).category, (p as any).productType)) === normKey(type));
-    if (brand) list = list.filter((p) => normKey(String((p as any).brand || "Nike")) === normKey(brand));
+    if (type) list = list.filter((p) => typeLabel((p as any).category) === type);
+    if (brand) list = list.filter((p) => String((p as any).brand || "Nike") === brand);
 
     if (size) {
       list = list.filter((p) => {
@@ -2635,8 +2491,8 @@ const brandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, brand
       });
     }
 
-    if (type) list = list.filter((p) => normKey(typeLabel((p as any).category, (p as any).productType)) === normKey(type));
-    if (brand) list = list.filter((p) => normKey(String((p as any).brand || "Nike")) === normKey(brand));
+    if (type) list = list.filter((p) => typeLabel((p as any).category) === type);
+    if (brand) list = list.filter((p) => String((p as any).brand || "Nike") === brand);
     if (color) list = list.filter((p) => safeArr((p as any).colors).includes(color));
 
     if (size) {
