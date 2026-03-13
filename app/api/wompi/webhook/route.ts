@@ -143,7 +143,6 @@ export async function POST(req: Request) {
       phone: shipping?.phone_number || null,
       country: shipping?.country || null,
       city: shipping?.city || null,
-      address: shipping?.address_line_1 || null,
       provider: "wompi",
       payment_id: transactionId,
       paid_at: wompiStatus === "APPROVED" ? new Date().toISOString() : null,
@@ -160,6 +159,8 @@ export async function POST(req: Request) {
         appStatus,
         amount_in_cents: tx.amount_in_cents || null,
         currency: tx.currency || null,
+        shipping_address_line_1: shipping?.address_line_1 || null,
+        shipping_region: shipping?.region || null,
       },
     });
 
