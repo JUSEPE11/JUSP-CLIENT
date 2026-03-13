@@ -57,8 +57,16 @@ type Totals = {
   total?: number;
 };
 
+type AuthedUser = {
+  sub?: string;
+  id?: string;
+  email?: string;
+  [key: string]: unknown;
+};
+
 function normalizeItems(input: unknown): OrderItem[] {
   if (!Array.isArray(input)) return [];
+
   return input.map((raw: any) => ({
     id: String(raw?.id || raw?.product_id || crypto.randomUUID()),
     product_id: raw?.product_id ? String(raw.product_id) : null,
@@ -85,6 +93,20 @@ function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function normalizePhone(phone: string) {
+  return phone.replace(/[^\d+]/g, "").trim();
+}
+
+function isValidPhone(phone: string) {
+  const normalized = normalizePhone(phone);
+  return normalized.length >= 7 && normalized.length <= 20;
+}
+
+function isValidDocumentNumber(value: string) {
+  const normalized = value.trim();
+  return /^[A-Za-z0-9.\-]{5,30}$/.test(normalized);
+}
+
 function buildAdminNote(input: {
   notes: string;
   email: string;
@@ -100,14 +122,14 @@ function buildAdminNote(input: {
   return blocks.join("\n");
 }
 
-async function getAuthedUser(req: NextRequest) {
+async function getAuthedUser(req: NextRequest): Promise<AuthedUser | null> {
   const token = req.cookies.get(COOKIE_AT)?.value?.trim();
 
   if (!token) return null;
 
   try {
     const payload = await verifyAccessToken(token);
-    return payload;
+    return (payload || null) as AuthedUser | null;
   } catch {
     return null;
   }
@@ -143,6 +165,10 @@ export async function POST(req: NextRequest) {
 
     const body = (await req.json().catch(() => null)) as any;
 
+    if (!body || typeof body !== "object") {
+      return NextResponse.json({ ok: false, error: "Body inválido." }, { status: 400 });
+    }
+
     const amountInCents = Number(body?.amountInCents);
     const currency = String(body?.currency || "COP").toUpperCase();
     const reference = String(body?.reference || "").trim();
@@ -163,7 +189,9 @@ export async function POST(req: NextRequest) {
     const documentType = normalizeDocumentType(customer.documentType || shipping.documentType);
     const documentNumber = String(customer.documentNumber || shipping.documentNumber || "").trim();
 
-    const phone = String(customer.phone || shipping.phone || "").trim();
+    const rawPhone = String(customer.phone || shipping.phone || "").trim();
+    const phone = normalizePhone(rawPhone);
+
     const city = String(shipping.city || "").trim();
     const addressLine1 = String(shipping.addressLine1 || "").trim();
     const region = String(shipping.region || "").trim();
@@ -195,6 +223,20 @@ export async function POST(req: NextRequest) {
 
     if (!isValidEmail(email)) {
       return NextResponse.json({ ok: false, error: "Correo electrónico inválido." }, { status: 400 });
+    }
+
+    if (!isValidDocumentNumber(documentNumber)) {
+      return NextResponse.json(
+        { ok: false, error: "Número de documento inválido." },
+        { status: 400 }
+      );
+    }
+
+    if (!isValidPhone(phone)) {
+      return NextResponse.json(
+        { ok: false, error: "Teléfono inválido." },
+        { status: 400 }
+      );
     }
 
     if (!/^[A-Z]{2}$/.test(country)) {
@@ -264,6 +306,7 @@ export async function POST(req: NextRequest) {
       scope: "wompi.checkout-url",
       message: "Checkout Wompi creado",
       order_id: reference,
+      user_email: typeof user.email === "string" ? user.email : null,
       meta: {
         reference,
         amountInCents,
