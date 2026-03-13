@@ -361,7 +361,7 @@ export default function CheckoutPage() {
               </div>
             ) : (
               <div className="card">
-                <div className="cT">Pago (Wompi) — Opción B</div>
+                <div className="cT">Pago Wompi </div>
                 <div className="cS">
                   Te llevamos a Wompi para completar el pago. La orden queda registrada como pendiente y solo se marca
                   pagada cuando Wompi confirme la aprobación.
