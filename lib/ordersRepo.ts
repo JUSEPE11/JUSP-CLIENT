@@ -4,7 +4,7 @@
  * JUSP — Orders/Logs repository (Supabase REST)
  * - En servidor usa SUPABASE_SERVICE_ROLE_KEY
  * - En cliente usa NEXT_PUBLIC_SUPABASE_ANON_KEY
- * - Evita module-not-found de @supabase/supabase-js
+ * - Sin dependencia de @supabase/supabase-js
  */
 
 export type OrderStatus =
@@ -30,7 +30,10 @@ export type OrderItem = {
 };
 
 export type Order = {
-  id: string;
+  id?: string | null;
+
+  order_code?: string | null;
+  wompi_reference?: string | null;
 
   created_at?: string | null;
   updated_at?: string | null;
@@ -84,7 +87,6 @@ function getEnv(): Env {
   }
 
   const isServer = typeof window === "undefined";
-
   const key = isServer ? serviceRoleKey || anonKey : anonKey;
 
   if (!key) {
@@ -144,9 +146,17 @@ export async function dbInsertLog(row: LogRow): Promise<void> {
   });
 }
 
-/** Upsert an order into public.orders (by id) */
+/**
+ * Upsert an order into public.orders by order_code.
+ * Requiere que public.orders.order_code exista y sea UNIQUE.
+ */
 export async function dbUpsertOrder(order: Order): Promise<Order> {
-  const url = restUrl("orders") + "?on_conflict=id";
+  if (!order.order_code || !String(order.order_code).trim()) {
+    throw new Error("dbUpsertOrder requiere order_code");
+  }
+
+  const url = restUrl("orders") + "?on_conflict=order_code";
+
   const { data } = await rest<Order[] | null>(url, {
     method: "POST",
     headers: {
@@ -165,29 +175,35 @@ export async function myListOrdersByEmail(email: string): Promise<Order[]> {
   const url =
     restUrl("orders") +
     `?select=*&customer_email=eq.${encodeURIComponent(email)}&order=created_at.desc`;
+
   const { data } = await rest<Order[]>(url, {
     method: "GET",
     headers: headers(),
   });
+
   return Array.isArray(data) ? data : [];
 }
 
-/** Admin list (basic) */
+/** Admin list */
 export async function adminListOrders(limit = 50): Promise<Order[]> {
   const url = restUrl("orders") + `?select=*&order=created_at.desc&limit=${limit}`;
+
   const { data } = await rest<Order[]>(url, {
     method: "GET",
     headers: headers(),
   });
+
   return Array.isArray(data) ? data : [];
 }
 
-/** Admin list logs (basic) */
+/** Admin list logs */
 export async function adminListLogs(limit = 100): Promise<LogRow[]> {
   const url = restUrl("logs") + `?select=*&order=created_at.desc&limit=${limit}`;
+
   const { data } = await rest<LogRow[]>(url, {
     method: "GET",
     headers: headers(),
   });
+
   return Array.isArray(data) ? data : [];
 }

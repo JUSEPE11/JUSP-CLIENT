@@ -1,4 +1,3 @@
-// src/app/api/wompi/webhook/route.ts
 import { NextResponse } from "next/server";
 import { dbInsertLog, dbUpsertOrder } from "@/lib/ordersRepo";
 
@@ -134,7 +133,8 @@ export async function POST(req: Request) {
     }
 
     await dbUpsertOrder({
-      id: reference,
+      order_code: reference,
+      wompi_reference: reference,
       status: appStatus,
       total_amount: Number.isFinite(amount) ? amount : null,
       currency: tx.currency || "COP",
@@ -143,6 +143,7 @@ export async function POST(req: Request) {
       phone: shipping?.phone_number || null,
       country: shipping?.country || null,
       city: shipping?.city || null,
+      address: shipping?.address_line_1 || null,
       provider: "wompi",
       payment_id: transactionId,
       paid_at: wompiStatus === "APPROVED" ? new Date().toISOString() : null,
