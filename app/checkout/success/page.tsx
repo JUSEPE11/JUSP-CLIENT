@@ -21,7 +21,6 @@ type OrderRow = {
   payment_id?: string | null;
   customer_name?: string | null;
   city?: string | null;
-  address?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
 };
@@ -56,7 +55,7 @@ async function fetchOrderByReference(reference: string): Promise<OrderRow | null
 
   const endpoint =
     `${url.replace(/\/+$/, "")}/rest/v1/orders` +
-    `?select=id,status,total_amount,currency,payment_id,customer_name,city,address,created_at,updated_at` +
+    `?select=id,status,total_amount,currency,payment_id,customer_name,city,created_at,updated_at` +
     `&id=eq.${encodeURIComponent(reference)}` +
     `&limit=1`;
 
