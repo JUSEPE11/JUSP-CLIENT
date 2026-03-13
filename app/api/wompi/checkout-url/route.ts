@@ -169,7 +169,6 @@ export async function POST(req: Request) {
       phone,
       country,
       city,
-      address: `${addressLine1}${region ? `, ${region}` : ""}`,
       items_count: sumQty(items),
       provider: "wompi",
       payment_id: null,
@@ -187,6 +186,8 @@ export async function POST(req: Request) {
         amountInCents,
         currency,
         redirectUrl,
+        shipping_address_line_1: addressLine1,
+        shipping_region: region,
       },
     });
 
