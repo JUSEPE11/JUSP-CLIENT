@@ -1,6 +1,10 @@
 // src/app/api/wompi/checkout-url/route.ts
 import { NextResponse } from "next/server";
 import crypto from "crypto";
+import { dbInsertLog, dbUpsertOrder, type OrderItem } from "@/lib/ordersRepo";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 function sha256Hex(input: string) {
   return crypto.createHash("sha256").update(input, "utf8").digest("hex");
@@ -31,7 +35,32 @@ type Shipping = {
   addressLine1?: string;
   region?: string;
   country?: string;
+  notes?: string;
 };
+
+type Totals = {
+  subtotal?: number;
+  shipping?: number;
+  total?: number;
+};
+
+function normalizeItems(input: unknown): OrderItem[] {
+  if (!Array.isArray(input)) return [];
+  return input.map((raw: any) => ({
+    id: String(raw?.id || raw?.product_id || crypto.randomUUID()),
+    product_id: raw?.product_id ? String(raw.product_id) : null,
+    name: raw?.name ? String(raw.name) : null,
+    qty: Number.isFinite(Number(raw?.qty)) ? Number(raw.qty) : 1,
+    price: Number.isFinite(Number(raw?.price)) ? Number(raw.price) : 0,
+    image: raw?.image ? String(raw.image) : null,
+    size: raw?.size ? String(raw.size) : null,
+    color: raw?.color ? String(raw.color) : null,
+  }));
+}
+
+function sumQty(items: OrderItem[]) {
+  return items.reduce((acc, it) => acc + Math.max(1, Number(it.qty || 1)), 0);
+}
 
 export async function POST(req: Request) {
   try {
@@ -61,12 +90,18 @@ export async function POST(req: Request) {
     const shipping: Shipping =
       body?.shipping && typeof body.shipping === "object" ? (body.shipping as Shipping) : {};
 
+    const totals: Totals =
+      body?.totals && typeof body.totals === "object" ? (body.totals as Totals) : {};
+
+    const items = normalizeItems(body?.items);
+
     const fullName = String(shipping.fullName || "").trim();
     const phone = String(shipping.phone || "").trim();
     const city = String(shipping.city || "").trim();
     const addressLine1 = String(shipping.addressLine1 || "").trim();
     const region = String(shipping.region || "").trim();
     const country = String(shipping.country || "CO").trim().toUpperCase();
+    const notes = String(shipping.notes || "").trim();
 
     if (!Number.isFinite(amountInCents) || amountInCents <= 0) {
       return NextResponse.json({ ok: false, error: "amountInCents inválido" }, { status: 400 });
@@ -97,6 +132,20 @@ export async function POST(req: Request) {
       );
     }
 
+    if (!items.length) {
+      return NextResponse.json({ ok: false, error: "No hay items para procesar la compra." }, { status: 400 });
+    }
+
+    const totalFromBody = Number(totals.total);
+    const totalCalculated = amountInCents / 100;
+
+    if (!Number.isFinite(totalFromBody) || Math.round(totalFromBody) !== Math.round(totalCalculated)) {
+      return NextResponse.json(
+        { ok: false, error: "El total enviado no coincide con amountInCents." },
+        { status: 400 }
+      );
+    }
+
     const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "").trim();
     const origin = siteUrl || pickOrigin(req);
 
@@ -109,9 +158,37 @@ export async function POST(req: Request) {
 
     const redirectUrl = `${origin}/checkout/success`;
 
-    // Wompi Checkout Web usa firma de integridad sobre:
-    // "<reference><amount-in-cents><currency><integrity_secret>"
     const signature = sha256Hex(`${reference}${amountInCents}${currency}${integrity}`);
+
+    await dbUpsertOrder({
+      id: reference,
+      status: "pending",
+      total_amount: totalCalculated,
+      currency,
+      customer_name: fullName,
+      phone,
+      country,
+      city,
+      address: `${addressLine1}${region ? `, ${region}` : ""}`,
+      items_count: sumQty(items),
+      provider: "wompi",
+      payment_id: null,
+      items,
+      admin_note: notes || null,
+    });
+
+    await dbInsertLog({
+      level: "info",
+      scope: "wompi.checkout-url",
+      message: "Checkout Wompi creado",
+      order_id: reference,
+      meta: {
+        reference,
+        amountInCents,
+        currency,
+        redirectUrl,
+      },
+    });
 
     const u = new URL("https://checkout.wompi.co/p/");
     u.searchParams.set("public-key", pubKey);
@@ -121,10 +198,7 @@ export async function POST(req: Request) {
     u.searchParams.set("signature:integrity", signature);
     u.searchParams.set("redirect-url", redirectUrl);
 
-    // Activa el formulario de envío en Wompi
     u.searchParams.set("collect-shipping", "true");
-
-    // Shipping address correcto según Wompi
     u.searchParams.set("shipping-address:address-line-1", addressLine1);
     u.searchParams.set("shipping-address:country", country);
     u.searchParams.set("shipping-address:city", city);
@@ -141,6 +215,17 @@ export async function POST(req: Request) {
       redirectUrl,
     });
   } catch (e: any) {
+    try {
+      await dbInsertLog({
+        level: "error",
+        scope: "wompi.checkout-url",
+        message: e?.message || "Error inesperado creando checkout Wompi",
+        meta: {
+          stack: e?.stack || null,
+        },
+      });
+    } catch {}
+
     return NextResponse.json(
       { ok: false, error: e?.message || "Error inesperado creando sesión Wompi" },
       { status: 500 }
