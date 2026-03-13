@@ -1862,15 +1862,17 @@ const ProductCard = memo(function ProductCard({
 
         {sale.has ? <div className="sale">-{sale.d}%</div> : null}
 
-        <div className="dotsRow" aria-label="Available colors">
-          <div className="dots" aria-hidden="true">
-            {colorDots.map((c) => (
-              <span key={c} className="dot" style={{ backgroundColor: colorToCss(c) || "#111111" }} title={c} />
-            ))}
-            {moreColors ? <span className="more">+{moreColors}</span> : null}
+        {productTypeOf(p) !== "shoes" && colors.length > 0 ? (
+          <div className="dotsRow" aria-label="Available colors">
+            <div className="dots" aria-hidden="true">
+              {colorDots.map((c) => (
+                <span key={c} className="dot" style={{ backgroundColor: colorToCss(c) || "#111111" }} title={c} />
+              ))}
+              {moreColors ? <span className="more">+{moreColors}</span> : null}
+            </div>
+            <div className="colorsTxt">{`${colors.length} Colors`}</div>
           </div>
-          <div className="colorsTxt">{colors.length ? `${colors.length} Colors` : ""}</div>
-        </div>
+        ) : null}
 
         <button type="button" className={`heart ${fav ? "on" : ""}`} onClick={() => onToggleFav(favKey)} aria-label="Favorite" suppressHydrationWarning>
           ♥
@@ -1898,6 +1900,9 @@ const ProductCard = memo(function ProductCard({
       <style jsx>{`
         .card {
           background: transparent;
+          display: flex;
+          flex-direction: column;
+          height: 100%;
           opacity: 0.985;
           transform: translateY(6px);
           transition: transform 220ms ease, opacity 220ms ease;
@@ -2168,6 +2173,9 @@ const ProductCard = memo(function ProductCard({
 
         .meta {
           padding: 14px 2px 2px;
+          display: flex;
+          flex-direction: column;
+          min-height: 86px;
         }
         .name {
           font-weight: 950;
@@ -2175,12 +2183,18 @@ const ProductCard = memo(function ProductCard({
           letter-spacing: -0.02em;
           line-height: 1.15;
           font-size: 14px;
+          min-height: calc(14px * 1.15 * 2);
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
         }
         .sub {
           margin-top: 6px;
           color: rgba(0, 0, 0, 0.55);
           font-weight: 900;
           font-size: 12px;
+          min-height: 15px;
         }
         .priceRow {
           margin-top: 10px;
