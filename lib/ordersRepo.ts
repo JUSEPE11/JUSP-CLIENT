@@ -46,10 +46,14 @@ export type Order = {
 
   customer_name?: string | null;
   customer_email?: string | null;
+  customer_document_type?: string | null;
+  customer_document?: string | null;
+
   phone?: string | null;
 
   country?: string | null;
   city?: string | null;
+  customer_region?: string | null;
   address?: string | null;
 
   items_count?: number | null;

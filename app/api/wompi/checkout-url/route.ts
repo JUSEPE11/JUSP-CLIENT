@@ -28,14 +28,27 @@ function pickOrigin(req: NextRequest) {
   return "";
 }
 
+type DocumentType = "CC" | "CE" | "NIT" | "PAS";
+
 type Shipping = {
   fullName?: string;
+  email?: string;
+  documentType?: DocumentType | string;
+  documentNumber?: string;
   phone?: string;
   city?: string;
   addressLine1?: string;
   region?: string;
   country?: string;
   notes?: string;
+};
+
+type Customer = {
+  fullName?: string;
+  email?: string;
+  documentType?: DocumentType | string;
+  documentNumber?: string;
+  phone?: string;
 };
 
 type Totals = {
@@ -60,6 +73,31 @@ function normalizeItems(input: unknown): OrderItem[] {
 
 function sumQty(items: OrderItem[]) {
   return items.reduce((acc, it) => acc + Math.max(1, Number(it.qty || 1)), 0);
+}
+
+function normalizeDocumentType(value: unknown): DocumentType | "" {
+  const v = String(value || "").trim().toUpperCase();
+  if (v === "CC" || v === "CE" || v === "NIT" || v === "PAS") return v;
+  return "";
+}
+
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function buildAdminNote(input: {
+  notes: string;
+  email: string;
+  documentType: DocumentType;
+  documentNumber: string;
+}) {
+  const blocks = [
+    input.notes.trim(),
+    `Email: ${input.email}`,
+    `Documento: ${input.documentType} ${input.documentNumber}`,
+  ].filter(Boolean);
+
+  return blocks.join("\n");
 }
 
 async function getAuthedUser(req: NextRequest) {
@@ -112,13 +150,20 @@ export async function POST(req: NextRequest) {
     const shipping: Shipping =
       body?.shipping && typeof body.shipping === "object" ? (body.shipping as Shipping) : {};
 
+    const customer: Customer =
+      body?.customer && typeof body.customer === "object" ? (body.customer as Customer) : {};
+
     const totals: Totals =
       body?.totals && typeof body.totals === "object" ? (body.totals as Totals) : {};
 
     const items = normalizeItems(body?.items);
 
-    const fullName = String(shipping.fullName || "").trim();
-    const phone = String(shipping.phone || "").trim();
+    const fullName = String(customer.fullName || shipping.fullName || "").trim();
+    const email = String(customer.email || shipping.email || "").trim().toLowerCase();
+    const documentType = normalizeDocumentType(customer.documentType || shipping.documentType);
+    const documentNumber = String(customer.documentNumber || shipping.documentNumber || "").trim();
+
+    const phone = String(customer.phone || shipping.phone || "").trim();
     const city = String(shipping.city || "").trim();
     const addressLine1 = String(shipping.addressLine1 || "").trim();
     const region = String(shipping.region || "").trim();
@@ -137,14 +182,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "reference requerida" }, { status: 400 });
     }
 
-    if (!fullName || !phone || !city || !addressLine1 || !region) {
+    if (!fullName || !email || !documentType || !documentNumber || !phone || !city || !addressLine1 || !region) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Faltan datos de envío obligatorios (nombre, teléfono, ciudad, región, dirección).",
+          error:
+            "Faltan datos obligatorios (nombre, correo, tipo de documento, número de documento, teléfono, ciudad, región y dirección).",
         },
         { status: 400 }
       );
+    }
+
+    if (!isValidEmail(email)) {
+      return NextResponse.json({ ok: false, error: "Correo electrónico inválido." }, { status: 400 });
     }
 
     if (!/^[A-Z]{2}$/.test(country)) {
@@ -180,6 +230,12 @@ export async function POST(req: NextRequest) {
 
     const redirectUrl = `${origin}/checkout/success?reference=${encodeURIComponent(reference)}`;
     const signature = sha256Hex(`${reference}${amountInCents}${currency}${integrity}`);
+    const adminNote = buildAdminNote({
+      notes,
+      email,
+      documentType,
+      documentNumber,
+    });
 
     await dbUpsertOrder({
       order_code: reference,
@@ -188,15 +244,19 @@ export async function POST(req: NextRequest) {
       total_amount: totalCalculated,
       currency,
       customer_name: fullName,
+      customer_email: email,
+      customer_document_type: documentType,
+      customer_document: documentNumber,
       phone,
       country,
       city,
+      customer_region: region,
       address: addressLine1,
       items_count: sumQty(items),
       provider: "wompi",
       payment_id: null,
       items,
-      admin_note: notes || null,
+      admin_note: adminNote || null,
     });
 
     await dbInsertLog({
@@ -209,6 +269,9 @@ export async function POST(req: NextRequest) {
         amountInCents,
         currency,
         redirectUrl,
+        customer_email: email,
+        customer_document_type: documentType,
+        customer_document_number: documentNumber,
         shipping_address_line_1: addressLine1,
         shipping_region: region,
       },
