@@ -156,7 +156,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const redirectUrl = `${origin}/checkout/success`;
+    const redirectUrl = `${origin}/checkout/success?reference=${encodeURIComponent(reference)}`;
 
     const signature = sha256Hex(`${reference}${amountInCents}${currency}${integrity}`);
 
