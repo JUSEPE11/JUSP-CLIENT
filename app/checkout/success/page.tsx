@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useStore } from "@/app/components/store";
 
@@ -89,7 +89,7 @@ async function fetchOrderByReference(reference: string): Promise<OrderRow | null
   return (json[0] as OrderRow) ?? null;
 }
 
-export default function CheckoutSuccessPage() {
+function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
   const { clearCart } = useStore();
 
@@ -333,6 +333,42 @@ export default function CheckoutSuccessPage() {
 
       <style jsx>{baseCss}</style>
     </main>
+  );
+}
+
+export default function CheckoutSuccessPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="root">
+          <div className="wrap">
+            <div className="top">
+              <div>
+                <div className="brand">JUSP</div>
+                <h1 className="h1">Resultado del pago</h1>
+                <p className="sub">Estamos verificando tu compra…</p>
+              </div>
+
+              <Link className="back" href="/products">
+                ← Volver a productos
+              </Link>
+            </div>
+
+            <section className="card hero neutral">
+              <div className="pill">Verificando</div>
+              <h2 className="heroTitle">Estamos validando tu pago</h2>
+              <p className="heroText">
+                Espera un momento mientras consultamos el estado real de tu orden.
+              </p>
+            </section>
+          </div>
+
+          <style jsx>{baseCss}</style>
+        </main>
+      }
+    >
+      <CheckoutSuccessContent />
+    </Suspense>
   );
 }
 
