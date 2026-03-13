@@ -3,9 +3,12 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { COOKIE_AT, COOKIE_PROFILE, verifyAccessToken } from "@/lib/auth";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+type JsonRecord = Record<string, any>;
 
 function safeDecode(v: string) {
   try {
@@ -25,6 +28,34 @@ async function readProfileCookie() {
   } catch {
     return null;
   }
+}
+
+async function readProfileFromDb(email: string) {
+  const admin = supabaseAdmin();
+
+  const { data, error } = await admin
+    .from("user_registry")
+    .select("profile, name, email")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (error) return null;
+  if (!data) return null;
+
+  const profile =
+    data.profile && typeof data.profile === "object" && !Array.isArray(data.profile)
+      ? ({ ...(data.profile as JsonRecord) } as JsonRecord)
+      : {};
+
+  if (!profile.name && data.name) {
+    profile.name = String(data.name).trim();
+  }
+
+  if (!profile.email && data.email) {
+    profile.email = String(data.email).trim().toLowerCase();
+  }
+
+  return profile;
 }
 
 async function logoutAction() {
@@ -102,13 +133,22 @@ export default async function AccountPage() {
   const at = store.get(COOKIE_AT)?.value;
   if (!at) redirect("/login");
 
+  let decoded: any;
+
   try {
-    await verifyAccessToken(at);
+    decoded = await verifyAccessToken(at);
   } catch {
     redirect("/login");
   }
 
-  const profile = await readProfileCookie();
+  const email = decoded?.email ? String(decoded.email).trim().toLowerCase() : "";
+  if (!email) redirect("/login");
+
+  const dbProfile = await readProfileFromDb(email);
+  const cookieProfile = await readProfileCookie();
+
+  const profile = dbProfile || cookieProfile;
+
   if (!profile) redirect("/onboarding");
 
   const completion = profileCompletion(profile);
