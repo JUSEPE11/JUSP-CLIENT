@@ -26,8 +26,13 @@ function safeParse(raw: string | null) {
   }
 }
 
+type DocumentType = "CC" | "CE" | "NIT" | "PAS";
+
 type Shipping = {
   fullName: string;
+  email: string;
+  documentType: DocumentType | "";
+  documentNumber: string;
   phone: string;
   city: string;
   region: string;
@@ -38,6 +43,9 @@ type Shipping = {
 function emptyShipping(): Shipping {
   return {
     fullName: "",
+    email: "",
+    documentType: "",
+    documentNumber: "",
     phone: "",
     city: "",
     region: "",
@@ -76,6 +84,11 @@ export default function CheckoutPage() {
     if (prev && typeof prev === "object") {
       setShip({
         fullName: String((prev as any).fullName || ""),
+        email: String((prev as any).email || ""),
+        documentType: (["CC", "CE", "NIT", "PAS"].includes(String((prev as any).documentType || ""))
+          ? String((prev as any).documentType || "")
+          : "") as DocumentType | "",
+        documentNumber: String((prev as any).documentNumber || ""),
         phone: String((prev as any).phone || ""),
         city: String((prev as any).city || ""),
         region: String((prev as any).region || ""),
@@ -124,11 +137,27 @@ export default function CheckoutPage() {
 
   const shipOk = useMemo(() => {
     const fullName = ship.fullName.trim();
+    const email = ship.email.trim();
+    const documentType = ship.documentType.trim();
+    const documentNumber = ship.documentNumber.trim();
     const phone = ship.phone.trim();
     const city = ship.city.trim();
     const address = ship.addressLine1.trim();
     const region = ship.region.trim();
-    return Boolean(fullName && phone && city && address && region);
+
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+    return Boolean(
+      fullName &&
+        email &&
+        emailOk &&
+        documentType &&
+        documentNumber &&
+        phone &&
+        city &&
+        address &&
+        region
+    );
   }, [ship]);
 
   function goToLogin() {
@@ -158,7 +187,9 @@ export default function CheckoutPage() {
     }
 
     if (!shipOk) {
-      alert("Completa los datos de envío antes de pagar (nombre, teléfono, ciudad, departamento y dirección).");
+      alert(
+        "Completa los datos obligatorios antes de pagar (nombre, correo, tipo de documento, número de documento, teléfono, ciudad, departamento y dirección)."
+      );
       setStep("envio");
       return;
     }
@@ -175,8 +206,18 @@ export default function CheckoutPage() {
           amountInCents,
           currency: "COP",
           reference: orderRef,
+          customer: {
+            fullName: ship.fullName.trim(),
+            email: ship.email.trim(),
+            documentType: ship.documentType,
+            documentNumber: ship.documentNumber.trim(),
+            phone: ship.phone.trim(),
+          },
           shipping: {
             fullName: ship.fullName.trim(),
+            email: ship.email.trim(),
+            documentType: ship.documentType,
+            documentNumber: ship.documentNumber.trim(),
             phone: ship.phone.trim(),
             city: ship.city.trim(),
             region: ship.region.trim(),
@@ -295,12 +336,57 @@ export default function CheckoutPage() {
                   </label>
 
                   <label className="f">
+                    <span>Correo electrónico *</span>
+                    <input
+                      value={ship.email}
+                      onChange={(e) => setShip((s) => ({ ...s, email: e.target.value }))}
+                      placeholder="Ej: correo@ejemplo.com"
+                      type="email"
+                      inputMode="email"
+                      autoComplete="email"
+                    />
+                  </label>
+
+                  <div className="two">
+                    <label className="f">
+                      <span>Tipo de documento *</span>
+                      <select
+                        value={ship.documentType}
+                        onChange={(e) =>
+                          setShip((s) => ({
+                            ...s,
+                            documentType: e.target.value as DocumentType | "",
+                          }))
+                        }
+                      >
+                        <option value="">Selecciona una opción</option>
+                        <option value="CC">Cédula de ciudadanía</option>
+                        <option value="CE">Cédula de extranjería</option>
+                        <option value="NIT">NIT</option>
+                        <option value="PAS">Pasaporte</option>
+                      </select>
+                    </label>
+
+                    <label className="f">
+                      <span>Número de documento *</span>
+                      <input
+                        value={ship.documentNumber}
+                        onChange={(e) => setShip((s) => ({ ...s, documentNumber: e.target.value }))}
+                        placeholder="Ej: 1234567890"
+                        inputMode="numeric"
+                        autoComplete="off"
+                      />
+                    </label>
+                  </div>
+
+                  <label className="f">
                     <span>Teléfono *</span>
                     <input
                       value={ship.phone}
                       onChange={(e) => setShip((s) => ({ ...s, phone: e.target.value }))}
                       placeholder="Ej: 3001234567"
                       inputMode="tel"
+                      autoComplete="tel"
                     />
                   </label>
 
@@ -343,11 +429,7 @@ export default function CheckoutPage() {
                   </label>
                 </div>
 
-                {!authLoading && !isAuthed && (
-                  <div className="authNote">
-                    Debes iniciar sesión antes de pasar a pago.
-                  </div>
-                )}
+                {!authLoading && !isAuthed && <div className="authNote">Debes iniciar sesión antes de pasar a pago.</div>}
 
                 <button
                   className="cta"
@@ -361,7 +443,7 @@ export default function CheckoutPage() {
               </div>
             ) : (
               <div className="card">
-                <div className="cT">Pago Wompi </div>
+                <div className="cT">Pago Wompi</div>
                 <div className="cS">
                   Te llevamos a Wompi para completar el pago. La orden queda registrada como pendiente y solo se marca
                   pagada cuando Wompi confirme la aprobación.
@@ -379,9 +461,7 @@ export default function CheckoutPage() {
                 </div>
 
                 {!authLoading && !isAuthed && (
-                  <div className="authWarn">
-                    Debes iniciar sesión para continuar con el pago.
-                  </div>
+                  <div className="authWarn">Debes iniciar sesión para continuar con el pago.</div>
                 )}
 
                 <button
@@ -551,12 +631,14 @@ const baseCss = `
   .form{ margin-top: 14px; display: grid; gap: 10px; }
   .f{ display:grid; gap: 6px; }
   .f span{ font-weight: 950; font-size: 12px; color: rgba(0,0,0,0.72); }
-  .f input, .f textarea{
+  .f input, .f textarea, .f select{
     border: 1px solid rgba(0,0,0,0.14);
     border-radius: 14px;
     padding: 12px 12px;
     font-weight: 900;
     outline: none;
+    background: #fff;
+    color: #111;
   }
   .f textarea{ min-height: 92px; resize: vertical; }
   .two{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
