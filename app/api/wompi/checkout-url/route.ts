@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { dbInsertLog, dbUpsertOrder, type OrderItem } from "@/lib/ordersRepo";
+import { COOKIE_AT, verifyAccessToken } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,7 +14,7 @@ function isValidPubKey(k: string) {
   return typeof k === "string" && (k.startsWith("pub_test_") || k.startsWith("pub_prod_"));
 }
 
-function pickOrigin(req: Request) {
+function pickOrigin(req: NextRequest) {
   const h = req.headers;
   const origin = h.get("origin");
   if (origin) return origin;
@@ -61,8 +62,30 @@ function sumQty(items: OrderItem[]) {
   return items.reduce((acc, it) => acc + Math.max(1, Number(it.qty || 1)), 0);
 }
 
-export async function POST(req: Request) {
+async function getAuthedUser(req: NextRequest) {
+  const token = req.cookies.get(COOKIE_AT)?.value?.trim();
+
+  if (!token) return null;
+
   try {
+    const payload = await verifyAccessToken(token);
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const user = await getAuthedUser(req);
+
+    if (!user) {
+      return NextResponse.json(
+        { ok: false, error: "Debes iniciar sesión para continuar con el pago." },
+        { status: 401 }
+      );
+    }
+
     const pubKey = (process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || "").trim();
     const integrity = (process.env.WOMPI_INTEGRITY_SECRET || "").trim();
 
