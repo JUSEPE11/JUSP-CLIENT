@@ -1,4 +1,3 @@
-// app/checkout/page.tsx
 "use client";
 
 import Link from "next/link";
@@ -52,6 +51,8 @@ export default function CheckoutPage() {
 
   const [step, setStep] = useState<"envio" | "pago">("envio");
   const [busy, setBusy] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [isAuthed, setIsAuthed] = useState(false);
 
   const [ship, setShip] = useState<Shipping>(emptyShipping());
 
@@ -85,6 +86,37 @@ export default function CheckoutPage() {
   }, []);
 
   useEffect(() => {
+    let active = true;
+
+    async function checkSession() {
+      try {
+        const res = await fetch("/api/auth/me", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+          headers: { "cache-control": "no-store" },
+        });
+
+        if (!active) return;
+
+        setIsAuthed(res.ok);
+      } catch {
+        if (!active) return;
+        setIsAuthed(false);
+      } finally {
+        if (!active) return;
+        setAuthLoading(false);
+      }
+    }
+
+    checkSession();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
     try {
       localStorage.setItem(SHIPPING_KEY, JSON.stringify(ship));
     } catch {}
@@ -99,8 +131,31 @@ export default function CheckoutPage() {
     return Boolean(fullName && phone && city && address && region);
   }, [ship]);
 
+  function goToLogin() {
+    const redirect = step === "pago" ? "/checkout?step=pago" : "/checkout";
+    window.location.href = `/login?redirect=${encodeURIComponent(redirect)}`;
+  }
+
+  function handleContinueToPayment() {
+    if (!shipOk) return;
+
+    if (authLoading) return;
+
+    if (!isAuthed) {
+      goToLogin();
+      return;
+    }
+
+    setStep("pago");
+  }
+
   async function payWithWompiRedirect() {
-    if (busy) return;
+    if (busy || authLoading) return;
+
+    if (!isAuthed) {
+      goToLogin();
+      return;
+    }
 
     if (!shipOk) {
       alert("Completa los datos de envío antes de pagar (nombre, teléfono, ciudad, departamento y dirección).");
@@ -115,6 +170,7 @@ export default function CheckoutPage() {
       const res = await fetch("/api/wompi/checkout-url", {
         method: "POST",
         headers: { "content-type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           amountInCents,
           currency: "COP",
@@ -147,6 +203,11 @@ export default function CheckoutPage() {
       });
 
       const data = await res.json().catch(() => null);
+
+      if (res.status === 401) {
+        goToLogin();
+        return;
+      }
 
       if (!res.ok || !data?.ok || !data?.checkoutUrl) {
         alert(data?.error || "No se pudo generar el link de pago.");
@@ -206,7 +267,12 @@ export default function CheckoutPage() {
           <button className={`st ${step === "envio" ? "on" : ""}`} type="button" onClick={() => setStep("envio")}>
             1. Envío
           </button>
-          <button className={`st ${step === "pago" ? "on" : ""}`} type="button" onClick={() => setStep("pago")}>
+          <button
+            className={`st ${step === "pago" ? "on" : ""}`}
+            type="button"
+            onClick={handleContinueToPayment}
+            title={!isAuthed && !authLoading ? "Debes iniciar sesión para entrar a pago" : ""}
+          >
             2. Pago
           </button>
         </div>
@@ -277,14 +343,20 @@ export default function CheckoutPage() {
                   </label>
                 </div>
 
+                {!authLoading && !isAuthed && (
+                  <div className="authNote">
+                    Debes iniciar sesión antes de pasar a pago.
+                  </div>
+                )}
+
                 <button
                   className="cta"
                   type="button"
-                  onClick={() => setStep("pago")}
-                  disabled={!canContinue || !shipOk}
-                  title={!shipOk ? "Completa el envío para continuar" : ""}
+                  onClick={handleContinueToPayment}
+                  disabled={!canContinue || !shipOk || authLoading}
+                  title={!shipOk ? "Completa el envío para continuar" : authLoading ? "Validando sesión..." : ""}
                 >
-                  Continuar a pago
+                  {authLoading ? "Validando sesión…" : !isAuthed ? "Iniciar sesión para pagar" : "Continuar a pago"}
                 </button>
               </div>
             ) : (
@@ -306,13 +378,36 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                <button className="cta dark" type="button" disabled={busy} onClick={payWithWompiRedirect}>
-                  {busy ? "Abriendo Wompi…" : "Pagar ahora"}
+                {!authLoading && !isAuthed && (
+                  <div className="authWarn">
+                    Debes iniciar sesión para continuar con el pago.
+                  </div>
+                )}
+
+                <button
+                  className="cta dark"
+                  type="button"
+                  disabled={busy || authLoading || !isAuthed}
+                  onClick={payWithWompiRedirect}
+                >
+                  {authLoading
+                    ? "Validando sesión…"
+                    : !isAuthed
+                      ? "Iniciar sesión para pagar"
+                      : busy
+                        ? "Abriendo Wompi…"
+                        : "Pagar ahora"}
                 </button>
 
-                <button className="ghost" type="button" onClick={() => setStep("envio")} disabled={busy}>
-                  Volver a envío
-                </button>
+                {!authLoading && !isAuthed ? (
+                  <button className="ghost" type="button" onClick={goToLogin} disabled={busy}>
+                    Ir a iniciar sesión
+                  </button>
+                ) : (
+                  <button className="ghost" type="button" onClick={() => setStep("envio")} disabled={busy}>
+                    Volver a envío
+                  </button>
+                )}
               </div>
             )}
           </section>
@@ -465,6 +560,19 @@ const baseCss = `
   }
   .f textarea{ min-height: 92px; resize: vertical; }
   .two{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .authNote,
+  .authWarn{
+    margin-top: 14px;
+    border-radius: 14px;
+    padding: 12px 14px;
+    border: 1px solid rgba(0,0,0,0.1);
+    background: rgba(0,0,0,0.03);
+    color: rgba(0,0,0,0.78);
+    font-weight: 900;
+    font-size: 13px;
+    line-height: 1.35;
+  }
 
   .cta{
     margin-top: 16px;
