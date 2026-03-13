@@ -31,6 +31,13 @@ export type Product = {
   category?: string;
   brand?: string;
   gender?: "men" | "women" | "kids" | "unisex";
+  productType?: "shoes" | "clothing" | "accessory";
+  kind?: string;
+  sport?: string[];
+  models?: string[];
+  tags?: string[];
+  isExclusive?: boolean;
+  isCollection?: boolean;
 
   isFeatured?: boolean;
   isNew?: boolean;
@@ -57,6 +64,13 @@ export const PRODUCTS: Product[] = [
     brand: "Nike",
     category: "Sneakers",
     gender: "men",
+    productType: "shoes",
+    kind: "zapatillas",
+    sport: ["lifestyle"],
+    models: ["dunk", "retro"],
+    tags: ["nuevo", "bestseller", "premium", "editors", "top"],
+    isCollection: true,
+    isExclusive: true,
     isFeatured: true,
     isNew: true,
     discountPercent: 15,
@@ -99,6 +113,13 @@ export const PRODUCTS: Product[] = [
     brand: "Nike",
     category: "Sneakers",
     gender: "unisex",
+    productType: "shoes",
+    kind: "zapatillas",
+    sport: ["lifestyle"],
+    models: ["af1", "air force 1"],
+    tags: ["bestseller", "premium", "top"],
+    isCollection: true,
+    isExclusive: true,
     bestSeller: true,
     image: "/products/nike-air-force-1-07/1.jpg",
     images: [
@@ -132,6 +153,10 @@ export const PRODUCTS: Product[] = [
     brand: "Nike",
     category: "Apparel",
     gender: "women",
+    productType: "clothing",
+    kind: "tops",
+    sport: ["training", "gym"],
+    tags: ["nuevo", "training"],
     isNew: true,
     stockHint: 6,
     image:
@@ -158,6 +183,10 @@ export const PRODUCTS: Product[] = [
     brand: "Nike",
     category: "Apparel",
     gender: "women",
+    productType: "clothing",
+    kind: "leggings",
+    sport: ["training", "gym", "yoga"],
+    tags: ["nuevo", "training", "premium"],
     isNew: true,
     stockHint: 8,
     image: "/products/nike-sports-pants-womens-purple/1.jpg",
@@ -187,6 +216,10 @@ export const PRODUCTS: Product[] = [
     brand: "Jordan",
     category: "Accessories",
     gender: "men",
+    productType: "accessory",
+    kind: "gorras",
+    sport: ["lifestyle"],
+    tags: ["nuevo", "premium"],
     isNew: true,
     stockHint: 10,
     image: "/products/jordan-club-cap/1.jpg",

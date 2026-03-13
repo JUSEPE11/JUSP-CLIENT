@@ -544,25 +544,25 @@ export default function Header() {
       },
       {
         label: "Colecciones",
-        href: "/products?tab=colecciones",
+        href: "/products?cat=colecciones",
         key: "jordan",
         columns: [
           {
             title: "Iconos",
             items: [
-              { label: "Dunk", href: "/products?q=dunk" },
-              { label: "Air Force 1", href: "/products?q=air%20force%201" },
-              { label: "Air Max", href: "/products?q=air%20max" },
-              { label: "Retro", href: "/products?tag=retro" },
+              { label: "Dunk", href: "/products?cat=colecciones&model=dunk" },
+              { label: "Air Force 1", href: "/products?cat=colecciones&model=af1" },
+              { label: "Air Max", href: "/products?cat=colecciones&model=airmax" },
+              { label: "Retro", href: "/products?cat=colecciones&tag=retro" },
             ],
           },
           {
             title: "Marcas originales",
             items: [
-              { label: "Nike", href: "/products?brand=nike" },
-              { label: "Adidas", href: "/products?brand=adidas" },
-              { label: "Puma", href: "/products?brand=puma" },
-              { label: "New Balance", href: "/products?brand=new%20balance" },
+              { label: "Nike", href: "/products?cat=colecciones&brand=nike" },
+              { label: "Adidas", href: "/products?cat=colecciones&brand=adidas" },
+              { label: "Puma", href: "/products?cat=colecciones&brand=puma" },
+              { label: "New Balance", href: "/products?cat=colecciones&brand=new%20balance" },
             ],
           },
           {
@@ -577,10 +577,10 @@ export default function Header() {
           {
             title: "Curaduría",
             items: [
-              { label: "Editor’s selection", href: "/products?tag=editors" },
-              { label: "Lo más top de la semana", href: "/products?tag=top" },
+              { label: "Editor’s selection", href: "/products?cat=exclusivo&tag=editors" },
+              { label: "Lo más top de la semana", href: "/products?cat=exclusivo&tag=top" },
               { label: "Novedades", href: "/products?tag=nuevo" },
-              { label: "Últimas unidades", href: "/products?tag=last" },
+              { label: "Últimas unidades", href: "/products?cat=exclusivo&tag=last" },
             ],
           },
         ],
@@ -637,43 +637,43 @@ export default function Header() {
       },
       {
         label: "Exclusivo",
-        href: "/products?tab=exclusivo",
+        href: "/products?cat=exclusivo",
         key: "exclusivo",
         columns: [
           {
             title: "Selección exclusiva",
             items: [
-              { label: "Curaduría premium", href: "/products?tag=curated" },
-              { label: "Editor’s selection", href: "/products?tag=editors" },
-              { label: "Materiales premium", href: "/products?tag=materials" },
-              { label: "Hecho para durar", href: "/products?tag=quality" },
+              { label: "Curaduría premium", href: "/products?cat=exclusivo&tag=curated" },
+              { label: "Editor’s selection", href: "/products?cat=exclusivo&tag=editors" },
+              { label: "Materiales premium", href: "/products?cat=exclusivo&tag=materials" },
+              { label: "Hecho para durar", href: "/products?cat=exclusivo&tag=quality" },
             ],
           },
           {
             title: "Ediciones limitadas",
             items: [
-              { label: "Stock limitado", href: "/products?tag=limited" },
-              { label: "Drops privados", href: "/products?tag=private" },
-              { label: "Colaboraciones", href: "/products?tag=collab" },
-              { label: "Últimas unidades", href: "/products?tag=last" },
+              { label: "Stock limitado", href: "/products?cat=exclusivo&tag=limited" },
+              { label: "Drops privados", href: "/products?cat=exclusivo&tag=private" },
+              { label: "Colaboraciones", href: "/products?cat=exclusivo&tag=collab" },
+              { label: "Últimas unidades", href: "/products?cat=exclusivo&tag=last" },
             ],
           },
           {
             title: "Acceso anticipado",
             items: [
-              { label: "Early access", href: "/products?tag=early" },
-              { label: "Pre-lanzamientos", href: "/products?tag=prelaunch" },
-              { label: "Novedades premium", href: "/products?tag=premium" },
-              { label: "Reservas", href: "/products?tag=reserve" },
+              { label: "Early access", href: "/products?cat=exclusivo&tag=early" },
+              { label: "Pre-lanzamientos", href: "/products?cat=exclusivo&tag=prelaunch" },
+              { label: "Novedades premium", href: "/products?cat=exclusivo&tag=premium" },
+              { label: "Reservas", href: "/products?cat=exclusivo&tag=reserve" },
             ],
           },
           {
             title: "Confianza",
             items: [
-              { label: "Originalidad verificada", href: "/products?tag=auth" },
-              { label: "Trazabilidad", href: "/products?tag=trace" },
-              { label: "Selección sin ruido", href: "/products?tag=clean" },
-              { label: "Lo más top de la semana", href: "/products?tag=top" },
+              { label: "Originalidad verificada", href: "/products?cat=exclusivo&tag=auth" },
+              { label: "Trazabilidad", href: "/products?cat=exclusivo&tag=trace" },
+              { label: "Selección sin ruido", href: "/products?cat=exclusivo&tag=clean" },
+              { label: "Lo más top de la semana", href: "/products?cat=exclusivo&tag=top" },
             ],
           },
         ],
@@ -717,8 +717,8 @@ export default function Header() {
       { kind: "quick", label: "Dunk", href: "/products?q=dunk" },
       { kind: "quick", label: "Air Force 1", href: "/products?q=air%20force%201" },
       { kind: "quick", label: "Air Max", href: "/products?q=air%20max" },
-      { kind: "quick", label: "Colecciones", href: "/products?tab=colecciones" },
-      { kind: "quick", label: "Exclusivo", href: "/products?tab=exclusivo" },
+      { kind: "quick", label: "Colecciones", href: "/products?cat=colecciones" },
+      { kind: "quick", label: "Exclusivo", href: "/products?cat=exclusivo" },
     ];
     const rec: Suggestion[] = recents.map((r) => ({
       kind: "recent",
@@ -1256,7 +1256,7 @@ export default function Header() {
                       {[
                         { label: "Novedades", href: "/products?tab=new" },
                         { label: "Trending", href: "/products?tab=trending" },
-                        { label: "Exclusivo", href: "/products?tab=exclusivo" },
+                        { label: "Exclusivo", href: "/products?cat=exclusivo" },
                         { label: "Hombre", href: "/products?cat=hombre" },
                         { label: "Mujer", href: "/products?cat=mujer" },
                         { label: "Niños", href: "/products?cat=ninos" },
