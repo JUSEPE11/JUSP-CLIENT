@@ -14,7 +14,6 @@ function centsCOP(cop: number) {
   return Math.round(cop) * 100;
 }
 
-const ORDERS_KEY = "jusp_orders_v1";
 const SHIPPING_KEY = "jusp_checkout_shipping_v1";
 const SHIPPING_PRICE = 99990;
 const FREE_SHIPPING_MIN_ITEMS = 4;
@@ -49,18 +48,16 @@ function emptyShipping(): Shipping {
 }
 
 export default function CheckoutPage() {
-  const { state, cartTotal, cartCount, clearCart } = useStore();
+  const { state, cartTotal, cartCount } = useStore();
 
   const [step, setStep] = useState<"envio" | "pago">("envio");
   const [busy, setBusy] = useState(false);
 
-  // ✅ Envío (mínimo PRO MAX)
   const [ship, setShip] = useState<Shipping>(emptyShipping());
 
   const items = state.cart;
   const canContinue = cartCount > 0;
 
-  // ✅ Hooks arriba
   const summary = useMemo(() => {
     const shipping = cartCount >= FREE_SHIPPING_MIN_ITEMS ? 0 : SHIPPING_PRICE;
 
@@ -73,7 +70,6 @@ export default function CheckoutPage() {
 
   const orderRef = useMemo(() => `JUSP-${Date.now()}`, []);
 
-  // Load shipping draft
   useEffect(() => {
     const prev = safeParse(localStorage.getItem(SHIPPING_KEY));
     if (prev && typeof prev === "object") {
@@ -88,7 +84,6 @@ export default function CheckoutPage() {
     }
   }, []);
 
-  // Save shipping draft
   useEffect(() => {
     try {
       localStorage.setItem(SHIPPING_KEY, JSON.stringify(ship));
@@ -100,47 +95,15 @@ export default function CheckoutPage() {
     const phone = ship.phone.trim();
     const city = ship.city.trim();
     const address = ship.addressLine1.trim();
-    return Boolean(fullName && phone && city && address);
+    const region = ship.region.trim();
+    return Boolean(fullName && phone && city && address && region);
   }, [ship]);
-
-  function createOrderLocal(status: string) {
-    const now = Date.now();
-    const order = {
-      id: orderRef,
-      createdAt: now,
-      status,
-      currency: "COP",
-      shipping: {
-        fullName: ship.fullName.trim(),
-        phone: ship.phone.trim(),
-        city: ship.city.trim(),
-        region: ship.region.trim() || null,
-        addressLine1: ship.addressLine1.trim(),
-        notes: ship.notes.trim() || null,
-      },
-      items: items.map((it) => ({
-        id: it.id,
-        name: it.name,
-        qty: it.qty,
-        price: it.price,
-        color: it.color ?? null,
-        size: it.size ?? null,
-        image: it.image ?? null,
-      })),
-      totals: summary,
-    };
-
-    const prev = safeParse(localStorage.getItem(ORDERS_KEY));
-    const list = Array.isArray(prev) ? prev : [];
-    localStorage.setItem(ORDERS_KEY, JSON.stringify([order, ...list]));
-    return order;
-  }
 
   async function payWithWompiRedirect() {
     if (busy) return;
 
     if (!shipOk) {
-      alert("Completa los datos de envío antes de pagar (nombre, teléfono, ciudad y dirección).");
+      alert("Completa los datos de envío antes de pagar (nombre, teléfono, ciudad, departamento y dirección).");
       setStep("envio");
       return;
     }
@@ -162,6 +125,23 @@ export default function CheckoutPage() {
             city: ship.city.trim(),
             region: ship.region.trim(),
             addressLine1: ship.addressLine1.trim(),
+            notes: ship.notes.trim(),
+            country: "CO",
+          },
+          items: items.map((it) => ({
+            id: it.id,
+            product_id: it.id,
+            name: it.name,
+            qty: it.qty,
+            price: it.price,
+            image: it.image ?? null,
+            size: it.size ?? null,
+            color: it.color ?? null,
+          })),
+          totals: {
+            subtotal: summary.subtotal,
+            shipping: summary.shipping,
+            total: summary.total,
           },
         }),
       });
@@ -173,13 +153,6 @@ export default function CheckoutPage() {
         return;
       }
 
-      // ✅ Creamos la orden local como "pending_payment" antes de redirigir
-      createOrderLocal("pending_payment");
-
-      // ✅ (Opcional) limpia el carrito cuando ya vas a pagar
-      clearCart();
-
-      // ✅ Redirección a Wompi Hosted Checkout
       window.location.href = data.checkoutUrl;
     } finally {
       setBusy(false);
@@ -276,7 +249,7 @@ export default function CheckoutPage() {
                     </label>
 
                     <label className="f">
-                      <span>Departamento</span>
+                      <span>Departamento *</span>
                       <input
                         value={ship.region}
                         onChange={(e) => setShip((s) => ({ ...s, region: e.target.value }))}
@@ -318,7 +291,8 @@ export default function CheckoutPage() {
               <div className="card">
                 <div className="cT">Pago (Wompi) — Opción B</div>
                 <div className="cS">
-                  Te llevamos a Wompi para completar el pago. Al finalizar, vuelves a JUSP con el <b>id</b> de la transacción.
+                  Te llevamos a Wompi para completar el pago. La orden queda registrada como pendiente y solo se marca
+                  pagada cuando Wompi confirme la aprobación.
                 </div>
 
                 <div className="payBox">

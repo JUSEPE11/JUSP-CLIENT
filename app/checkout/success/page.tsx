@@ -1,139 +1,220 @@
 "use client";
 
 import Link from "next/link";
-import React, { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useStore } from "@/app/components/store";
+
+type UiStatus =
+  | "loading"
+  | "approved"
+  | "pending"
+  | "declined"
+  | "error"
+  | "not_found";
+
+type OrderRow = {
+  id: string;
+  status?: string | null;
+  total_amount?: number | null;
+  currency?: string | null;
+  payment_id?: string | null;
+  customer_name?: string | null;
+  city?: string | null;
+  address?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
 
 function moneyCOP(n: number) {
   return Math.round(n).toLocaleString("es-CO");
 }
 
-// COP -> cents (Wompi pide amount-in-cents)
-function centsCOP(cop: number) {
-  return Math.round(cop) * 100;
+function mapOrderStatus(raw: string | null | undefined): UiStatus {
+  const s = String(raw || "").trim().toLowerCase();
+
+  if (s === "paid") return "approved";
+  if (s === "pending" || s === "created" || s === "processing") return "pending";
+  if (s === "cancelled" || s === "declined" || s === "refunded") return "declined";
+  if (!s) return "not_found";
+
+  return "pending";
 }
 
-const ORDERS_KEY = "jusp_orders_v1";
+function getSupabaseEnv() {
+  const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
+  const anonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "").trim();
+  return { url, anonKey };
+}
 
-function safeParse(raw: string | null) {
-  if (!raw) return null;
+async function fetchOrderByReference(reference: string): Promise<OrderRow | null> {
+  const { url, anonKey } = getSupabaseEnv();
+
+  if (!url || !anonKey) {
+    throw new Error("Faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+  }
+
+  const endpoint =
+    `${url.replace(/\/+$/, "")}/rest/v1/orders` +
+    `?select=id,status,total_amount,currency,payment_id,customer_name,city,address,created_at,updated_at` +
+    `&id=eq.${encodeURIComponent(reference)}` +
+    `&limit=1`;
+
+  const res = await fetch(endpoint, {
+    method: "GET",
+    headers: {
+      apikey: anonKey,
+      Authorization: `Bearer ${anonKey}`,
+      "Content-Type": "application/json",
+    },
+    cache: "no-store",
+  });
+
+  const raw = await res.text();
+  if (!res.ok) {
+    throw new Error(raw || `Error consultando la orden (${res.status})`);
+  }
+
+  let json: unknown = null;
   try {
-    return JSON.parse(raw);
+    json = raw ? JSON.parse(raw) : null;
   } catch {
+    json = null;
+  }
+
+  if (!Array.isArray(json) || json.length === 0) {
     return null;
   }
+
+  return (json[0] as OrderRow) ?? null;
 }
 
-export default function CheckoutPage() {
-  const router = useRouter();
-  const { state, cartTotal, cartCount } = useStore();
+export default function CheckoutSuccessPage() {
+  const searchParams = useSearchParams();
+  const { clearCart } = useStore();
 
-  const [step, setStep] = useState<"envio" | "pago">("envio");
-  const [busy, setBusy] = useState(false);
+  const [uiStatus, setUiStatus] = useState<UiStatus>("loading");
+  const [order, setOrder] = useState<OrderRow | null>(null);
+  const [message, setMessage] = useState("Estamos verificando tu pago…");
+  const [pollCount, setPollCount] = useState(0);
 
-  const items = state.cart;
-  const canContinue = cartCount > 0;
+  const clearedRef = useRef(false);
 
-  // ✅ Hooks SIEMPRE arriba
-  const summary = useMemo(() => {
-    return {
-      subtotal: cartTotal,
-      shipping: cartCount > 0 ? 0 : 0,
-      total: cartTotal,
-    };
-  }, [cartTotal, cartCount]);
+  const reference = useMemo(() => {
+    return (
+      searchParams.get("reference") ||
+      searchParams.get("orderId") ||
+      searchParams.get("id") ||
+      ""
+    ).trim();
+  }, [searchParams]);
 
-  // ✅ Referencia estable por visita (1 intento)
-  const orderRef = useMemo(() => `JUSP-${Date.now()}`, []);
+  useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
 
-  function createOrderLocal(status: string) {
-    const now = Date.now();
-    const order = {
-      id: orderRef,
-      createdAt: now,
-      status,
-      currency: "COP",
-      items: items.map((it) => ({
-        id: it.id,
-        name: it.name,
-        qty: it.qty,
-        price: it.price,
-        color: it.color ?? null,
-        size: it.size ?? null,
-        image: it.image ?? null,
-      })),
-      totals: summary,
-    };
-
-    const prev = safeParse(localStorage.getItem(ORDERS_KEY));
-    const list = Array.isArray(prev) ? prev : [];
-    localStorage.setItem(ORDERS_KEY, JSON.stringify([order, ...list]));
-    return order;
-  }
-
-  async function payWithWompiRedirect() {
-    if (busy) return;
-    setBusy(true);
-    try {
-      const amountInCents = centsCOP(summary.total);
-
-      // ✅ Guardamos orden local como pendiente (NO vaciamos carrito aquí)
-      createOrderLocal("pending_payment");
-
-      const res = await fetch("/api/wompi/checkout-url", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          amountInCents,
-          currency: "COP",
-          reference: orderRef,
-          // redirectUrl opcional: si no lo mandas, el API lo calcula con origin/NEXT_PUBLIC_APP_URL
-          redirectPath: `/checkout/success?orderId=${encodeURIComponent(orderRef)}`,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data?.ok || !data?.checkoutUrl) {
-        alert(data?.error || "No se pudo generar el link de pago.");
+    async function run() {
+      if (!reference) {
+        setUiStatus("error");
+        setMessage("No encontramos la referencia de la compra en el retorno de Wompi.");
         return;
       }
 
-      window.location.href = data.checkoutUrl;
-    } finally {
-      setBusy(false);
+      for (let attempt = 1; attempt <= 12; attempt += 1) {
+        if (cancelled) return;
+
+        setPollCount(attempt);
+
+        try {
+          const row = await fetchOrderByReference(reference);
+
+          if (cancelled) return;
+
+          if (!row) {
+            if (attempt < 12) {
+              setUiStatus("loading");
+              setMessage("Estamos esperando la confirmación de tu compra…");
+              await new Promise<void>((resolve) => {
+                timer = setTimeout(() => resolve(), 2500);
+              });
+              continue;
+            }
+
+            setUiStatus("not_found");
+            setMessage("Todavía no encontramos la orden. Puede tardar unos segundos en reflejarse.");
+            return;
+          }
+
+          setOrder(row);
+
+          const nextStatus = mapOrderStatus(row.status);
+
+          if (nextStatus === "approved") {
+            setUiStatus("approved");
+            setMessage("Pago aprobado. Tu orden ya fue confirmada.");
+            if (!clearedRef.current) {
+              clearCart();
+              clearedRef.current = true;
+            }
+            return;
+          }
+
+          if (nextStatus === "declined") {
+            setUiStatus("declined");
+            setMessage("El pago no fue aprobado. Tus productos siguen en el carrito.");
+            return;
+          }
+
+          if (nextStatus === "pending") {
+            if (attempt < 12) {
+              setUiStatus("pending");
+              setMessage("Tu pago aún está pendiente de confirmación. Estamos revisando…");
+              await new Promise<void>((resolve) => {
+                timer = setTimeout(() => resolve(), 2500);
+              });
+              continue;
+            }
+
+            setUiStatus("pending");
+            setMessage("Tu pago sigue pendiente. No vaciamos el carrito hasta que Wompi lo apruebe.");
+            return;
+          }
+
+          setUiStatus("not_found");
+          setMessage("No pudimos determinar el estado final de tu compra todavía.");
+          return;
+        } catch (e: any) {
+          if (cancelled) return;
+
+          if (attempt < 12) {
+            setUiStatus("loading");
+            setMessage("Verificando el estado final del pago…");
+            await new Promise<void>((resolve) => {
+              timer = setTimeout(() => resolve(), 2500);
+            });
+            continue;
+          }
+
+          setUiStatus("error");
+          setMessage(e?.message || "Ocurrió un error verificando el pago. Tus productos siguen en el carrito.");
+          return;
+        }
+      }
     }
-  }
 
-  if (!items.length) {
-    return (
-      <main className="root">
-        <div className="wrap">
-          <div className="top">
-            <div>
-              <div className="brand">JUSP</div>
-              <h1 className="h1">Checkout</h1>
-              <p className="sub">Resumen del pedido y datos de envío.</p>
-            </div>
-            <Link className="back" href="/products">
-              ← Volver a productos
-            </Link>
-          </div>
+    run();
 
-          <div className="empty">
-            <div className="eT">Tu carrito está vacío</div>
-            <div className="eS">Agrega productos para continuar al checkout.</div>
-            <Link className="go" href="/products">
-              Ir a productos
-            </Link>
-          </div>
-        </div>
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [reference, clearCart]);
 
-        <style jsx>{baseCss}</style>
-      </main>
-    );
-  }
+  const statusTone = useMemo(() => {
+    if (uiStatus === "approved") return "ok";
+    if (uiStatus === "declined" || uiStatus === "error") return "bad";
+    return "neutral";
+  }, [uiStatus]);
 
   return (
     <main className="root">
@@ -141,105 +222,113 @@ export default function CheckoutPage() {
         <div className="top">
           <div>
             <div className="brand">JUSP</div>
-            <h1 className="h1">Checkout</h1>
-            <p className="sub">Resumen del pedido y datos de envío.</p>
+            <h1 className="h1">Resultado del pago</h1>
+            <p className="sub">Validación real de tu compra contra la orden guardada.</p>
           </div>
+
           <Link className="back" href="/products">
             ← Volver a productos
           </Link>
         </div>
 
-        <div className="steps">
-          <button className={`st ${step === "envio" ? "on" : ""}`} type="button" onClick={() => setStep("envio")}>
-            1. Envío
-          </button>
-          <button className={`st ${step === "pago" ? "on" : ""}`} type="button" onClick={() => setStep("pago")}>
-            2. Pago
-          </button>
-        </div>
+        <section className={`card hero ${statusTone}`}>
+          <div className="pill">
+            {uiStatus === "loading" && "Verificando"}
+            {uiStatus === "approved" && "Aprobado"}
+            {uiStatus === "pending" && "Pendiente"}
+            {uiStatus === "declined" && "No aprobado"}
+            {uiStatus === "error" && "Error"}
+            {uiStatus === "not_found" && "Sin confirmación"}
+          </div>
 
-        <div className="grid">
-          <section className="left">
-            {step === "envio" ? (
-              <div className="card">
-                <div className="cT">Datos de envío (placeholder PRO)</div>
-                <div className="cS">Aquí irá tu formulario final (nombre, dirección, ciudad, teléfono, etc.).</div>
+          <h2 className="heroTitle">
+            {uiStatus === "approved" && "Tu compra fue aprobada"}
+            {uiStatus === "pending" && "Tu compra sigue pendiente"}
+            {uiStatus === "declined" && "Tu pago no fue aprobado"}
+            {uiStatus === "loading" && "Estamos validando tu pago"}
+            {uiStatus === "error" && "No pudimos validar el pago"}
+            {uiStatus === "not_found" && "Aún no encontramos la orden"}
+          </h2>
 
-                <div className="ph">
-                  <div className="line" />
-                  <div className="line" />
-                  <div className="line sm" />
-                </div>
+          <p className="heroText">{message}</p>
 
-                <button className="cta" type="button" onClick={() => setStep("pago")} disabled={!canContinue}>
-                  Continuar a pago
-                </button>
-              </div>
+          <div className="actions">
+            <Link className="cta dark" href="/products">
+              Seguir comprando
+            </Link>
+
+            {uiStatus === "approved" ? (
+              <Link className="cta" href="/orders">
+                Ver mis pedidos
+              </Link>
             ) : (
-              <div className="card">
-                <div className="cT">Pago (Wompi) — Opción B</div>
-                <div className="cS">
-                  Te llevamos a Wompi para completar el pago. Al finalizar, vuelves a JUSP con el <b>id</b> de la
-                  transacción.
-                </div>
-
-                <div className="payBox">
-                  <div className="pRow">
-                    <span>Método</span>
-                    <b>Wompi Checkout (redirect)</b>
-                  </div>
-                  <div className="pRow">
-                    <span>Total a pagar</span>
-                    <b>${moneyCOP(summary.total)}</b>
-                  </div>
-                </div>
-
-                <button className="cta dark" type="button" disabled={busy} onClick={payWithWompiRedirect}>
-                  {busy ? "Abriendo Wompi…" : "Paga con Wompi"}
-                </button>
-
-                <button className="ghost" type="button" onClick={() => setStep("envio")} disabled={busy}>
-                  Volver a envío
-                </button>
-              </div>
+              <Link className="cta" href="/checkout">
+                Volver al checkout
+              </Link>
             )}
-          </section>
+          </div>
+        </section>
 
-          <aside className="right">
-            <div className="card">
-              <div className="cT">Resumen</div>
+        <section className="grid">
+          <div className="card">
+            <div className="cT">Detalle de verificación</div>
 
-              <div className="rows">
-                {items.map((it) => (
-                  <div key={`${it.id}__${it.color ?? ""}__${it.size ?? ""}`} className="it">
-                    <div className="itL">
-                      <div className="itN">{it.name}</div>
-                      <div className="itS">
-                        x{it.qty} {it.size ? `· Talla ${it.size}` : ""} {it.color ? `· ${it.color}` : ""}
-                      </div>
-                    </div>
-                    <div className="itP">${moneyCOP(it.price * it.qty)}</div>
-                  </div>
-                ))}
+            <div className="kv">
+              <div className="row">
+                <span>Referencia</span>
+                <b>{reference || "—"}</b>
               </div>
 
-              <div className="sum">
-                <div className="r">
-                  <span>Subtotal</span>
-                  <b>${moneyCOP(summary.subtotal)}</b>
-                </div>
-                <div className="r">
-                  <span>Envío</span>
-                  <b>${moneyCOP(summary.shipping)}</b>
-                </div>
-                <div className="r tot">
-                  <span>Total</span>
-                  <b>${moneyCOP(summary.total)}</b>
-                </div>
+              <div className="row">
+                <span>Estado</span>
+                <b>{order?.status || "—"}</b>
+              </div>
+
+              <div className="row">
+                <span>Intentos de verificación</span>
+                <b>{pollCount}</b>
+              </div>
+
+              <div className="row">
+                <span>ID de pago Wompi</span>
+                <b>{order?.payment_id || "—"}</b>
+              </div>
+
+              <div className="row">
+                <span>Total</span>
+                <b>
+                  {typeof order?.total_amount === "number"
+                    ? `$${moneyCOP(order.total_amount)}`
+                    : "—"}
+                </b>
+              </div>
+
+              <div className="row">
+                <span>Moneda</span>
+                <b>{order?.currency || "COP"}</b>
               </div>
             </div>
-          </aside>
-        </div>
+          </div>
+
+          <div className="card">
+            <div className="cT">Qué hace JUSP aquí</div>
+
+            <div className="list">
+              <div className="li">
+                <strong>Pago aprobado:</strong> vaciamos el carrito automáticamente.
+              </div>
+              <div className="li">
+                <strong>Pago pendiente:</strong> no tocamos el carrito.
+              </div>
+              <div className="li">
+                <strong>Pago rechazado o error:</strong> tus productos se mantienen en el carrito.
+              </div>
+              <div className="li">
+                <strong>Fuente de verdad:</strong> el estado guardado de la orden, no solo el redirect.
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
 
       <style jsx>{baseCss}</style>
@@ -251,189 +340,194 @@ const baseCss = `
   .root{
     padding-top: calc(var(--jusp-header-h, 64px) + 18px);
     padding: 18px 16px 34px;
-    background: #fff;
-    min-height: 100vh;
+    background:#fff;
+    min-height:100vh;
   }
-  .wrap{ max-width: 1160px; margin: 0 auto; }
-
+  .wrap{
+    max-width: 1160px;
+    margin: 0 auto;
+  }
   .top{
     display:flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 12px;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
   }
   .brand{
-    font-weight: 950;
-    letter-spacing: 0.12em;
-    font-size: 12px;
-    color: rgba(0,0,0,0.55);
+    font-weight:950;
+    letter-spacing:0.12em;
+    font-size:12px;
+    color:rgba(0,0,0,0.55);
   }
   .h1{
-    margin: 8px 0 0;
-    font-size: 44px;
-    font-weight: 950;
-    letter-spacing: -0.04em;
+    margin:8px 0 0;
+    font-size:44px;
+    font-weight:950;
+    letter-spacing:-0.04em;
     color:#111;
-    line-height: 1.02;
+    line-height:1.02;
   }
   .sub{
-    margin: 8px 0 0;
-    font-weight: 900;
-    color: rgba(0,0,0,0.62);
+    margin:8px 0 0;
+    font-weight:900;
+    color:rgba(0,0,0,0.62);
   }
   .back{
     text-decoration:none;
-    font-weight: 950;
-    border-radius: 999px;
-    padding: 12px 14px;
-    border: 1px solid rgba(0,0,0,0.14);
+    font-weight:950;
+    border-radius:999px;
+    padding:12px 14px;
+    border:1px solid rgba(0,0,0,0.14);
     color:#111;
     background:#fff;
-    white-space: nowrap;
-    height: fit-content;
-  }
-
-  .steps{
-    margin-top: 18px;
-    display:flex;
-    gap: 10px;
-    align-items:center;
-  }
-  .st{
-    border-radius: 999px;
-    padding: 10px 12px;
-    font-weight: 950;
-    border: 1px solid rgba(0,0,0,0.14);
-    background:#fff;
-    cursor:pointer;
-    color: rgba(0,0,0,0.75);
-  }
-  .st.on{
-    background: rgba(17,17,17,0.92);
-    color: rgba(255,255,255,0.95);
-    border-color: rgba(0,0,0,0.2);
-  }
-
-  .grid{
-    margin-top: 16px;
-    display:grid;
-    grid-template-columns: 1fr 420px;
-    gap: 18px;
-    align-items:start;
+    white-space:nowrap;
+    height:fit-content;
   }
 
   .card{
-    border: 1px solid rgba(0,0,0,0.08);
-    border-radius: 22px;
-    padding: 16px;
+    border:1px solid rgba(0,0,0,0.08);
+    border-radius:22px;
+    padding:16px;
     background:#fff;
   }
-  .cT{
-    font-weight: 950;
+
+  .hero{
+    margin-top:18px;
+  }
+  .hero.ok{
+    border-color:rgba(0,0,0,0.12);
+    background:rgba(0,0,0,0.015);
+  }
+  .hero.bad{
+    border-color:rgba(0,0,0,0.12);
+    background:rgba(0,0,0,0.02);
+  }
+  .hero.neutral{
+    border-color:rgba(0,0,0,0.08);
+    background:#fff;
+  }
+
+  .pill{
+    display:inline-flex;
+    align-items:center;
+    border-radius:999px;
+    padding:8px 12px;
+    font-weight:950;
+    font-size:12px;
+    border:1px solid rgba(0,0,0,0.12);
     color:#111;
-    font-size: 16px;
+    background:#fff;
   }
-  .cS{
-    margin-top: 6px;
-    font-weight: 900;
-    color: rgba(0,0,0,0.62);
-    font-size: 13px;
-    line-height: 1.35;
+  .heroTitle{
+    margin:14px 0 0;
+    font-size:34px;
+    line-height:1.04;
+    letter-spacing:-0.04em;
+    font-weight:950;
+    color:#111;
+  }
+  .heroText{
+    margin:10px 0 0;
+    font-size:14px;
+    line-height:1.45;
+    font-weight:900;
+    color:rgba(0,0,0,0.66);
+    max-width:760px;
   }
 
-  .ph{ margin-top: 14px; display:grid; gap: 10px; }
-  .line{
-    height: 14px;
-    border-radius: 999px;
-    background: rgba(0,0,0,0.06);
+  .actions{
+    margin-top:18px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
   }
-  .line.sm{ width: 55%; }
-
   .cta{
-    margin-top: 16px;
-    width: 100%;
-    border-radius: 999px;
-    padding: 14px 16px;
-    font-weight: 950;
-    border: 1px solid rgba(0,0,0,0.14);
-    background: #fff;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    text-decoration:none;
+    border-radius:999px;
+    padding:14px 16px;
+    font-weight:950;
+    border:1px solid rgba(0,0,0,0.14);
+    background:#fff;
     color:#111;
-    cursor:pointer;
   }
   .cta.dark{
-    background: rgba(17,17,17,0.92);
-    color: rgba(255,255,255,0.95);
-  }
-  .cta:disabled{ opacity: 0.6; cursor:not-allowed; }
-
-  .ghost{
-    margin-top: 10px;
-    width: 100%;
-    border-radius: 999px;
-    padding: 14px 16px;
-    font-weight: 950;
-    border: 1px solid rgba(0,0,0,0.14);
-    background: rgba(0,0,0,0.02);
-    cursor:pointer;
+    background:rgba(17,17,17,0.92);
+    color:rgba(255,255,255,0.95);
   }
 
-  .rows{ margin-top: 14px; display:grid; gap: 12px; }
-  .it{ display:flex; justify-content: space-between; gap: 12px; }
-  .itN{ font-weight: 950; color:#111; font-size: 13px; line-height: 1.2; }
-  .itS{ margin-top: 5px; font-weight: 900; color: rgba(0,0,0,0.6); font-size: 12px; }
-  .itP{ font-weight: 950; color:#111; }
-
-  .sum{
-    margin-top: 16px;
-    border-top: 1px solid rgba(0,0,0,0.08);
-    padding-top: 14px;
+  .grid{
+    margin-top:18px;
     display:grid;
-    gap: 10px;
+    grid-template-columns:1fr 1fr;
+    gap:18px;
+    align-items:start;
   }
-  .r{ display:flex; justify-content: space-between; font-weight: 900; color: rgba(0,0,0,0.7); }
-  .r b{ color:#111; font-weight: 950; }
-  .tot{ font-size: 15px; }
-  .tot b{ font-size: 16px; }
 
-  .payBox{
-    margin-top: 14px;
-    border-radius: 18px;
-    background: rgba(0,0,0,0.02);
-    border: 1px solid rgba(0,0,0,0.08);
-    padding: 12px;
-    display:grid;
-    gap: 10px;
-  }
-  .pRow{ display:flex; justify-content: space-between; gap: 10px; font-weight: 900; color: rgba(0,0,0,0.7); }
-  .pRow b{ color:#111; font-weight: 950; text-align:right; }
-
-  .empty{
-    margin-top: 18px;
-    border: 1px solid rgba(0,0,0,0.08);
-    border-radius: 22px;
-    padding: 16px;
-    background: rgba(0,0,0,0.015);
-    max-width: 680px;
-  }
-  .eT{ font-weight: 950; color:#111; font-size: 15px; }
-  .eS{ margin-top: 6px; font-weight: 900; color: rgba(0,0,0,0.62); font-size: 13px; }
-  .go{
-    margin-top: 12px;
-    display:inline-flex;
-    text-decoration:none;
-    font-weight: 950;
-    border-radius: 999px;
-    padding: 12px 14px;
-    border: 1px solid rgba(0,0,0,0.14);
+  .cT{
+    font-weight:950;
     color:#111;
-    background:#fff;
+    font-size:16px;
+  }
+
+  .kv{
+    margin-top:14px;
+    display:grid;
+    gap:10px;
+  }
+  .row{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    font-weight:900;
+    color:rgba(0,0,0,0.7);
+  }
+  .row b{
+    color:#111;
+    font-weight:950;
+    text-align:right;
+    word-break:break-word;
+  }
+
+  .list{
+    margin-top:14px;
+    display:grid;
+    gap:10px;
+  }
+  .li{
+    font-weight:900;
+    color:rgba(0,0,0,0.72);
+    line-height:1.4;
+  }
+  .li strong{
+    color:#111;
+    font-weight:950;
   }
 
   @media (max-width: 980px){
-    .grid{ grid-template-columns: 1fr; }
+    .grid{
+      grid-template-columns:1fr;
+    }
   }
+
   @media (max-width: 520px){
-    .h1{ font-size: 32px; }
-    .top{ flex-direction: column; align-items:flex-start; }
+    .h1{
+      font-size:32px;
+    }
+    .heroTitle{
+      font-size:28px;
+    }
+    .top{
+      flex-direction:column;
+      align-items:flex-start;
+    }
+    .row{
+      flex-direction:column;
+    }
+    .row b{
+      text-align:left;
+    }
   }
 `;
