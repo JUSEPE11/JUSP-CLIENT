@@ -50,7 +50,7 @@ export type Product = {
 };
 
 type CachePayload = {
-  version: 1;
+  version: 2;
   generatedAt: string;
   excelPath: string | null;
   excelMtimeMs: number;
@@ -123,6 +123,28 @@ function toSafeBoolean(value: unknown): boolean {
     v === "x" ||
     v === "ok"
   );
+}
+
+function normalizeColor(value: unknown): string {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function uniqCaseInsensitive(values: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+
+  for (const raw of values) {
+    const value = String(raw || "").trim();
+    if (!value) continue;
+
+    const key = value.toLowerCase();
+    if (seen.has(key)) continue;
+
+    seen.add(key);
+    out.push(value);
+  }
+
+  return out;
 }
 
 function getDataDir(): string | null {
@@ -379,7 +401,7 @@ function buildProductsFromExcel(): Product[] {
       const title = String(row.title || "").trim();
       const brand = String(row.brand || "JUSP").trim();
       const size = String(row.size || "").trim();
-      const color = String(row.color || "").trim();
+      const color = normalizeColor(row.color);
       const price = toSafeNumber(row.price, 0);
       const stock = toSafeNumber(row.stock, 0);
       const excelGender = normalizeExcelGender(row.gender);
@@ -431,8 +453,8 @@ function buildProductsFromExcel(): Product[] {
         stock,
       });
 
-      if (size && !product.sizes!.includes(size)) product.sizes!.push(size);
-      if (color && !product.colors!.includes(color)) product.colors!.push(color);
+      if (size) product.sizes = uniqCaseInsensitive([...(product.sizes || []), size]);
+      if (color) product.colors = uniqCaseInsensitive([...(product.colors || []), color]);
       product.stockHint = (product.stockHint || 0) + stock;
 
       product.pickupToday = Boolean(product.pickupToday || pickupToday);
@@ -460,6 +482,7 @@ function readCache(cachePath: string): CachePayload | null {
 
     const parsed = JSON.parse(raw) as CachePayload;
     if (!parsed || !Array.isArray(parsed.products)) return null;
+    if (parsed.version !== 2) return null;
 
     return parsed;
   } catch {
@@ -482,7 +505,7 @@ function writeCache(
     ensureDataDir();
 
     const payload: CachePayload = {
-      version: 1,
+      version: 2,
       generatedAt: new Date().toISOString(),
       excelPath,
       excelMtimeMs,

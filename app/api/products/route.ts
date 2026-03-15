@@ -38,18 +38,20 @@ type Product = {
   tags: string[];
   isNew: boolean;
   stockHint: number;
+  pickupToday?: boolean;
+  expressDelivery?: boolean;
   variants: Variant[];
 };
 
 type CatalogCacheFile = {
-  version: 1;
+  version: 2;
   generatedAt: string;
   excelPath: string;
   excelMtimeMs: number;
   products: Product[];
 };
 
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2;
 
 function resolveExcelPath(): string | null {
   const dataDir = path.join(process.cwd(), "data");
@@ -100,6 +102,26 @@ function toSafeNumber(value: unknown, fallback = 0): number {
   return fallback;
 }
 
+function toSafeBoolean(value: unknown): boolean {
+  const v = String(value ?? "")
+    .trim()
+    .toLowerCase();
+
+  return (
+    v === "1" ||
+    v === "true" ||
+    v === "yes" ||
+    v === "si" ||
+    v === "sí" ||
+    v === "x" ||
+    v === "ok"
+  );
+}
+
+function normalizeColor(value: unknown): string {
+  return String(value ?? "").trim().toLowerCase();
+}
+
 function sanitizeVariantPart(value?: string): string {
   return String(value || "")
     .trim()
@@ -108,12 +130,19 @@ function sanitizeVariantPart(value?: string): string {
     .replace(/[^\w-]/g, "");
 }
 
-function uniq(values: string[]): string[] {
+function uniqCaseInsensitive(values: string[]): string[] {
+  const seen = new Set<string>();
   const out: string[] = [];
 
-  for (const value of values) {
-    const v = String(value || "").trim();
-    if (v && !out.includes(v)) out.push(v);
+  for (const raw of values) {
+    const value = String(raw || "").trim();
+    if (!value) continue;
+
+    const key = value.toLowerCase();
+    if (seen.has(key)) continue;
+
+    seen.add(key);
+    out.push(value);
   }
 
   return out;
@@ -261,6 +290,8 @@ function loadExcelProducts(): Product[] {
     stock?: number | string;
     gender?: string;
     category?: string;
+    pickup_today?: string | number | boolean;
+    express_delivery?: string | number | boolean;
   }>(sheet, { defval: "" });
 
   const map = new Map<string, Product>();
@@ -270,11 +301,13 @@ function loadExcelProducts(): Product[] {
     const title = String(row.title || "").trim();
     const brand = String(row.brand || "JUSP").trim();
     const size = String(row.size || "").trim();
-    const color = String(row.color || "").trim();
+    const color = normalizeColor(row.color);
     const price = toSafeNumber(row.price, 0);
     const stock = toSafeNumber(row.stock, 0);
     const excelGender = normalizeExcelGender(row.gender);
     const excelCategory = normalizeExcelCategory(row.category);
+    const pickupToday = toSafeBoolean(row.pickup_today);
+    const expressDelivery = toSafeBoolean(row.express_delivery);
 
     if (!slug || !title || price <= 0) continue;
 
@@ -303,6 +336,8 @@ function loadExcelProducts(): Product[] {
         tags: ["nuevo"],
         isNew: true,
         stockHint: 0,
+        pickupToday,
+        expressDelivery,
         variants: [],
       });
     }
@@ -318,10 +353,12 @@ function loadExcelProducts(): Product[] {
       stock,
     });
 
-    if (size) product.sizes = uniq([...product.sizes, size]);
-    if (color) product.colors = uniq([...product.colors, color]);
+    if (size) product.sizes = uniqCaseInsensitive([...product.sizes, size]);
+    if (color) product.colors = uniqCaseInsensitive([...product.colors, color]);
 
     product.stockHint = (product.stockHint || 0) + stock;
+    product.pickupToday = Boolean(product.pickupToday || pickupToday);
+    product.expressDelivery = Boolean(product.expressDelivery || expressDelivery);
 
     if (price < product.price) {
       product.price = price;

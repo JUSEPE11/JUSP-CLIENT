@@ -190,10 +190,11 @@ function normalizeVariants(product: Product): ProductVariant[] {
 
   for (const v of variants) {
     const size = String(v.size ?? "").trim();
+    const color = String(v.color ?? "").trim();
     const price = typeof v.price === "number" ? v.price : Number(v.price);
-    if (!size) continue;
+    if (!size && !color) continue;
     if (!Number.isFinite(price)) continue;
-    out.push({ ...v, size, price });
+    out.push({ ...v, size, color, price });
   }
 
   return out;
@@ -247,18 +248,24 @@ function inferSizingMode(product: Product, variants: ProductVariant[]): SizingMo
   return "shoe";
 }
 
-function findVariantBySize(
+function findVariantBySelection(
   product: Product,
   scope: GenderScope,
-  displayedSize: string | null
+  displayedSize: string | null,
+  selectedColor: string | null
 ): ProductVariant | null {
   const variants = normalizeVariants(product);
   if (!variants.length) return null;
 
   const ds = (displayedSize ?? "").trim();
+  const dc = (selectedColor ?? "").trim().toLowerCase();
+
+  const byColor = dc
+    ? variants.filter((v) => String(v.color ?? "").trim().toLowerCase() === dc)
+    : variants;
 
   if (ds) {
-    const exact = variants.filter((v) => String(v.size ?? "").trim() === ds);
+    const exact = byColor.filter((v) => String(v.size ?? "").trim() === ds);
     if (exact.length) {
       let best = exact[0];
       for (const v of exact) {
@@ -276,7 +283,7 @@ function findVariantBySize(
       : normalizedDs;
 
   if (maybeConverted && maybeConverted !== normalizedDs) {
-    const converted = variants.filter((v) => String(v.size ?? "").trim() === maybeConverted);
+    const converted = byColor.filter((v) => String(v.size ?? "").trim() === maybeConverted);
     if (converted.length) {
       let best = converted[0];
       for (const v of converted) {
@@ -287,8 +294,10 @@ function findVariantBySize(
     }
   }
 
-  let best = variants[0];
-  for (const v of variants) {
+  const fallbackPool = byColor.length ? byColor : variants;
+
+  let best = fallbackPool[0];
+  for (const v of fallbackPool) {
     const p = Number(v.price ?? 0);
     if (p < Number(best.price ?? 0)) best = v;
   }
@@ -472,7 +481,15 @@ export default function ProductPage() {
     return rawSizes;
   }, [rawSizes, scope, sizingMode, variants]);
 
+  const colors = useMemo(() => {
+    if (!product) return [];
+    const fromVariants = uniq(variants.map((v) => String(v?.color ?? "").trim()).filter(Boolean));
+    const fromProduct = uniq(safeArr(product.colors));
+    return uniqueStringsCaseInsensitive([...fromVariants, ...fromProduct]);
+  }, [product, variants]);
+
   const [size, setSize] = useState<string | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [qty, setQty] = useState<number>(1);
   const [toast, setToast] = useState<string | null>(null);
   const [activeImg, setActiveImg] = useState<number>(0);
@@ -493,6 +510,17 @@ export default function ProductPage() {
   }, [slug, sizes]);
 
   useEffect(() => {
+    if (colors.length) {
+      setSelectedColor((prev) => {
+        if (prev && colors.some((c) => c.toLowerCase() === prev.toLowerCase())) return prev;
+        return colors[0] ?? null;
+      });
+    } else {
+      setSelectedColor(null);
+    }
+  }, [slug, colors]);
+
+  useEffect(() => {
     if (!imgs.length) {
       setActiveImg(0);
       return;
@@ -505,8 +533,8 @@ export default function ProductPage() {
 
   const selectedVariant = useMemo(() => {
     if (!product) return null;
-    return findVariantBySize(product, scope, size);
-  }, [product, scope, size]);
+    return findVariantBySelection(product, scope, size, selectedColor);
+  }, [product, scope, size, selectedColor]);
 
   const displayPrice = useMemo(() => {
     if (!product) return 0;
@@ -538,16 +566,29 @@ export default function ProductPage() {
 
   const selectionMissing = useMemo(() => {
     if (!hasRealVariants) return false;
-    const okSize = !!(size && size.trim());
-    return !okSize;
-  }, [hasRealVariants, size]);
+
+    const hasSizeVariants = variants.some((v) => String(v.size ?? "").trim());
+    const hasColorVariants = variants.some((v) => String(v.color ?? "").trim());
+
+    const okSize = !hasSizeVariants || !!(size && size.trim());
+    const okColor = !hasColorVariants || !!(selectedColor && selectedColor.trim());
+
+    return !(okSize && okColor);
+  }, [hasRealVariants, variants, size, selectedColor]);
 
   const selectionHint = useMemo(() => {
     if (!hasRealVariants) return null;
-    if (!attemptedBuy) return "Selecciona talla para ver el precio exacto.";
-    if (selectionMissing) return "Falta seleccionar talla para continuar.";
+    if (!attemptedBuy) return "Selecciona talla y color para ver el precio exacto.";
+    if (selectionMissing) return "Falta seleccionar talla o color para continuar.";
     return null;
   }, [hasRealVariants, attemptedBuy, selectionMissing]);
+
+  const visibleColorLabel = useMemo(() => {
+    if (selectedColor) return selectedColor;
+    if (selectedVariant?.color) return String(selectedVariant.color).trim();
+    if (colors.length === 1) return colors[0];
+    return null;
+  }, [selectedColor, selectedVariant, colors]);
 
   const { addToCart, openCart } = useStore();
 
@@ -555,13 +596,13 @@ export default function ProductPage() {
     setAttemptedBuy(true);
 
     if (selectionMissing || !product) {
-      setToast("Selecciona talla para continuar");
+      setToast("Selecciona talla y color para continuar");
       window.setTimeout(() => setToast(null), 1600);
       return;
     }
 
     const cloned: any = { ...product, price: displayPrice };
-    addToCart(cloned, { color: null, size, qty });
+    addToCart(cloned, { color: visibleColorLabel, size, qty });
 
     setToast("Añadido al carrito");
     openCart();
@@ -685,6 +726,37 @@ export default function ProductPage() {
                 <div className={`hint ${attemptedBuy && selectionMissing ? "err" : ""}`}>{selectionHint}</div>
               ) : null}
 
+              {colors.length ? (
+                <div className="blk">
+                  <div className="lbl">Color</div>
+
+                  <div className="colorHead">
+                    <span className="colorText">
+                      Seleccionado: <b>{visibleColorLabel || "Sin definir"}</b>
+                    </span>
+                  </div>
+
+                  <div className="colorGrid">
+                    {colors.map((c) => {
+                      const isOn = String(selectedColor || "").toLowerCase() === c.toLowerCase();
+                      return (
+                        <button
+                          key={c}
+                          className={`colorBtn ${isOn ? "on" : ""}`}
+                          type="button"
+                          onClick={() => {
+                            setSelectedColor(c);
+                            setAttemptedBuy(false);
+                          }}
+                        >
+                          <span className="colorName">{c}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
               <div className="blk">
                 <div className="lbl">Talla</div>
                 <div className="gridOps">
@@ -745,7 +817,7 @@ export default function ProductPage() {
           </div>
           {hasRealVariants ? (
             <div className={`mHint ${attemptedBuy && selectionMissing ? "mErr" : ""}`}>
-              {selectionMissing ? "Selecciona talla" : "Listo para comprar"}
+              {selectionMissing ? "Selecciona talla o color" : "Listo para comprar"}
             </div>
           ) : (
             <div className="mHint">Listo para comprar</div>
@@ -1129,6 +1201,51 @@ export default function ProductPage() {
           margin-bottom: 10px;
         }
 
+        .colorHead {
+          margin-bottom: 10px;
+        }
+        .colorText {
+          font-weight: 900;
+          color: rgba(0, 0, 0, 0.66);
+          font-size: 13px;
+        }
+        .colorText b {
+          color: #111;
+          font-weight: 950;
+        }
+
+        .colorGrid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+        }
+
+        .colorBtn {
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          background: rgba(255, 255, 255, 0.96);
+          border-radius: 16px;
+          padding: 12px 12px;
+          cursor: pointer;
+          text-align: left;
+          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+          transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease, background 140ms ease;
+        }
+        .colorBtn:hover {
+          background: #fff;
+          transform: translateY(-1px);
+          box-shadow: 0 18px 44px rgba(0, 0, 0, 0.08);
+        }
+        .colorBtn.on {
+          border-color: var(--jusp-gold-mid);
+          box-shadow: 0 0 0 3px var(--jusp-gold-soft), 0 18px 44px rgba(0, 0, 0, 0.1);
+        }
+        .colorName {
+          font-weight: 950;
+          color: rgba(0, 0, 0, 0.86);
+          font-size: 14px;
+          letter-spacing: -0.01em;
+        }
+
         .gridOps {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1421,6 +1538,9 @@ export default function ProductPage() {
           }
           .gridOps {
             grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+          .colorGrid {
+            grid-template-columns: 1fr;
           }
         }
 

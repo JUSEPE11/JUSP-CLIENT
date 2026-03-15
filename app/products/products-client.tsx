@@ -29,6 +29,23 @@ function uniq(arr: string[]) {
   for (const a of arr) if (a && !out.includes(a)) out.push(a);
   return out;
 }
+function uniqueStringsCaseInsensitive(arr: string[]) {
+  const seen = new Set<string>();
+  const out: string[] = [];
+
+  for (const item of arr) {
+    const value = String(item || "").trim();
+    if (!value) continue;
+
+    const key = value.toLowerCase();
+    if (seen.has(key)) continue;
+
+    seen.add(key);
+    out.push(value);
+  }
+
+  return out;
+}
 function pickImgs(p: Product): { main: string | null; alt: string | null; fallbacks: string[] } {
   const imgs = Array.isArray((p as any).images) ? ((p as any).images as string[]) : [];
   const image = typeof (p as any).image === "string" ? (p as any).image.trim() : "";
@@ -328,6 +345,26 @@ const ALL_COLORS = [
 
 
 /** Color swatch: nombre -> color real (fallback robusto) */
+
+function normalizeColorValue(value: string) {
+  return normKey(String(value || ""));
+}
+
+function getProductColorLabels(p: Product): string[] {
+  const fromColors = safeArr((p as any).colors);
+  const fromVariants = Array.isArray((p as any).variants)
+    ? (p as any).variants
+        .map((v: any) => String(v?.color || "").trim())
+        .filter(Boolean)
+    : [];
+  return uniqueStringsCaseInsensitive([...fromColors, ...fromVariants]);
+}
+
+function productHasColor(p: Product, wanted: string | null) {
+  const target = normalizeColorValue(String(wanted || ""));
+  if (!target) return true;
+  return getProductColorLabels(p).some((c) => normalizeColorValue(c) === target);
+}
 function colorToCss(name: string) {
   const n = (name || "").trim().toLowerCase();
   const map: Record<string, string> = {
@@ -548,6 +585,78 @@ function Chip({
           font-size: 13px;
           letter-spacing: -0.01em;
           white-space: nowrap;
+        }
+      `}</style>
+    </button>
+  );
+}
+
+function ColorChip({
+  label,
+  color,
+  on,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  color: string;
+  on: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={`cchip ${on ? "on" : ""} ${disabled ? "dis" : ""}`}
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+    >
+      <span className="ring">
+        <span className="fill" style={{ backgroundColor: colorToCss(color) || "#111111" }} aria-hidden="true" />
+      </span>
+      <style jsx>{`
+        .cchip {
+          width: 44px;
+          height: 44px;
+          border-radius: 999px;
+          border: 1px solid rgba(0, 0, 0, 0.14);
+          background: #fff;
+          display: inline-grid;
+          place-items: center;
+          cursor: pointer;
+          transition: transform 120ms ease, box-shadow 140ms ease, border-color 140ms ease, opacity 140ms ease;
+        }
+        .cchip:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+          border-color: rgba(0, 0, 0, 0.18);
+        }
+        .cchip.on {
+          border-color: rgba(17, 17, 17, 0.92);
+          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.12), 0 12px 28px rgba(0, 0, 0, 0.08);
+        }
+        .cchip.dis {
+          opacity: 0.3;
+          cursor: default;
+          pointer-events: none;
+        }
+        .ring {
+          width: 28px;
+          height: 28px;
+          border-radius: 999px;
+          border: 1px solid rgba(0, 0, 0, 0.14);
+          background: #fff;
+          display: grid;
+          place-items: center;
+        }
+        .fill {
+          width: 22px;
+          height: 22px;
+          border-radius: 999px;
+          border: 1px solid rgba(0, 0, 0, 0.12);
+          display: inline-block;
         }
       `}</style>
     </button>
@@ -2496,11 +2605,13 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
   }, [all]);
 
   const colors = useMemo(() => {
-    const fromProducts = uniq(all.flatMap((p) => safeArr((p as any).colors))).filter(Boolean);
-    const merged = uniq([...ALL_COLORS, ...fromProducts])
+    const fromProducts = uniqueStringsCaseInsensitive(
+      all.flatMap((p) => getProductColorLabels(p))
+    )
       .filter(Boolean)
-      .filter((c) => String(c).trim().toLowerCase() !== "multicolor");
-    return merged.sort((a, b) => a.localeCompare(b));
+      .filter((c) => normalizeColorValue(c) !== "multicolor");
+
+    return fromProducts.sort((a, b) => a.localeCompare(b));
   }, [all]);
 
   // ✅ PRO MAX: disponibilidad de colores (depende de filtros NO-color)
@@ -2536,7 +2647,10 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
     }
 
     for (const p of list) {
-      for (const c of safeArr((p as any).colors)) set.add(c);
+      for (const c of getProductColorLabels(p)) {
+        const normalized = normalizeColorValue(c);
+        if (normalized) set.add(normalized);
+      }
     }
     return set;
   }, [all, newOnly, dCap, type, brand, size, priceBucket]);
@@ -2545,9 +2659,8 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
 
   const isColorAvailable = useCallback(
     (c: string) => {
-      // Si el dataset no trae colors en ninguna referencia, NO deshabilitamos nada
       if (!hasAnyColorAvailabilityData) return true;
-      return availableColorsSet.has(c);
+      return availableColorsSet.has(normalizeColorValue(c));
     },
     [availableColorsSet, hasAnyColorAvailabilityData]
   );
@@ -2561,7 +2674,7 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
   useEffect(() => {
     if (!color) return;
     if (!hasAnyColorAvailabilityData) return;
-    if (!availableColorsSet.has(color)) setParam(Q.color, null);
+    if (!availableColorsSet.has(normalizeColorValue(color))) setParam(Q.color, null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [color, hasAnyColorAvailabilityData, availableColorsKey]);
 
@@ -2687,7 +2800,7 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
 
     if (type) list = list.filter((p) => normKey(typeLabel((p as any).category, (p as any).productType)) === normKey(type));
     if (brand) list = list.filter((p) => normKey(String((p as any).brand || "Nike")) === normKey(brand));
-    if (color) list = list.filter((p) => safeArr((p as any).colors).includes(color));
+    if (color) list = list.filter((p) => productHasColor(p, color));
 
     if (size) {
       // ✅ Si el producto no trae sizes, no lo elimina por error
@@ -3001,27 +3114,25 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
                 </div>
               </FilterSection>
 
-              <FilterSection title="Color" open={secColor} onToggle={() => setSecColor((v) => !v)}>
-                {/* ✅ SIN buscador: todos los colores directos */}
-                <div className="chipsGrid">
+              <FilterSection title={color ? `Color · ${color}` : "Color"} open={secColor} onToggle={() => setSecColor((v) => !v)}>
+                <div className="chipsGrid colorSwatchGrid">
                   <Chip on={!color} onClick={() => setParam(Q.color, null)}>
                     All
                   </Chip>
                   {colors.map((c) => {
                     const av = isColorAvailable(c);
                     return (
-                      <Chip
+                      <ColorChip
                         key={c}
+                        label={c}
+                        color={c}
                         on={color === c}
                         disabled={!av}
                         onClick={() => {
                           if (!av) return;
                           setParam(Q.color, c);
                         }}
-                        leading={<span className="sw" style={{ backgroundColor: colorToCss(c) || "#111111" }} aria-hidden="true" />}
-                      >
-                        {c}
-                      </Chip>
+                      />
                     );
                   })}
                 </div>
@@ -3185,27 +3296,25 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
               </div>
 
               <div className="mSec">
-                <div className="mSecHead">Color</div>
-                {/* ✅ SIN buscador */}
-                <div className="chipsGrid">
+                <div className="mSecHead">{color ? `Color · ${color}` : "Color"}</div>
+                <div className="chipsGrid colorSwatchGrid">
                   <Chip on={!color} onClick={() => setParam(Q.color, null)}>
                     All
                   </Chip>
                   {colors.map((c) => {
                     const av = isColorAvailable(c);
                     return (
-                      <Chip
+                      <ColorChip
                         key={c}
+                        label={c}
+                        color={c}
                         on={color === c}
                         disabled={!av}
                         onClick={() => {
                           if (!av) return;
                           setParam(Q.color, c);
                         }}
-                        leading={<span className="sw" style={{ backgroundColor: colorToCss(c) || "#111111" }} aria-hidden="true" />}
-                      >
-                        {c}
-                      </Chip>
+                      />
                     );
                   })}
                 </div>
@@ -3471,6 +3580,10 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           display: flex;
           flex-wrap: wrap;
           gap: 10px;
+        }
+
+        .colorSwatchGrid {
+          align-items: center;
         }
 
         .sw {
