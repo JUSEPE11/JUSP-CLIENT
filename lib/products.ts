@@ -48,6 +48,14 @@ export type Product = {
   variants?: ProductVariant[];
 };
 
+type CachePayload = {
+  version: 1;
+  generatedAt: string;
+  excelPath: string | null;
+  excelMtimeMs: number;
+  products: Product[];
+};
+
 function derivePriceFromVariants(variants?: ProductVariant[]): number {
   if (!variants || !variants.length) return 0;
   return Math.min(...variants.map((v) => v.price));
@@ -75,13 +83,98 @@ function isServer(): boolean {
   return typeof window === "undefined";
 }
 
+function getFs() {
+  return require("fs") as typeof import("fs");
+}
+
+function getPath() {
+  return require("path") as typeof import("path");
+}
+
+function getXlsx() {
+  return require("xlsx");
+}
+
+function getDataDir(): string {
+  const path = getPath();
+  return path.join(process.cwd(), "data");
+}
+
+function ensureDataDir() {
+  if (!isServer()) return;
+  try {
+    const fs = getFs();
+    const dataDir = getDataDir();
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+  } catch {}
+}
+
+function getPreferredCachePath(): string {
+  const path = getPath();
+  ensureDataDir();
+  return path.join(getDataDir(), "catalog_products.cache.json");
+}
+
+function resolveCachePath(): string {
+  if (!isServer()) return getPreferredCachePath();
+
+  try {
+    const fs = getFs();
+    const path = getPath();
+    const dataDir = getDataDir();
+    const basenames = ["catalog_products.cache.json", "catalogo_jusp.cache.json"];
+
+    for (const basename of basenames) {
+      const full = path.join(dataDir, basename);
+      if (fs.existsSync(full)) return full;
+    }
+  } catch {}
+
+  return getPreferredCachePath();
+}
+
+function resolveExcelPath(): string | null {
+  if (!isServer()) return null;
+
+  try {
+    const fs = getFs();
+    const path = getPath();
+    const dataDir = getDataDir();
+    const preferred = path.join(dataDir, "catalogo_jusp.xlsx");
+
+    if (fs.existsSync(preferred)) return preferred;
+    if (!fs.existsSync(dataDir)) return null;
+
+    const files = fs.readdirSync(dataDir);
+    const candidate = files.find(
+      (file: string) => /^catalogo_jusp(\.[^.]+)?\.xlsx$/i.test(file) || /^catalogo_jusp\.xlsx$/i.test(file)
+    );
+
+    return candidate ? path.join(dataDir, candidate) : null;
+  } catch {
+    return null;
+  }
+}
+
+function safeStatMtimeMs(filePath: string | null): number {
+  if (!isServer() || !filePath) return 0;
+
+  try {
+    const fs = getFs();
+    return fs.statSync(filePath).mtimeMs || 0;
+  } catch {
+    return 0;
+  }
+}
+
 function listProductImages(slug: string): string[] {
   if (!isServer()) return [];
 
   try {
-    const fs = require("fs");
-    const path = require("path");
-
+    const fs = getFs();
+    const path = getPath();
     const dir = path.join(process.cwd(), "public", "products", slug);
 
     if (!fs.existsSync(dir)) return [];
@@ -147,8 +240,9 @@ function inferGender(title: string): "men" | "women" | "kids" | "unisex" {
   const t = title.toLowerCase();
 
   if (t.includes("niño") || t.includes("niños") || t.includes("kids")) return "kids";
-  if (t.includes("mujer") || t.includes("women") || t.includes("bra") || t.includes("sujetador"))
+  if (t.includes("mujer") || t.includes("women") || t.includes("bra") || t.includes("sujetador")) {
     return "women";
+  }
   if (t.includes("hombre") || t.includes("men")) return "men";
 
   return "unisex";
@@ -182,27 +276,24 @@ function normalizeExcelGender(value: unknown): "men" | "women" | "kids" | "unise
   if (v === "men" || v === "women" || v === "kids" || v === "unisex") return v;
   if (v === "hombre") return "men";
   if (v === "mujer") return "women";
-  if (v === "niños" || v === "ninos" || v === "niño" || v === "nino") return "kids";
+  if (v === "niños" || v === "ninos" || v === "niño" || v === "nino" || v === "kid") return "kids";
 
   return null;
 }
 
 function normalizeExcelCategory(value: unknown): string {
-  const v = String(value || "").trim();
-  return v;
+  return String(value || "").trim();
 }
 
 function buildProductsFromExcel(): Product[] {
   if (!isServer()) return [];
 
   try {
-    const fs = require("fs");
-    const path = require("path");
-    const XLSX = require("xlsx");
+    const fs = getFs();
+    const XLSX = getXlsx();
+    const filePath = resolveExcelPath();
 
-    const filePath = path.join(process.cwd(), "data", "catalogo_jusp.xlsx");
-
-    if (!fs.existsSync(filePath)) return [];
+    if (!filePath || !fs.existsSync(filePath)) return [];
 
     const workbook = XLSX.readFile(filePath);
     const firstSheetName = workbook.SheetNames[0];
@@ -210,11 +301,12 @@ function buildProductsFromExcel(): Product[] {
     if (!firstSheetName) return [];
 
     const sheet = workbook.Sheets[firstSheetName];
-    const rows = XLSX.utils.sheet_to_json(sheet) as Array<{
+    const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" }) as Array<{
       product_slug?: string;
       title?: string;
       brand?: string;
       size?: string;
+      color?: string;
       price?: number | string;
       stock?: number | string;
       gender?: string;
@@ -230,12 +322,13 @@ function buildProductsFromExcel(): Product[] {
       const title = String(row.title || "").trim();
       const brand = String(row.brand || "JUSP").trim();
       const size = String(row.size || "").trim();
+      const color = String(row.color || "").trim();
       const price = toSafeNumber(row.price, 0);
       const stock = toSafeNumber(row.stock, 0);
       const excelGender = normalizeExcelGender(row.gender);
       const excelCategory = normalizeExcelCategory(row.category);
 
-      if (!slug || !title || !size || price <= 0) continue;
+      if (!slug || !title || price <= 0) continue;
 
       if (!map.has(slug)) {
         const images = listProductImages(slug);
@@ -262,22 +355,23 @@ function buildProductsFromExcel(): Product[] {
           variants: [],
           sizes: [],
           colors: [],
-          price: 0,
+          price,
         });
       }
 
       const product = map.get(slug)!;
-      const variantKey = `${slug}-${sanitizeVariantPart(size)}`;
+      const variantKey = `${slug}-${sanitizeVariantPart(size || color || "one")}`;
 
       product.variants!.push({
         key: variantKey,
-        size,
+        size: size || undefined,
+        color: color || undefined,
         price,
         stock,
       });
 
-      if (!product.sizes!.includes(size)) product.sizes!.push(size);
-
+      if (size && !product.sizes!.includes(size)) product.sizes!.push(size);
+      if (color && !product.colors!.includes(color)) product.colors!.push(color);
       product.stockHint = (product.stockHint || 0) + stock;
     }
 
@@ -290,7 +384,66 @@ function buildProductsFromExcel(): Product[] {
   }
 }
 
-const EXCEL_PRODUCTS = buildProductsFromExcel();
+function readCache(cachePath: string): CachePayload | null {
+  if (!isServer()) return null;
+
+  try {
+    const fs = getFs();
+    if (!fs.existsSync(cachePath)) return null;
+    const raw = fs.readFileSync(cachePath, "utf8");
+    if (!raw.trim()) return null;
+    const parsed = JSON.parse(raw) as CachePayload;
+    if (!parsed || !Array.isArray(parsed.products)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(cachePath: string, products: Product[], excelPath: string | null, excelMtimeMs: number) {
+  if (!isServer()) return;
+
+  try {
+    const fs = getFs();
+    ensureDataDir();
+    const payload: CachePayload = {
+      version: 1,
+      generatedAt: new Date().toISOString(),
+      excelPath,
+      excelMtimeMs,
+      products,
+    };
+    fs.writeFileSync(cachePath, JSON.stringify(payload, null, 2), "utf8");
+  } catch {}
+}
+
+function getProductsFast(): Product[] {
+  if (!isServer()) return [];
+
+  const excelPath = resolveExcelPath();
+  const excelMtimeMs = safeStatMtimeMs(excelPath);
+  const cachePath = resolveCachePath();
+  const cached = readCache(cachePath);
+
+  if (cached && cached.excelMtimeMs >= excelMtimeMs && cached.products.length) {
+    return cached.products;
+  }
+
+  const fresh = buildProductsFromExcel();
+
+  if (fresh.length) {
+    writeCache(cachePath, fresh, excelPath, excelMtimeMs);
+    return fresh;
+  }
+
+  if (cached?.products?.length) {
+    return cached.products;
+  }
+
+  return [];
+}
+
+const EXCEL_PRODUCTS = getProductsFast();
 
 export const PRODUCTS: Product[] = EXCEL_PRODUCTS;
 
@@ -299,5 +452,5 @@ export async function getProducts(): Promise<Product[]> {
 }
 
 export function getProductById(id: string): Product | undefined {
-  return PRODUCTS.find((p) => p.id === id);
+  return PRODUCTS.find((p) => p.id === id || p.slug === id || p.product_code === id);
 }
