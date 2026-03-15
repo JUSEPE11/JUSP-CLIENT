@@ -1,8 +1,8 @@
 {
   "version": 4,
-  "generatedAt": "2026-03-15T23:24:30.439Z",
+  "generatedAt": "2026-03-15T23:28:54.360Z",
   "excelPath": "C:\\JUSP\\jusp-app2\\data\\catalogo_jusp.xlsx",
-  "excelMtimeMs": 1773617065322.192,
+  "excelMtimeMs": 1773617317268.5789,
   "products": [
     {
       "id": "short-nike-kids",
@@ -239,12 +239,12 @@
       "id": "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women",
       "slug": "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women",
       "product_code": "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women",
-      "title": "Nike sujetador",
-      "name": "Nike sujetador",
+      "title": "Nike sujetador tops",
+      "name": "Nike sujetador tops",
       "brand": "Nike",
       "price": 99990,
       "currency": "COP",
-      "description": "Nike sujetador. Producto disponible en JUSP.",
+      "description": "Nike sujetador tops. Producto disponible en JUSP.",
       "image": "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/1.jpg",
       "images": [
         "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/1.jpg",
