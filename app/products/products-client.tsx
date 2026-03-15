@@ -2639,15 +2639,7 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
 
   const sizesKey = useMemo(() => sizes.map(String).join("|"), [sizes]);
 
-// ✅ Auto-fix: si tu talla seleccionada deja de existir bajo los filtros actuales, se limpia sola.
-  useEffect(() => {
-    if (!size) return;
-    if (!hasAnyAvailabilityData) return;
-    if (!availableSizesSet.has(size)) {
-      setParam(Q.size, null);
-    }
-  }, [size, sizesKey, hasAnyAvailabilityData, availableSizesSet, setParam]);
-const brandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, brandSearch)), [brands, brandSearch]);
+  const brandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, brandSearch)), [brands, brandSearch]);
   const mBrandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, mBrandSearch)), [brands, mBrandSearch]);
 
   const priceRanges = useMemo(() => {
