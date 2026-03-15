@@ -66,6 +66,14 @@ function onlyDigits(value: string) {
   return value.replace(/\D/g, "");
 }
 
+function sanitizeDocumentNumber(value: string, documentType: DocumentType | "") {
+  if (documentType === "PAS") {
+    return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  }
+
+  return onlyDigits(value);
+}
+
 function hasAtLeastFiveDigits(value: string) {
   return onlyDigits(value).length >= 5;
 }
@@ -127,13 +135,15 @@ export default function CheckoutPage() {
     const prev = safeParse(localStorage.getItem(SHIPPING_KEY));
     if (prev && typeof prev === "object") {
       const nextRegion = String((prev as any).region || "");
+      const nextDocumentType = (["CC", "CE", "NIT", "PAS"].includes(String((prev as any).documentType || ""))
+        ? String((prev as any).documentType || "")
+        : "") as DocumentType | "";
+
       setShip({
         fullName: String((prev as any).fullName || ""),
         email: String((prev as any).email || ""),
-        documentType: (["CC", "CE", "NIT", "PAS"].includes(String((prev as any).documentType || ""))
-          ? String((prev as any).documentType || "")
-          : "") as DocumentType | "",
-        documentNumber: onlyDigits(String((prev as any).documentNumber || "")),
+        documentType: nextDocumentType,
+        documentNumber: sanitizeDocumentNumber(String((prev as any).documentNumber || ""), nextDocumentType),
         phone: onlyDigits(String((prev as any).phone || "")),
         city: String((prev as any).city || ""),
         region: COLOMBIA_DEPARTMENTS.includes(nextRegion as (typeof COLOMBIA_DEPARTMENTS)[number]) ? nextRegion : "",
@@ -238,7 +248,7 @@ export default function CheckoutPage() {
 
     if (!shipOk) {
       alert(
-        "Completa los datos obligatorios antes de pagar. El número de documento y el celular deben tener mínimo 5 números."
+        "Completa los datos obligatorios antes de pagar. El número de documento y el celular deben tener mínimo 5 números. En pasaporte se permiten letras y números."
       );
       setStep("envio");
       return;
@@ -406,6 +416,7 @@ export default function CheckoutPage() {
                           setShip((s) => ({
                             ...s,
                             documentType: e.target.value as DocumentType | "",
+                            documentNumber: sanitizeDocumentNumber(s.documentNumber, e.target.value as DocumentType | ""),
                           }))
                         }
                       >
@@ -424,15 +435,19 @@ export default function CheckoutPage() {
                         onChange={(e) =>
                           setShip((s) => ({
                             ...s,
-                            documentNumber: onlyDigits(e.target.value),
+                            documentNumber: sanitizeDocumentNumber(e.target.value, s.documentType),
                           }))
                         }
-                        placeholder="Ej: 1234567890"
-                        inputMode="numeric"
+                        placeholder={ship.documentType === "PAS" ? "Ej: AB12345" : "Ej: 1234567890"}
+                        inputMode={ship.documentType === "PAS" ? "text" : "numeric"}
                         autoComplete="off"
                       />
                       {ship.documentNumber.trim().length > 0 && !documentNumberValid && (
-                        <small className="err">Debe tener mínimo 5 números.</small>
+                        <small className="err">
+                          {ship.documentType === "PAS"
+                            ? "Debe contener mínimo 5 números. En pasaporte se permiten letras y números."
+                            : "Debe tener mínimo 5 números."}
+                        </small>
                       )}
                     </label>
                   </div>
@@ -510,7 +525,7 @@ export default function CheckoutPage() {
                   disabled={!canContinue || !shipOk || authLoading}
                   title={
                     !shipOk
-                      ? "Completa el envío. Documento y celular deben tener mínimo 5 números."
+                      ? "Completa el envío. Documento y celular deben tener mínimo 5 números. En pasaporte se permiten letras."
                       : authLoading
                         ? "Validando sesión..."
                         : ""
