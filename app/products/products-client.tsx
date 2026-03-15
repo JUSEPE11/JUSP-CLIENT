@@ -3,7 +3,7 @@
 import Link from "next/link";
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { PRODUCTS, type Product } from "@/lib/products";
+import type { Product } from "@/lib/products";
 import { isFavorite, toggleFavorite } from "@/lib/toggleFavorite";
 
 /** =========================
@@ -2228,10 +2228,10 @@ const ProductCard = memo(function ProductCard({
  * ========================= */
 function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
   const [hydratedProducts, setHydratedProducts] = useState<Product[]>(() =>
-    Array.isArray(initialProducts) && initialProducts.length ? initialProducts : PRODUCTS ?? []
+    Array.isArray(initialProducts) ? initialProducts : []
   );
   const allRaw = useMemo(
-    () => (Array.isArray(hydratedProducts) && hydratedProducts.length ? hydratedProducts : initialProducts?.length ? initialProducts : PRODUCTS ?? []),
+    () => (Array.isArray(hydratedProducts) && hydratedProducts.length ? hydratedProducts : Array.isArray(initialProducts) ? initialProducts : []),
     [hydratedProducts, initialProducts]
   );
   const [loadingCatalog, setLoadingCatalog] = useState<boolean>(() => !(Array.isArray(initialProducts) && initialProducts.length));

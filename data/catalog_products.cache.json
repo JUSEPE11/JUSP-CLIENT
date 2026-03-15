@@ -1,0 +1,215 @@
+{
+  "version": 1,
+  "generatedAt": "2026-03-15T18:06:14.129Z",
+  "excelPath": "C:\\JUSP\\jusp-app2\\data\\catalogo_jusp.xlsx",
+  "excelMtimeMs": 1773593891666.234,
+  "products": [
+    {
+      "id": "short-nike-kids",
+      "slug": "short-nike-kids",
+      "product_code": "short-nike-kids",
+      "title": "Pantalones cortos Nike niños",
+      "name": "Pantalones cortos Nike niños",
+      "brand": "Nike",
+      "price": 88990,
+      "currency": "COP",
+      "description": "Pantalones cortos Nike niños. Producto disponible en JUSP.",
+      "image": "/products/short-nike-kids/1.jpg",
+      "images": [
+        "/products/short-nike-kids/1.jpg",
+        "/products/short-nike-kids/2.jpg",
+        "/products/short-nike-kids/3.jpg",
+        "/products/short-nike-kids/4.jpg",
+        "/products/short-nike-kids/5.jpg",
+        "/products/short-nike-kids/6.jpg",
+        "/products/short-nike-kids/7.jpg",
+        "/products/short-nike-kids/8.jpg",
+        "/products/short-nike-kids/9.jpg",
+        "/products/short-nike-kids/10.jpg"
+      ],
+      "sizes": [
+        "XS (135)",
+        "S (140)"
+      ],
+      "colors": [],
+      "category": "kisd",
+      "gender": "kids",
+      "productType": "clothing",
+      "kind": "shorts",
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo"
+      ],
+      "isNew": true,
+      "stockHint": 2,
+      "variants": [
+        {
+          "key": "short-nike-kids-xs-135",
+          "size": "XS (135)",
+          "price": 88990,
+          "stock": 1
+        },
+        {
+          "key": "short-nike-kids-s-140",
+          "size": "S (140)",
+          "price": 88990,
+          "stock": 1
+        }
+      ]
+    },
+    {
+      "id": "nike-bra-dri-fit",
+      "slug": "nike-bra-dri-fit",
+      "product_code": "nike-bra-dri-fit",
+      "title": "Sujetador deportivo Nike Dri-FIT",
+      "name": "Sujetador deportivo Nike Dri-FIT",
+      "brand": "Nike",
+      "price": 69990,
+      "currency": "COP",
+      "description": "Sujetador deportivo Nike Dri-FIT. Producto disponible en JUSP.",
+      "image": "/products/nike-bra-dri-fit/1.jpg",
+      "images": [
+        "/products/nike-bra-dri-fit/1.jpg",
+        "/products/nike-bra-dri-fit/2.jpg",
+        "/products/nike-bra-dri-fit/3.jpg",
+        "/products/nike-bra-dri-fit/4.jpg",
+        "/products/nike-bra-dri-fit/5.jpg"
+      ],
+      "sizes": [
+        "S",
+        "M"
+      ],
+      "colors": [],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "sports-bra",
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo"
+      ],
+      "isNew": true,
+      "stockHint": 2,
+      "variants": [
+        {
+          "key": "nike-bra-dri-fit-s",
+          "size": "S",
+          "price": 69990,
+          "stock": 1
+        },
+        {
+          "key": "nike-bra-dri-fit-m",
+          "size": "M",
+          "price": 79990,
+          "stock": 1
+        }
+      ]
+    },
+    {
+      "id": "jordan-club-cap",
+      "slug": "jordan-club-cap",
+      "product_code": "jordan-club-cap",
+      "title": "Jordan Club Cap",
+      "name": "Jordan Club Cap",
+      "brand": "Jordan",
+      "price": 75990,
+      "currency": "COP",
+      "description": "Jordan Club Cap. Producto disponible en JUSP.",
+      "image": "/products/jordan-club-cap/1.jpg",
+      "images": [
+        "/products/jordan-club-cap/1.jpg",
+        "/products/jordan-club-cap/2.jpg",
+        "/products/jordan-club-cap/3.jpg",
+        "/products/jordan-club-cap/4.jpg",
+        "/products/jordan-club-cap/5.jpg",
+        "/products/jordan-club-cap/6.jpg"
+      ],
+      "sizes": [
+        "S/M",
+        "M/L",
+        "L/XL"
+      ],
+      "colors": [],
+      "category": "men",
+      "gender": "men",
+      "productType": "accessory",
+      "kind": "gorras",
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo"
+      ],
+      "isNew": true,
+      "stockHint": 3,
+      "variants": [
+        {
+          "key": "jordan-club-cap-sm",
+          "size": "S/M",
+          "price": 75990,
+          "stock": 1
+        },
+        {
+          "key": "jordan-club-cap-ml",
+          "size": "M/L",
+          "price": 79990,
+          "stock": 1
+        },
+        {
+          "key": "jordan-club-cap-lxl",
+          "size": "L/XL",
+          "price": 78990,
+          "stock": 1
+        }
+      ]
+    },
+    {
+      "id": "nike-sports-pants-womens-purple",
+      "slug": "nike-sports-pants-womens-purple",
+      "product_code": "nike-sports-pants-womens-purple",
+      "title": "Nike Pants Purple",
+      "name": "Nike Pants Purple",
+      "brand": "Nike",
+      "price": 69990,
+      "currency": "COP",
+      "description": "Nike Pants Purple. Producto disponible en JUSP.",
+      "image": "/products/nike-sports-pants-womens-purple/1.jpg",
+      "images": [
+        "/products/nike-sports-pants-womens-purple/1.jpg",
+        "/products/nike-sports-pants-womens-purple/2.jpg",
+        "/products/nike-sports-pants-womens-purple/3.jpg",
+        "/products/nike-sports-pants-womens-purple/4.jpg",
+        "/products/nike-sports-pants-womens-purple/5.jpg",
+        "/products/nike-sports-pants-womens-purple/6.jpg"
+      ],
+      "sizes": [
+        "M"
+      ],
+      "colors": [],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "general",
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo"
+      ],
+      "isNew": true,
+      "stockHint": 1,
+      "variants": [
+        {
+          "key": "nike-sports-pants-womens-purple-m",
+          "size": "M",
+          "price": 69990,
+          "stock": 1
+        }
+      ]
+    }
+  ]
+}

@@ -5,8 +5,8 @@ import * as XLSX from "xlsx";
 
 export const runtime = "nodejs";
 
- type Gender = "men" | "women" | "kids" | "unisex";
- type ProductType = "shoes" | "clothing" | "accessory";
+type Gender = "men" | "women" | "kids" | "unisex";
+type ProductType = "shoes" | "clothing" | "accessory";
 
 type Variant = {
   key: string;
@@ -41,20 +41,59 @@ type Product = {
   variants: Variant[];
 };
 
-function resolveExcelPath(): string | null {
-  const dataDir = path.join(process.cwd(), "data");
+type CachePayload = {
+  version: 1;
+  generatedAt: string;
+  excelPath: string | null;
+  excelMtimeMs: number;
+  products: Product[];
+};
 
-  const preferred = path.join(dataDir, "catalogo_jusp.xlsx");
+const DATA_DIR = path.join(process.cwd(), "data");
+const CACHE_BASENAMES = ["catalog_products.cache.json", "catalogo_jusp.cache.json"];
+
+function ensureDataDir() {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+  } catch {}
+}
+
+function getPreferredCachePath(): string {
+  ensureDataDir();
+  return path.join(DATA_DIR, CACHE_BASENAMES[0]);
+}
+
+function resolveCachePath(): string {
+  for (const basename of CACHE_BASENAMES) {
+    const full = path.join(DATA_DIR, basename);
+    if (fs.existsSync(full)) return full;
+  }
+  return getPreferredCachePath();
+}
+
+function resolveExcelPath(): string | null {
+  const preferred = path.join(DATA_DIR, "catalogo_jusp.xlsx");
   if (fs.existsSync(preferred)) return preferred;
 
-  if (!fs.existsSync(dataDir)) return null;
+  if (!fs.existsSync(DATA_DIR)) return null;
 
-  const files = fs.readdirSync(dataDir);
-  const candidate = files.find((file) =>
-    /^catalogo_jusp(\.[^.]+)?\.xlsx$/i.test(file) || /^catalogo_jusp\.xlsx$/i.test(file)
+  const files = fs.readdirSync(DATA_DIR);
+  const candidate = files.find(
+    (file) => /^catalogo_jusp(\.[^.]+)?\.xlsx$/i.test(file) || /^catalogo_jusp\.xlsx$/i.test(file)
   );
 
-  return candidate ? path.join(dataDir, candidate) : null;
+  return candidate ? path.join(DATA_DIR, candidate) : null;
+}
+
+function safeStatMtimeMs(filePath: string | null): number {
+  if (!filePath) return 0;
+  try {
+    return fs.statSync(filePath).mtimeMs || 0;
+  } catch {
+    return 0;
+  }
 }
 
 function loadWorkbook(filePath: string): XLSX.WorkBook | null {
@@ -159,7 +198,9 @@ function inferGender(title: string): Gender {
   const t = title.toLowerCase();
 
   if (t.includes("niño") || t.includes("niños") || t.includes("kids")) return "kids";
-  if (t.includes("mujer") || t.includes("women") || t.includes("bra") || t.includes("sujetador")) return "women";
+  if (t.includes("mujer") || t.includes("women") || t.includes("bra") || t.includes("sujetador")) {
+    return "women";
+  }
   if (t.includes("hombre") || t.includes("men")) return "men";
 
   return "unisex";
@@ -292,8 +333,60 @@ function loadExcelProducts(): Product[] {
   return Array.from(map.values());
 }
 
+function readCache(cachePath: string): CachePayload | null {
+  try {
+    if (!fs.existsSync(cachePath)) return null;
+    const raw = fs.readFileSync(cachePath, "utf8");
+    if (!raw.trim()) return null;
+    const parsed = JSON.parse(raw) as CachePayload;
+    if (!parsed || !Array.isArray(parsed.products)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(cachePath: string, products: Product[], excelPath: string | null, excelMtimeMs: number) {
+  try {
+    ensureDataDir();
+    const payload: CachePayload = {
+      version: 1,
+      generatedAt: new Date().toISOString(),
+      excelPath,
+      excelMtimeMs,
+      products,
+    };
+    fs.writeFileSync(cachePath, JSON.stringify(payload, null, 2), "utf8");
+  } catch {}
+}
+
+function getProductsFast(): Product[] {
+  const excelPath = resolveExcelPath();
+  const excelMtimeMs = safeStatMtimeMs(excelPath);
+  const cachePath = resolveCachePath();
+  const cached = readCache(cachePath);
+
+  if (cached && cached.excelMtimeMs >= excelMtimeMs && cached.products.length) {
+    return cached.products;
+  }
+
+  const fresh = loadExcelProducts();
+
+  if (fresh.length) {
+    writeCache(cachePath, fresh, excelPath, excelMtimeMs);
+    return fresh;
+  }
+
+  if (cached?.products?.length) {
+    return cached.products;
+  }
+
+  return [];
+}
+
 export async function GET() {
-  const products = loadExcelProducts();
+  const products = getProductsFast();
+
   return NextResponse.json(products, {
     headers: {
       "Cache-Control": "no-store, max-age=0",
