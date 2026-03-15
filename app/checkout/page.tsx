@@ -17,6 +17,42 @@ const SHIPPING_KEY = "jusp_checkout_shipping_v1";
 const SHIPPING_PRICE = 99990;
 const FREE_SHIPPING_MIN_ITEMS = 4;
 
+const COLOMBIA_DEPARTMENTS = [
+  "Amazonas",
+  "Antioquia",
+  "Arauca",
+  "Atlántico",
+  "Bogotá D.C.",
+  "Bolívar",
+  "Boyacá",
+  "Caldas",
+  "Caquetá",
+  "Casanare",
+  "Cauca",
+  "Cesar",
+  "Chocó",
+  "Córdoba",
+  "Cundinamarca",
+  "Guainía",
+  "Guaviare",
+  "Huila",
+  "La Guajira",
+  "Magdalena",
+  "Meta",
+  "Nariño",
+  "Norte de Santander",
+  "Putumayo",
+  "Quindío",
+  "Risaralda",
+  "San Andrés y Providencia",
+  "Santander",
+  "Sucre",
+  "Tolima",
+  "Valle del Cauca",
+  "Vaupés",
+  "Vichada",
+] as const;
+
 function safeParse(raw: string | null) {
   if (!raw) return null;
   try {
@@ -24,6 +60,14 @@ function safeParse(raw: string | null) {
   } catch {
     return null;
   }
+}
+
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function hasAtLeastFiveDigits(value: string) {
+  return onlyDigits(value).length >= 5;
 }
 
 type DocumentType = "CC" | "CE" | "NIT" | "PAS";
@@ -82,16 +126,17 @@ export default function CheckoutPage() {
   useEffect(() => {
     const prev = safeParse(localStorage.getItem(SHIPPING_KEY));
     if (prev && typeof prev === "object") {
+      const nextRegion = String((prev as any).region || "");
       setShip({
         fullName: String((prev as any).fullName || ""),
         email: String((prev as any).email || ""),
         documentType: (["CC", "CE", "NIT", "PAS"].includes(String((prev as any).documentType || ""))
           ? String((prev as any).documentType || "")
           : "") as DocumentType | "",
-        documentNumber: String((prev as any).documentNumber || ""),
-        phone: String((prev as any).phone || ""),
+        documentNumber: onlyDigits(String((prev as any).documentNumber || "")),
+        phone: onlyDigits(String((prev as any).phone || "")),
         city: String((prev as any).city || ""),
-        region: String((prev as any).region || ""),
+        region: COLOMBIA_DEPARTMENTS.includes(nextRegion as (typeof COLOMBIA_DEPARTMENTS)[number]) ? nextRegion : "",
         addressLine1: String((prev as any).addressLine1 || ""),
         notes: String((prev as any).notes || ""),
       });
@@ -135,6 +180,9 @@ export default function CheckoutPage() {
     } catch {}
   }, [ship]);
 
+  const documentNumberValid = useMemo(() => hasAtLeastFiveDigits(ship.documentNumber), [ship.documentNumber]);
+  const phoneValid = useMemo(() => hasAtLeastFiveDigits(ship.phone), [ship.phone]);
+
   const shipOk = useMemo(() => {
     const fullName = ship.fullName.trim();
     const email = ship.email.trim();
@@ -153,12 +201,14 @@ export default function CheckoutPage() {
         emailOk &&
         documentType &&
         documentNumber &&
+        documentNumberValid &&
         phone &&
+        phoneValid &&
         city &&
         address &&
         region
     );
-  }, [ship]);
+  }, [ship, documentNumberValid, phoneValid]);
 
   function goToLogin() {
     const redirect = step === "pago" ? "/checkout?step=pago" : "/checkout";
@@ -188,7 +238,7 @@ export default function CheckoutPage() {
 
     if (!shipOk) {
       alert(
-        "Completa los datos obligatorios antes de pagar (nombre, correo, tipo de documento, número de documento, teléfono, ciudad, departamento y dirección)."
+        "Completa los datos obligatorios antes de pagar. El número de documento y el celular deben tener mínimo 5 números."
       );
       setStep("envio");
       return;
@@ -371,11 +421,19 @@ export default function CheckoutPage() {
                       <span>Número de documento *</span>
                       <input
                         value={ship.documentNumber}
-                        onChange={(e) => setShip((s) => ({ ...s, documentNumber: e.target.value }))}
+                        onChange={(e) =>
+                          setShip((s) => ({
+                            ...s,
+                            documentNumber: onlyDigits(e.target.value),
+                          }))
+                        }
                         placeholder="Ej: 1234567890"
                         inputMode="numeric"
                         autoComplete="off"
                       />
+                      {ship.documentNumber.trim().length > 0 && !documentNumberValid && (
+                        <small className="err">Debe tener mínimo 5 números.</small>
+                      )}
                     </label>
                   </div>
 
@@ -383,11 +441,19 @@ export default function CheckoutPage() {
                     <span>Teléfono *</span>
                     <input
                       value={ship.phone}
-                      onChange={(e) => setShip((s) => ({ ...s, phone: e.target.value }))}
+                      onChange={(e) =>
+                        setShip((s) => ({
+                          ...s,
+                          phone: onlyDigits(e.target.value),
+                        }))
+                      }
                       placeholder="Ej: 3001234567"
                       inputMode="tel"
                       autoComplete="tel"
                     />
+                    {ship.phone.trim().length > 0 && !phoneValid && (
+                      <small className="err">Debe tener mínimo 5 números.</small>
+                    )}
                   </label>
 
                   <div className="two">
@@ -402,11 +468,17 @@ export default function CheckoutPage() {
 
                     <label className="f">
                       <span>Departamento *</span>
-                      <input
+                      <select
                         value={ship.region}
                         onChange={(e) => setShip((s) => ({ ...s, region: e.target.value }))}
-                        placeholder="Ej: Cundinamarca"
-                      />
+                      >
+                        <option value="">Selecciona un departamento</option>
+                        {COLOMBIA_DEPARTMENTS.map((department) => (
+                          <option key={department} value={department}>
+                            {department}
+                          </option>
+                        ))}
+                      </select>
                     </label>
                   </div>
 
@@ -436,7 +508,13 @@ export default function CheckoutPage() {
                   type="button"
                   onClick={handleContinueToPayment}
                   disabled={!canContinue || !shipOk || authLoading}
-                  title={!shipOk ? "Completa el envío para continuar" : authLoading ? "Validando sesión..." : ""}
+                  title={
+                    !shipOk
+                      ? "Completa el envío. Documento y celular deben tener mínimo 5 números."
+                      : authLoading
+                        ? "Validando sesión..."
+                        : ""
+                  }
                 >
                   {authLoading ? "Validando sesión…" : !isAuthed ? "Iniciar sesión para pagar" : "Continuar a pago"}
                 </button>
@@ -642,6 +720,14 @@ const baseCss = `
   }
   .f textarea{ min-height: 92px; resize: vertical; }
   .two{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .err{
+    display:block;
+    margin-top: 2px;
+    font-size: 12px;
+    font-weight: 900;
+    color: #c62828;
+  }
 
   .authNote,
   .authWarn{
