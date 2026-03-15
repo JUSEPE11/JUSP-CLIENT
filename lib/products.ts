@@ -1,5 +1,3 @@
-declare const require: any;
-
 export type ProductVariant = {
   key: string;
   color?: string;
@@ -56,6 +54,35 @@ type CachePayload = {
   products: Product[];
 };
 
+function isServer(): boolean {
+  return typeof window === "undefined";
+}
+
+function getNodeRequire(): NodeRequire | null {
+  if (!isServer()) return null;
+
+  try {
+    return Function("return require")() as NodeRequire;
+  } catch {
+    return null;
+  }
+}
+
+function getFs() {
+  const req = getNodeRequire();
+  return req ? (req("fs") as typeof import("fs")) : null;
+}
+
+function getPath() {
+  const req = getNodeRequire();
+  return req ? (req("path") as typeof import("path")) : null;
+}
+
+function getXlsx() {
+  const req = getNodeRequire();
+  return req ? req("xlsx") : null;
+}
+
 function derivePriceFromVariants(variants?: ProductVariant[]): number {
   if (!variants || !variants.length) return 0;
   return Math.min(...variants.map((v) => v.price));
@@ -79,32 +106,20 @@ function toSafeNumber(value: unknown, fallback = 0): number {
   return fallback;
 }
 
-function isServer(): boolean {
-  return typeof window === "undefined";
-}
-
-function getFs() {
-  return require("fs") as typeof import("fs");
-}
-
-function getPath() {
-  return require("path") as typeof import("path");
-}
-
-function getXlsx() {
-  return require("xlsx");
-}
-
-function getDataDir(): string {
+function getDataDir(): string | null {
   const path = getPath();
+  if (!path) return null;
   return path.join(process.cwd(), "data");
 }
 
 function ensureDataDir() {
   if (!isServer()) return;
+
   try {
     const fs = getFs();
     const dataDir = getDataDir();
+    if (!fs || !dataDir) return;
+
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true });
     }
@@ -113,8 +128,12 @@ function ensureDataDir() {
 
 function getPreferredCachePath(): string {
   const path = getPath();
+  const dataDir = getDataDir();
+
+  if (!path || !dataDir) return "data/catalog_products.cache.json";
+
   ensureDataDir();
-  return path.join(getDataDir(), "catalog_products.cache.json");
+  return path.join(dataDir, "catalog_products.cache.json");
 }
 
 function resolveCachePath(): string {
@@ -124,6 +143,9 @@ function resolveCachePath(): string {
     const fs = getFs();
     const path = getPath();
     const dataDir = getDataDir();
+
+    if (!fs || !path || !dataDir) return getPreferredCachePath();
+
     const basenames = ["catalog_products.cache.json", "catalogo_jusp.cache.json"];
 
     for (const basename of basenames) {
@@ -142,6 +164,9 @@ function resolveExcelPath(): string | null {
     const fs = getFs();
     const path = getPath();
     const dataDir = getDataDir();
+
+    if (!fs || !path || !dataDir) return null;
+
     const preferred = path.join(dataDir, "catalogo_jusp.xlsx");
 
     if (fs.existsSync(preferred)) return preferred;
@@ -149,7 +174,8 @@ function resolveExcelPath(): string | null {
 
     const files = fs.readdirSync(dataDir);
     const candidate = files.find(
-      (file: string) => /^catalogo_jusp(\.[^.]+)?\.xlsx$/i.test(file) || /^catalogo_jusp\.xlsx$/i.test(file)
+      (file: string) =>
+        /^catalogo_jusp(\.[^.]+)?\.xlsx$/i.test(file) || /^catalogo_jusp\.xlsx$/i.test(file)
     );
 
     return candidate ? path.join(dataDir, candidate) : null;
@@ -163,6 +189,7 @@ function safeStatMtimeMs(filePath: string | null): number {
 
   try {
     const fs = getFs();
+    if (!fs) return 0;
     return fs.statSync(filePath).mtimeMs || 0;
   } catch {
     return 0;
@@ -175,6 +202,8 @@ function listProductImages(slug: string): string[] {
   try {
     const fs = getFs();
     const path = getPath();
+    if (!fs || !path) return [];
+
     const dir = path.join(process.cwd(), "public", "products", slug);
 
     if (!fs.existsSync(dir)) return [];
@@ -240,7 +269,12 @@ function inferGender(title: string): "men" | "women" | "kids" | "unisex" {
   const t = title.toLowerCase();
 
   if (t.includes("niño") || t.includes("niños") || t.includes("kids")) return "kids";
-  if (t.includes("mujer") || t.includes("women") || t.includes("bra") || t.includes("sujetador")) {
+  if (
+    t.includes("mujer") ||
+    t.includes("women") ||
+    t.includes("bra") ||
+    t.includes("sujetador")
+  ) {
     return "women";
   }
   if (t.includes("hombre") || t.includes("men")) return "men";
@@ -276,7 +310,9 @@ function normalizeExcelGender(value: unknown): "men" | "women" | "kids" | "unise
   if (v === "men" || v === "women" || v === "kids" || v === "unisex") return v;
   if (v === "hombre") return "men";
   if (v === "mujer") return "women";
-  if (v === "niños" || v === "ninos" || v === "niño" || v === "nino" || v === "kid") return "kids";
+  if (v === "niños" || v === "ninos" || v === "niño" || v === "nino" || v === "kid") {
+    return "kids";
+  }
 
   return null;
 }
@@ -293,7 +329,7 @@ function buildProductsFromExcel(): Product[] {
     const XLSX = getXlsx();
     const filePath = resolveExcelPath();
 
-    if (!filePath || !fs.existsSync(filePath)) return [];
+    if (!fs || !XLSX || !filePath || !fs.existsSync(filePath)) return [];
 
     const workbook = XLSX.readFile(filePath);
     const firstSheetName = workbook.SheetNames[0];
@@ -389,23 +425,34 @@ function readCache(cachePath: string): CachePayload | null {
 
   try {
     const fs = getFs();
-    if (!fs.existsSync(cachePath)) return null;
+    if (!fs || !fs.existsSync(cachePath)) return null;
+
     const raw = fs.readFileSync(cachePath, "utf8");
     if (!raw.trim()) return null;
+
     const parsed = JSON.parse(raw) as CachePayload;
     if (!parsed || !Array.isArray(parsed.products)) return null;
+
     return parsed;
   } catch {
     return null;
   }
 }
 
-function writeCache(cachePath: string, products: Product[], excelPath: string | null, excelMtimeMs: number) {
+function writeCache(
+  cachePath: string,
+  products: Product[],
+  excelPath: string | null,
+  excelMtimeMs: number
+) {
   if (!isServer()) return;
 
   try {
     const fs = getFs();
+    if (!fs) return;
+
     ensureDataDir();
+
     const payload: CachePayload = {
       version: 1,
       generatedAt: new Date().toISOString(),
@@ -413,6 +460,7 @@ function writeCache(cachePath: string, products: Product[], excelPath: string | 
       excelMtimeMs,
       products,
     };
+
     fs.writeFileSync(cachePath, JSON.stringify(payload, null, 2), "utf8");
   } catch {}
 }
@@ -443,14 +491,44 @@ function getProductsFast(): Product[] {
   return [];
 }
 
-const EXCEL_PRODUCTS = getProductsFast();
+async function getProductsFromApi(): Promise<Product[]> {
+  try {
+    const res = await fetch("/api/products", {
+      cache: "no-store",
+    });
+
+    if (!res.ok) return [];
+
+    const data = await res.json();
+    return Array.isArray(data) ? (data as Product[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+const EXCEL_PRODUCTS = isServer() ? getProductsFast() : [];
 
 export const PRODUCTS: Product[] = EXCEL_PRODUCTS;
 
 export async function getProducts(): Promise<Product[]> {
-  return PRODUCTS;
+  if (isServer()) {
+    return getProductsFast();
+  }
+
+  return getProductsFromApi();
 }
 
-export function getProductById(id: string): Product | undefined {
-  return PRODUCTS.find((p) => p.id === id || p.slug === id || p.product_code === id);
+export async function getProductById(id: string): Promise<Product | undefined> {
+  const lookup = String(id || "").trim().toLowerCase();
+  if (!lookup) return undefined;
+
+  const products = await getProducts();
+
+  return products.find((p) => {
+    const pid = String(p.id || "").trim().toLowerCase();
+    const pslug = String(p.slug || "").trim().toLowerCase();
+    const pcode = String(p.product_code || "").trim().toLowerCase();
+
+    return pid === lookup || pslug === lookup || pcode === lookup;
+  });
 }

@@ -41,58 +41,41 @@ type Product = {
   variants: Variant[];
 };
 
-type CachePayload = {
+type CatalogCacheFile = {
   version: 1;
   generatedAt: string;
-  excelPath: string | null;
+  excelPath: string;
   excelMtimeMs: number;
   products: Product[];
 };
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const CACHE_BASENAMES = ["catalog_products.cache.json", "catalogo_jusp.cache.json"];
-
-function ensureDataDir() {
-  try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
-  } catch {}
-}
-
-function getPreferredCachePath(): string {
-  ensureDataDir();
-  return path.join(DATA_DIR, CACHE_BASENAMES[0]);
-}
-
-function resolveCachePath(): string {
-  for (const basename of CACHE_BASENAMES) {
-    const full = path.join(DATA_DIR, basename);
-    if (fs.existsSync(full)) return full;
-  }
-  return getPreferredCachePath();
-}
+const CACHE_VERSION = 1;
 
 function resolveExcelPath(): string | null {
-  const preferred = path.join(DATA_DIR, "catalogo_jusp.xlsx");
+  const dataDir = path.join(process.cwd(), "data");
+
+  const preferred = path.join(dataDir, "catalogo_jusp.xlsx");
   if (fs.existsSync(preferred)) return preferred;
 
-  if (!fs.existsSync(DATA_DIR)) return null;
+  if (!fs.existsSync(dataDir)) return null;
 
-  const files = fs.readdirSync(DATA_DIR);
+  const files = fs.readdirSync(dataDir);
   const candidate = files.find(
-    (file) => /^catalogo_jusp(\.[^.]+)?\.xlsx$/i.test(file) || /^catalogo_jusp\.xlsx$/i.test(file)
+    (file) =>
+      /^catalogo_jusp(\.[^.]+)?\.xlsx$/i.test(file) || /^catalogo_jusp\.xlsx$/i.test(file)
   );
 
-  return candidate ? path.join(DATA_DIR, candidate) : null;
+  return candidate ? path.join(dataDir, candidate) : null;
 }
 
-function safeStatMtimeMs(filePath: string | null): number {
-  if (!filePath) return 0;
-  try {
-    return fs.statSync(filePath).mtimeMs || 0;
-  } catch {
-    return 0;
+function getCachePath(): string {
+  return path.join(process.cwd(), "data", "catalog_products.cache.json");
+}
+
+function ensureDataDir() {
+  const dataDir = path.join(process.cwd(), "data");
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
   }
 }
 
@@ -107,11 +90,13 @@ function loadWorkbook(filePath: string): XLSX.WorkBook | null {
 
 function toSafeNumber(value: unknown, fallback = 0): number {
   if (typeof value === "number" && Number.isFinite(value)) return value;
+
   if (typeof value === "string") {
     const cleaned = value.replace(/[^\d.-]/g, "");
     const parsed = Number(cleaned);
     return Number.isFinite(parsed) ? parsed : fallback;
   }
+
   return fallback;
 }
 
@@ -125,10 +110,12 @@ function sanitizeVariantPart(value?: string): string {
 
 function uniq(values: string[]): string[] {
   const out: string[] = [];
+
   for (const value of values) {
     const v = String(value || "").trim();
     if (v && !out.includes(v)) out.push(v);
   }
+
   return out;
 }
 
@@ -198,7 +185,12 @@ function inferGender(title: string): Gender {
   const t = title.toLowerCase();
 
   if (t.includes("niño") || t.includes("niños") || t.includes("kids")) return "kids";
-  if (t.includes("mujer") || t.includes("women") || t.includes("bra") || t.includes("sujetador")) {
+  if (
+    t.includes("mujer") ||
+    t.includes("women") ||
+    t.includes("bra") ||
+    t.includes("sujetador")
+  ) {
     return "women";
   }
   if (t.includes("hombre") || t.includes("men")) return "men";
@@ -234,7 +226,9 @@ function normalizeExcelGender(value: unknown): Gender | null {
   if (v === "men" || v === "women" || v === "kids" || v === "unisex") return v;
   if (v === "hombre") return "men";
   if (v === "mujer") return "women";
-  if (v === "niños" || v === "ninos" || v === "niño" || v === "nino" || v === "kid") return "kids";
+  if (v === "niños" || v === "ninos" || v === "niño" || v === "nino" || v === "kid") {
+    return "kids";
+  }
 
   return null;
 }
@@ -326,62 +320,88 @@ function loadExcelProducts(): Product[] {
 
     if (size) product.sizes = uniq([...product.sizes, size]);
     if (color) product.colors = uniq([...product.colors, color]);
+
     product.stockHint = (product.stockHint || 0) + stock;
-    if (price < product.price) product.price = price;
+
+    if (price < product.price) {
+      product.price = price;
+    }
   }
 
   return Array.from(map.values());
 }
 
-function readCache(cachePath: string): CachePayload | null {
+function readCatalogCache(): CatalogCacheFile | null {
   try {
+    const cachePath = getCachePath();
     if (!fs.existsSync(cachePath)) return null;
+
     const raw = fs.readFileSync(cachePath, "utf8");
-    if (!raw.trim()) return null;
-    const parsed = JSON.parse(raw) as CachePayload;
-    if (!parsed || !Array.isArray(parsed.products)) return null;
+    const parsed = JSON.parse(raw) as CatalogCacheFile;
+
+    if (!parsed || parsed.version !== CACHE_VERSION || !Array.isArray(parsed.products)) {
+      return null;
+    }
+
     return parsed;
   } catch {
     return null;
   }
 }
 
-function writeCache(cachePath: string, products: Product[], excelPath: string | null, excelMtimeMs: number) {
+function writeCatalogCache(payload: CatalogCacheFile) {
   try {
     ensureDataDir();
-    const payload: CachePayload = {
-      version: 1,
-      generatedAt: new Date().toISOString(),
-      excelPath,
-      excelMtimeMs,
-      products,
-    };
-    fs.writeFileSync(cachePath, JSON.stringify(payload, null, 2), "utf8");
+    fs.writeFileSync(getCachePath(), JSON.stringify(payload, null, 2), "utf8");
   } catch {}
+}
+
+function getExcelMtimeMs(excelPath: string): number {
+  try {
+    return fs.statSync(excelPath).mtimeMs;
+  } catch {
+    return 0;
+  }
 }
 
 function getProductsFast(): Product[] {
   const excelPath = resolveExcelPath();
-  const excelMtimeMs = safeStatMtimeMs(excelPath);
-  const cachePath = resolveCachePath();
-  const cached = readCache(cachePath);
 
-  if (cached && cached.excelMtimeMs >= excelMtimeMs && cached.products.length) {
-    return cached.products;
+  if (!excelPath) {
+    const cache = readCatalogCache();
+    return cache?.products ?? [];
   }
 
-  const fresh = loadExcelProducts();
+  const excelMtimeMs = getExcelMtimeMs(excelPath);
+  const cache = readCatalogCache();
 
-  if (fresh.length) {
-    writeCache(cachePath, fresh, excelPath, excelMtimeMs);
-    return fresh;
+  const cacheIsFresh =
+    !!cache &&
+    cache.version === CACHE_VERSION &&
+    cache.excelPath === excelPath &&
+    cache.excelMtimeMs === excelMtimeMs &&
+    Array.isArray(cache.products) &&
+    cache.products.length > 0;
+
+  if (cacheIsFresh) {
+    return cache.products;
   }
 
-  if (cached?.products?.length) {
-    return cached.products;
+  const excelProducts = loadExcelProducts();
+
+  if (excelProducts.length > 0) {
+    writeCatalogCache({
+      version: CACHE_VERSION,
+      generatedAt: new Date().toISOString(),
+      excelPath,
+      excelMtimeMs,
+      products: excelProducts,
+    });
+
+    return excelProducts;
   }
 
-  return [];
+  return cache?.products ?? [];
 }
 
 export async function GET() {
