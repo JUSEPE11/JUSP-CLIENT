@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "generatedAt": "2026-03-15T18:06:14.129Z",
+  "generatedAt": "2026-03-15T18:57:09.955Z",
   "excelPath": "C:\\JUSP\\jusp-app2\\data\\catalogo_jusp.xlsx",
-  "excelMtimeMs": 1773593891666.234,
+  "excelMtimeMs": 1773601023694.7246,
   "products": [
     {
       "id": "short-nike-kids",
@@ -207,6 +207,95 @@
           "key": "nike-sports-pants-womens-purple-m",
           "size": "M",
           "price": 69990,
+          "stock": 1
+        }
+      ]
+    },
+    {
+      "id": "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women",
+      "slug": "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women",
+      "product_code": "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women",
+      "title": "Nike sujetador",
+      "name": "Nike sujetador",
+      "brand": "Nike",
+      "price": 99990,
+      "currency": "COP",
+      "description": "Nike sujetador. Producto disponible en JUSP.",
+      "image": "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/1.jpg",
+      "images": [
+        "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/1.jpg",
+        "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/2.jpg",
+        "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/3.jpg",
+        "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/4.jpg",
+        "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/5.jpg"
+      ],
+      "sizes": [
+        "M"
+      ],
+      "colors": [],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "sports-bra",
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo"
+      ],
+      "isNew": true,
+      "stockHint": 1,
+      "variants": [
+        {
+          "key": "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women-m",
+          "size": "M",
+          "price": 99990,
+          "stock": 1
+        }
+      ]
+    },
+    {
+      "id": "nike-dunk-low-retro",
+      "slug": "nike-dunk-low-retro",
+      "product_code": "nike-dunk-low-retro",
+      "title": "Nike low",
+      "name": "Nike low",
+      "brand": "Nike",
+      "price": 99990,
+      "currency": "COP",
+      "description": "Nike low. Producto disponible en JUSP.",
+      "image": "/products/nike-dunk-low-retro/1.jpg",
+      "images": [
+        "/products/nike-dunk-low-retro/1.jpg",
+        "/products/nike-dunk-low-retro/2.jpg",
+        "/products/nike-dunk-low-retro/3.jpg",
+        "/products/nike-dunk-low-retro/4.jpg",
+        "/products/nike-dunk-low-retro/5.jpg",
+        "/products/nike-dunk-low-retro/6.jpg",
+        "/products/nike-dunk-low-retro/7.jpg",
+        "/products/nike-dunk-low-retro/8.jpg"
+      ],
+      "sizes": [
+        "7"
+      ],
+      "colors": [],
+      "category": "men",
+      "gender": "men",
+      "productType": "clothing",
+      "kind": "general",
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo"
+      ],
+      "isNew": true,
+      "stockHint": 1,
+      "variants": [
+        {
+          "key": "nike-dunk-low-retro-7",
+          "size": "7",
+          "price": 99990,
           "stock": 1
         }
       ]
