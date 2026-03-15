@@ -13,6 +13,25 @@ function centsCOP(cop: number) {
   return Math.round(cop) * 100;
 }
 
+function formatDate(date: Date) {
+  return date.toLocaleDateString("es-CO", {
+    day: "numeric",
+    month: "long",
+  });
+}
+
+function getDeliveryEstimate() {
+  const now = new Date();
+
+  const min = new Date(now);
+  min.setDate(min.getDate() + 15);
+
+  const max = new Date(now);
+  max.setDate(max.getDate() + 20);
+
+  return `${formatDate(min)} - ${formatDate(max)}`;
+}
+
 const SHIPPING_KEY = "jusp_checkout_shipping_v1";
 const SHIPPING_PRICE = 99990;
 const FREE_SHIPPING_MIN_ITEMS = 4;
@@ -118,6 +137,7 @@ export default function CheckoutPage() {
 
   const items = state.cart;
   const canContinue = cartCount > 0;
+  const deliveryEstimate = useMemo(() => getDeliveryEstimate(), []);
 
   const summary = useMemo(() => {
     const shipping = cartCount >= FREE_SHIPPING_MIN_ITEMS ? 0 : SHIPPING_PRICE;
@@ -616,6 +636,11 @@ export default function CheckoutPage() {
                   <span>Total</span>
                   <b>${moneyCOP(summary.total)}</b>
                 </div>
+
+                <div className="delivery">
+                  <span>Entrega estimada</span>
+                  <b>{deliveryEstimate}</b>
+                </div>
               </div>
             </div>
           </aside>
@@ -803,6 +828,23 @@ const baseCss = `
   .tot{ font-size: 15px; }
   .tot b{ font-size: 16px; }
 
+  .delivery{
+    display:flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: rgba(0,0,0,0.03);
+    border: 1px solid rgba(0,0,0,0.08);
+    font-weight: 900;
+    color: rgba(0,0,0,0.72);
+  }
+  .delivery b{
+    color:#111;
+    font-weight: 950;
+    text-align: right;
+  }
+
   .payBox{
     margin-top: 14px;
     border-radius: 18px;
@@ -844,5 +886,11 @@ const baseCss = `
     .h1{ font-size: 32px; }
     .top{ flex-direction: column; align-items:flex-start; }
     .two{ grid-template-columns: 1fr; }
+    .delivery{
+      flex-direction: column;
+    }
+    .delivery b{
+      text-align: left;
+    }
   }
 `;
