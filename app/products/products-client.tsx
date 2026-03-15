@@ -347,17 +347,64 @@ const ALL_COLORS = [
 /** Color swatch: nombre -> color real (fallback robusto) */
 
 function normalizeColorValue(value: string) {
-  return normKey(String(value || ""));
+  return normKey(String(value || ""))
+    .replace(/\s+/g, " ")
+    .replace(/\bgr[ae]y\b/g, "grey")
+    .replace(/\boff white\b/g, "off-white")
+    .trim();
+}
+
+function splitColorTokens(value: unknown): string[] {
+  const raw = String(value || "").trim();
+  if (!raw) return [];
+
+  return raw
+    .split(/[,/|;+]+|\s+y\s+|\s+and\s+/i)
+    .map((item) => String(item || "").trim())
+    .filter(Boolean)
+    .filter((item) => {
+      const key = normalizeColorValue(item);
+      return key && key !== "n/a" && key !== "na" && key !== "none" && key !== "sin color";
+    });
+}
+
+function detectColorFromTitle(p: Product): string[] {
+  const t = normKey(String((p as any).title || (p as any).name || ""));
+  const aliases: Record<string, string[]> = {
+    Black: ["black", "negro"],
+    White: ["white", "blanco"],
+    Red: ["red", "rojo"],
+    Blue: ["blue", "azul"],
+    Green: ["green", "verde"],
+    Pink: ["pink", "rosa", "rosado"],
+    Purple: ["purple", "morado", "violeta", "lila"],
+    Yellow: ["yellow", "amarillo"],
+    Orange: ["orange", "naranja"],
+    Brown: ["brown", "marron", "cafe", "café"],
+    Grey: ["grey", "gray", "gris"],
+    Beige: ["beige"],
+    Cream: ["cream", "crema"],
+  };
+
+  const out: string[] = [];
+  for (const [label, terms] of Object.entries(aliases)) {
+    if (terms.some((term) => t.includes(normKey(term)))) out.push(label);
+  }
+  return out;
 }
 
 function getProductColorLabels(p: Product): string[] {
-  const fromColors = safeArr((p as any).colors);
+  const fromColors = safeArr((p as any).colors).flatMap((value) => splitColorTokens(value));
   const fromVariants = Array.isArray((p as any).variants)
-    ? (p as any).variants
-        .map((v: any) => String(v?.color || "").trim())
-        .filter(Boolean)
+    ? (p as any).variants.flatMap((v: any) => splitColorTokens(v?.color))
     : [];
-  return uniqueStringsCaseInsensitive([...fromColors, ...fromVariants]);
+  const fromSingleColor = splitColorTokens((p as any).color);
+
+  return uniqueStringsCaseInsensitive([
+    ...fromColors,
+    ...fromVariants,
+    ...fromSingleColor,
+  ]);
 }
 
 function productHasColor(p: Product, wanted: string | null) {
@@ -1917,7 +1964,7 @@ const ProductCard = memo(function ProductCard({
 
   const fav = mounted ? isFavorite(favKey) : false;
 
-  const colors = safeArr((p as any).colors);
+  const colors = getProductColorLabels(p);
   const colorDots = colors.slice(0, 3);
   const moreColors = Math.max(0, colors.length - colorDots.length);
 

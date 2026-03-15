@@ -44,14 +44,14 @@ type Product = {
 };
 
 type CatalogCacheFile = {
-  version: 2;
+  version: 4;
   generatedAt: string;
   excelPath: string;
   excelMtimeMs: number;
   products: Product[];
 };
 
-const CACHE_VERSION = 2;
+const CACHE_VERSION = 4;
 
 function resolveExcelPath(): string | null {
   const dataDir = path.join(process.cwd(), "data");
@@ -146,6 +146,33 @@ function uniqCaseInsensitive(values: string[]): string[] {
   }
 
   return out;
+}
+
+function normalizeHeaderKey(value: unknown): string {
+  return String(value ?? "")
+    .replace(/^\uFEFF/, "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+}
+
+function getRowValue(
+  row: Record<string, unknown>,
+  possibleKeys: string[],
+  fallback: unknown = ""
+): unknown {
+  const normalizedMap = new Map<string, unknown>();
+
+  for (const [key, value] of Object.entries(row)) {
+    normalizedMap.set(normalizeHeaderKey(key), value);
+  }
+
+  for (const key of possibleKeys) {
+    const hit = normalizedMap.get(normalizeHeaderKey(key));
+    if (hit !== undefined) return hit;
+  }
+
+  return fallback;
 }
 
 function listProductImages(slug: string): string[] {
@@ -266,6 +293,12 @@ function normalizeExcelCategory(value: unknown): string {
   return String(value || "").trim();
 }
 
+function buildVariantKey(slug: string, size?: string, color?: string): string {
+  const sizePart = sanitizeVariantPart(size || "nosize");
+  const colorPart = sanitizeVariantPart(color || "nocolor");
+  return `${slug}-${sizePart}-${colorPart}`;
+}
+
 function loadExcelProducts(): Product[] {
   const excelPath = resolveExcelPath();
   if (!excelPath) return [];
@@ -280,34 +313,59 @@ function loadExcelProducts(): Product[] {
 
   if (!sheet) return [];
 
-  const rows = XLSX.utils.sheet_to_json<{
-    product_slug?: string;
-    title?: string;
-    brand?: string;
-    size?: string;
-    color?: string;
-    price?: number | string;
-    stock?: number | string;
-    gender?: string;
-    category?: string;
-    pickup_today?: string | number | boolean;
-    express_delivery?: string | number | boolean;
-  }>(sheet, { defval: "" });
+  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+    defval: "",
+    raw: false,
+  });
 
   const map = new Map<string, Product>();
 
-  for (const row of rows) {
-    const slug = String(row.product_slug || "").trim();
-    const title = String(row.title || "").trim();
-    const brand = String(row.brand || "JUSP").trim();
-    const size = String(row.size || "").trim();
-    const color = normalizeColor(row.color);
-    const price = toSafeNumber(row.price, 0);
-    const stock = toSafeNumber(row.stock, 0);
-    const excelGender = normalizeExcelGender(row.gender);
-    const excelCategory = normalizeExcelCategory(row.category);
-    const pickupToday = toSafeBoolean(row.pickup_today);
-    const expressDelivery = toSafeBoolean(row.express_delivery);
+  for (const rawRow of rows) {
+    const slug = String(
+      getRowValue(rawRow, ["product_slug", "slug", "productslug"], "")
+    ).trim();
+
+    const title = String(
+      getRowValue(rawRow, ["title", "titulo", "name", "nombre"], "")
+    ).trim();
+
+    const brand = String(
+      getRowValue(rawRow, ["brand", "marca"], "JUSP")
+    ).trim();
+
+    const size = String(
+      getRowValue(rawRow, ["size", "talla"], "")
+    ).trim();
+
+    const color = normalizeColor(
+      getRowValue(rawRow, ["color", "colour"], "")
+    );
+
+    const price = toSafeNumber(
+      getRowValue(rawRow, ["price", "precio"], 0),
+      0
+    );
+
+    const stock = toSafeNumber(
+      getRowValue(rawRow, ["stock", "inventario"], 0),
+      0
+    );
+
+    const excelGender = normalizeExcelGender(
+      getRowValue(rawRow, ["gender", "genero", "género"], "")
+    );
+
+    const excelCategory = normalizeExcelCategory(
+      getRowValue(rawRow, ["category", "categoria", "categoría"], "")
+    );
+
+    const pickupToday = toSafeBoolean(
+      getRowValue(rawRow, ["pickup_today", "pickup", "retiro_hoy"], "")
+    );
+
+    const expressDelivery = toSafeBoolean(
+      getRowValue(rawRow, ["express_delivery", "express", "envio_express"], "")
+    );
 
     if (!slug || !title || price <= 0) continue;
 
@@ -343,20 +401,40 @@ function loadExcelProducts(): Product[] {
     }
 
     const product = map.get(slug)!;
-    const variantKey = `${slug}-${sanitizeVariantPart(size || color || "one")}`;
+    const variantKey = buildVariantKey(slug, size, color);
 
-    product.variants.push({
-      key: variantKey,
-      size: size || undefined,
-      color: color || undefined,
-      price,
-      stock,
-    });
+    const existingVariantIndex = product.variants.findIndex(
+      (variant) => variant.key === variantKey
+    );
 
-    if (size) product.sizes = uniqCaseInsensitive([...product.sizes, size]);
-    if (color) product.colors = uniqCaseInsensitive([...product.colors, color]);
+    if (existingVariantIndex >= 0) {
+      const existing = product.variants[existingVariantIndex];
+      existing.price = price;
+      existing.stock = stock;
+      existing.size = size || existing.size;
+      existing.color = color || existing.color;
+    } else {
+      product.variants.push({
+        key: variantKey,
+        size: size || undefined,
+        color: color || undefined,
+        price,
+        stock,
+      });
+    }
 
-    product.stockHint = (product.stockHint || 0) + stock;
+    if (size) {
+      product.sizes = uniqCaseInsensitive([...product.sizes, size]);
+    }
+
+    if (color) {
+      product.colors = uniqCaseInsensitive([...product.colors, color]);
+    }
+
+    product.stockHint = product.variants.reduce((acc, variant) => {
+      return acc + toSafeNumber(variant.stock, 0);
+    }, 0);
+
     product.pickupToday = Boolean(product.pickupToday || pickupToday);
     product.expressDelivery = Boolean(product.expressDelivery || expressDelivery);
 
@@ -365,7 +443,11 @@ function loadExcelProducts(): Product[] {
     }
   }
 
-  return Array.from(map.values());
+  return Array.from(map.values()).map((product) => ({
+    ...product,
+    sizes: uniqCaseInsensitive(product.sizes),
+    colors: uniqCaseInsensitive(product.colors),
+  }));
 }
 
 function readCatalogCache(): CatalogCacheFile | null {
