@@ -43,6 +43,9 @@ export type Product = {
   bestSeller?: boolean;
   stockHint?: number;
 
+  pickupToday?: boolean;
+  expressDelivery?: boolean;
+
   variants?: ProductVariant[];
 };
 
@@ -104,6 +107,22 @@ function toSafeNumber(value: unknown, fallback = 0): number {
     return Number.isFinite(parsed) ? parsed : fallback;
   }
   return fallback;
+}
+
+function toSafeBoolean(value: unknown): boolean {
+  const v = String(value ?? "")
+    .trim()
+    .toLowerCase();
+
+  return (
+    v === "1" ||
+    v === "true" ||
+    v === "yes" ||
+    v === "si" ||
+    v === "sí" ||
+    v === "x" ||
+    v === "ok"
+  );
 }
 
 function getDataDir(): string | null {
@@ -347,6 +366,8 @@ function buildProductsFromExcel(): Product[] {
       stock?: number | string;
       gender?: string;
       category?: string;
+      pickup_today?: string | number | boolean;
+      express_delivery?: string | number | boolean;
     }>;
 
     if (!rows.length) return [];
@@ -363,6 +384,8 @@ function buildProductsFromExcel(): Product[] {
       const stock = toSafeNumber(row.stock, 0);
       const excelGender = normalizeExcelGender(row.gender);
       const excelCategory = normalizeExcelCategory(row.category);
+      const pickupToday = toSafeBoolean(row.pickup_today);
+      const expressDelivery = toSafeBoolean(row.express_delivery);
 
       if (!slug || !title || price <= 0) continue;
 
@@ -392,6 +415,8 @@ function buildProductsFromExcel(): Product[] {
           sizes: [],
           colors: [],
           price,
+          pickupToday,
+          expressDelivery,
         });
       }
 
@@ -409,6 +434,9 @@ function buildProductsFromExcel(): Product[] {
       if (size && !product.sizes!.includes(size)) product.sizes!.push(size);
       if (color && !product.colors!.includes(color)) product.colors!.push(color);
       product.stockHint = (product.stockHint || 0) + stock;
+
+      product.pickupToday = Boolean(product.pickupToday || pickupToday);
+      product.expressDelivery = Boolean(product.expressDelivery || expressDelivery);
     }
 
     return Array.from(map.values()).map((product) => ({

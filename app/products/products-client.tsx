@@ -2374,7 +2374,7 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
   // ✅ Filter search (mobile drawer) — SOLO Brand
   const [mBrandSearch, setMBrandSearch] = useState("");
 
-  const [pickupToday, setPickupToday] = useState(false);
+  const [expressDelivery, setExpressDelivery] = useState(false);
 
   const sort = useMemo(() => parseSort(searchParams.get(Q.sort)), [searchParams]);
   const dCap = useMemo(() => parseDiscountCap(searchParams.get(Q.d)), [searchParams]);
@@ -2728,11 +2728,12 @@ const brandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, brand
       list.sort((a, b) => String((a as any).name ?? "").localeCompare(String((b as any).name ?? "")));
     }
 
-    // pickupToday placeholder (sin data real): no filtra, solo mantiene UX
-    void pickupToday;
+    if (expressDelivery) {
+      list = list.filter((p) => Boolean((p as any).expressDelivery));
+    }
 
     return list;
-  }, [all, dCap, type, brand, color, size, sort, priceBucket, newOnly, pickupToday]);
+  }, [all, dCap, type, brand, color, size, sort, priceBucket, newOnly, expressDelivery]);
 
   const prefetchRef = useRef<Record<string, number>>({});
   const onPrefetch = useCallback(
@@ -2948,10 +2949,10 @@ const brandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, brand
             </div>
 
             <div className="sideInner">
-              <FilterSection title="Pick Up Today" open={secPickup} onToggle={() => setSecPickup((v) => !v)}>
+              <FilterSection title="Entrega express flash" open={secPickup} onToggle={() => setSecPickup((v) => !v)}>
                 <div className="pickupRow">
-                  <span className="pickupTxt">Pick Up Today</span>
-                  <button type="button" className={`toggle ${pickupToday ? "on" : ""}`} onClick={() => setPickupToday((v) => !v)} aria-pressed={pickupToday}>
+                  <span className="pickupTxt">Entrega express flash</span>
+                  <button type="button" className={`toggle ${expressDelivery ? "on" : ""}`} onClick={() => setExpressDelivery((v) => !v)} aria-pressed={expressDelivery}>
                     <span className="knob" />
                   </button>
                 </div>
@@ -3127,10 +3128,10 @@ const brandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, brand
               </div>
 
               <div className="mSec">
-                <div className="mSecHead">Pick Up Today</div>
+                <div className="mSecHead">Entrega express flash</div>
                 <div className="pickupRow">
-                  <span className="pickupTxt">Pick Up Today</span>
-                  <button type="button" className={`toggle ${pickupToday ? "on" : ""}`} onClick={() => setPickupToday((v) => !v)} aria-pressed={pickupToday}>
+                  <span className="pickupTxt">Entrega express flash</span>
+                  <button type="button" className={`toggle ${expressDelivery ? "on" : ""}`} onClick={() => setExpressDelivery((v) => !v)} aria-pressed={expressDelivery}>
                     <span className="knob" />
                   </button>
                 </div>
