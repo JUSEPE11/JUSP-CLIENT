@@ -265,7 +265,7 @@ function isShoeLikeProduct(p: Product) {
 }
 
 /** ✅ Fallback de tallas completas por género (fuente de verdad del filtro) */
-const MEN_SIZES_FALLBACK = ["7", "7.5", "8", "8.5", "9", "9.5", "10", "10.5", "11"];
+const MEN_SIZES_FALLBACK = ["6", "6.5", "7", "7.5", "8", "8.5", "9", "9.5", "10", "10.5", "11", "11.5", "12", "12.5", "13", "14"];
 const WOMEN_SIZES_FALLBACK = ["5.5","6","6.5","7","7.5","8","8.5","9","9.5"];
 const KIDS_SIZES_FALLBACK = ["10C", "10.5C", "11C", "11.5C", "12C", "12.5C", "13C", "13.5C", "1Y", "1.5Y", "2Y", "2.5Y", "3Y", "3.5Y", "4Y", "4.5Y", "5Y", "5.5Y", "6Y", "6.5Y", "7Y"];
 

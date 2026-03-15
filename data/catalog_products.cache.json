@@ -1,6 +1,6 @@
 {
-  "version": 4,
-  "generatedAt": "2026-03-15T23:28:54.360Z",
+  "version": 5,
+  "generatedAt": "2026-03-15T23:39:27.612Z",
   "excelPath": "C:\\JUSP\\jusp-app2\\data\\catalogo_jusp.xlsx",
   "excelMtimeMs": 1773617317268.5789,
   "products": [
@@ -38,11 +38,19 @@
       "gender": "kids",
       "productType": "clothing",
       "kind": "shorts",
+      "collections": [
+        "clothing",
+        "bottoms"
+      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo"
+        "nuevo",
+        "nike",
+        "shorts",
+        "clothing",
+        "bottoms"
       ],
       "isNew": true,
       "stockHint": 2,
@@ -94,11 +102,24 @@
       "gender": "women",
       "productType": "clothing",
       "kind": "sports-bra",
+      "collections": [
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
       "sport": [
-        "lifestyle"
+        "training"
       ],
       "tags": [
-        "nuevo"
+        "nuevo",
+        "nike",
+        "sports-bra",
+        "clothing",
+        "tops",
+        "gym",
+        "training",
+        "dri-fit"
       ],
       "isNew": true,
       "stockHint": 2,
@@ -152,11 +173,20 @@
       "gender": "men",
       "productType": "accessory",
       "kind": "gorras",
+      "collections": [
+        "accessories",
+        "lifestyle"
+      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo"
+        "nuevo",
+        "jordan",
+        "gorras",
+        "accessories",
+        "lifestyle",
+        "club"
       ],
       "isNew": true,
       "stockHint": 3,
@@ -215,11 +245,18 @@
       "gender": "women",
       "productType": "clothing",
       "kind": "general",
+      "collections": [
+        "clothing",
+        "bottoms"
+      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo"
+        "nuevo",
+        "nike",
+        "clothing",
+        "bottoms"
       ],
       "isNew": true,
       "stockHint": 1,
@@ -263,11 +300,23 @@
       "gender": "women",
       "productType": "clothing",
       "kind": "sports-bra",
+      "collections": [
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo"
+        "nuevo",
+        "nike",
+        "sports-bra",
+        "clothing",
+        "tops",
+        "gym",
+        "training"
       ],
       "isNew": true,
       "stockHint": 1,
@@ -314,11 +363,16 @@
       "gender": "men",
       "productType": "clothing",
       "kind": "general",
+      "collections": [
+        "clothing"
+      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo"
+        "nuevo",
+        "nike",
+        "clothing"
       ],
       "isNew": true,
       "stockHint": 1,

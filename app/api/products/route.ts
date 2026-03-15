@@ -34,6 +34,7 @@ type Product = {
   gender?: Gender;
   productType: ProductType;
   kind?: string;
+  collections: string[];
   sport: string[];
   tags: string[];
   isNew: boolean;
@@ -44,14 +45,14 @@ type Product = {
 };
 
 type CatalogCacheFile = {
-  version: 4;
+  version: 5;
   generatedAt: string;
   excelPath: string;
   excelMtimeMs: number;
   products: Product[];
 };
 
-const CACHE_VERSION = 4;
+const CACHE_VERSION = 5;
 
 function resolveExcelPath(): string | null {
   const dataDir = path.join(process.cwd(), "data");
@@ -262,6 +263,9 @@ function inferKind(title: string): string {
   if (t.includes("gorra") || t.includes("cap")) return "gorras";
   if (t.includes("bra") || t.includes("sujetador")) return "sports-bra";
   if (t.includes("top")) return "tops";
+  if (t.includes("hoodie") || t.includes("sudadera")) return "hoodies";
+  if (t.includes("jacket") || t.includes("chaqueta")) return "jackets";
+  if (t.includes("camiseta") || t.includes("t-shirt") || t.includes("tee")) return "tshirts";
 
   if (
     t.includes("dunk") ||
@@ -297,6 +301,193 @@ function buildVariantKey(slug: string, size?: string, color?: string): string {
   const sizePart = sanitizeVariantPart(size || "nosize");
   const colorPart = sanitizeVariantPart(color || "nocolor");
   return `${slug}-${sizePart}-${colorPart}`;
+}
+
+function inferCollectionsFromTitle(title: string, productType: ProductType, kind: string): string[] {
+  const t = title.toLowerCase();
+  const collections: string[] = [];
+
+  if (productType === "shoes") {
+    collections.push("shoes");
+  }
+
+  if (productType === "clothing") {
+    collections.push("clothing");
+  }
+
+  if (productType === "accessory") {
+    collections.push("accessories");
+  }
+
+  if (
+    kind === "tops" ||
+    kind === "sports-bra" ||
+    t.includes("top") ||
+    t.includes("bra") ||
+    t.includes("sujetador") ||
+    t.includes("tank")
+  ) {
+    collections.push("tops");
+  }
+
+  if (
+    kind === "leggings" ||
+    kind === "shorts" ||
+    t.includes("leggings") ||
+    t.includes("tight") ||
+    t.includes("short") ||
+    t.includes("jogger") ||
+    t.includes("pants") ||
+    t.includes("pantalon") ||
+    t.includes("pantalón")
+  ) {
+    collections.push("bottoms");
+  }
+
+  if (
+    kind === "hoodies" ||
+    kind === "jackets" ||
+    t.includes("hoodie") ||
+    t.includes("sudadera") ||
+    t.includes("jacket") ||
+    t.includes("chaqueta")
+  ) {
+    collections.push("outerwear");
+  }
+
+  if (
+    t.includes("gym") ||
+    t.includes("training") ||
+    t.includes("train") ||
+    t.includes("dri-fit") ||
+    t.includes("compression") ||
+    t.includes("fitness") ||
+    kind === "sports-bra" ||
+    kind === "leggings"
+  ) {
+    collections.push("gym");
+    collections.push("training");
+  }
+
+  if (
+    t.includes("running") ||
+    t.includes("run") ||
+    t.includes("runner")
+  ) {
+    collections.push("running");
+  }
+
+  if (
+    t.includes("football") ||
+    t.includes("soccer") ||
+    t.includes("futbol") ||
+    t.includes("fútbol")
+  ) {
+    collections.push("football");
+  }
+
+  if (
+    t.includes("basketball") ||
+    t.includes("baloncesto") ||
+    t.includes("basket")
+  ) {
+    collections.push("basketball");
+  }
+
+  if (
+    t.includes("tennis") ||
+    t.includes("tenis")
+  ) {
+    collections.push("tennis");
+  }
+
+  if (
+    productType === "accessory" ||
+    t.includes("cap") ||
+    t.includes("gorra") ||
+    t.includes("bag") ||
+    t.includes("mochila")
+  ) {
+    collections.push("accessories");
+  }
+
+  if (
+    collections.length === 0 ||
+    t.includes("club") ||
+    t.includes("sportswear") ||
+    t.includes("essential") ||
+    t.includes("casual")
+  ) {
+    collections.push("lifestyle");
+  }
+
+  return uniqCaseInsensitive(collections);
+}
+
+function inferSportFromTitle(title: string): string[] {
+  const t = title.toLowerCase();
+  const out: string[] = [];
+
+  if (
+    t.includes("gym") ||
+    t.includes("training") ||
+    t.includes("train") ||
+    t.includes("dri-fit") ||
+    t.includes("fitness") ||
+    t.includes("compression")
+  ) {
+    out.push("training");
+  }
+
+  if (t.includes("running") || t.includes("run") || t.includes("runner")) {
+    out.push("running");
+  }
+
+  if (
+    t.includes("football") ||
+    t.includes("soccer") ||
+    t.includes("futbol") ||
+    t.includes("fútbol")
+  ) {
+    out.push("football");
+  }
+
+  if (t.includes("basketball") || t.includes("basket") || t.includes("baloncesto")) {
+    out.push("basketball");
+  }
+
+  if (t.includes("tennis") || t.includes("tenis")) {
+    out.push("tennis");
+  }
+
+  if (out.length === 0) {
+    out.push("lifestyle");
+  }
+
+  return uniqCaseInsensitive(out);
+}
+
+function inferTagsFromTitle(title: string, brand: string, kind: string, collections: string[]): string[] {
+  const t = title.toLowerCase();
+  const tags: string[] = ["nuevo"];
+
+  if (brand.trim()) {
+    tags.push(brand.trim().toLowerCase());
+  }
+
+  if (kind && kind !== "general") {
+    tags.push(kind);
+  }
+
+  tags.push(...collections);
+
+  if (t.includes("dri-fit")) tags.push("dri-fit");
+  if (t.includes("compression")) tags.push("compression");
+  if (t.includes("high rise") || t.includes("high-rise")) tags.push("high-rise");
+  if (t.includes("club")) tags.push("club");
+  if (t.includes("essential")) tags.push("essentials");
+
+  return uniqCaseInsensitive(tags);
 }
 
 function loadExcelProducts(): Product[] {
@@ -371,6 +562,11 @@ function loadExcelProducts(): Product[] {
 
     if (!map.has(slug)) {
       const images = listProductImages(slug);
+      const productType = inferProductType(title);
+      const kind = inferKind(title);
+      const collections = inferCollectionsFromTitle(title, productType, kind);
+      const sport = inferSportFromTitle(title);
+      const tags = inferTagsFromTitle(title, brand, kind, collections);
 
       map.set(slug, {
         id: slug,
@@ -388,10 +584,11 @@ function loadExcelProducts(): Product[] {
         colors: [],
         category: excelCategory || inferCategoryFromTitle(title),
         gender: excelGender || inferGender(title),
-        productType: inferProductType(title),
-        kind: inferKind(title),
-        sport: ["lifestyle"],
-        tags: ["nuevo"],
+        productType,
+        kind,
+        collections,
+        sport,
+        tags,
         isNew: true,
         stockHint: 0,
         pickupToday,
@@ -447,6 +644,9 @@ function loadExcelProducts(): Product[] {
     ...product,
     sizes: uniqCaseInsensitive(product.sizes),
     colors: uniqCaseInsensitive(product.colors),
+    collections: uniqCaseInsensitive(product.collections),
+    sport: uniqCaseInsensitive(product.sport),
+    tags: uniqCaseInsensitive(product.tags),
   }));
 }
 
