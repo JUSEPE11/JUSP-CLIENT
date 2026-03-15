@@ -3,8 +3,47 @@
 import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { PRODUCTS, type Product, type ProductVariant } from "@/lib/products";
 import { useStore } from "../../components/store";
+
+type ProductVariant = {
+  key: string;
+  color?: string;
+  size?: string;
+  price: number;
+  supplierPrice?: number;
+  stock?: number;
+};
+
+type Product = {
+  id: string;
+  slug?: string;
+  product_code?: string;
+  title: string;
+  name?: string;
+  price: number;
+  currency?: string;
+  description?: string;
+  image?: string;
+  images?: string[];
+  colors?: string[];
+  sizes?: string[];
+  category?: string;
+  brand?: string;
+  gender?: "men" | "women" | "kids" | "unisex";
+  productType?: "shoes" | "clothing" | "accessory";
+  kind?: string;
+  sport?: string[];
+  models?: string[];
+  tags?: string[];
+  isExclusive?: boolean;
+  isCollection?: boolean;
+  isFeatured?: boolean;
+  isNew?: boolean;
+  discountPercent?: number;
+  bestSeller?: boolean;
+  stockHint?: number;
+  variants?: ProductVariant[];
+};
 
 function moneyCOP(n: number) {
   return Math.round(n).toLocaleString("es-CO");
@@ -29,12 +68,10 @@ function uniqueStringsCaseInsensitive(arr: string[]) {
 }
 
 function buildImageCandidates(p: Product, pageSlug?: string): string[] {
-  const imgs = Array.isArray((p as any).images) ? ((p as any).images as string[]) : [];
-  const main = (typeof (p as any).image === "string" ? (p as any).image : "").trim();
+  const imgs = Array.isArray(p.images) ? p.images : [];
+  const main = (typeof p.image === "string" ? p.image : "").trim();
 
-  const raw = [main, ...imgs]
-    .map((x) => String(x || "").trim())
-    .filter(Boolean);
+  const raw = [main, ...imgs].map((x) => String(x || "").trim()).filter(Boolean);
 
   const isAbs = (s: string) => /^https?:\/\//i.test(s);
   const hasExt = (s: string) => /\.(png|jpe?g|webp|gif|avif)$/i.test(s);
@@ -52,9 +89,9 @@ function buildImageCandidates(p: Product, pageSlug?: string): string[] {
   const candidateSlugs = uniqueStringsCaseInsensitive(
     [
       String(pageSlug || "").trim(),
-      String((p as any)?.slug || "").trim(),
-      String((p as any)?.id || "").trim(),
-      String((p as any)?.product_code || "").trim(),
+      String(p.slug || "").trim(),
+      String(p.id || "").trim(),
+      String(p.product_code || "").trim(),
     ].filter(Boolean)
   ).map((x) => x.toLowerCase());
 
@@ -126,7 +163,9 @@ function applyScopeToSizes(rawSizes: string[], scope: GenderScope) {
 }
 
 function safeArr(v: unknown): string[] {
-  return Array.isArray(v) ? v.filter((x) => typeof x === "string" && x.trim()).map((x) => x.trim()) : [];
+  return Array.isArray(v)
+    ? v.filter((x) => typeof x === "string" && x.trim()).map((x) => x.trim())
+    : [];
 }
 
 function uniq(arr: string[]) {
@@ -146,16 +185,17 @@ const MEN_DEFAULT = ["7", "7.5", "8", "8.5", "9", "10"];
 const KIDS_DEFAULT = ["3Y", "3.5Y", "4Y", "4.5Y", "5Y", "5.5Y", "6Y"];
 
 function normalizeVariants(product: Product): ProductVariant[] {
-  const variants = Array.isArray((product as any).variants) ? ((product as any).variants as ProductVariant[]) : [];
+  const variants = Array.isArray(product.variants) ? product.variants : [];
   const out: ProductVariant[] = [];
 
   for (const v of variants) {
-    const size = String((v as any).size ?? "").trim();
-    const price = typeof (v as any).price === "number" ? (v as any).price : Number((v as any).price);
+    const size = String(v.size ?? "").trim();
+    const price = typeof v.price === "number" ? v.price : Number(v.price);
     if (!size) continue;
     if (!Number.isFinite(price)) continue;
-    out.push({ ...(v as any), size, price } as any);
+    out.push({ ...v, size, price });
   }
+
   return out;
 }
 
@@ -165,16 +205,17 @@ function looksLikeApparelSize(s: string) {
 }
 
 function inferSizingMode(product: Product, variants: ProductVariant[]): SizingMode {
-  const vSizes = uniq(variants.map((v: any) => String(v?.size ?? "").trim()).filter(Boolean));
+  const vSizes = uniq(variants.map((v) => String(v?.size ?? "").trim()).filter(Boolean));
 
   if (vSizes.some((s) => looksLikeApparelSize(s))) return "apparel";
 
-  const ps = safeArr((product as any).sizes);
+  const ps = safeArr(product.sizes);
   if (ps.some((s) => looksLikeApparelSize(s))) return "apparel";
 
-  const haystack = `${String((product as any)?.category ?? "")} ${String((product as any)?.type ?? "")} ${String(
-    (product as any)?.collection ?? ""
-  )} ${String((product as any)?.title ?? "")} ${String((product as any)?.name ?? "")}`.toLowerCase();
+  const haystack =
+    `${String(product.category ?? "")} ${String((product as any)?.type ?? "")} ${String(
+      (product as any)?.collection ?? ""
+    )} ${String(product.title ?? "")} ${String(product.name ?? "")}`.toLowerCase();
 
   const apparelWords = [
     "shirt",
@@ -200,24 +241,29 @@ function inferSizingMode(product: Product, variants: ProductVariant[]): SizingMo
     "top",
     "bra",
   ];
+
   if (apparelWords.some((w) => haystack.includes(w))) return "apparel";
 
   return "shoe";
 }
 
-function findVariantBySize(product: Product, scope: GenderScope, displayedSize: string | null): ProductVariant | null {
+function findVariantBySize(
+  product: Product,
+  scope: GenderScope,
+  displayedSize: string | null
+): ProductVariant | null {
   const variants = normalizeVariants(product);
   if (!variants.length) return null;
 
   const ds = (displayedSize ?? "").trim();
 
   if (ds) {
-    const exact = variants.filter((v) => String((v as any).size ?? "").trim() === ds);
+    const exact = variants.filter((v) => String(v.size ?? "").trim() === ds);
     if (exact.length) {
       let best = exact[0];
       for (const v of exact) {
-        const p = Number((v as any).price ?? 0);
-        if (p < Number((best as any).price ?? 0)) best = v;
+        const p = Number(v.price ?? 0);
+        if (p < Number(best.price ?? 0)) best = v;
       }
       return best;
     }
@@ -225,15 +271,17 @@ function findVariantBySize(product: Product, scope: GenderScope, displayedSize: 
 
   const normalizedDs = ds;
   const maybeConverted =
-    scope === "women" && normalizedDs && !/[a-zA-Z/]/.test(normalizedDs) ? convertWomenToMenUS(normalizedDs) : normalizedDs;
+    scope === "women" && normalizedDs && !/[a-zA-Z/]/.test(normalizedDs)
+      ? convertWomenToMenUS(normalizedDs)
+      : normalizedDs;
 
   if (maybeConverted && maybeConverted !== normalizedDs) {
-    const converted = variants.filter((v) => String((v as any).size ?? "").trim() === maybeConverted);
+    const converted = variants.filter((v) => String(v.size ?? "").trim() === maybeConverted);
     if (converted.length) {
       let best = converted[0];
       for (const v of converted) {
-        const p = Number((v as any).price ?? 0);
-        if (p < Number((best as any).price ?? 0)) best = v;
+        const p = Number(v.price ?? 0);
+        if (p < Number(best.price ?? 0)) best = v;
       }
       return best;
     }
@@ -241,32 +289,37 @@ function findVariantBySize(product: Product, scope: GenderScope, displayedSize: 
 
   let best = variants[0];
   for (const v of variants) {
-    const p = Number((v as any).price ?? 0);
-    if (p < Number((best as any).price ?? 0)) best = v;
+    const p = Number(v.price ?? 0);
+    if (p < Number(best.price ?? 0)) best = v;
   }
+
   return best ?? null;
 }
 
 function minVariantPrice(product: Product): number {
   const variants = normalizeVariants(product);
-  if (!variants.length) return Number((product as any).price || 0);
+  if (!variants.length) return Number(product.price || 0);
+
   let m = Number.POSITIVE_INFINITY;
   for (const v of variants) {
-    const p = typeof (v as any).price === "number" ? (v as any).price : Number.POSITIVE_INFINITY;
+    const p = typeof v.price === "number" ? v.price : Number.POSITIVE_INFINITY;
     if (p < m) m = p;
   }
-  return Number.isFinite(m) ? m : Number((product as any).price || 0);
+
+  return Number.isFinite(m) ? m : Number(product.price || 0);
 }
 
 function maxVariantPrice(product: Product): number {
   const variants = normalizeVariants(product);
-  if (!variants.length) return Number((product as any).price || 0);
+  if (!variants.length) return Number(product.price || 0);
+
   let m = 0;
   for (const v of variants) {
-    const p = typeof (v as any).price === "number" ? (v as any).price : 0;
+    const p = typeof v.price === "number" ? v.price : 0;
     if (p > m) m = p;
   }
-  return Number.isFinite(m) ? m : Number((product as any).price || 0);
+
+  return Number.isFinite(m) ? m : Number(product.price || 0);
 }
 
 export default function ProductPage() {
@@ -277,25 +330,58 @@ export default function ProductPage() {
 
   const slug = decodeURIComponent(String(params?.slug || "")).trim().toLowerCase();
 
-  const product = useMemo(() => {
-    const list = PRODUCTS ?? [];
-    const s = String(slug || "").trim().toLowerCase();
-    if (!s) return undefined;
+  const [product, setProduct] = useState<Product | undefined>(undefined);
+  const [loadingProduct, setLoadingProduct] = useState(true);
 
-    return list.find((p: any) => {
-      const pid = String(p?.id ?? "").trim().toLowerCase();
-      const pslug = String((p as any)?.slug ?? "").trim().toLowerCase();
-      const pcode = String((p as any)?.product_code ?? "").trim().toLowerCase();
-      return pid === s || pslug === s || pcode === s;
-    }) as Product | undefined;
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadProduct() {
+      try {
+        setLoadingProduct(true);
+
+        const res = await fetch("/api/products", { cache: "no-store" });
+        const data = await res.json();
+
+        const list = Array.isArray(data) ? data : [];
+        const s = String(slug || "").trim().toLowerCase();
+
+        const found = list.find((p: any) => {
+          const pid = String(p?.id ?? "").trim().toLowerCase();
+          const pslug = String(p?.slug ?? "").trim().toLowerCase();
+          const pcode = String(p?.product_code ?? "").trim().toLowerCase();
+          return pid === s || pslug === s || pcode === s;
+        }) as Product | undefined;
+
+        if (!cancelled) {
+          setProduct(found);
+        }
+      } catch {
+        if (!cancelled) {
+          setProduct(undefined);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingProduct(false);
+        }
+      }
+    }
+
+    loadProduct();
+
+    return () => {
+      cancelled = true;
+    };
   }, [slug]);
 
   const initialScope = useMemo<GenderScope>(() => {
+    const fromProduct = normalizeGenderScope(product?.gender);
+    if (fromProduct) return fromProduct;
+
     const fromQuery = normalizeGenderScope(gParam);
     if (fromQuery) return fromQuery;
 
-    const fromProduct = normalizeGenderScope((product as any)?.gender);
-    return fromProduct || "men";
+    return "men";
   }, [gParam, product]);
 
   const [scope, setScope] = useState<GenderScope>(initialScope);
@@ -317,11 +403,15 @@ export default function ProductPage() {
   }, [scope]);
 
   const title = useMemo(
-    () => (product ? ((product as any).title || (product as any).name || "Producto") : "Producto"),
+    () => (product ? product.title || product.name || "Producto" : "Producto"),
     [product]
   );
 
-  const imageCandidates = useMemo(() => (product ? buildImageCandidates(product, slug) : []), [product, slug]);
+  const imageCandidates = useMemo(
+    () => (product ? buildImageCandidates(product, slug) : []),
+    [product, slug]
+  );
+
   const variants = useMemo(() => (product ? normalizeVariants(product) : []), [product]);
 
   useEffect(() => {
@@ -363,10 +453,10 @@ export default function ProductPage() {
     if (!product) return [];
 
     if (variants.length) {
-      return uniq(variants.map((v: any) => String(v?.size ?? "").trim()).filter(Boolean));
+      return uniq(variants.map((v) => String(v?.size ?? "").trim()).filter(Boolean));
     }
 
-    const ps = safeArr((product as any).sizes);
+    const ps = safeArr(product.sizes);
     if (ps.length) return uniq(ps);
 
     if (sizingMode === "apparel") return APPAREL_SIZES;
@@ -420,15 +510,15 @@ export default function ProductPage() {
 
   const displayPrice = useMemo(() => {
     if (!product) return 0;
-    if (selectedVariant && typeof (selectedVariant as any).price === "number") return (selectedVariant as any).price;
-    return Number((product as any).price ?? 0);
+    if (selectedVariant && typeof selectedVariant.price === "number") return selectedVariant.price;
+    return Number(product.price ?? 0);
   }, [product, selectedVariant]);
 
   const fromPrice = useMemo(() => (product ? minVariantPrice(product) : 0), [product]);
   const toPrice = useMemo(() => (product ? maxVariantPrice(product) : 0), [product]);
 
   const discountPct = useMemo(() => {
-    const d = Number((product as any)?.discountPercent ?? 0);
+    const d = Number(product?.discountPercent ?? 0);
     if (!Number.isFinite(d)) return 0;
     return Math.max(0, Math.min(90, Math.round(d)));
   }, [product]);
@@ -440,7 +530,7 @@ export default function ProductPage() {
   }, [displayPrice, discountPct]);
 
   const urgencyText = useMemo(() => {
-    const hint = Number((product as any)?.stockHint ?? 0);
+    const hint = Number(product?.stockHint ?? 0);
     if (hint > 0 && hint <= 2) return "Quedan muy pocas";
     if (hint > 0 && hint <= 8) return "Stock limitado";
     return "Disponible";
@@ -464,13 +554,13 @@ export default function ProductPage() {
   function onBuyReal(mode: "add" | "now") {
     setAttemptedBuy(true);
 
-    if (selectionMissing) {
+    if (selectionMissing || !product) {
       setToast("Selecciona talla para continuar");
       window.setTimeout(() => setToast(null), 1600);
       return;
     }
 
-    const cloned: any = { ...(product as any), price: displayPrice };
+    const cloned: any = { ...product, price: displayPrice };
     addToCart(cloned, { color: null, size, qty });
 
     setToast("Añadido al carrito");
@@ -480,6 +570,15 @@ export default function ProductPage() {
     if (mode === "now") {
       window.setTimeout(() => router.push("/checkout"), 350);
     }
+  }
+
+  if (loadingProduct) {
+    return (
+      <main style={{ padding: 24 }}>
+        <Link href="/products">← Volver</Link>
+        <h1 style={{ marginTop: 12 }}>Cargando producto...</h1>
+      </main>
+    );
   }
 
   if (!product) {

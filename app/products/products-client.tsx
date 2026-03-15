@@ -1315,6 +1315,7 @@ function DesktopStickyControls({
   show,
   activeCount,
   resultsCount,
+  loadingCatalog,
   showSide,
   onToggleFilters,
   sort,
@@ -1323,6 +1324,7 @@ function DesktopStickyControls({
   show: boolean;
   activeCount: number;
   resultsCount: number;
+  loadingCatalog: boolean;
   showSide: boolean;
   onToggleFilters: () => void;
   sort: SortKey;
@@ -1336,7 +1338,7 @@ function DesktopStickyControls({
           {activeCount ? <span className="b">{activeCount}</span> : null}
         </button>
         <div className="right">
-          <div className="count">{resultsCount} Results</div>
+          <div className="count">{loadingCatalog ? "…" : resultsCount} Results</div>
           <SortDropdown value={sort} onChange={onChangeSort} />
         </div>
       </div>
@@ -1797,7 +1799,9 @@ const ProductCard = memo(function ProductCard({
 
   const favKey = String((p as any).id || (p as any).slug || (p as any).name || "");
   const slugOrId = String((p as any).slug || (p as any).id || (p as any).product_code || "");
-  const href = `/product/${encodeURIComponent(slugOrId)}?g=${scope}`;
+  const rawGender = String((p as any).gender || "").trim().toLowerCase();
+  const queryGender = rawGender === "men" || rawGender === "women" || rawGender === "kids" ? rawGender : scope;
+  const href = `/product/${encodeURIComponent(slugOrId)}?g=${encodeURIComponent(queryGender)}`;
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _ = favTick;
@@ -2223,7 +2227,14 @@ const ProductCard = memo(function ProductCard({
  * Main
  * ========================= */
 function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
-  const allRaw = useMemo(() => (initialProducts?.length ? initialProducts : PRODUCTS ?? []), [initialProducts]);
+  const [hydratedProducts, setHydratedProducts] = useState<Product[]>(() =>
+    Array.isArray(initialProducts) && initialProducts.length ? initialProducts : PRODUCTS ?? []
+  );
+  const allRaw = useMemo(
+    () => (Array.isArray(hydratedProducts) && hydratedProducts.length ? hydratedProducts : initialProducts?.length ? initialProducts : PRODUCTS ?? []),
+    [hydratedProducts, initialProducts]
+  );
+  const [loadingCatalog, setLoadingCatalog] = useState<boolean>(() => !(Array.isArray(initialProducts) && initialProducts.length));
 
   const router = useRouter();
   const pathname = usePathname();
@@ -2241,6 +2252,39 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
   const catKey = useMemo(() => String(catParam || "").trim().toLowerCase(), [catParam]);
   const subKey = useMemo(() => String(subParam || "").trim().toLowerCase(), [subParam]);
   const navKey = useMemo(() => catOrTabValue(catParam, tabParam), [catParam, tabParam]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function hydrateProducts() {
+      try {
+        setLoadingCatalog(true);
+        const res = await fetch("/api/products", { cache: "no-store" });
+        const data = await res.json();
+        const list = Array.isArray(data)
+          ? data
+          : Array.isArray((data as any)?.products)
+            ? (data as any).products
+            : [];
+
+        if (!cancelled && Array.isArray(list) && list.length) {
+          setHydratedProducts(list as Product[]);
+        }
+      } catch {
+        // Mantener el último catálogo bueno.
+      } finally {
+        if (!cancelled) {
+          setLoadingCatalog(false);
+        }
+      }
+    }
+
+    hydrateProducts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // ✅ Scope estable (sin hooks condicionales) y SIN permitir "all" en el tipo.
   const scope = useMemo((): GenderScopeParam => {
@@ -2814,6 +2858,7 @@ const brandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, brand
         show={isDesktop && showDeskSticky}
         activeCount={activeCount}
         resultsCount={filtered.length}
+        loadingCatalog={loadingCatalog}
         showSide={showSide}
         onToggleFilters={onToggleFilters}
         sort={sort}
@@ -2838,7 +2883,7 @@ const brandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, brand
         </button>
 
         <div className="mRight">
-          <div className="mCount">{filtered.length} Results</div>
+          <div className="mCount">{loadingCatalog ? "…" : filtered.length} Results</div>
           <SortDropdown value={sort} onChange={(v) => setParam(Q.sort, v)} />
         </div>
       </div>
@@ -2855,7 +2900,7 @@ const brandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, brand
 
           <div className="hRow">
             <h1 className="title">Products</h1>
-            <div className="metaCount">{filtered.length} Results</div>
+            <div className="metaCount">{loadingCatalog ? "…" : filtered.length} Results</div>
           </div>
         </div>
 
@@ -3008,7 +3053,14 @@ const brandsFiltered = useMemo(() => brands.filter((b) => includesLoose(b, brand
         </aside>
 
         <section className="main" aria-label="Products grid">
-          {filtered.length === 0 ? (
+          {loadingCatalog ? (
+            <div className="es" role="status" aria-live="polite">
+              <div className="box">
+                <div className="t">Cargando catálogo...</div>
+                <div className="s">JUSP está actualizando los productos de esta sección.</div>
+              </div>
+            </div>
+          ) : filtered.length === 0 ? (
             <EmptyState
               onClear={() => {
                 resetFilters();

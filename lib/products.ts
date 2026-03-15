@@ -1,22 +1,22 @@
+declare const require: any;
+
 export type ProductVariant = {
-  key: string; // identificador único variante
+  key: string;
   color?: string;
   size?: string;
-  price: number; // precio real por variante
-  supplierPrice?: number; // opcional control interno
+  price: number;
+  supplierPrice?: number;
   stock?: number;
 };
 
 export type Product = {
   id: string;
+  slug?: string;
+  product_code?: string;
+
   title: string;
   name?: string;
 
-  /**
-   * IMPORTANTE:
-   * price ahora será el precio "DESDE"
-   * (mínimo de variants)
-   */
   price: number;
 
   currency?: string;
@@ -53,200 +53,246 @@ function derivePriceFromVariants(variants?: ProductVariant[]): number {
   return Math.min(...variants.map((v) => v.price));
 }
 
-export const PRODUCTS: Product[] = [
-  {
-    id: "nike-dunk-low-retro",
-    title: "Nike Dunk Low Retro",
-    name: "Nike Dunk Low Retro",
-    currency: "COP",
-    description:
-      "Estilo retro, comodidad diaria y look premium. Ideal para rotación diaria. Originales y envío rápido.",
-    brand: "Nike",
-    category: "Sneakers",
-    gender: "men",
-    productType: "shoes",
-    kind: "zapatillas",
-    sport: ["lifestyle"],
-    models: ["dunk", "retro"],
-    tags: ["nuevo", "bestseller", "premium", "editors", "top"],
-    isCollection: true,
-    isExclusive: true,
-    isFeatured: true,
-    isNew: true,
-    discountPercent: 15,
-    bestSeller: true,
-    stockHint: 8,
-    image: "/products/nike-dunk-low-retro/1.jpg",
-    images: [
-      "/products/nike-dunk-low-retro/1.jpg",
-      "/products/nike-dunk-low-retro/2.jpg",
-      "/products/nike-dunk-low-retro/3.jpg",
-      "/products/nike-dunk-low-retro/4.jpg",
-      "/products/nike-dunk-low-retro/5.jpg",
-      "/products/nike-dunk-low-retro/6.jpg",
-      "/products/nike-dunk-low-retro/7.jpg",
-      "/products/nike-dunk-low-retro/8.jpg",
-    ],
+function sanitizeVariantPart(value?: string): string {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^\w-]/g, "");
+}
 
-    variants: [
-      { key: "black-7", color: "Black", size: "7", price: 99900, supplierPrice: 25000, stock: 5 },
-      { key: "black-8", color: "Black", size: "8", price: 119900, supplierPrice: 28000, stock: 3 },
-      { key: "black-9", color: "Black", size: "9", price: 149900, supplierPrice: 35000, stock: 2 },
-
-      { key: "white-8", color: "White", size: "8", price: 139900, supplierPrice: 33000, stock: 4 },
-      { key: "white-9", color: "White", size: "9", price: 159900, supplierPrice: 38000, stock: 2 },
-
-      { key: "red-9", color: "Red", size: "9", price: 179900, supplierPrice: 42000, stock: 1 },
-    ],
-
-    colors: ["Black", "White", "Red"],
-    sizes: ["7", "8", "9"],
-    price: 0,
-  },
-
-  {
-    id: "nike-air-force-1-07",
-    title: "Nike Air Force 1 '07",
-    name: "Nike Air Force 1 '07",
-    currency: "COP",
-    description: "El ícono AF1. Versátil, resistente y siempre vigente.",
-    brand: "Nike",
-    category: "Sneakers",
-    gender: "unisex",
-    productType: "shoes",
-    kind: "zapatillas",
-    sport: ["lifestyle"],
-    models: ["af1", "air force 1"],
-    tags: ["bestseller", "premium", "top"],
-    isCollection: true,
-    isExclusive: true,
-    bestSeller: true,
-    image: "/products/nike-air-force-1-07/1.jpg",
-    images: [
-      "/products/nike-air-force-1-07/1.jpg",
-      "/products/nike-air-force-1-07/2.jpg",
-      "/products/nike-air-force-1-07/3.jpg",
-      "/products/nike-air-force-1-07/4.jpg",
-      "/products/nike-air-force-1-07/5.jpg",
-      "/products/nike-air-force-1-07/6.jpg",
-      "/products/nike-air-force-1-07/7.jpg",
-      "/products/nike-air-force-1-07/8.jpg",
-    ],
-
-    variants: [
-      { key: "white-7", color: "White", size: "7", price: 149900 },
-      { key: "white-8", color: "White", size: "8", price: 159900 },
-      { key: "black-8", color: "Black", size: "8", price: 169900 },
-    ],
-
-    colors: ["White", "Black"],
-    sizes: ["7", "8"],
-    price: 0,
-  },
-
-  {
-    id: "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women",
-    title: "Nike Dri-FIT Quick Dry Training Sports Tank Top",
-    name: "Nike Dri-FIT Quick Dry Training Sports Tank Top",
-    currency: "COP",
-    description: "Top deportivo de mujer, ligero, elástico y de secado rápido para entrenamiento diario.",
-    brand: "Nike",
-    category: "Apparel",
-    gender: "women",
-    productType: "clothing",
-    kind: "tops",
-    sport: ["training", "gym"],
-    tags: ["nuevo", "training"],
-    isNew: true,
-    stockHint: 6,
-    image:
-      "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/1.jpg",
-    images: [
-      "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/1.jpg",
-      "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/2.jpg",
-      "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/3.jpg",
-      "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/4.jpg",
-      "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/5.jpg",
-    ],
-    variants: [{ key: "women-l", size: "L", price: 129990 }],
-    sizes: ["L"],
-    colors: ["Black"],
-    price: 0,
-  },
-
-  {
-    id: "nike-sports-pants-womens-purple",
-    title: "Nike Sports Pants Women's Purple",
-    name: "Nike Sports Pants Women's Purple",
-    currency: "COP",
-    description: "Pantalón deportivo para mujer en tono purple, cómodo para training, running y uso diario.",
-    brand: "Nike",
-    category: "Apparel",
-    gender: "women",
-    productType: "clothing",
-    kind: "leggings",
-    sport: ["training", "gym", "yoga"],
-    tags: ["nuevo", "training", "premium"],
-    isNew: true,
-    stockHint: 8,
-    image: "/products/nike-sports-pants-womens-purple/1.jpg",
-    images: [
-      "/products/nike-sports-pants-womens-purple/1.jpg",
-      "/products/nike-sports-pants-womens-purple/2.jpg",
-      "/products/nike-sports-pants-womens-purple/3.jpg",
-      "/products/nike-sports-pants-womens-purple/4.jpg",
-      "/products/nike-sports-pants-womens-purple/5.jpg",
-      "/products/nike-sports-pants-womens-purple/6.jpg",
-    ],
-    variants: [
-      { key: "purple-m", size: "M", price: 69990 },
-      { key: "purple-l", size: "L", price: 75990 },
-    ],
-    sizes: ["M", "L"],
-    colors: ["Purple"],
-    price: 0,
-  },
-
-  {
-    id: "jordan-club-cap",
-    title: "Jordan Club Cap",
-    name: "Jordan Club Cap",
-    currency: "COP",
-    description: "Gorra Jordan Club con ajuste cómodo y look limpio para uso diario.",
-    brand: "Jordan",
-    category: "Accessories",
-    gender: "men",
-    productType: "accessory",
-    kind: "gorras",
-    sport: ["lifestyle"],
-    tags: ["nuevo", "premium"],
-    isNew: true,
-    stockHint: 10,
-    image: "/products/jordan-club-cap/1.jpg",
-    images: [
-      "/products/jordan-club-cap/1.jpg",
-      "/products/jordan-club-cap/2.jpg",
-      "/products/jordan-club-cap/3.jpg",
-      "/products/jordan-club-cap/4.jpg",
-      "/products/jordan-club-cap/5.jpg",
-      "/products/jordan-club-cap/6.jpg",
-    ],
-    variants: [
-      { key: "cap-sm", size: "S/M", price: 75990 },
-      { key: "cap-ml", size: "M/L", price: 79990 },
-      { key: "cap-lxl", size: "L/XL", price: 78990 },
-    ],
-    sizes: ["S/M", "M/L", "L/XL"],
-    colors: ["White"],
-    price: 0,
-  },
-];
-
-PRODUCTS.forEach((p) => {
-  if (p.variants?.length) {
-    p.price = derivePriceFromVariants(p.variants);
+function toSafeNumber(value: unknown, fallback = 0): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const cleaned = value.replace(/[^\d.-]/g, "");
+    const parsed = Number(cleaned);
+    return Number.isFinite(parsed) ? parsed : fallback;
   }
-});
+  return fallback;
+}
+
+function isServer(): boolean {
+  return typeof window === "undefined";
+}
+
+function listProductImages(slug: string): string[] {
+  if (!isServer()) return [];
+
+  try {
+    const fs = require("fs");
+    const path = require("path");
+
+    const dir = path.join(process.cwd(), "public", "products", slug);
+
+    if (!fs.existsSync(dir)) return [];
+
+    const files = fs
+      .readdirSync(dir)
+      .filter((file: string) => /\.(jpg|jpeg|png|webp)$/i.test(file))
+      .sort((a: string, b: string) => {
+        const aNum = Number(a.split(".")[0]);
+        const bNum = Number(b.split(".")[0]);
+
+        if (Number.isFinite(aNum) && Number.isFinite(bNum)) return aNum - bNum;
+        return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+      });
+
+    return files.map((file: string) => `/products/${slug}/${file}`);
+  } catch {
+    return [];
+  }
+}
+
+function inferCategoryFromTitle(title: string): string {
+  const t = title.toLowerCase();
+
+  if (
+    t.includes("dunk") ||
+    t.includes("air force") ||
+    t.includes("zapatilla") ||
+    t.includes("tenis") ||
+    t.includes("sneaker")
+  ) {
+    return "Sneakers";
+  }
+
+  if (t.includes("gorra") || t.includes("cap")) {
+    return "Accessories";
+  }
+
+  return "Apparel";
+}
+
+function inferProductType(title: string): "shoes" | "clothing" | "accessory" {
+  const t = title.toLowerCase();
+
+  if (
+    t.includes("dunk") ||
+    t.includes("air force") ||
+    t.includes("zapatilla") ||
+    t.includes("tenis") ||
+    t.includes("sneaker")
+  ) {
+    return "shoes";
+  }
+
+  if (t.includes("gorra") || t.includes("cap")) {
+    return "accessory";
+  }
+
+  return "clothing";
+}
+
+function inferGender(title: string): "men" | "women" | "kids" | "unisex" {
+  const t = title.toLowerCase();
+
+  if (t.includes("niño") || t.includes("niños") || t.includes("kids")) return "kids";
+  if (t.includes("mujer") || t.includes("women") || t.includes("bra") || t.includes("sujetador"))
+    return "women";
+  if (t.includes("hombre") || t.includes("men")) return "men";
+
+  return "unisex";
+}
+
+function inferKind(title: string): string {
+  const t = title.toLowerCase();
+
+  if (t.includes("leggings")) return "leggings";
+  if (t.includes("short") || t.includes("pantalones cortos")) return "shorts";
+  if (t.includes("gorra") || t.includes("cap")) return "gorras";
+  if (t.includes("bra") || t.includes("sujetador")) return "sports-bra";
+  if (t.includes("top")) return "tops";
+
+  if (
+    t.includes("dunk") ||
+    t.includes("air force") ||
+    t.includes("zapatilla") ||
+    t.includes("tenis") ||
+    t.includes("sneaker")
+  ) {
+    return "zapatillas";
+  }
+
+  return "general";
+}
+
+function normalizeExcelGender(value: unknown): "men" | "women" | "kids" | "unisex" | null {
+  const v = String(value || "").trim().toLowerCase();
+
+  if (v === "men" || v === "women" || v === "kids" || v === "unisex") return v;
+  if (v === "hombre") return "men";
+  if (v === "mujer") return "women";
+  if (v === "niños" || v === "ninos" || v === "niño" || v === "nino") return "kids";
+
+  return null;
+}
+
+function normalizeExcelCategory(value: unknown): string {
+  const v = String(value || "").trim();
+  return v;
+}
+
+function buildProductsFromExcel(): Product[] {
+  if (!isServer()) return [];
+
+  try {
+    const fs = require("fs");
+    const path = require("path");
+    const XLSX = require("xlsx");
+
+    const filePath = path.join(process.cwd(), "data", "catalogo_jusp.xlsx");
+
+    if (!fs.existsSync(filePath)) return [];
+
+    const workbook = XLSX.readFile(filePath);
+    const firstSheetName = workbook.SheetNames[0];
+
+    if (!firstSheetName) return [];
+
+    const sheet = workbook.Sheets[firstSheetName];
+    const rows = XLSX.utils.sheet_to_json(sheet) as Array<{
+      product_slug?: string;
+      title?: string;
+      brand?: string;
+      size?: string;
+      price?: number | string;
+      stock?: number | string;
+      gender?: string;
+      category?: string;
+    }>;
+
+    if (!rows.length) return [];
+
+    const map = new Map<string, Product>();
+
+    for (const row of rows) {
+      const slug = String(row.product_slug || "").trim();
+      const title = String(row.title || "").trim();
+      const brand = String(row.brand || "JUSP").trim();
+      const size = String(row.size || "").trim();
+      const price = toSafeNumber(row.price, 0);
+      const stock = toSafeNumber(row.stock, 0);
+      const excelGender = normalizeExcelGender(row.gender);
+      const excelCategory = normalizeExcelCategory(row.category);
+
+      if (!slug || !title || !size || price <= 0) continue;
+
+      if (!map.has(slug)) {
+        const images = listProductImages(slug);
+
+        map.set(slug, {
+          id: slug,
+          slug,
+          product_code: slug,
+          title,
+          name: title,
+          currency: "COP",
+          description: `${title}. Producto disponible en JUSP.`,
+          brand,
+          category: excelCategory || inferCategoryFromTitle(title),
+          gender: excelGender || inferGender(title),
+          productType: inferProductType(title),
+          kind: inferKind(title),
+          sport: ["lifestyle"],
+          tags: ["nuevo"],
+          isNew: true,
+          stockHint: 0,
+          image: images[0],
+          images,
+          variants: [],
+          sizes: [],
+          colors: [],
+          price: 0,
+        });
+      }
+
+      const product = map.get(slug)!;
+      const variantKey = `${slug}-${sanitizeVariantPart(size)}`;
+
+      product.variants!.push({
+        key: variantKey,
+        size,
+        price,
+        stock,
+      });
+
+      if (!product.sizes!.includes(size)) product.sizes!.push(size);
+
+      product.stockHint = (product.stockHint || 0) + stock;
+    }
+
+    return Array.from(map.values()).map((product) => ({
+      ...product,
+      price: derivePriceFromVariants(product.variants),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+const EXCEL_PRODUCTS = buildProductsFromExcel();
+
+export const PRODUCTS: Product[] = EXCEL_PRODUCTS;
 
 export async function getProducts(): Promise<Product[]> {
   return PRODUCTS;

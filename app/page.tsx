@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { PRODUCTS, type Product } from "@/lib/products";
-
+import { type Product } from "@/lib/products";
 
 function useIsMobile(breakpoint: number = 768) {
   const [isMobile, setIsMobile] = useState(false);
@@ -16,7 +15,6 @@ function useIsMobile(breakpoint: number = 768) {
 
     onChange();
 
-    // Safari fallback
     if (typeof mq.addEventListener === "function") {
       mq.addEventListener("change", onChange);
       return () => mq.removeEventListener("change", onChange);
@@ -30,40 +28,47 @@ function useIsMobile(breakpoint: number = 768) {
   return isMobile;
 }
 
-
 function usePrefersReducedMotion() {
   const [reduced, setReduced] = useState(false);
+
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     const onChange = () => setReduced(mq.matches);
     onChange();
+
     if (typeof mq.addEventListener === "function") {
       mq.addEventListener("change", onChange);
       return () => mq.removeEventListener("change", onChange);
     }
+
     const legacyMq = mq as any;
     legacyMq.addListener?.(onChange);
     return () => legacyMq.removeListener?.(onChange);
   }, []);
+
   return reduced;
 }
 
 function useIsCoarsePointer() {
   const [coarse, setCoarse] = useState(false);
+
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
     const mq = window.matchMedia("(pointer: coarse)");
     const onChange = () => setCoarse(mq.matches);
     onChange();
+
     if (typeof mq.addEventListener === "function") {
       mq.addEventListener("change", onChange);
       return () => mq.removeEventListener("change", onChange);
     }
+
     const legacyMq = mq as any;
     legacyMq.addListener?.(onChange);
     return () => legacyMq.removeListener?.(onChange);
   }, []);
+
   return coarse;
 }
 
@@ -75,12 +80,18 @@ type SmartImgProps = {
   loading?: "eager" | "lazy";
   fetchPriority?: "high" | "low" | "auto";
   onLoad?: () => void;
-};;
+};
 
-function SmartImg({ baseSrc, alt, style, className, loading = "lazy", fetchPriority = "auto", onLoad }: SmartImgProps) {
+function SmartImg({
+  baseSrc,
+  alt,
+  style,
+  className,
+  loading = "lazy",
+  fetchPriority = "auto",
+  onLoad,
+}: SmartImgProps) {
   const safeBaseSrc = String((baseSrc as any) ?? "");
-  // ✅ Soporta archivos SIN extensión (por ejemplo: /home/stories/story-01)
-  // y también con extensión normal (/home/stories/story-01.jpg).
   const hasExt = useMemo(() => /\.[a-zA-Z0-9]+$/.test(safeBaseSrc), [safeBaseSrc]);
 
   const candidates = useMemo(() => {
@@ -106,7 +117,6 @@ function SmartImg({ baseSrc, alt, style, className, loading = "lazy", fetchPrior
 
   const [idx, setIdx] = useState(0);
 
-  // Resetea el índice si cambia la imagen
   useEffect(() => {
     setIdx(0);
   }, [safeBaseSrc]);
@@ -124,15 +134,13 @@ function SmartImg({ baseSrc, alt, style, className, loading = "lazy", fetchPrior
       fetchPriority={fetchPriority}
       onLoad={onLoad}
       onError={() => {
-        if (idx < candidates.length - 1) setIdx((i) => Math.min(i + 1, candidates.length - 1));
+        if (idx < candidates.length - 1) {
+          setIdx((i) => Math.min(i + 1, candidates.length - 1));
+        }
       }}
     />
   );
-
-
-
 }
-
 
 type TopItem = {
   id: string;
@@ -166,18 +174,20 @@ function formatCOP(n: number) {
 }
 
 function minPriceFromProduct(p: any): number | null {
-  // Variants-first: if product has variants with numeric prices, pick the lowest.
   const variants = Array.isArray(p?.variants) ? p.variants : [];
   let best: number | null = null;
+
   for (const v of variants) {
     const n = Number((v as any)?.price);
     if (!Number.isFinite(n) || n <= 0) continue;
     if (best === null || n < best) best = n;
   }
+
   if (best !== null) return best;
 
   const base = Number(p?.price);
   if (Number.isFinite(base) && base > 0) return base;
+
   return null;
 }
 
@@ -209,79 +219,177 @@ function matchesHomeProductFilter(item: TopItem, filter: "all" | "men" | "women"
   ].some((term) => blob.includes(term));
 }
 
-
-function normalizeHomeGender(v: unknown): "men" | "women" | "kids" {
+function normalizeHomeGender(v: unknown): "men" | "women" | "kids" | null {
   const s = String(v ?? "").trim().toLowerCase();
-  if (s === "women" || s === "mujer" || s === "w") return "women";
-  if (s === "kids" || s === "kid" || s === "niños" || s === "ninos" || s === "ninas" || s === "niñas") return "kids";
-  return "men";
+  if (!s) return null;
+
+  if (
+    s === "women" ||
+    s === "mujer" ||
+    s === "w" ||
+    s === "female" ||
+    s === "femenino"
+  ) {
+    return "women";
+  }
+
+  if (
+    s === "kids" ||
+    s === "kid" ||
+    s === "children" ||
+    s === "child" ||
+    s === "niños" ||
+    s === "ninos" ||
+    s === "niñas" ||
+    s === "ninas" ||
+    s === "niño" ||
+    s === "nino" ||
+    s === "niña" ||
+    s === "nina" ||
+    s === "boys" ||
+    s === "girls"
+  ) {
+    return "kids";
+  }
+
+  if (
+    s === "men" ||
+    s === "man" ||
+    s === "hombre" ||
+    s === "male" ||
+    s === "masculino" ||
+    s === "unisex"
+  ) {
+    return "men";
+  }
+
+  return null;
 }
 
-function firstImageFromProduct(p: Product, slug: string): string {
-  const imgs = Array.isArray((p as any).images) ? ((p as any).images as unknown[]) : [];
-  const main = String(
-    (imgs?.[0] as any) ||
-      ((p as any).image as any) ||
-      (slug ? `/products/${slug}/1` : "")
-  ).trim();
+function inferProductGender(p: any): "men" | "women" | "kids" {
+  const direct = normalizeHomeGender(p?.gender);
+  if (direct) return direct;
 
-  if (!main) return slug ? `/products/${slug}/1` : "";
-
-  // Soporta:
-  // - http(s)://...
-  // - /products/...
-  // - products/...
-  // - archivo.jpg
-  const isAbs = /^https?:\/\//i.test(main);
-  const hasSlash = main.startsWith("/");
-  if (isAbs) return main;
-  if (hasSlash) return main;
-  if (main.startsWith("products/")) return `/${main}`;
-  return `/products/${main}`;
-}
-
-const ALL_PRODUCTS: TopItem[] = (PRODUCTS ?? []).map((p: any, idx: number) => {
-  const slug = String(p?.slug ?? p?.id ?? "").trim();
-  const title = String(p?.title ?? p?.name ?? "Producto").trim();
-  const brand = String(p?.brand ?? p?.marca ?? "JUSP").trim() || "JUSP";
-  const gender = normalizeHomeGender(p?.gender);
-
-  // ✅ Usar primero la imagen REAL definida en PRODUCTS.
-  // No inventar rutas por slug en la home, porque eso rompe en producción
-  // cuando el asset real está en otra ruta o con otra extensión.
-  const imgBase = firstImageFromProduct(p as Product, slug);
-
-  const href = slug ? `/product/${encodeURIComponent(slug)}` : "/products";
-  const priceNum = minPriceFromProduct(p);
-  const price = typeof priceNum === "number" && priceNum > 0 ? `$${formatCOP(priceNum)}` : undefined;
-  const searchBlob = [
-    title,
-    brand,
-    slug,
+  const blob = [
     p?.gender,
     p?.category,
-    p?.subcategory,
-    p?.collection,
-    p?.sport,
+    p?.kind,
+    p?.productType,
+    p?.title,
+    p?.name,
+    p?.slug,
+    p?.product_code,
+    p?.brand,
     ...(Array.isArray(p?.tags) ? p.tags : []),
   ]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
 
-  return {
-    id: slug || `p${idx + 1}`,
-    name: title,
-    href,
-    imgBase,
-    brand,
-    price,
-    gender,
-    searchBlob,
-  } as TopItem;
-});
+  if (
+    [
+      "kids",
+      "kid",
+      "children",
+      "child",
+      "niños",
+      "ninos",
+      "niñas",
+      "ninas",
+      "niño",
+      "nino",
+      "niña",
+      "nina",
+      "junior",
+      "boys",
+      "girls",
+      "short-nike-kids",
+    ].some((term) => blob.includes(term))
+  ) {
+    return "kids";
+  }
 
+  if (
+    [
+      "women",
+      "mujer",
+      "female",
+      "femenino",
+      "bra",
+      "sujetador",
+      "leggings",
+      "top",
+      "sports-bra",
+      "womens",
+      "women's",
+      "dri-fit women",
+      "nike-bra-dri-fit",
+    ].some((term) => blob.includes(term))
+  ) {
+    return "women";
+  }
 
+  return "men";
+}
+
+function firstImageFromProduct(p: Product, slug: string): string {
+  const imgs = Array.isArray((p as any).images) ? ((p as any).images as unknown[]) : [];
+  const main = String((imgs?.[0] as any) || ((p as any).image as any) || (slug ? `/products/${slug}/1` : "")).trim();
+
+  if (!main) return slug ? `/products/${slug}/1` : "";
+
+  const isAbs = /^https?:\/\//i.test(main);
+  const hasSlash = main.startsWith("/");
+
+  if (isAbs) return main;
+  if (hasSlash) return main;
+  if (main.startsWith("products/")) return `/${main}`;
+
+  return `/products/${main}`;
+}
+
+function mapProductsToTopItems(input: Product[]): TopItem[] {
+  return (input ?? []).map((p: any, idx: number) => {
+    const slug = String(p?.slug ?? p?.id ?? "").trim();
+    const title = String(p?.title ?? p?.name ?? "Producto").trim();
+    const brand = String(p?.brand ?? p?.marca ?? "JUSP").trim() || "JUSP";
+    const gender = inferProductGender(p);
+    const imgBase = firstImageFromProduct(p as Product, slug);
+
+    const href = slug
+      ? `/product/${encodeURIComponent(slug)}?g=${encodeURIComponent(gender)}`
+      : "/products";
+
+    const priceNum = minPriceFromProduct(p);
+    const price = typeof priceNum === "number" && priceNum > 0 ? `$${formatCOP(priceNum)}` : undefined;
+
+    const searchBlob = [
+      title,
+      brand,
+      slug,
+      p?.gender,
+      p?.category,
+      p?.subcategory,
+      p?.collection,
+      p?.sport,
+      ...(Array.isArray(p?.tags) ? p.tags : []),
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    return {
+      id: slug || `p${idx + 1}`,
+      name: title,
+      href,
+      imgBase,
+      brand,
+      price,
+      gender,
+      searchBlob,
+    } as TopItem;
+  });
+}
 
 type CardItem = {
   id?: string;
@@ -307,14 +415,11 @@ type UserSession = {
 
 type SearchItem = { id: string; name: string; href: string; img: string; brand?: string };
 
-/* ==========================
-   TOP PICKS · UI HELPERS
-   ========================== */
-
 const SAVED_TOP_KEY = "jusp_saved_top_picks_v1";
 
 function useLocalStorageStringArray(key: string) {
   const [value, setValue] = useState<string[]>([]);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
@@ -338,9 +443,8 @@ function useLocalStorageStringArray(key: string) {
 
 function TopPickMedia({ baseSrc, alt, active }: { baseSrc: string; alt: string; active: boolean }) {
   const isMobile = useIsMobile();
-
-  // Smooth cross-fade / soften transform when the media changes (mobile felt "forced").
   const [ready, setReady] = React.useState(false);
+
   React.useEffect(() => {
     setReady(false);
     const id = requestAnimationFrame(() => setReady(true));
@@ -371,7 +475,6 @@ function TopPickMedia({ baseSrc, alt, active }: { baseSrc: string; alt: string; 
         : "perspective(900px) translateZ(0) rotateX(0deg) rotateY(0deg) translateY(10px) scale(0.985)",
   };
 
-  // Separate layer for the actual image to fade-in on change (prevents hard "snap").
   const imgLayerStyle: React.CSSProperties = {
     position: "absolute",
     inset: 0,
@@ -390,13 +493,19 @@ function TopPickMedia({ baseSrc, alt, active }: { baseSrc: string; alt: string; 
           key={baseSrc}
           baseSrc={baseSrc}
           alt={alt}
-          style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", transform: "scale(0.94)", transformOrigin: "center" }}
-/>
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "contain",
+            display: "block",
+            transform: "scale(0.94)",
+            transformOrigin: "center",
+          }}
+        />
       </div>
     </div>
   );
 }
-
 
 function SaveTopButton({
   id,
@@ -409,7 +518,8 @@ function SaveTopButton({
 }) {
   return (
     <button
-      type="button" className="jusp-btn jusp-save jusp-focus"
+      type="button"
+      className="jusp-btn jusp-save jusp-focus"
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -436,35 +546,44 @@ function SaveTopButton({
   );
 }
 
-
 export default function Page() {
-  const scrollToTopPicks = () => {
-    const section = document.getElementById("top-picks");
-    if (!section) return;
-    const y = section.getBoundingClientRect().top + window.scrollY - 96;
-    window.scrollTo({ top: y, behavior: "smooth" });
-    if (typeof window !== "undefined" && window.location.hash) {
-      try {
-        window.history.replaceState(null, "", window.location.pathname + window.location.search);
-      } catch {}
-    }
-  };
-
-  
   const [savedTopIds, setSavedTopIds] = useLocalStorageStringArray(SAVED_TOP_KEY);
+  const [catalogProducts, setCatalogProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadCatalog = async () => {
+      try {
+        const res = await fetch("/api/products", { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!cancelled) {
+          setCatalogProducts(Array.isArray(data) ? data : []);
+        }
+      } catch {
+        if (!cancelled) {
+          setCatalogProducts([]);
+        }
+      }
+    };
+
+    loadCatalog();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const ALL_PRODUCTS = useMemo(() => mapProductsToTopItems(catalogProducts), [catalogProducts]);
 
   const [topQuery, setTopQuery] = useState("");
   const [homeProductFilter, setHomeProductFilter] = useState<"all" | "men" | "women" | "accessories" | "kids">("all");
   const TOP_CHIPS = useMemo(() => ["Nike", "Jordan", "Adidas", "Dunk", "Air Max", "Tech Fleece"], []);
-  const runTopSearch = (q: string) => {
-    const query = (q || "").trim();
-    if (!query) return;
-    if (typeof window === "undefined") return;
-    window.location.assign(`/products?q=${encodeURIComponent(query)}`);
-  };
 
   const isMobile = useIsMobile();
   const reduceMotion = usePrefersReducedMotion();
+  useIsCoarsePointer();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -476,12 +595,10 @@ export default function Page() {
     window.scrollTo(0, 0);
   }, []);
 
-  /* ==========================
-     BLOQUE 1 · HERO (2 VIDEOS)
-     ========================= */
   const videos = ["/home/video/hero-1.mp4", "/home/video/hero-2.mp4"];
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [videoIndex, setVideoIndex] = useState(0);
+
   const onHeroEnded = () => setVideoIndex((prev) => (prev + 1) % videos.length);
 
   useEffect(() => {
@@ -498,14 +615,8 @@ export default function Page() {
     };
   }, [videoIndex]);
 
-  /* ==========================================
-     BLOQUE 2 · LO MÁS TOP (CARRUSEL PRO MAX)
-     ========================================== */
   const topItems = TOP_ITEMS;
 
-  /* ==========================================
-     SEARCH PRO MAX
-     ========================================== */
   const SEARCH_RECENTS_KEY = "jusp_home_search_recents_v1";
   const USER_KEY = "jusp_user_v1";
   const [searchOpen, setSearchOpen] = useState(false);
@@ -529,9 +640,6 @@ export default function Page() {
   const [prefSizes, setPrefSizes] = useState<string[]>([]);
   const [prefInterests, setPrefInterests] = useState<string[]>([]);
 
-  /* ==========================================
-     NEWSLETTER (Nike-style)
-     ========================================== */
   const NL_HIDE_KEY = "jusp_newsletter_hide_until_v1";
   const NL_SUB_KEY = "jusp_newsletter_subscribed_v1";
   const [nlOpen, setNlOpen] = useState(false);
@@ -596,22 +704,27 @@ export default function Page() {
     e.preventDefault();
     const email = nlEmail.trim();
     setNlMsg("");
+
     if (!isValidEmail(email)) {
       setNlStatus("error");
       setNlMsg("Escribe un correo válido (ej: hola@correo.com).");
       return;
     }
+
     setNlStatus("loading");
+
     try {
       const res = await fetch("/api/marketing/subscribe", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ email, source: "newsletter_modal", ts: Date.now() }),
       });
+
       if (!res.ok) {
         const txt = await res.text().catch(() => "");
         throw new Error(`HTTP ${res.status} ${txt}`.trim());
       }
+
       setNlStatus("ok");
       setNlMsg("Listo ✅ Te avisaremos cuando haya drops y descuentos.");
       setNlEmail("");
@@ -685,6 +798,7 @@ export default function Page() {
       img: t.imgBase,
       brand: t.brand,
     }));
+
     const extra: SearchItem[] = [
       { id: "s1", name: "Exclusivo", href: "/products?tab=exclusivo", img: "/home/files/file-3b.jpg", brand: "JUSP" },
       { id: "s2", name: "Best of all time", href: "/products?tag=top", img: "/home/files/file-2a.jpg", brand: "Multi" },
@@ -692,6 +806,7 @@ export default function Page() {
       { id: "s4", name: "Street & minimal", href: "/products?tag=street", img: "/home/files/file-3a.jpg", brand: "Curaduría" },
       { id: "s5", name: "Sport legends", href: "/products?tag=sport", img: "/home/files/file-3c.jpg", brand: "Sport" },
     ];
+
     return [...base, ...extra];
   }, [topItems]);
 
@@ -717,8 +832,10 @@ export default function Page() {
 
   useEffect(() => {
     if (!searchOpen) return;
+
     const trimmed = q.trim();
     const lower = trimmed.toLowerCase();
+
     if (!trimmed) {
       const quick = [
         ...searchRecents.map((r, i) => ({
@@ -730,10 +847,12 @@ export default function Page() {
         })),
         ...searchIndex.slice(0, 6),
       ].slice(0, 10);
+
       setSearchResults(quick);
       setSearchLoading(false);
       return;
     }
+
     const cached = cacheRef.current.get(lower);
     if (cached) {
       setSearchResults(cached);
@@ -741,10 +860,14 @@ export default function Page() {
       lastQueryRef.current = lower;
       return;
     }
+
     setSearchLoading(true);
+
     const isRepeatPattern =
       lastQueryRef.current && (lower.startsWith(lastQueryRef.current) || lastQueryRef.current.startsWith(lower));
+
     const delay = isRepeatPattern ? 0 : 80;
+
     const t = window.setTimeout(() => {
       const hits = searchIndex
         .map((p) => {
@@ -761,11 +884,13 @@ export default function Page() {
         .sort((a, b) => b.score - a.score)
         .slice(0, 10)
         .map((x) => x.p);
+
       cacheRef.current.set(lower, hits);
       setSearchResults(hits);
       setSearchLoading(false);
       lastQueryRef.current = lower;
     }, delay);
+
     return () => window.clearTimeout(t);
   }, [q, searchOpen, searchIndex, searchRecents, user?.email]);
 
@@ -778,11 +903,13 @@ export default function Page() {
         e.preventDefault();
         openSearch();
       }
+
       if (e.key === "Escape") {
         if (searchOpen) closeSearch();
         if (authOpen) setAuthOpen(false);
       }
     };
+
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [searchOpen, authOpen]);
@@ -796,19 +923,24 @@ export default function Page() {
 
   const handleAuthSubmit = () => {
     const email = authEmail.trim().toLowerCase();
+
     if (!email || !email.includes("@")) {
       setAuthErr("Escribe un correo válido.");
       return;
     }
+
     const existing = safeLoadUser();
+
     if (authMode === "login") {
       const u: UserSession =
         existing?.email === email
           ? { ...existing, lastSeenAt: Date.now() }
           : { email, name: authName.trim() || undefined, createdAt: Date.now(), lastSeenAt: Date.now() };
+
       completeLogin(u);
       return;
     }
+
     const u: UserSession = {
       email,
       name: authName.trim() || undefined,
@@ -818,6 +950,7 @@ export default function Page() {
       onboardingDone: false,
       prefs: { focus: "mix", sizes: [], interests: [] },
     };
+
     setUser(u);
     safeSaveUser(u);
     setOnboardingStep(1);
@@ -826,12 +959,14 @@ export default function Page() {
 
   const finishOnboarding = () => {
     if (!user) return;
+
     const next: UserSession = {
       ...user,
       onboardingDone: true,
       prefs: { focus: prefFocus, sizes: prefSizes, interests: prefInterests },
       lastSeenAt: Date.now(),
     };
+
     setUser(next);
     safeSaveUser(next);
     setAuthOpen(false);
@@ -843,6 +978,7 @@ export default function Page() {
   useEffect(() => {
     const el = topSectionRef.current;
     if (!el) return;
+
     const io = new IntersectionObserver(
       (entries) => {
         const en = entries[0];
@@ -853,6 +989,7 @@ export default function Page() {
       },
       { root: null, threshold: [0, 0.12, 0.2, 0.4, 0.8] }
     );
+
     io.observe(el);
     return () => io.disconnect();
   }, []);
@@ -872,6 +1009,7 @@ export default function Page() {
 
   const [rubberX, setRubberX] = useState(0);
   const rubberXRef = useRef(0);
+
   const setRubber = (v: number) => {
     rubberXRef.current = v;
     setRubberX(v);
@@ -899,6 +1037,7 @@ export default function Page() {
   const snapToNearest = () => {
     const vp = topViewportRef.current;
     if (!vp) return;
+
     const vpRect = vp.getBoundingClientRect();
     const vpCenter = vpRect.left + vpRect.width / 2;
 
@@ -928,7 +1067,7 @@ export default function Page() {
       setTopActive((i) => (i + 1) % topItems.length);
     }, intervalMs);
     return () => clearInterval(t);
-  }, [topPaused, topInView, topItems.length]);
+  }, [reduceMotion, topPaused, topInView, topItems.length, isMobile]);
 
   useEffect(() => {
     if (topPaused || !topInView) return;
@@ -938,22 +1077,31 @@ export default function Page() {
   const endDrag = (resume = true) => {
     const vp = topViewportRef.current;
     if (!vp) return;
+
     dragRef.current.down = false;
     dragRef.current.pointerId = null;
+
     if (rubberXRef.current !== 0) setRubber(0);
+
     vp.style.scrollBehavior = "smooth";
     snapToNearest();
     setIsDragging(false);
-    if (resume) window.setTimeout(() => setTopPaused(false), isMobile ? 2500 : 1600);
+
+    if (resume) {
+      window.setTimeout(() => setTopPaused(false), isMobile ? 2500 : 1600);
+    }
   };
 
   useEffect(() => {
     if (!isDragging) return;
+
     const onUp = () => endDrag(true);
     const onCancel = () => endDrag(true);
+
     window.addEventListener("pointerup", onUp, { passive: true });
     window.addEventListener("pointercancel", onCancel, { passive: true });
     window.addEventListener("blur", onCancel);
+
     return () => {
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onCancel);
@@ -966,6 +1114,7 @@ export default function Page() {
     if (!vp) return;
     const isTouchLike = e.pointerType === "touch" || e.pointerType === "pen";
     if (!isTouchLike) return;
+
     setTopPaused(true);
     setIsDragging(true);
     dragRef.current.down = true;
@@ -973,9 +1122,11 @@ export default function Page() {
     dragRef.current.startX = e.clientX;
     dragRef.current.startScrollLeft = vp.scrollLeft;
     vp.style.scrollBehavior = "auto";
+
     try {
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     } catch {}
+
     e.preventDefault();
   };
 
@@ -984,9 +1135,11 @@ export default function Page() {
     if (!vp) return;
     if (!dragRef.current.down) return;
     if (dragRef.current.pointerId !== e.pointerId) return;
+
     const dx = e.clientX - dragRef.current.startX;
     const rawTarget = dragRef.current.startScrollLeft - dx;
     const { max } = getBounds();
+
     if (rawTarget < 0) {
       setRubber(rawTarget * 0.22);
       vp.scrollLeft = 0;
@@ -1002,18 +1155,22 @@ export default function Page() {
   const onTopPointerUp: React.PointerEventHandler<HTMLDivElement> = (e) => {
     if (!dragRef.current.down) return;
     if (dragRef.current.pointerId !== e.pointerId) return;
+
     try {
       (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
     } catch {}
+
     endDrag(true);
   };
 
   const onTopPointerCancel: React.PointerEventHandler<HTMLDivElement> = (e) => {
     if (!dragRef.current.down) return;
     if (dragRef.current.pointerId !== e.pointerId) return;
+
     try {
       (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
     } catch {}
+
     endDrag(true);
   };
 
@@ -1033,9 +1190,6 @@ export default function Page() {
     endDrag(true);
   };
 
-  /* ==========================================
-     BLOQUE 3 · STORIES (VISUAL PRO)
-     ========================================== */
   const curatedSlides = useMemo(
     () =>
       Array.from({ length: 15 }, (_, i) => {
@@ -1050,7 +1204,6 @@ export default function Page() {
       }),
     []
   );
-
 
   const curatedViewportRef = useRef<HTMLDivElement | null>(null);
 
@@ -1070,6 +1223,7 @@ export default function Page() {
   useEffect(() => {
     const el = storySectionRef.current;
     if (!el) return;
+
     const io = new IntersectionObserver(
       (entries) => {
         const en = entries[0];
@@ -1077,16 +1231,14 @@ export default function Page() {
       },
       { root: null, threshold: 0.14 }
     );
+
     io.observe(el);
     return () => io.disconnect();
   }, []);
 
-  /* ==========================================
-     BLOQUE 4 ·  (3D AUTO)
-     ========================================== */
   const collectionCards: CardItem[] = useMemo(
     () => [
-            {
+      {
         id: "c1",
         kicker: "",
         title: "Converse Chuck Taylor All Star",
@@ -1122,20 +1274,16 @@ export default function Page() {
     []
   );
 
-    const isCard = (
+  const isCard = (
     c: CardItem
   ): c is Required<Pick<CardItem, "id" | "desc" | "href" | "img">> & { title: string; kicker?: string } => {
-    // kicker puede ser vacío; lo importante es que exista el contenido principal
     return Boolean(c && c.id && c.title && c.desc && c.href && c.img);
   };
 
   const [colActive, setColActive] = useState(0);
-
-  // Cartas válidas
   const colCards = collectionCards.filter(isCard);
   const colLen = Math.max(1, colCards.length);
 
-  // 🔥 Rotación automática NIVEL DIOS (independiente y estable)
   const colLenRef = React.useRef(colLen);
   colLenRef.current = colLen;
 
@@ -1143,72 +1291,59 @@ export default function Page() {
     if (colLenRef.current <= 1) return;
 
     const interval = setInterval(() => {
-      setColActive((prev) => {
-        const next = (prev + 1) % colLenRef.current;
-        return next;
-      });
+      setColActive((prev) => (prev + 1) % colLenRef.current);
     }, 3200);
 
     return () => clearInterval(interval);
   }, []);
 
-  const activeCollection =
-    colCards[colActive] ?? colCards[0] ?? collectionCards[0];
+  const activeCollection = colCards[colActive] ?? colCards[0] ?? collectionCards[0];
 
   return (
     <main style={{ overflowX: "hidden", background: "#fff", color: "#000" }}>
+      <style>{`
+        :root {
+          --jusp-ease: cubic-bezier(.2,.9,.2,1);
+        }
+        .jusp-card {
+          transform: translateZ(0);
+          transition: transform 280ms var(--jusp-ease), box-shadow 280ms var(--jusp-ease), filter 280ms var(--jusp-ease);
+          will-change: transform;
+        }
+        @media (hover:hover) and (pointer:fine) {
+          .jusp-card:hover {
+            transform: translateY(-3px) scale(1.008);
+            box-shadow: 0 18px 55px rgba(0,0,0,0.14);
+          }
+        }
+        .jusp-card:active {
+          transform: translateY(0px) scale(0.988);
+        }
+        .jusp-btn {
+          transition: transform 180ms var(--jusp-ease), filter 180ms var(--jusp-ease), background 180ms var(--jusp-ease);
+          will-change: transform;
+        }
+        @media (hover:hover) and (pointer:fine) {
+          .jusp-btn:hover { filter: brightness(1.03); }
+        }
+        .jusp-btn:active { transform: scale(0.98); }
+        .jusp-save[data-saved="1"] {
+          animation: juspPop 260ms var(--jusp-ease);
+        }
+        @keyframes juspPop {
+          0% { transform: scale(0.96); }
+          55% { transform: scale(1.06); }
+          100% { transform: scale(1.0); }
+        }
+        .jusp-focus:focus-visible {
+          outline: 3px solid rgba(0,0,0,0.20);
+          outline-offset: 3px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .jusp-card, .jusp-btn { transition: none !important; animation: none !important; }
+        }
+      `}</style>
 
-<style>{`
-  :root {
-    --jusp-ease: cubic-bezier(.2,.9,.2,1);
-  }
-  /* Cards */
-  .jusp-card {
-    transform: translateZ(0);
-    transition: transform 280ms var(--jusp-ease), box-shadow 280ms var(--jusp-ease), filter 280ms var(--jusp-ease);
-    will-change: transform;
-  }
-  @media (hover:hover) and (pointer:fine) {
-    .jusp-card:hover {
-      transform: translateY(-3px) scale(1.008);
-      box-shadow: 0 18px 55px rgba(0,0,0,0.14);
-    }
-  }
-  .jusp-card:active {
-    transform: translateY(0px) scale(0.988);
-  }
-
-  /* Buttons */
-  .jusp-btn {
-    transition: transform 180ms var(--jusp-ease), filter 180ms var(--jusp-ease), background 180ms var(--jusp-ease);
-    will-change: transform;
-  }
-  @media (hover:hover) and (pointer:fine) {
-    .jusp-btn:hover { filter: brightness(1.03); }
-  }
-  .jusp-btn:active { transform: scale(0.98); }
-
-  /* Save button micro-pop when becomes saved */
-  .jusp-save[data-saved="1"] {
-    animation: juspPop 260ms var(--jusp-ease);
-  }
-  @keyframes juspPop {
-    0% { transform: scale(0.96); }
-    55% { transform: scale(1.06); }
-    100% { transform: scale(1.0); }
-  }
-
-  /* Focus ring pro */
-  .jusp-focus:focus-visible {
-    outline: 3px solid rgba(0,0,0,0.20);
-    outline-offset: 3px;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .jusp-card, .jusp-btn { transition: none !important; animation: none !important; }
-  }
-`}</style>
-      {/* ✅ Newsletter modal tipo Nike */}
       {nlOpen ? (
         <div
           role="dialog"
@@ -1319,7 +1454,6 @@ export default function Page() {
         </div>
       ) : null}
 
-      {/* HERO */}
       <section id="hero" style={{ width: "100vw", minHeight: "calc(100vh - 64px)", position: "relative", background: "#000" }}>
         <video
           ref={videoRef}
@@ -1345,12 +1479,9 @@ export default function Page() {
             JUSP · ORIGINALES · PREMIUM
           </div>
           <h1 style={{ color: "#fff", margin: "10px 0 0", fontSize: 46, lineHeight: 1.05 }}>JUSP · DO MORE</h1>
-
-          {/* ✅ (QUITADOS) Botón "Ver lo más top" y Botón lupa */}
         </div>
       </section>
 
-      {/* BLOQUE 3 · STORIES (SOLO "HISTORIA" + SIN "VER ") */}
       <section
         ref={(el) => {
           storySectionRef.current = el;
@@ -1368,10 +1499,7 @@ export default function Page() {
           <div style={{ display: "flex", alignItems: "end", justifyContent: "space-between", gap: 12 }}>
             <div>
               <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.2, opacity: 0.7 }}>HISTORY</div>
-              {/* ✅ (QUITADO) "Editorial JUSP · Nivel Dios" */}
             </div>
-
-            {/* ✅ (QUITADO) "Ver colección →" */}
           </div>
 
           <div
@@ -1426,7 +1554,7 @@ export default function Page() {
                         pointerEvents: "none",
                       }}
                     />
-<div
+                    <div
                       style={{
                         position: "absolute",
                         inset: 0,
@@ -1462,7 +1590,6 @@ export default function Page() {
         </div>
       </section>
 
-      {/* BLOQUE 2.5 · CONFIANZA JUSP */}
       <section
         style={{
           padding: "10px 0 26px",
@@ -1516,8 +1643,6 @@ export default function Page() {
         </div>
       </section>
 
-
-{/* BLOQUE 2 */}
       <section
         id="top-picks"
         ref={(el) => {
@@ -1526,173 +1651,172 @@ export default function Page() {
         style={{ padding: "26px 0 10px", borderTop: "1px solid rgba(0,0,0,0.06)" }}
       >
         <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px" }}>
-            <div className="tpWrap">
-              <div className="tpHeader">
-                <div>
-                  <div className="tpKicker">LO MÁS TOP</div>
-                  <h2 className="tpTitle">
-                  </h2>
-                </div>
-
-                <Link className="tpAll" href="/search?tab=top">
-                  Ver todo →
-                </Link>
+          <div className="tpWrap">
+            <div className="tpHeader">
+              <div>
+                <div className="tpKicker">LO MÁS TOP</div>
+                <h2 className="tpTitle"></h2>
               </div>
 
-              <div className="tpControls">
-                <form
-                  className="tpSearch"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    if (topQuery.trim()) window.location.href = `/search?q=${encodeURIComponent(topQuery.trim())}`;
+              <Link className="tpAll" href="/search?tab=top">
+                Ver todo →
+              </Link>
+            </div>
+
+            <div className="tpControls">
+              <form
+                className="tpSearch"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (topQuery.trim()) window.location.href = `/search?q=${encodeURIComponent(topQuery.trim())}`;
+                }}
+              >
+                <span aria-hidden style={{ opacity: 0.65, fontSize: 14 }}>🔎</span>
+                <input
+                  value={topQuery}
+                  onChange={(e) => setTopQuery(e.target.value)}
+                  placeholder="Buscar (ej: Air Force, hoodie...)"
+                  style={{
+                    border: "none",
+                    outline: "none",
+                    flex: 1,
+                    minWidth: 0,
+                    fontSize: 14,
+                    background: "transparent",
+                  }}
+                />
+                <button
+                  type="submit"
+                  className="jusp-btn jusp-focus"
+                  style={{
+                    border: "none",
+                    background: "#0b0b0b",
+                    color: "#fff",
+                    borderRadius: 999,
+                    padding: "10px 14px",
+                    fontWeight: 700,
+                    cursor: "pointer",
                   }}
                 >
-                  <span aria-hidden style={{ opacity: 0.65, fontSize: 14 }}>🔎</span>
-                  <input
-                    value={topQuery}
-                    onChange={(e) => setTopQuery(e.target.value)}
-                    placeholder="Buscar (ej: Air Force, hoodie...)"
-                    style={{
-                      border: "none",
-                      outline: "none",
-                      flex: 1,
-                      minWidth: 0,
-                      fontSize: 14,
-                      background: "transparent",
-                    }}
-                  />
+                  Buscar
+                </button>
+              </form>
+
+              <div className="tpChips">
+                {TOP_CHIPS.map((c) => (
                   <button
-                    type="submit"
+                    key={c}
                     className="jusp-btn jusp-focus"
+                    onClick={() => {
+                      setTopQuery(c);
+                      window.location.href = `/search?q=${encodeURIComponent(c)}`;
+                    }}
                     style={{
-                      border: "none",
-                      background: "#0b0b0b",
-                      color: "#fff",
+                      border: "1px solid #e7e7e7",
+                      background: "#f7f7f7",
                       borderRadius: 999,
                       padding: "10px 14px",
                       fontWeight: 700,
                       cursor: "pointer",
                     }}
                   >
-                    Buscar
+                    {c}
                   </button>
-                </form>
-
-                <div className="tpChips">
-                  {TOP_CHIPS.map((c) => (
-                    <button
-                      key={c}
-                      className="jusp-btn jusp-focus"
-                      onClick={() => {
-                        setTopQuery(c);
-                        window.location.href = `/search?q=${encodeURIComponent(c)}`;
-                      }}
-                      style={{
-                        border: "1px solid #e7e7e7",
-                        background: "#f7f7f7",
-                        borderRadius: 999,
-                        padding: "10px 14px",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                      }}
-                    >
-                      {c}
-                    </button>
-                  ))}
-                </div>
+                ))}
               </div>
+            </div>
 
-              <style>{`
-                .tpWrap {
-                  margin-top: 22px;
-                }
-                .tpHeader {
-                  display: flex;
-                  align-items: flex-end;
-                  justify-content: space-between;
-                  gap: 16px;
-                  flex-wrap: wrap;
-                }
-                .tpKicker {
-                  font-size: 12px;
-                  letter-spacing: 0.14em;
-                  text-transform: uppercase;
-                  opacity: 0.7;
-                  font-weight: 800;
-                }
-                .tpTitle {
-                  margin: 6px 0 0;
-                  font-size: 44px;
-                  line-height: 1;
-                  font-weight: 900;
-                }
-                .tpCount {
-                  font-weight: 900;
-                  opacity: 0.9;
-                }
-                .tpSubtitle {
-                  margin: 10px 0 0;
-                  opacity: 0.75;
-                  max-width: 560px;
-                }
-                .tpAll {
-                  font-weight: 800;
-                  color: #111;
-                  text-decoration: none;
-                  display: inline-flex;
-                  gap: 8px;
-                  align-items: center;
-                  padding: 8px 10px;
-                  border-radius: 999px;
-                  background: rgba(0,0,0,0.04);
-                }
+            <style>{`
+              .tpWrap {
+                margin-top: 22px;
+              }
+              .tpHeader {
+                display: flex;
+                align-items: flex-end;
+                justify-content: space-between;
+                gap: 16px;
+                flex-wrap: wrap;
+              }
+              .tpKicker {
+                font-size: 12px;
+                letter-spacing: 0.14em;
+                text-transform: uppercase;
+                opacity: 0.7;
+                font-weight: 800;
+              }
+              .tpTitle {
+                margin: 6px 0 0;
+                font-size: 44px;
+                line-height: 1;
+                font-weight: 900;
+              }
+              .tpCount {
+                font-weight: 900;
+                opacity: 0.9;
+              }
+              .tpSubtitle {
+                margin: 10px 0 0;
+                opacity: 0.75;
+                max-width: 560px;
+              }
+              .tpAll {
+                font-weight: 800;
+                color: #111;
+                text-decoration: none;
+                display: inline-flex;
+                gap: 8px;
+                align-items: center;
+                padding: 8px 10px;
+                border-radius: 999px;
+                background: rgba(0,0,0,0.04);
+              }
+              .tpControls {
+                margin-top: 14px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 10px;
+                flex-wrap: wrap;
+              }
+              .tpSearch {
+                flex: 1 1 380px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 10px 12px;
+                border: 1px solid #e6e6e6;
+                border-radius: 999px;
+                background: #fff;
+                box-shadow: 0 10px 24px rgba(0,0,0,0.06);
+              }
+              .tpChips {
+                display: flex;
+                gap: 10px;
+                align-items: center;
+                flex-wrap: wrap;
+              }
+
+              @media (max-width: 720px) {
+                .tpTitle { font-size: 34px; }
+                .tpSubtitle { max-width: 100%; }
                 .tpControls {
-                  margin-top: 14px;
-                  display: flex;
-                  align-items: center;
-                  justify-content: space-between;
-                  gap: 10px;
-                  flex-wrap: wrap;
+                  flex-direction: column;
+                  align-items: stretch;
                 }
                 .tpSearch {
-                  flex: 1 1 380px;
-                  display: flex;
-                  align-items: center;
-                  gap: 10px;
-                  padding: 10px 12px;
-                  border: 1px solid #e6e6e6;
-                  border-radius: 999px;
-                  background: #fff;
-                  box-shadow: 0 10px 24px rgba(0,0,0,0.06);
+                  flex: 1 1 auto;
+                  width: 100%;
                 }
                 .tpChips {
-                  display: flex;
-                  gap: 10px;
-                  align-items: center;
-                  flex-wrap: wrap;
+                  flex-wrap: nowrap;
+                  overflow-x: auto;
+                  padding-bottom: 6px;
+                  -webkit-overflow-scrolling: touch;
                 }
-
-                @media (max-width: 720px) {
-                  .tpTitle { font-size: 34px; }
-                  .tpSubtitle { max-width: 100%; }
-                  .tpControls {
-                    flex-direction: column;
-                    align-items: stretch;
-                  }
-                  .tpSearch {
-                    flex: 1 1 auto;
-                    width: 100%;
-                  }
-                  .tpChips {
-                    flex-wrap: nowrap;
-                    overflow-x: auto;
-                    padding-bottom: 6px;
-                    -webkit-overflow-scrolling: touch;
-                  }
-                  .tpChips::-webkit-scrollbar { display: none; }
-                }
-              `}</style>
-            </div>
+                .tpChips::-webkit-scrollbar { display: none; }
+              }
+            `}</style>
+          </div>
         </div>
 
         <div style={{ marginTop: 16, position: "relative" }}>
@@ -1731,7 +1855,7 @@ export default function Page() {
                 const isActive = idx === topActive;
                 return (
                   <Link
-                    key={(it?.href ? it.href : String(idx))}
+                    key={it?.href ? it.href : String(idx)}
                     className="jusp-card"
                     href={it.href}
                     ref={(el) => {
@@ -1745,7 +1869,8 @@ export default function Page() {
                       flex: "0 0 calc(100vw - 28px)",
                       width: "calc(100vw - 28px)",
                       maxWidth: "calc(100vw - 28px)",
-                      borderRadius: 26, marginTop: isMobile ? 10 : 0,
+                      borderRadius: 26,
+                      marginTop: isMobile ? 10 : 0,
                       position: "relative",
                       overflow: "hidden",
                       border: "1px solid rgba(0,0,0,0.08)",
@@ -1758,11 +1883,7 @@ export default function Page() {
                     }}
                   >
                     <div style={{ height: "min(66vh, 520px)", minHeight: 360, background: "#f6f6f6", position: "relative" }}>
-                      <TopPickMedia
-                        baseSrc={it.imgBase}
-                        alt={it.name}
-                        active={isActive}
-                      />
+                      <TopPickMedia baseSrc={it.imgBase} alt={it.name} active={isActive} />
                       <div
                         style={{
                           position: "absolute",
@@ -1785,75 +1906,74 @@ export default function Page() {
                         />
                       </div>
 
-                    <div
-                      style={{
-                        position: "absolute",
-                        left: 16,
-                        right: 16,
-                        bottom: 14,
-                        display: "flex",
-                        alignItems: "end",
-                        justifyContent: "space-between",
-                        gap: 12,
-                        padding: "14px 14px",
-                        borderRadius: 18,
-                        background: "linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.55) 100%)",
-                        color: "#fff",
-                        backdropFilter: "blur(8px)",
-                        border: "1px solid rgba(255,255,255,0.14)",
-                      }}
-                    >
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 1.2, opacity: 0.9 }}>
-                          {(it.brand || "JUSP").toUpperCase()} · ORIGINALES
+                      <div
+                        style={{
+                          position: "absolute",
+                          left: 16,
+                          right: 16,
+                          bottom: 14,
+                          display: "flex",
+                          alignItems: "end",
+                          justifyContent: "space-between",
+                          gap: 12,
+                          padding: "14px 14px",
+                          borderRadius: 18,
+                          background: "linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.55) 100%)",
+                          color: "#fff",
+                          backdropFilter: "blur(8px)",
+                          border: "1px solid rgba(255,255,255,0.14)",
+                        }}
+                      >
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 1.2, opacity: 0.9 }}>
+                            {(it.brand || "JUSP").toUpperCase()} · ORIGINALES
+                          </div>
+                          <div
+                            style={{
+                              marginTop: 6,
+                              fontSize: 18,
+                              fontWeight: 1000,
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {it.name}
+                          </div>
+                          <div style={{ marginTop: 6, fontSize: 12, opacity: 0.85 }}>
+                            {it.price || "Drop Top"} · Envío internacional transparente
+                          </div>
                         </div>
-                        <div
-                          style={{
-                            marginTop: 6,
-                            fontSize: 18,
-                            fontWeight: 1000,
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {it.name}
-                        </div>
-                        <div style={{ marginTop: 6, fontSize: 12, opacity: 0.85 }}>
-                          {it.price || "Drop Top"} · Envío internacional transparente
+
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, flex: "0 0 auto" }}>
+                          <SaveTopButton
+                            id={it.id}
+                            saved={savedTopIds.includes(it.id)}
+                            onToggle={(id) => {
+                              const next = savedTopIds.includes(id)
+                                ? savedTopIds.filter((x) => x !== id)
+                                : [...savedTopIds, id];
+                              setSavedTopIds(next);
+                            }}
+                          />
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              width: 36,
+                              height: 36,
+                              borderRadius: 999,
+                              background: "rgba(255,255,255,0.90)",
+                              color: "#000",
+                              fontWeight: 1000,
+                            }}
+                            aria-hidden="true"
+                          >
+                            →
+                          </span>
                         </div>
                       </div>
-
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, flex: "0 0 auto" }}>
-                        <SaveTopButton
-                          id={it.id}
-                          saved={savedTopIds.includes(it.id)}
-                          onToggle={(id) => {
-                            const next = savedTopIds.includes(id)
-                              ? savedTopIds.filter((x) => x !== id)
-                              : [...savedTopIds, id];
-                            setSavedTopIds(next);
-                          }}
-                        />
-                        <span
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            width: 36,
-                            height: 36,
-                            borderRadius: 999,
-                            background: "rgba(255,255,255,0.90)",
-                            color: "#000",
-                            fontWeight: 1000,
-                          }}
-                          aria-hidden="true"
-                        >
-                          →
-                        </span>
-                      </div>
-                    </div>
-
                     </div>
                   </Link>
                 );
@@ -1867,200 +1987,344 @@ export default function Page() {
         </div>
       </section>
 
-      
-      {/* BLOQUE 5 · TODOS LOS PRODUCTOS */}
-<section style={{ padding: "26px 0 44px", borderTop: "1px solid rgba(0,0,0,0.06)" }}>
-  <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px" }}>
-    {/* Tabs */}
-    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-      {[
-        { key: "all" as const, label: "Te podría gustar" },
-        { key: "men" as const, label: "Hombre" },
-        { key: "women" as const, label: "Mujer" },
-        { key: "accessories" as const, label: "Accesorios" },
-        { key: "kids" as const, label: "Niños" },
-      ].map((tab) => (
-        <button
-          key={tab.key}
-          type="button"
-          onClick={() => setHomeProductFilter(tab.key)}
-          style={{
-            padding: "10px 12px",
-            borderRadius: 999,
-            border: "1px solid rgba(0,0,0,0.10)",
-            background: homeProductFilter === tab.key ? "rgba(0,0,0,0.92)" : "white",
-            color: homeProductFilter === tab.key ? "white" : "rgba(0,0,0,0.85)",
-            fontWeight: 900,
-            fontSize: 12,
-            letterSpacing: 0.2,
-            cursor: "pointer",
-          }}
-        >
-          {tab.label}
-        </button>
-      ))}
-    </div>
-
-    {/* Grid */}
-    <div
-      className="__jusp_all_products_grid"
-      style={{
-        marginTop: 16,
-        display: "grid",
-                gap: 14,
-      }}
-    >
-      {ALL_PRODUCTS.filter((p) => matchesHomeProductFilter(p, homeProductFilter)).map((p) => (
-        <a
-          key={p.id}
-          href={p.href}
-          style={{
-            display: "block",
-            textDecoration: "none",
-            color: "inherit",
-            borderRadius: 18,
-            border: "1px solid rgba(0,0,0,0.08)",
-            background: "white",
-            overflow: "hidden",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
-          }}
-        >
-          <div style={{ position: "relative", background: "#f7f7f7" }}>
-            <div className="__jusp_home_product_media" style={{ height: 220, position: "relative" }}>
-              <SmartImg
-                baseSrc={p.imgBase}
-                alt={p.name}
-                style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
-              />
-            </div>
-
+      <section style={{ padding: "26px 0 44px", borderTop: "1px solid rgba(0,0,0,0.06)" }}>
+        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px" }}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            {[
+              { key: "all" as const, label: "Te podría gustar" },
+              { key: "men" as const, label: "Hombre" },
+              { key: "women" as const, label: "Mujer" },
+              { key: "accessories" as const, label: "Accesorios" },
+              { key: "kids" as const, label: "Niños" },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setHomeProductFilter(tab.key)}
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 999,
+                  border: "1px solid rgba(0,0,0,0.10)",
+                  background: homeProductFilter === tab.key ? "rgba(0,0,0,0.92)" : "white",
+                  color: homeProductFilter === tab.key ? "white" : "rgba(0,0,0,0.85)",
+                  fontWeight: 900,
+                  fontSize: 12,
+                  letterSpacing: 0.2,
+                  cursor: "pointer",
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
 
-          <div style={{ padding: 12 }}>
-            <div style={{ fontWeight: 1000, fontSize: 14, lineHeight: 1.2 }}>{p.name}</div>
-            <div style={{ marginTop: 6, fontSize: 12, opacity: 0.72 }}>{p.price ?? "Oferta"}</div>
+          <div
+            className="__jusp_all_products_grid"
+            style={{
+              marginTop: 16,
+              display: "grid",
+              gap: 14,
+            }}
+          >
+            {ALL_PRODUCTS.filter((p) => matchesHomeProductFilter(p, homeProductFilter)).map((p) => (
+              <a
+                key={p.id}
+                href={p.href}
+                style={{
+                  display: "block",
+                  textDecoration: "none",
+                  color: "inherit",
+                  borderRadius: 18,
+                  border: "1px solid rgba(0,0,0,0.08)",
+                  background: "white",
+                  overflow: "hidden",
+                  boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
+                }}
+              >
+                <div style={{ position: "relative", background: "#f7f7f7" }}>
+                  <div className="__jusp_home_product_media" style={{ height: 220, position: "relative" }}>
+                    <SmartImg
+                      baseSrc={p.imgBase}
+                      alt={p.name}
+                      style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ padding: 12 }}>
+                  <div style={{ fontWeight: 1000, fontSize: 14, lineHeight: 1.2 }}>{p.name}</div>
+                  <div style={{ marginTop: 6, fontSize: 12, opacity: 0.72 }}>{p.price ?? "Oferta"}</div>
+                </div>
+              </a>
+            ))}
           </div>
-        </a>
-      ))}
-    </div>
 
-    {/* Grid fijo: 5 productos por fila */}
-    <style>{`
-      .__jusp_all_products_grid {
-        width: 100%;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-      }
+          <style>{`
+            .__jusp_all_products_grid {
+              width: 100%;
+              grid-template-columns: repeat(5, minmax(0, 1fr));
+            }
 
-      .__jusp_all_products_grid > a {
-        min-width: 0;
-      }
+            .__jusp_all_products_grid > a {
+              min-width: 0;
+            }
 
-      .__jusp_home_product_media {
-        height: 220px;
-      }
+            .__jusp_home_product_media {
+              height: 220px;
+            }
 
-      .__jusp_home_product_media img {
-        width: 100% !important;
-        height: 100% !important;
-        object-fit: contain !important;
-        display: block !important;
-      }
+            .__jusp_home_product_media img {
+              width: 100% !important;
+              height: 100% !important;
+              object-fit: contain !important;
+              display: block !important;
+            }
 
-      @media (max-width: 767px) {
-        .__jusp_all_products_grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-          gap: 12px !important;
-        }
+            @media (max-width: 767px) {
+              .__jusp_all_products_grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                gap: 12px !important;
+              }
 
-        .__jusp_home_product_media {
-          height: 160px !important;
-        }
-      }
-    `}</style>
-  </div>
+              .__jusp_home_product_media {
+                height: 160px !important;
+              }
+            }
+          `}</style>
+        </div>
 
-      {/* SEARCH OVERLAY (queda disponible por tecla "/" aunque quitamos botones del hero) */}
-      {searchOpen ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 80,
-            background: "rgba(0,0,0,0.44)",
-            backdropFilter: "blur(10px)",
-          }}
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) closeSearch();
-          }}
-        >
-          <div style={{ position: "absolute", inset: 0, background: "#fff", overflow: "auto" }}>
-            <div
-              style={{
-                position: "sticky",
-                top: 0,
-                zIndex: 2,
-                padding: "18px 14px 12px",
-                borderBottom: "1px solid rgba(0,0,0,0.08)",
-                background: "rgba(255,255,255,0.92)",
-                backdropFilter: "blur(10px)",
-              }}
-            >
-              <div style={{ maxWidth: 1180, margin: "0 auto", display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ fontWeight: 1000, letterSpacing: 1.4, fontSize: 12, opacity: 0.75 }}>JUSP</div>
-                <div style={{ flex: 1, display: "flex", gap: 8, alignItems: "center" }}>
-                  <input
-                    ref={inputRef}
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    placeholder="Buscar productos, marcas, estilos…"
-                    aria-label="Buscar"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") submitSearch(q);
-                    }}
-                    style={{
-                      width: "100%",
-                      height: 46,
-                      borderRadius: 999,
-                      border: "1px solid rgba(0,0,0,0.14)",
-                      padding: "0 16px",
-                      fontSize: 15,
-                      outline: "none",
-                    }}
-                  />
+        {searchOpen ? (
+          <div
+            role="dialog"
+            aria-modal="true"
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 80,
+              background: "rgba(0,0,0,0.44)",
+              backdropFilter: "blur(10px)",
+            }}
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) closeSearch();
+            }}
+          >
+            <div style={{ position: "absolute", inset: 0, background: "#fff", overflow: "auto" }}>
+              <div
+                style={{
+                  position: "sticky",
+                  top: 0,
+                  zIndex: 2,
+                  padding: "18px 14px 12px",
+                  borderBottom: "1px solid rgba(0,0,0,0.08)",
+                  background: "rgba(255,255,255,0.92)",
+                  backdropFilter: "blur(10px)",
+                }}
+              >
+                <div style={{ maxWidth: 1180, margin: "0 auto", display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ fontWeight: 1000, letterSpacing: 1.4, fontSize: 12, opacity: 0.75 }}>JUSP</div>
+                  <div style={{ flex: 1, display: "flex", gap: 8, alignItems: "center" }}>
+                    <input
+                      ref={inputRef}
+                      value={q}
+                      onChange={(e) => setQ(e.target.value)}
+                      placeholder="Buscar productos, marcas, estilos…"
+                      aria-label="Buscar"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") submitSearch(q);
+                      }}
+                      style={{
+                        width: "100%",
+                        height: 46,
+                        borderRadius: 999,
+                        border: "1px solid rgba(0,0,0,0.14)",
+                        padding: "0 16px",
+                        fontSize: 15,
+                        outline: "none",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => submitSearch(q)}
+                      aria-label="Buscar"
+                      title="Buscar"
+                      style={{
+                        height: 46,
+                        width: 56,
+                        borderRadius: 999,
+                        border: "none",
+                        background: "#000",
+                        color: "#fff",
+                        fontWeight: 1000,
+                        cursor: "pointer",
+                        boxShadow: "0 16px 42px rgba(0,0,0,0.18)",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 18,
+                        lineHeight: 1,
+                      }}
+                    >
+                      🔍
+                    </button>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => submitSearch(q)}
-                    aria-label="Buscar"
-                    title="Buscar"
+                    onClick={closeSearch}
+                    aria-label="Cerrar"
                     style={{
                       height: 46,
-                      width: 56,
+                      width: 46,
                       borderRadius: 999,
-                      border: "none",
-                      background: "#000",
-                      color: "#fff",
-                      fontWeight: 1000,
+                      border: "1px solid rgba(0,0,0,0.14)",
+                      background: "#fff",
                       cursor: "pointer",
-                      boxShadow: "0 16px 42px rgba(0,0,0,0.18)",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 18,
-                      lineHeight: 1,
+                      fontWeight: 1000,
                     }}
                   >
-                    🔍
+                    ✕
                   </button>
+                </div>
+              </div>
+
+              <div style={{ maxWidth: 1180, margin: "0 auto", padding: "14px 14px 30px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                  <div style={{ fontSize: 13, fontWeight: 1000, opacity: 0.72 }}>
+                    {q.trim() ? "Resultados" : searchRecents.length ? "Recientes" : "Sugerencias"}
+                  </div>
+                  <div style={{ fontSize: 12, opacity: 0.65 }}>
+                    Tip: <span style={{ fontWeight: 1000 }}>ESC</span> para cerrar
+                  </div>
+                </div>
+
+                {searchLoading ? <div style={{ marginTop: 16, fontSize: 13, opacity: 0.7 }}>Buscando…</div> : null}
+
+                <div
+                  style={{
+                    marginTop: 14,
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                    gap: 12,
+                  }}
+                >
+                  {searchResults.map((p) => (
+                    <Link
+                      key={p.id + p.href}
+                      href={p.href}
+                      onClick={() => {
+                        if (q.trim()) safeSaveRecent(q.trim());
+                        setSearchOpen(false);
+                      }}
+                      style={{
+                        textDecoration: "none",
+                        color: "#000",
+                        borderRadius: 18,
+                        overflow: "hidden",
+                        border: "1px solid rgba(0,0,0,0.08)",
+                        boxShadow: "0 12px 30px rgba(0,0,0,0.08)",
+                        background: "#fff",
+                        transform: "translateZ(0)",
+                        transition: "transform 220ms ease, box-shadow 220ms ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = "translateY(-2px) scale(1.01)";
+                        e.currentTarget.style.boxShadow = "0 20px 48px rgba(0,0,0,0.12)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = "translateY(0px) scale(1)";
+                        e.currentTarget.style.boxShadow = "0 12px 30px rgba(0,0,0,0.08)";
+                      }}
+                    >
+                      <div style={{ position: "relative", height: 220, background: "#f4f4f4" }}>
+                        <SmartImg baseSrc={p.img} alt={p.name} loading="lazy" fetchPriority="auto" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.0) 55%, rgba(0,0,0,0.44) 100%)" }} />
+                        <div style={{ position: "absolute", left: 12, right: 12, bottom: 10, color: "#fff" }}>
+                          <div style={{ fontSize: 12, fontWeight: 1000, opacity: 0.9 }}>{p.brand ?? "Original"}</div>
+                          <div style={{ marginTop: 4, fontSize: 16, fontWeight: 1000, lineHeight: 1.1 }}>{p.name}</div>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+
+                {!q.trim() && searchRecents.length ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try {
+                        localStorage.removeItem(SEARCH_RECENTS_KEY);
+                      } catch {}
+                      setSearchRecents([]);
+                    }}
+                    style={{
+                      marginTop: 16,
+                      border: "none",
+                      background: "transparent",
+                      cursor: "pointer",
+                      fontSize: 13,
+                      opacity: 0.7,
+                      textDecoration: "underline",
+                    }}
+                  >
+                    Borrar recientes
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {authOpen ? (
+          <div
+            role="dialog"
+            aria-modal="true"
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 85,
+              background: "rgba(0,0,0,0.48)",
+              backdropFilter: "blur(10px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 14,
+            }}
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) setAuthOpen(false);
+            }}
+          >
+            <div
+              style={{
+                width: "min(680px, 100%)",
+                borderRadius: 22,
+                overflow: "hidden",
+                background: "#fff",
+                border: "1px solid rgba(0,0,0,0.10)",
+                boxShadow: "0 28px 110px rgba(0,0,0,0.22)",
+              }}
+            >
+              <div
+                style={{
+                  padding: "14px 14px",
+                  borderBottom: "1px solid rgba(0,0,0,0.08)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.2, opacity: 0.7 }}>CUENTA</div>
+                  <div style={{ marginTop: 4, fontSize: 18, fontWeight: 1000 }}>
+                    {authMode === "login" ? "Iniciar sesión" : "Crear cuenta"}
+                  </div>
                 </div>
                 <button
                   type="button"
-                  onClick={closeSearch}
+                  onClick={() => setAuthOpen(false)}
                   aria-label="Cerrar"
                   style={{
-                    height: 46,
-                    width: 46,
+                    height: 40,
+                    width: 40,
                     borderRadius: 999,
                     border: "1px solid rgba(0,0,0,0.14)",
                     background: "#fff",
@@ -2071,204 +2335,67 @@ export default function Page() {
                   ✕
                 </button>
               </div>
-            </div>
 
-            <div style={{ maxWidth: 1180, margin: "0 auto", padding: "14px 14px 30px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                <div style={{ fontSize: 13, fontWeight: 1000, opacity: 0.72 }}>
-                  {q.trim() ? "Resultados" : searchRecents.length ? "Recientes" : "Sugerencias"}
-                </div>
-                <div style={{ fontSize: 12, opacity: 0.65 }}>
-                  Tip: <span style={{ fontWeight: 1000 }}>ESC</span> para cerrar
-                </div>
-              </div>
-
-              {searchLoading ? <div style={{ marginTop: 16, fontSize: 13, opacity: 0.7 }}>Buscando…</div> : null}
-
-              <div
-                style={{
-                  marginTop: 14,
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                  gap: 12,
-                }}
-              >
-                {searchResults.map((p) => (
-                  <Link
-                    key={p.id + p.href}
-                    href={p.href}
-                    onClick={() => {
-                      if (q.trim()) safeSaveRecent(q.trim());
-                      setSearchOpen(false);
-                    }}
-                    style={{
-                      textDecoration: "none",
-                      color: "#000",
-                      borderRadius: 18,
-                      overflow: "hidden",
-                      border: "1px solid rgba(0,0,0,0.08)",
-                      boxShadow: "0 12px 30px rgba(0,0,0,0.08)",
-                      background: "#fff",
-                      transform: "translateZ(0)",
-                      transition: "transform 220ms ease, box-shadow 220ms ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = "translateY(-2px) scale(1.01)";
-                      e.currentTarget.style.boxShadow = "0 20px 48px rgba(0,0,0,0.12)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = "translateY(0px) scale(1)";
-                      e.currentTarget.style.boxShadow = "0 12px 30px rgba(0,0,0,0.08)";
-                    }}
-                  >
-                    <div style={{ position: "relative", height: 220, background: "#f4f4f4" }}>
-                      <SmartImg baseSrc={p.img} alt={p.name} loading="lazy" fetchPriority="auto" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.0) 55%, rgba(0,0,0,0.44) 100%)" }} />
-                      <div style={{ position: "absolute", left: 12, right: 12, bottom: 10, color: "#fff" }}>
-                        <div style={{ fontSize: 12, fontWeight: 1000, opacity: 0.9 }}>{p.brand ?? "Original"}</div>
-                        <div style={{ marginTop: 4, fontSize: 16, fontWeight: 1000, lineHeight: 1.1 }}>{p.name}</div>
-                      </div>
+              <div style={{ padding: 14 }}>
+                {onboardingStep === 0 ? (
+                  <>
+                    <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+                      <button
+                        type="button"
+                        onClick={() => setAuthMode("login")}
+                        style={{
+                          flex: 1,
+                          height: 42,
+                          borderRadius: 999,
+                          border: "1px solid rgba(0,0,0,0.14)",
+                          background: authMode === "login" ? "#000" : "#fff",
+                          color: authMode === "login" ? "#fff" : "#000",
+                          fontWeight: 1000,
+                          cursor: "pointer",
+                          transition: "transform 180ms ease",
+                        }}
+                      >
+                        Iniciar sesión
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAuthMode("signup")}
+                        style={{
+                          flex: 1,
+                          height: 42,
+                          borderRadius: 999,
+                          border: "1px solid rgba(0,0,0,0.14)",
+                          background: authMode === "signup" ? "#000" : "#fff",
+                          color: authMode === "signup" ? "#fff" : "#000",
+                          fontWeight: 1000,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Registrarme
+                      </button>
                     </div>
-                  </Link>
-                ))}
-              </div>
 
-              {!q.trim() && searchRecents.length ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    try {
-                      localStorage.removeItem(SEARCH_RECENTS_KEY);
-                    } catch {}
-                    setSearchRecents([]);
-                  }}
-                  style={{
-                    marginTop: 16,
-                    border: "none",
-                    background: "transparent",
-                    cursor: "pointer",
-                    fontSize: 13,
-                    opacity: 0.7,
-                    textDecoration: "underline",
-                  }}
-                >
-                  Borrar recientes
-                </button>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      ) : null}
+                    <div style={{ display: "grid", gap: 10 }}>
+                      {authMode === "signup" ? (
+                        <input
+                          value={authName}
+                          onChange={(e) => setAuthName(e.target.value)}
+                          placeholder="Nombre (opcional)"
+                          style={{
+                            height: 46,
+                            borderRadius: 14,
+                            border: "1px solid rgba(0,0,0,0.14)",
+                            padding: "0 12px",
+                            outline: "none",
+                          }}
+                        />
+                      ) : null}
 
-      {/* AUTH MODAL */}
-      {authOpen ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 85,
-            background: "rgba(0,0,0,0.48)",
-            backdropFilter: "blur(10px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 14,
-          }}
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setAuthOpen(false);
-          }}
-        >
-          <div
-            style={{
-              width: "min(680px, 100%)",
-              borderRadius: 22,
-              overflow: "hidden",
-              background: "#fff",
-              border: "1px solid rgba(0,0,0,0.10)",
-              boxShadow: "0 28px 110px rgba(0,0,0,0.22)",
-            }}
-          >
-            <div
-              style={{
-                padding: "14px 14px",
-                borderBottom: "1px solid rgba(0,0,0,0.08)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 12,
-              }}
-            >
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.2, opacity: 0.7 }}>CUENTA</div>
-                <div style={{ marginTop: 4, fontSize: 18, fontWeight: 1000 }}>
-                  {authMode === "login" ? "Iniciar sesión" : "Crear cuenta"}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setAuthOpen(false)}
-                aria-label="Cerrar"
-                style={{
-                  height: 40,
-                  width: 40,
-                  borderRadius: 999,
-                  border: "1px solid rgba(0,0,0,0.14)",
-                  background: "#fff",
-                  cursor: "pointer",
-                  fontWeight: 1000,
-                }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div style={{ padding: 14 }}>
-              {onboardingStep === 0 ? (
-                <>
-                  <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-                    <button
-                      type="button"
-                      onClick={() => setAuthMode("login")}
-                      style={{
-                        flex: 1,
-                        height: 42,
-                        borderRadius: 999,
-                        border: "1px solid rgba(0,0,0,0.14)",
-                        background: authMode === "login" ? "#000" : "#fff",
-                        color: authMode === "login" ? "#fff" : "#000",
-                        fontWeight: 1000,
-                        cursor: "pointer",
-                        transition: "transform 180ms ease",
-                      }}
-                    >
-                      Iniciar sesión
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAuthMode("signup")}
-                      style={{
-                        flex: 1,
-                        height: 42,
-                        borderRadius: 999,
-                        border: "1px solid rgba(0,0,0,0.14)",
-                        background: authMode === "signup" ? "#000" : "#fff",
-                        color: authMode === "signup" ? "#fff" : "#000",
-                        fontWeight: 1000,
-                        cursor: "pointer",
-                      }}
-                    >
-                      Registrarme
-                    </button>
-                  </div>
-
-                  <div style={{ display: "grid", gap: 10 }}>
-                    {authMode === "signup" ? (
                       <input
-                        value={authName}
-                        onChange={(e) => setAuthName(e.target.value)}
-                        placeholder="Nombre (opcional)"
+                        value={authEmail}
+                        onChange={(e) => setAuthEmail(e.target.value)}
+                        placeholder="Correo"
+                        inputMode="email"
                         style={{
                           height: 46,
                           borderRadius: 14,
@@ -2276,209 +2403,187 @@ export default function Page() {
                           padding: "0 12px",
                           outline: "none",
                         }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleAuthSubmit();
+                        }}
                       />
-                    ) : null}
-
-                    <input
-                      value={authEmail}
-                      onChange={(e) => setAuthEmail(e.target.value)}
-                      placeholder="Correo"
-                      inputMode="email"
-                      style={{
-                        height: 46,
-                        borderRadius: 14,
-                        border: "1px solid rgba(0,0,0,0.14)",
-                        padding: "0 12px",
-                        outline: "none",
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleAuthSubmit();
-                      }}
-                    />
-                    {authErr ? <div style={{ fontSize: 13, color: "#b00020", fontWeight: 900 }}>{authErr}</div> : null}
-                    <button
-                      type="button"
-                      onClick={handleAuthSubmit}
-                      style={{
-                        height: 46,
-                        borderRadius: 999,
-                        border: "none",
-                        background: "#000",
-                        color: "#fff",
-                        fontWeight: 1000,
-                        cursor: "pointer",
-                        boxShadow: "0 16px 42px rgba(0,0,0,0.18)",
-                      }}
-                    >
-                      {authMode === "login" ? "Entrar" : "Continuar"}
-                    </button>
-                    <div style={{ marginTop: 6, fontSize: 12, opacity: 0.7, lineHeight: 1.55 }}>
-                      * Versión PRO MAX (sin backend): guardamos tu sesión en el navegador por ahora.
-                    </div>
-                  </div>
-                </>
-              ) : null}
-
-              {onboardingStep === 1 ? (
-                <>
-                  <div style={{ fontSize: 13, fontWeight: 1000, opacity: 0.78 }}>Onboarding premium</div>
-                  <div style={{ marginTop: 8, fontSize: 20, fontWeight: 1000, letterSpacing: -0.2 }}>¿Qué te interesa más?</div>
-                  <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10 }}>
-                    {[
-                      { k: "hombre" as const, t: "Hombre" },
-                      { k: "mujer" as const, t: "Mujer" },
-                      { k: "ninos" as const, t: "Niños" },
-                      { k: "mix" as const, t: "Mix" },
-                    ].map((x) => (
+                      {authErr ? <div style={{ fontSize: 13, color: "#b00020", fontWeight: 900 }}>{authErr}</div> : null}
                       <button
-                        key={x.k}
                         type="button"
-                        onClick={() => setPrefFocus(x.k)}
+                        onClick={handleAuthSubmit}
+                        style={{
+                          height: 46,
+                          borderRadius: 999,
+                          border: "none",
+                          background: "#000",
+                          color: "#fff",
+                          fontWeight: 1000,
+                          cursor: "pointer",
+                          boxShadow: "0 16px 42px rgba(0,0,0,0.18)",
+                        }}
+                      >
+                        {authMode === "login" ? "Entrar" : "Continuar"}
+                      </button>
+                      <div style={{ marginTop: 6, fontSize: 12, opacity: 0.7, lineHeight: 1.55 }}>
+                        * Versión PRO MAX (sin backend): guardamos tu sesión en el navegador por ahora.
+                      </div>
+                    </div>
+                  </>
+                ) : null}
+
+                {onboardingStep === 1 ? (
+                  <>
+                    <div style={{ fontSize: 13, fontWeight: 1000, opacity: 0.78 }}>Onboarding premium</div>
+                    <div style={{ marginTop: 8, fontSize: 20, fontWeight: 1000, letterSpacing: -0.2 }}>¿Qué te interesa más?</div>
+                    <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10 }}>
+                      {[
+                        { k: "hombre" as const, t: "Hombre" },
+                        { k: "mujer" as const, t: "Mujer" },
+                        { k: "ninos" as const, t: "Niños" },
+                        { k: "mix" as const, t: "Mix" },
+                      ].map((x) => (
+                        <button
+                          key={x.k}
+                          type="button"
+                          onClick={() => setPrefFocus(x.k)}
+                          style={{
+                            height: 44,
+                            borderRadius: 14,
+                            border: "1px solid rgba(0,0,0,0.14)",
+                            background: prefFocus === x.k ? "#000" : "#fff",
+                            color: prefFocus === x.k ? "#fff" : "#000",
+                            fontWeight: 1000,
+                            cursor: "pointer",
+                          }}
+                        >
+                          {x.t}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div style={{ marginTop: 14, fontSize: 13, fontWeight: 1000, opacity: 0.78 }}>Tallas rápidas</div>
+                    <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {["38", "39", "40", "41", "42", "43", "S", "M", "L", "XL"].map((s) => {
+                        const on = prefSizes.includes(s);
+                        return (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => setPrefSizes((p) => (on ? p.filter((x) => x !== s) : [...p, s]))}
+                            style={{
+                              height: 36,
+                              padding: "0 12px",
+                              borderRadius: 999,
+                              border: "1px solid rgba(0,0,0,0.14)",
+                              background: on ? "#000" : "#fff",
+                              color: on ? "#fff" : "#000",
+                              fontWeight: 1000,
+                              cursor: "pointer",
+                              fontSize: 13,
+                            }}
+                          >
+                            {s}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div style={{ marginTop: 14, display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                      <button
+                        type="button"
+                        onClick={() => setOnboardingStep(2)}
                         style={{
                           height: 44,
-                          borderRadius: 14,
-                          border: "1px solid rgba(0,0,0,0.14)",
-                          background: prefFocus === x.k ? "#000" : "#fff",
-                          color: prefFocus === x.k ? "#fff" : "#000",
+                          padding: "0 16px",
+                          borderRadius: 999,
+                          border: "none",
+                          background: "#000",
+                          color: "#fff",
                           fontWeight: 1000,
                           cursor: "pointer",
                         }}
                       >
-                        {x.t}
+                        Continuar →
                       </button>
-                    ))}
-                  </div>
+                    </div>
+                  </>
+                ) : null}
 
-                  <div style={{ marginTop: 14, fontSize: 13, fontWeight: 1000, opacity: 0.78 }}>Tallas rápidas</div>
-                  <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {["38", "39", "40", "41", "42", "43", "S", "M", "L", "XL"].map((s) => {
-                      const on = prefSizes.includes(s);
-                      return (
-                        <button
-                          key={s}
-                          type="button"
-                          onClick={() => setPrefSizes((p) => (on ? p.filter((x) => x !== s) : [...p, s]))}
-                          style={{
-                            height: 36,
-                            padding: "0 12px",
-                            borderRadius: 999,
-                            border: "1px solid rgba(0,0,0,0.14)",
-                            background: on ? "#000" : "#fff",
-                            color: on ? "#fff" : "#000",
-                            fontWeight: 1000,
-                            cursor: "pointer",
-                            fontSize: 13,
-                          }}
-                        >
-                          {s}
-                        </button>
-                      );
-                    })}
-                  </div>
+                {onboardingStep === 2 ? (
+                  <>
+                    <div style={{ fontSize: 13, fontWeight: 1000, opacity: 0.78 }}>Último toque</div>
+                    <div style={{ marginTop: 8, fontSize: 20, fontWeight: 1000, letterSpacing: -0.2 }}>¿Qué estilo quieres ver primero?</div>
+                    <div style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {["Minimal", "Street", "Premium", "Running", "Gym", "Outdoor"].map((s) => {
+                        const on = prefInterests.includes(s);
+                        return (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => setPrefInterests((p) => (on ? p.filter((x) => x !== s) : [...p, s]))}
+                            style={{
+                              height: 38,
+                              padding: "0 14px",
+                              borderRadius: 999,
+                              border: "1px solid rgba(0,0,0,0.14)",
+                              background: on ? "#000" : "#fff",
+                              color: on ? "#fff" : "#000",
+                              fontWeight: 1000,
+                              cursor: "pointer",
+                              fontSize: 13,
+                            }}
+                          >
+                            {s}
+                          </button>
+                        );
+                      })}
+                    </div>
 
-                  <div style={{ marginTop: 14, display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                    <button
-                      type="button"
-                      onClick={() => setOnboardingStep(2)}
-                      style={{
-                        height: 44,
-                        padding: "0 16px",
-                        borderRadius: 999,
-                        border: "none",
-                        background: "#000",
-                        color: "#fff",
-                        fontWeight: 1000,
-                        cursor: "pointer",
-                      }}
-                    >
-                      Continuar →
-                    </button>
-                  </div>
-                </>
-              ) : null}
+                    <div style={{ marginTop: 14, display: "flex", gap: 10, justifyContent: "space-between", alignItems: "center" }}>
+                      <button
+                        type="button"
+                        onClick={() => setOnboardingStep(1)}
+                        style={{
+                          height: 44,
+                          padding: "0 14px",
+                          borderRadius: 999,
+                          border: "1px solid rgba(0,0,0,0.14)",
+                          background: "#fff",
+                          cursor: "pointer",
+                          fontWeight: 1000,
+                        }}
+                      >
+                        ← Atrás
+                      </button>
+                      <button
+                        type="button"
+                        onClick={finishOnboarding}
+                        style={{
+                          height: 44,
+                          padding: "0 16px",
+                          borderRadius: 999,
+                          border: "none",
+                          background: "#000",
+                          color: "#fff",
+                          fontWeight: 1000,
+                          cursor: "pointer",
+                          boxShadow: "0 16px 42px rgba(0,0,0,0.18)",
+                        }}
+                      >
+                        Terminar
+                      </button>
+                    </div>
 
-              {onboardingStep === 2 ? (
-                <>
-                  <div style={{ fontSize: 13, fontWeight: 1000, opacity: 0.78 }}>Último toque</div>
-                  <div style={{ marginTop: 8, fontSize: 20, fontWeight: 1000, letterSpacing: -0.2 }}>¿Qué estilo quieres ver primero?</div>
-                  <div style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {["Minimal", "Street", "Premium", "Running", "Gym", "Outdoor"].map((s) => {
-                      const on = prefInterests.includes(s);
-                      return (
-                        <button
-                          key={s}
-                          type="button"
-                          onClick={() => setPrefInterests((p) => (on ? p.filter((x) => x !== s) : [...p, s]))}
-                          style={{
-                            height: 38,
-                            padding: "0 14px",
-                            borderRadius: 999,
-                            border: "1px solid rgba(0,0,0,0.14)",
-                            background: on ? "#000" : "#fff",
-                            color: on ? "#fff" : "#000",
-                            fontWeight: 1000,
-                            cursor: "pointer",
-                            fontSize: 13,
-                          }}
-                        >
-                          {s}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div style={{ marginTop: 14, display: "flex", gap: 10, justifyContent: "space-between", alignItems: "center" }}>
-                    <button
-                      type="button"
-                      onClick={() => setOnboardingStep(1)}
-                      style={{
-                        height: 44,
-                        padding: "0 14px",
-                        borderRadius: 999,
-                        border: "1px solid rgba(0,0,0,0.14)",
-                        background: "#fff",
-                        cursor: "pointer",
-                        fontWeight: 1000,
-                      }}
-                    >
-                      ← Atrás
-                    </button>
-                    <button
-                      type="button"
-                      onClick={finishOnboarding}
-                      style={{
-                        height: 44,
-                        padding: "0 16px",
-                        borderRadius: 999,
-                        border: "none",
-                        background: "#000",
-                        color: "#fff",
-                        fontWeight: 1000,
-                        cursor: "pointer",
-                        boxShadow: "0 16px 42px rgba(0,0,0,0.18)",
-                      }}
-                    >
-                      Terminar
-                    </button>
-                  </div>
-
-                  <div style={{ marginTop: 10, fontSize: 12, opacity: 0.72, lineHeight: 1.55 }}>
-                    Micro-UX: no cambiamos diseño, solo prioridad/timing según contexto (primera visita vs recurrente vs logueado).
-                  </div>
-                </>
-              ) : null}
+                    <div style={{ marginTop: 10, fontSize: 12, opacity: 0.72, lineHeight: 1.55 }}>
+                      Micro-UX: no cambiamos diseño, solo prioridad/timing según contexto (primera visita vs recurrente vs logueado).
+                    </div>
+                  </>
+                ) : null}
+              </div>
             </div>
           </div>
-        </div>
-      ) : null}
-    
-      {/* FOOTER · NIKE-LIKE MINIMAL */}
-      
-
-{/* (footer removed) */}
-
-
-</section>
+        ) : null}
+      </section>
     </main>
   );
 }
