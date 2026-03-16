@@ -125,11 +125,40 @@ function productModels(p: Product) {
 function productKind(p: Product) {
   return normKey(String((p as any).kind || ""));
 }
+function expandSearchToken(token: string) {
+  const t = normKey(token);
+  if (!t) return [] as string[];
+
+  const map: Record<string, string[]> = {
+    mujer: ["mujer", "women", "womens", "woman", "female", "dama", "ladies"],
+    women: ["women", "womens", "woman", "female", "mujer", "dama", "ladies"],
+    hombre: ["hombre", "men", "mens", "man", "male", "caballero"],
+    men: ["men", "mens", "man", "male", "hombre", "caballero"],
+    ninos: ["ninos", "niños", "kids", "kid", "child", "children", "boy", "girl"],
+    niños: ["niños", "ninos", "kids", "kid", "child", "children", "boy", "girl"],
+    kids: ["kids", "kid", "child", "children", "ninos", "niños", "boy", "girl"],
+    pants: ["pants", "pant", "pantalon", "pantalones", "legging", "leggings", "jogger", "joggers", "tights", "trouser", "trousers"],
+    pant: ["pant", "pants", "pantalon", "pantalones", "legging", "leggings", "jogger", "joggers", "tights"],
+    pantalon: ["pantalon", "pantalones", "pants", "pant", "legging", "leggings", "jogger", "joggers", "tights"],
+    pantalones: ["pantalones", "pantalon", "pants", "pant", "legging", "leggings", "jogger", "joggers", "tights"],
+    leggings: ["leggings", "legging", "pants", "pant", "pantalon", "pantalones", "tights"],
+    legging: ["legging", "leggings", "pants", "pant", "pantalon", "pantalones", "tights"],
+    jogger: ["jogger", "joggers", "pants", "pant", "pantalon", "pantalones"],
+    joggers: ["joggers", "jogger", "pants", "pant", "pantalon", "pantalones"],
+    zapatillas: ["zapatillas", "zapatilla", "shoe", "shoes", "sneaker", "sneakers", "tenis"],
+    zapatilla: ["zapatilla", "zapatillas", "shoe", "shoes", "sneaker", "sneakers", "tenis"],
+    shoes: ["shoes", "shoe", "sneaker", "sneakers", "zapatilla", "zapatillas", "tenis"],
+    shoe: ["shoe", "shoes", "sneaker", "sneakers", "zapatilla", "zapatillas", "tenis"],
+    sneakers: ["sneakers", "sneaker", "shoes", "shoe", "zapatillas", "zapatilla", "tenis"],
+    sneaker: ["sneaker", "sneakers", "shoes", "shoe", "zapatillas", "zapatilla", "tenis"],
+  };
+
+  return uniqueStringsCaseInsensitive(map[t] || [t]).map(normKey);
+}
 function matchesSearchToken(p: Product, query: string) {
   const tokens = String(query || "")
-    .toLowerCase()
     .split(/\s+/)
-    .map((t) => t.trim())
+    .map((t) => normKey(t))
     .filter(Boolean);
 
   if (!tokens.length) return true;
@@ -141,6 +170,7 @@ function matchesSearchToken(p: Product, query: string) {
     String((p as any).category || ""),
     String((p as any).gender || ""),
     String((p as any).kind || ""),
+    String((p as any).productType || ""),
     ...safeArr((p as any).tags),
     ...safeArr((p as any).sport),
     ...safeArr((p as any).collections),
@@ -152,7 +182,10 @@ function matchesSearchToken(p: Product, query: string) {
     .map((x) => normKey(String(x)))
     .join(" ");
 
-  return tokens.every((tok) => hay.includes(normKey(tok)));
+  return tokens.every((tok) => {
+    const aliases = expandSearchToken(tok);
+    return aliases.some((alias) => hay.includes(alias));
+  });
 }
 function matchesTagQuery(p: Product, rawTag: string) {
   const tag = normKey(rawTag);
@@ -2465,7 +2498,6 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
     if (cp === "ninos" || cp === "niños") return "kids";
 
     const fromPath = genderScopeFromPathname(pathname || "");
-    if (fromPath === "all") return "men";
     return fromPath;
   }, [navKey, pathname]);
 
