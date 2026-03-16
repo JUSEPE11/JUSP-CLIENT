@@ -40,33 +40,12 @@ type SearchProduct = {
 type SearchCatalogProduct = Record<string, any>;
 
 function normalizeSearchText(value: unknown): string {
-  let text = String(value ?? "")
+  return String(value ?? "")
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, " ")
+    .replace(/[̀-ͯ]/g, "")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
-
-  if (!text) return "";
-
-  const extra: string[] = [];
-
-  if (/\bmujer\b/.test(text)) extra.push("women woman female dama ladies");
-  if (/\bwomen\b|\bwoman\b|\bfemale\b|\bladies\b/.test(text)) extra.push("mujer dama");
-
-  if (/\bhombre\b/.test(text)) extra.push("men man male caballero");
-  if (/\bmen\b|\bman\b|\bmale\b/.test(text)) extra.push("hombre caballero");
-
-  if (/\bninos\b|\bnino\b|\bkids\b|\bkid\b|\bboys\b|\bgirls\b/.test(text))
-    extra.push("ninos nino kids kid boys girls infantil");
-  if (/\bpants\b/.test(text)) extra.push("pantalon pantalones leggings jogger trousers");
-  if (/\bpantalon\b|\bpantalones\b|\bleggings\b|\bjogger\b/.test(text))
-    extra.push("pants trousers");
-  if (/\bzapatillas\b/.test(text)) extra.push("shoes sneakers");
-  if (/\bshoes\b|\bsneakers\b/.test(text)) extra.push("zapatillas tenis");
-
-  if (extra.length) text = `${text} ${extra.join(" ")}`.trim();
-  return text.replace(/\s+/g, " ");
 }
 
 function tokenizeSearch(value: string): string[] {
@@ -2555,7 +2534,11 @@ export default function Header() {
 
           .jusp-search-cols.nike {
             grid-template-columns: 1fr;
-            gap: 24px;
+            gap: 0;
+          }
+
+          .jusp-search-col:first-child {
+            display: none;
           }
 
           .jusp-search-input {
