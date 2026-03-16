@@ -904,9 +904,6 @@ export default function PrivacyPage() {
                 <Link href="/terms" className="secondaryBtn">
                   Ver términos
                 </Link>
-                <a href="javascript:window.print()" className="secondaryBtn">
-                  Imprimir / Guardar PDF
-                </a>
               </div>
             </div>
 

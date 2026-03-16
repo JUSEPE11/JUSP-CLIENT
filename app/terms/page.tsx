@@ -764,7 +764,8 @@ const pageCss = `
     gap: 7px;
   }
 
-  .pill {
+  .pill,
+  .pillAccent {
     min-height: 32px;
     padding: 7px 12px;
   }
@@ -941,9 +942,6 @@ export default function TermsPage() {
               <div className="actions">
                 <a href="mailto:DIRECTOR@JUSPCO.COM" className="primaryBtn">
                   Contacto legal
-                </a>
-                <a href="javascript:window.print()" className="secondaryBtn">
-                  Imprimir / Guardar PDF
                 </a>
                 <Link href="/privacy" className="secondaryBtn">
                   Ver privacidad
