@@ -1,6 +1,4 @@
-// app/help/[topic]/page.tsx
 import Link from "next/link";
-import type { CSSProperties } from "react";
 
 type TopicSection = {
   title: string;
@@ -442,414 +440,696 @@ const fallbackTopic: TopicData = {
   ],
 };
 
-const glass: CSSProperties = {
-  border: "1px solid rgba(255,255,255,0.08)",
-  background: "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03))",
-  boxShadow: "0 30px 120px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.04)",
-  backdropFilter: "blur(18px)",
-  WebkitBackdropFilter: "blur(18px)",
-};
+const pageCss = `
+.helpTopicPage {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 10%, rgba(255,215,0,0.14), transparent 24%),
+    radial-gradient(circle at 88% 18%, rgba(255,255,255,0.07), transparent 22%),
+    linear-gradient(180deg, #050506 0%, #0a0b0e 34%, #0d1014 100%);
+  color: #ffffff;
+}
 
-const styles: Record<string, CSSProperties> = {
-  page: {
-    position: "relative",
-    minHeight: "100vh",
-    overflow: "hidden",
-    background:
-      "radial-gradient(circle at 12% 10%, rgba(255,215,0,0.14), transparent 24%), radial-gradient(circle at 88% 18%, rgba(255,255,255,0.07), transparent 22%), linear-gradient(180deg, #050506 0%, #0a0b0e 34%, #0d1014 100%)",
-    color: "#ffffff",
-  },
-  bgGlowA: {
-    position: "absolute",
-    top: 90,
-    left: -140,
-    width: 420,
-    height: 420,
-    borderRadius: 9999,
-    background: "rgba(255, 208, 0, 0.12)",
-    filter: "blur(110px)",
-    pointerEvents: "none",
-  },
-  bgGlowB: {
-    position: "absolute",
-    top: 150,
-    right: -160,
-    width: 460,
-    height: 460,
-    borderRadius: 9999,
-    background: "rgba(255,255,255,0.08)",
-    filter: "blur(120px)",
-    pointerEvents: "none",
-  },
-  bgGlowC: {
-    position: "absolute",
-    bottom: -180,
-    left: "24%",
-    width: 520,
-    height: 520,
-    borderRadius: 9999,
-    background: "rgba(59,130,246,0.10)",
-    filter: "blur(130px)",
-    pointerEvents: "none",
-  },
-  vignette: {
-    position: "absolute",
-    inset: 0,
-    boxShadow: "inset 0 0 240px rgba(0,0,0,0.92)",
-    pointerEvents: "none",
-  },
-  shell: {
-    position: "relative",
-    zIndex: 1,
-    maxWidth: 1320,
-    margin: "0 auto",
-    padding: "24px 16px 72px",
-  },
-  topBar: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    flexWrap: "wrap",
-    marginBottom: 18,
-  },
-  navGroup: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    flexWrap: "wrap",
-  },
-  smallBtn: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 42,
-    padding: "0 14px",
-    borderRadius: 9999,
-    textDecoration: "none",
-    color: "rgba(255,255,255,0.88)",
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.06)",
-    fontSize: 12,
-    fontWeight: 900,
-    letterSpacing: "0.02em",
-  },
-  heroCard: {
-    ...glass,
-    borderRadius: 34,
-    padding: 28,
-    overflow: "hidden",
-  },
-  pillsRow: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 10,
-    marginBottom: 22,
-  },
-  pill: {
-    display: "inline-flex",
-    alignItems: "center",
-    minHeight: 34,
-    padding: "8px 14px",
-    borderRadius: 9999,
-    border: "1px solid rgba(255,255,255,0.10)",
-    background: "rgba(255,255,255,0.05)",
-    color: "rgba(255,255,255,0.78)",
-    fontSize: 12,
-    fontWeight: 800,
-    letterSpacing: "0.02em",
-  },
-  pillAccent: {
-    display: "inline-flex",
-    alignItems: "center",
-    minHeight: 34,
-    padding: "8px 14px",
-    borderRadius: 9999,
-    border: "1px solid rgba(250,204,21,0.28)",
-    background: "rgba(250,204,21,0.12)",
-    color: "#fff4bf",
-    fontSize: 12,
-    fontWeight: 800,
-    letterSpacing: "0.02em",
-  },
-  heroGrid: {
-    display: "grid",
-    gridTemplateColumns: "minmax(0, 1.25fr) minmax(320px, 0.75fr)",
-    gap: 24,
-  },
-  eyebrow: {
-    fontSize: 11,
-    textTransform: "uppercase",
-    letterSpacing: "0.22em",
-    color: "#f5dc78",
-    fontWeight: 900,
-  },
-  heroTitle: {
-    margin: "12px 0 0",
-    fontSize: "clamp(2.5rem, 5vw, 5rem)",
-    lineHeight: 0.96,
-    letterSpacing: "-0.06em",
-    fontWeight: 1000,
-    color: "#ffffff",
-  },
-  heroSubtitle: {
-    display: "block",
-    marginTop: 14,
-    fontSize: "clamp(1rem, 2vw, 1.35rem)",
-    lineHeight: 1.15,
-    letterSpacing: "-0.03em",
-    fontWeight: 800,
-    color: "rgba(255,255,255,0.58)",
-  },
-  heroText: {
-    marginTop: 24,
-    maxWidth: 860,
-    color: "rgba(255,255,255,0.74)",
-    fontSize: 15,
-    lineHeight: 1.9,
-    fontWeight: 600,
-  },
-  actions: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 12,
-    marginTop: 26,
-  },
-  primaryBtn: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 48,
-    padding: "0 18px",
-    borderRadius: 16,
-    textDecoration: "none",
-    fontSize: 14,
-    fontWeight: 900,
-    color: "#111111",
-    background: "#ffffff",
-    border: "1px solid rgba(255,255,255,0.14)",
-    boxShadow: "0 14px 34px rgba(255,255,255,0.08)",
-  },
-  secondaryBtn: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 48,
-    padding: "0 18px",
-    borderRadius: 16,
-    textDecoration: "none",
-    fontSize: 14,
-    fontWeight: 900,
-    color: "rgba(255,255,255,0.92)",
-    background: "rgba(255,255,255,0.05)",
-    border: "1px solid rgba(255,255,255,0.12)",
-    backdropFilter: "blur(12px)",
-    WebkitBackdropFilter: "blur(12px)",
-  },
-  summaryCard: {
-    ...glass,
-    borderRadius: 28,
-    padding: 24,
-    background:
-      "linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03)), linear-gradient(180deg, rgba(255,214,10,0.05), transparent 45%)",
-  },
-  summaryEyebrow: {
-    fontSize: 11,
-    textTransform: "uppercase",
-    letterSpacing: "0.18em",
-    color: "rgba(255,255,255,0.48)",
-    fontWeight: 900,
-  },
-  summaryTitle: {
-    marginTop: 12,
-    fontSize: 28,
-    lineHeight: 1.06,
-    letterSpacing: "-0.05em",
-    fontWeight: 1000,
-    color: "#ffffff",
-  },
-  chipsRow: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 8,
-    marginTop: 16,
-  },
-  chip: {
-    display: "inline-flex",
-    alignItems: "center",
-    minHeight: 30,
-    padding: "6px 12px",
-    borderRadius: 9999,
-    background: "rgba(255,255,255,0.06)",
-    border: "1px solid rgba(255,255,255,0.10)",
-    color: "rgba(255,255,255,0.78)",
-    fontSize: 12,
-    fontWeight: 800,
-  },
-  summaryText: {
-    marginTop: 18,
-    color: "rgba(255,255,255,0.74)",
-    fontSize: 14,
-    lineHeight: 1.85,
-    fontWeight: 600,
-  },
-  layout: {
-    display: "grid",
-    gridTemplateColumns: "minmax(0, 1fr) 340px",
-    gap: 24,
-    marginTop: 24,
-  },
-  mainCol: {
-    display: "grid",
-    gap: 18,
-  },
-  sectionCard: {
-    ...glass,
-    borderRadius: 28,
-    padding: 26,
-  },
-  sectionTitle: {
-    margin: 0,
-    fontSize: 28,
-    lineHeight: 1.08,
-    letterSpacing: "-0.04em",
-    color: "#ffffff",
-    fontWeight: 1000,
-  },
-  paragraphStack: {
-    display: "grid",
-    gap: 14,
-    marginTop: 16,
-  },
-  paragraph: {
-    margin: 0,
-    color: "rgba(255,255,255,0.74)",
-    fontSize: 15,
-    lineHeight: 1.9,
-    fontWeight: 600,
-  },
-  bulletsList: {
-    listStyle: "none",
-    padding: 0,
-    margin: "18px 0 0",
-    display: "grid",
-    gap: 10,
-  },
-  bulletItem: {
-    display: "flex",
-    gap: 12,
-    alignItems: "flex-start",
-    color: "rgba(255,255,255,0.74)",
-    fontSize: 15,
-    lineHeight: 1.85,
-    fontWeight: 600,
-  },
-  bulletDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 9999,
-    marginTop: 10,
-    flex: "0 0 auto",
-    background: "linear-gradient(180deg, #ffe36a, #ffcf24)",
-    boxShadow: "0 0 18px rgba(255,214,10,0.65)",
-  },
-  ctaCard: {
-    ...glass,
-    borderRadius: 32,
-    padding: 28,
-    background:
-      "radial-gradient(circle at top left, rgba(255,214,10,0.08), transparent 28%), linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.04))",
-  },
-  ctaEyebrow: {
-    fontSize: 11,
-    textTransform: "uppercase",
-    letterSpacing: "0.18em",
-    color: "rgba(255,255,255,0.50)",
-    fontWeight: 900,
-  },
-  ctaTitle: {
-    margin: "10px 0 0",
-    fontSize: 34,
-    lineHeight: 1.04,
-    letterSpacing: "-0.05em",
-    color: "#ffffff",
-    fontWeight: 1000,
-  },
-  ctaText: {
-    marginTop: 16,
-    maxWidth: 760,
-    color: "rgba(255,255,255,0.74)",
-    fontSize: 15,
-    lineHeight: 1.85,
-    fontWeight: 600,
-  },
-  sidebar: {
-    display: "grid",
-    gap: 18,
-    alignContent: "start",
-    height: "fit-content",
-    position: "sticky",
-    top: 88,
-  },
-  sidebarCard: {
-    ...glass,
-    borderRadius: 26,
-    padding: 20,
-  },
-  sidebarEyebrow: {
-    fontSize: 11,
-    textTransform: "uppercase",
-    letterSpacing: "0.16em",
-    color: "rgba(255,255,255,0.48)",
-    fontWeight: 900,
-  },
-  tocList: {
-    display: "grid",
-    gap: 8,
-    marginTop: 14,
-  },
-  tocItem: {
-    display: "block",
-    padding: "11px 12px",
-    borderRadius: 14,
-    color: "rgba(255,255,255,0.80)",
-    textDecoration: "none",
-    fontSize: 13,
-    fontWeight: 800,
-    border: "1px solid rgba(255,255,255,0.06)",
-    background: "rgba(255,255,255,0.03)",
-  },
-  noteText: {
-    margin: "12px 0 0",
-    color: "rgba(255,255,255,0.72)",
-    fontSize: 14,
-    lineHeight: 1.8,
-    fontWeight: 600,
-  },
-  relatedLinks: {
-    display: "grid",
-    gap: 10,
-    marginTop: 14,
-  },
-  relatedLink: {
-    display: "block",
-    padding: "12px 14px",
-    borderRadius: 14,
-    color: "rgba(255,255,255,0.88)",
-    textDecoration: "none",
-    fontSize: 13,
-    fontWeight: 800,
-    border: "1px solid rgba(255,255,255,0.08)",
-    background: "rgba(255,255,255,0.04)",
-  },
-  inlineLink: {
-    color: "#ffffff",
-    fontWeight: 800,
-    textDecoration: "none",
-    borderBottom: "1px solid rgba(255,255,255,0.30)",
-    paddingBottom: 1,
-  },
-};
+.bgGlow {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.bgGlowA {
+  top: 90px;
+  left: -140px;
+  width: 420px;
+  height: 420px;
+  background: rgba(255, 208, 0, 0.12);
+  filter: blur(110px);
+}
+
+.bgGlowB {
+  top: 150px;
+  right: -160px;
+  width: 460px;
+  height: 460px;
+  background: rgba(255,255,255,0.08);
+  filter: blur(120px);
+}
+
+.bgGlowC {
+  bottom: -180px;
+  left: 24%;
+  width: 520px;
+  height: 520px;
+  background: rgba(59,130,246,0.10);
+  filter: blur(130px);
+}
+
+.vignette {
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 240px rgba(0,0,0,0.92);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.shell {
+  position: relative;
+  z-index: 1;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 24px 16px 72px;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.navGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.glass {
+  border: 1px solid rgba(255,255,255,0.08);
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+  box-shadow: 0 30px 120px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.04);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.smallBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 9999px;
+  text-decoration: none;
+  color: rgba(255,255,255,0.88);
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.smallBtn:hover,
+.primaryBtn:hover,
+.secondaryBtn:hover,
+.tocItem:hover,
+.relatedLink:hover {
+  transform: translateY(-1px);
+}
+
+.heroCard {
+  border-radius: 34px;
+  padding: 28px;
+  overflow: hidden;
+}
+
+.pillsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 8px 14px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.78);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.pillAccent {
+  border: 1px solid rgba(250,204,21,0.28);
+  background: rgba(250,204,21,0.12);
+  color: #fff4bf;
+}
+
+.heroGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.eyebrow,
+.summaryEyebrow,
+.ctaEyebrow,
+.sidebarEyebrow {
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: 900;
+}
+
+.eyebrow {
+  letter-spacing: 0.22em;
+  color: #f5dc78;
+}
+
+.heroTitle {
+  margin: 12px 0 0;
+  font-size: clamp(2.5rem, 5vw, 5rem);
+  line-height: 0.96;
+  letter-spacing: -0.06em;
+  font-weight: 1000;
+  color: #ffffff;
+}
+
+.heroSubtitle {
+  display: block;
+  margin-top: 14px;
+  font-size: clamp(1rem, 2vw, 1.35rem);
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  font-weight: 800;
+  color: rgba(255,255,255,0.58);
+}
+
+.heroText,
+.paragraph,
+.summaryText,
+.ctaText,
+.noteText,
+.bulletItem {
+  color: rgba(255,255,255,0.74);
+  font-size: 15px;
+  line-height: 1.9;
+  font-weight: 600;
+}
+
+.heroText {
+  margin-top: 24px;
+  max-width: 860px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 26px;
+}
+
+.primaryBtn,
+.secondaryBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: 16px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 900;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.primaryBtn {
+  color: #111111;
+  background: #ffffff;
+  border: 1px solid rgba(255,255,255,0.14);
+  box-shadow: 0 14px 34px rgba(255,255,255,0.08);
+}
+
+.secondaryBtn {
+  color: rgba(255,255,255,0.92);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.summaryCard {
+  border-radius: 28px;
+  padding: 24px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03)),
+    linear-gradient(180deg, rgba(255,214,10,0.05), transparent 45%);
+}
+
+.summaryEyebrow {
+  letter-spacing: 0.18em;
+  color: rgba(255,255,255,0.48);
+}
+
+.summaryTitle {
+  margin-top: 12px;
+  font-size: 28px;
+  line-height: 1.06;
+  letter-spacing: -0.05em;
+  font-weight: 1000;
+  color: #ffffff;
+  word-break: break-word;
+}
+
+.chipsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.78);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.summaryText {
+  margin-top: 18px;
+  font-size: 14px;
+  line-height: 1.85;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.mainCol {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.sectionCard {
+  border-radius: 28px;
+  padding: 26px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  color: #ffffff;
+  font-weight: 1000;
+  word-break: break-word;
+}
+
+.paragraphStack {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.paragraph {
+  margin: 0;
+}
+
+.bulletsList {
+  list-style: none;
+  padding: 0;
+  margin: 18px 0 0;
+  display: grid;
+  gap: 10px;
+}
+
+.bulletItem {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  line-height: 1.85;
+}
+
+.bulletDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  margin-top: 10px;
+  flex: 0 0 auto;
+  background: linear-gradient(180deg, #ffe36a, #ffcf24);
+  box-shadow: 0 0 18px rgba(255,214,10,0.65);
+}
+
+.ctaCard {
+  border-radius: 32px;
+  padding: 28px;
+  background:
+    radial-gradient(circle at top left, rgba(255,214,10,0.08), transparent 28%),
+    linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.04));
+}
+
+.ctaEyebrow {
+  letter-spacing: 0.18em;
+  color: rgba(255,255,255,0.50);
+}
+
+.ctaTitle {
+  margin: 10px 0 0;
+  font-size: 34px;
+  line-height: 1.04;
+  letter-spacing: -0.05em;
+  color: #ffffff;
+  font-weight: 1000;
+  word-break: break-word;
+}
+
+.ctaText {
+  margin-top: 16px;
+  max-width: 760px;
+  line-height: 1.85;
+}
+
+.sidebar {
+  display: grid;
+  gap: 18px;
+  align-content: start;
+  height: fit-content;
+  position: sticky;
+  top: 88px;
+}
+
+.sidebarCard {
+  border-radius: 26px;
+  padding: 20px;
+}
+
+.sidebarEyebrow {
+  letter-spacing: 0.16em;
+  color: rgba(255,255,255,0.48);
+}
+
+.tocList,
+.relatedLinks {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.tocItem,
+.relatedLink {
+  display: block;
+  padding: 11px 12px;
+  border-radius: 14px;
+  color: rgba(255,255,255,0.80);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 800;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.03);
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+
+.noteText {
+  margin: 12px 0 0;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.inlineLink {
+  color: #ffffff;
+  font-weight: 800;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255,255,255,0.30);
+  padding-bottom: 1px;
+}
+
+@media (max-width: 1180px) {
+  .heroGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+    top: auto;
+  }
+}
+
+@media (max-width: 767px) {
+  .shell {
+    padding: 16px 12px 56px;
+  }
+
+  .topBar {
+    margin-bottom: 14px;
+  }
+
+  .navGroup {
+    width: 100%;
+  }
+
+  .smallBtn {
+    min-height: 40px;
+    padding: 0 12px;
+    font-size: 11px;
+  }
+
+  .heroCard,
+  .summaryCard,
+  .sectionCard,
+  .ctaCard,
+  .sidebarCard {
+    border-radius: 24px;
+  }
+
+  .heroCard {
+    padding: 18px;
+  }
+
+  .summaryCard,
+  .sectionCard,
+  .ctaCard,
+  .sidebarCard {
+    padding: 18px;
+  }
+
+  .pillsRow {
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+
+  .pill,
+  .pillAccent,
+  .chip {
+    font-size: 11px;
+  }
+
+  .heroTitle {
+    font-size: clamp(2.2rem, 11vw, 3.4rem);
+    line-height: 0.94;
+    letter-spacing: -0.06em;
+    word-break: break-word;
+  }
+
+  .heroSubtitle {
+    margin-top: 12px;
+    font-size: 1rem;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+  }
+
+  .heroText,
+  .paragraph,
+  .summaryText,
+  .ctaText,
+  .noteText,
+  .bulletItem {
+    font-size: 14px;
+    line-height: 1.75;
+  }
+
+  .summaryTitle,
+  .sectionTitle,
+  .ctaTitle {
+    line-height: 1.04;
+    letter-spacing: -0.04em;
+  }
+
+  .summaryTitle {
+    font-size: 24px;
+  }
+
+  .sectionTitle {
+    font-size: 24px;
+  }
+
+  .ctaTitle {
+    font-size: 28px;
+  }
+
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .primaryBtn,
+  .secondaryBtn {
+    width: 100%;
+    min-height: 46px;
+    padding: 0 16px;
+  }
+
+  .tocItem,
+  .relatedLink {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .bgGlowA {
+    top: 60px;
+    left: -180px;
+    width: 320px;
+    height: 320px;
+    filter: blur(95px);
+  }
+
+  .bgGlowB {
+    top: 120px;
+    right: -170px;
+    width: 300px;
+    height: 300px;
+    filter: blur(95px);
+  }
+
+  .bgGlowC {
+    bottom: -160px;
+    left: 10%;
+    width: 320px;
+    height: 320px;
+    filter: blur(100px);
+  }
+
+  .vignette {
+    box-shadow: inset 0 0 140px rgba(0, 0, 0, 0.88);
+  }
+}
+
+@media (max-width: 420px) {
+  .heroCard,
+  .summaryCard,
+  .sectionCard,
+  .ctaCard,
+  .sidebarCard {
+    padding: 16px;
+    border-radius: 22px;
+  }
+
+  .heroTitle {
+    font-size: clamp(2rem, 12vw, 2.7rem);
+  }
+
+  .summaryTitle,
+  .sectionTitle {
+    font-size: 22px;
+  }
+
+  .ctaTitle {
+    font-size: 25px;
+  }
+
+  .pillsRow {
+    gap: 7px;
+  }
+
+  .pill,
+  .pillAccent {
+    min-height: 32px;
+    padding: 7px 12px;
+  }
+
+  .chipsRow {
+    gap: 7px;
+  }
+
+  .smallBtn {
+    width: 100%;
+  }
+}
+
+@media print {
+  .bgGlow,
+  .vignette,
+  .sidebar,
+  .topBar,
+  .actions {
+    display: none !important;
+  }
+
+  .helpTopicPage {
+    background: #ffffff !important;
+    color: #111111 !important;
+  }
+
+  .shell {
+    max-width: none;
+    padding: 0;
+  }
+
+  .glass,
+  .heroCard,
+  .summaryCard,
+  .sectionCard,
+  .ctaCard {
+    background: #ffffff !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid #e5e7eb !important;
+    color: #111111 !important;
+  }
+
+  .heroGrid,
+  .layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .heroTitle,
+  .summaryTitle,
+  .sectionTitle,
+  .ctaTitle,
+  .paragraph,
+  .heroText,
+  .summaryText,
+  .ctaText,
+  .noteText,
+  .bulletItem,
+  .eyebrow,
+  .summaryEyebrow,
+  .ctaEyebrow,
+  .sidebarEyebrow,
+  .pill,
+  .pillAccent,
+  .chip,
+  .inlineLink,
+  .smallBtn,
+  .tocItem,
+  .relatedLink {
+    color: #111111 !important;
+  }
+}
+`;
 
 export default async function HelpTopicPage({
   params,
@@ -861,82 +1141,84 @@ export default async function HelpTopicPage({
   const data = TOPIC_MAP[key] ?? fallbackTopic;
 
   return (
-    <main style={styles.page}>
-      <div style={styles.bgGlowA} />
-      <div style={styles.bgGlowB} />
-      <div style={styles.bgGlowC} />
-      <div style={styles.vignette} />
+    <main className="helpTopicPage">
+      <style dangerouslySetInnerHTML={{ __html: pageCss }} />
 
-      <div style={styles.shell}>
-        <div style={styles.topBar}>
-          <div style={styles.navGroup}>
-            <Link href="/help" style={styles.smallBtn}>
+      <div className="bgGlow bgGlowA" />
+      <div className="bgGlow bgGlowB" />
+      <div className="bgGlow bgGlowC" />
+      <div className="vignette" />
+
+      <div className="shell">
+        <div className="topBar">
+          <div className="navGroup">
+            <Link href="/help" className="smallBtn">
               ← Volver al Centro de ayuda
             </Link>
-            <Link href="/" style={styles.smallBtn}>
+            <Link href="/" className="smallBtn">
               Inicio
             </Link>
           </div>
         </div>
 
-        <section style={styles.heroCard}>
-          <div style={styles.pillsRow}>
-            <span style={styles.pill}>{data.badge}</span>
-            <span style={styles.pill}>JUSP</span>
-            <span style={styles.pillAccent}>Soporte claro</span>
+        <section className="glass heroCard">
+          <div className="pillsRow">
+            <span className="pill">{data.badge}</span>
+            <span className="pill">JUSP</span>
+            <span className="pill pillAccent">Soporte claro</span>
           </div>
 
-          <div style={styles.heroGrid}>
+          <div className="heroGrid">
             <div>
-              <div style={styles.eyebrow}>Centro de ayuda</div>
+              <div className="eyebrow">Centro de ayuda</div>
 
-              <h1 style={styles.heroTitle}>
+              <h1 className="heroTitle">
                 {data.title}
-                <span style={styles.heroSubtitle}>{data.subtitle}</span>
+                <span className="heroSubtitle">{data.subtitle}</span>
               </h1>
 
-              <p style={styles.heroText}>{data.intro}</p>
+              <p className="heroText">{data.intro}</p>
 
-              <div style={styles.actions}>
-                <Link href="/help/pqr" style={styles.primaryBtn}>
+              <div className="actions">
+                <Link href="/help/pqr" className="primaryBtn">
                   Ir a PQR / Reclamos
                 </Link>
-                <Link href="/help" style={styles.secondaryBtn}>
+                <Link href="/help" className="secondaryBtn">
                   Volver al centro de ayuda
                 </Link>
-                <Link href="/" style={styles.secondaryBtn}>
+                <Link href="/" className="secondaryBtn">
                   Inicio
                 </Link>
               </div>
             </div>
 
-            <div style={styles.summaryCard}>
-              <div style={styles.summaryEyebrow}>Resumen rápido</div>
-              <h2 style={styles.summaryTitle}>{data.title}</h2>
+            <div className="glass summaryCard">
+              <div className="summaryEyebrow">Resumen rápido</div>
+              <h2 className="summaryTitle">{data.title}</h2>
 
-              <div style={styles.chipsRow}>
+              <div className="chipsRow">
                 {data.keyPoints.map((item) => (
-                  <span key={item} style={styles.chip}>
+                  <span key={item} className="chip">
                     {item}
                   </span>
                 ))}
               </div>
 
-              <p style={styles.summaryText}>{data.summary}</p>
+              <p className="summaryText">{data.summary}</p>
             </div>
           </div>
         </section>
 
-        <div style={styles.layout}>
-          <div style={styles.mainCol}>
+        <div className="layout">
+          <div className="mainCol">
             {data.sections.map((section) => (
-              <section key={section.title} style={styles.sectionCard}>
-                <h2 style={styles.sectionTitle}>{section.title}</h2>
+              <section key={section.title} className="glass sectionCard">
+                <h2 className="sectionTitle">{section.title}</h2>
 
                 {section.paragraphs?.length ? (
-                  <div style={styles.paragraphStack}>
+                  <div className="paragraphStack">
                     {section.paragraphs.map((paragraph) => (
-                      <p key={paragraph} style={styles.paragraph}>
+                      <p key={paragraph} className="paragraph">
                         {paragraph}
                       </p>
                     ))}
@@ -944,10 +1226,10 @@ export default async function HelpTopicPage({
                 ) : null}
 
                 {section.bullets?.length ? (
-                  <ul style={styles.bulletsList}>
+                  <ul className="bulletsList">
                     {section.bullets.map((bullet) => (
-                      <li key={bullet} style={styles.bulletItem}>
-                        <span style={styles.bulletDot} />
+                      <li key={bullet} className="bulletItem">
+                        <span className="bulletDot" />
                         <span>{bullet}</span>
                       </li>
                     ))}
@@ -956,75 +1238,75 @@ export default async function HelpTopicPage({
               </section>
             ))}
 
-            <section style={styles.ctaCard}>
-              <div style={styles.ctaEyebrow}>Canal formal</div>
-              <h3 style={styles.ctaTitle}>Si el caso requiere revisión, se documenta bien.</h3>
-              <p style={styles.ctaText}>
+            <section className="glass ctaCard">
+              <div className="ctaEyebrow">Canal formal</div>
+              <h3 className="ctaTitle">Si el caso requiere revisión, se documenta bien.</h3>
+              <p className="ctaText">
                 Cuando una duda rápida ya no es suficiente, el camino correcto es usar PQR para
                 dejar trazabilidad, contexto y evidencia del caso.
               </p>
 
-              <div style={styles.actions}>
-                <Link href="/help/pqr" style={styles.primaryBtn}>
+              <div className="actions">
+                <Link href="/help/pqr" className="primaryBtn">
                   Abrir PQR / Reclamo
                 </Link>
-                <Link href="/terms" style={styles.secondaryBtn}>
+                <Link href="/terms" className="secondaryBtn">
                   Términos
                 </Link>
-                <Link href="/privacy" style={styles.secondaryBtn}>
+                <Link href="/privacy" className="secondaryBtn">
                   Privacidad
                 </Link>
               </div>
             </section>
           </div>
 
-          <aside style={styles.sidebar}>
-            <section style={styles.sidebarCard}>
-              <div style={styles.sidebarEyebrow}>Accesos rápidos</div>
-              <div style={styles.tocList}>
-                <Link href="/help" style={styles.tocItem}>
+          <aside className="sidebar">
+            <section className="glass sidebarCard">
+              <div className="sidebarEyebrow">Accesos rápidos</div>
+              <div className="tocList">
+                <Link href="/help" className="tocItem">
                   Centro de ayuda
                 </Link>
-                <Link href="/help/pqr" style={styles.tocItem}>
+                <Link href="/help/pqr" className="tocItem">
                   PQR / Reclamos
                 </Link>
-                <Link href="/shipping" style={styles.tocItem}>
+                <Link href="/shipping" className="tocItem">
                   Política de Envíos
                 </Link>
-                <Link href="/returns" style={styles.tocItem}>
+                <Link href="/returns" className="tocItem">
                   Devoluciones y garantías
                 </Link>
               </div>
             </section>
 
-            <section style={styles.sidebarCard}>
-              <div style={styles.sidebarEyebrow}>Relacionado</div>
-              <div style={styles.relatedLinks}>
+            <section className="glass sidebarCard">
+              <div className="sidebarEyebrow">Relacionado</div>
+              <div className="relatedLinks">
                 {data.related.map((item) => (
-                  <Link key={item.href} href={item.href} style={styles.relatedLink}>
+                  <Link key={item.href} href={item.href} className="relatedLink">
                     {item.label}
                   </Link>
                 ))}
               </div>
             </section>
 
-            <section style={styles.sidebarCard}>
-              <div style={styles.sidebarEyebrow}>Nota</div>
-              <p style={styles.noteText}>
+            <section className="glass sidebarCard">
+              <div className="sidebarEyebrow">Nota</div>
+              <p className="noteText">
                 Esta página resume orientación práctica. Para condiciones formales, prevalecen los{" "}
-                <Link href="/terms" style={styles.inlineLink}>
+                <Link href="/terms" className="inlineLink">
                   Términos
                 </Link>
                 , la{" "}
-                <Link href="/privacy" style={styles.inlineLink}>
+                <Link href="/privacy" className="inlineLink">
                   Política de Privacidad
                 </Link>
                 , la política de{" "}
-                <Link href="/shipping" style={styles.inlineLink}>
+                <Link href="/shipping" className="inlineLink">
                   Envíos
                 </Link>{" "}
                 y la de{" "}
-                <Link href="/returns" style={styles.inlineLink}>
+                <Link href="/returns" className="inlineLink">
                   Devoluciones y Garantías
                 </Link>
                 .
