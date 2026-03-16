@@ -3345,15 +3345,15 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
           <aside className="mDrawer" role="dialog" aria-modal="true" aria-label="Filters">
             <div className="mTop">
               <div className="mTitle">Filters</div>
-              <button className="mX" type="button" onClick={() => setMobileOpen(false)} aria-label="Close">
-                ✕
-              </button>
             </div>
 
             <div className="mBody">
               <div className="mRow">
                 <button className="mClear" type="button" onClick={resetFilters} disabled={!hasActive} aria-disabled={!hasActive}>
                   Clear
+                </button>
+                <button className="mXInline" type="button" onClick={() => setMobileOpen(false)} aria-label="Close filters">
+                  ✕
                 </button>
               </div>
 
@@ -3964,7 +3964,9 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
         }
         .mRow {
           display: flex;
+          align-items: center;
           justify-content: flex-end;
+          gap: 10px;
           padding: 6px 0 10px;
         }
         .mClear {
@@ -3984,6 +3986,26 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
         .mClear:disabled {
           opacity: 0.4;
           cursor: default;
+        }
+        .mXInline {
+          width: 34px;
+          height: 34px;
+          border-radius: 999px;
+          border: 1px solid rgba(0, 0, 0, 0.12);
+          background: rgba(255, 255, 255, 0.98);
+          color: #111;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 16px;
+          font-weight: 950;
+          line-height: 1;
+          cursor: pointer;
+          flex: 0 0 auto;
+          box-shadow: 0 6px 18px rgba(17, 17, 17, 0.06);
+        }
+        .mXInline:focus-visible {
+          box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
         }
         .mSec {
           padding: 14px 0;
