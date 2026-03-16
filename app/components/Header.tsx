@@ -40,12 +40,33 @@ type SearchProduct = {
 type SearchCatalogProduct = Record<string, any>;
 
 function normalizeSearchText(value: unknown): string {
-  return String(value ?? "")
+  let text = String(value ?? "")
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[̀-ͯ]/g, " ")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+
+  if (!text) return "";
+
+  const extra: string[] = [];
+
+  if (/\bmujer\b/.test(text)) extra.push("women woman female dama ladies");
+  if (/\bwomen\b|\bwoman\b|\bfemale\b|\bladies\b/.test(text)) extra.push("mujer dama");
+
+  if (/\bhombre\b/.test(text)) extra.push("men man male caballero");
+  if (/\bmen\b|\bman\b|\bmale\b/.test(text)) extra.push("hombre caballero");
+
+  if (/\bninos\b|\bnino\b|\bkids\b|\bkid\b|\bboys\b|\bgirls\b/.test(text))
+    extra.push("ninos nino kids kid boys girls infantil");
+  if (/\bpants\b/.test(text)) extra.push("pantalon pantalones leggings jogger trousers");
+  if (/\bpantalon\b|\bpantalones\b|\bleggings\b|\bjogger\b/.test(text))
+    extra.push("pants trousers");
+  if (/\bzapatillas\b/.test(text)) extra.push("shoes sneakers");
+  if (/\bshoes\b|\bsneakers\b/.test(text)) extra.push("zapatillas tenis");
+
+  if (extra.length) text = `${text} ${extra.join(" ")}`.trim();
+  return text.replace(/\s+/g, " ");
 }
 
 function tokenizeSearch(value: string): string[] {
@@ -2518,6 +2539,11 @@ export default function Header() {
         }
 
         @media (max-width: 860px) {
+          .jusp-search-panel {
+            min-height: 100dvh;
+            overflow: hidden;
+          }
+
           .jusp-search-top {
             grid-template-columns: 1fr auto;
             gap: 12px;
@@ -2529,6 +2555,9 @@ export default function Header() {
           }
 
           .jusp-search-body {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             padding: 20px 18px 28px;
           }
 
@@ -2537,8 +2566,25 @@ export default function Header() {
             gap: 0;
           }
 
-          .jusp-search-col:first-child {
+          .jusp-search-col:first-child,
+          .jusp-search-quickrow {
             display: none;
+          }
+
+          .jusp-search-col:last-child {
+            display: flex;
+            flex-direction: column;
+            min-height: 100%;
+          }
+
+          .jusp-search-col:last-child .jusp-search-coltitle {
+            margin-bottom: 10px;
+            font-size: 13px;
+            color: rgba(17, 17, 17, 0.5);
+          }
+
+          .jusp-search-results {
+            min-height: 0;
           }
 
           .jusp-search-input {
