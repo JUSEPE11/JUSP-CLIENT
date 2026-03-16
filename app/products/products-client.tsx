@@ -125,10 +125,16 @@ function productModels(p: Product) {
 function productKind(p: Product) {
   return normKey(String((p as any).kind || ""));
 }
-function matchesSearchToken(p: Product, token: string) {
-  const t = normKey(token);
-  if (!t) return true;
-  const hay = [
+function matchesSearchToken(p: Product, query: string) {
+  const tokens = String(query || "")
+    .toLowerCase()
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+  if (!tokens.length) return true;
+
+  const haystackParts = [
     String((p as any).title || ""),
     String((p as any).name || ""),
     String((p as any).brand || ""),
@@ -137,9 +143,16 @@ function matchesSearchToken(p: Product, token: string) {
     String((p as any).kind || ""),
     ...safeArr((p as any).tags),
     ...safeArr((p as any).sport),
+    ...safeArr((p as any).collections),
+    ...safeArr((p as any).colors),
     ...safeArr((p as any).models),
-  ].map(normKey).join(" ");
-  return hay.includes(t);
+  ];
+
+  const hay = haystackParts
+    .map((x) => normKey(String(x)))
+    .join(" ");
+
+  return tokens.every((tok) => hay.includes(normKey(tok)));
 }
 function matchesTagQuery(p: Product, rawTag: string) {
   const tag = normKey(rawTag);
