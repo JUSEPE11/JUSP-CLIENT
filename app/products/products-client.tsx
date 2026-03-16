@@ -155,6 +155,36 @@ function expandSearchToken(token: string) {
 
   return uniqueStringsCaseInsensitive(map[t] || [t]).map(normKey);
 }
+function splitNormWords(value: string) {
+  return normKey(value)
+    .split(/[^a-z0-9]+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+function containsAliasStrict(hay: string, hayWords: Set<string>, alias: string) {
+  const a = normKey(alias);
+  if (!a) return false;
+  if (a.includes(" ")) return hay.includes(a);
+  return hayWords.has(a);
+}
+function detectQueryGenderScope(query: string): GenderScope | null {
+  const words = splitNormWords(query);
+  if (!words.length) return null;
+
+  const wordSet = new Set(words);
+  const menAliases = new Set(expandSearchToken("hombre").filter((x) => !x.includes(" ")));
+  const womenAliases = new Set(expandSearchToken("mujer").filter((x) => !x.includes(" ")));
+  const kidsAliases = new Set(expandSearchToken("ninos").filter((x) => !x.includes(" ")));
+
+  const hasMen = [...menAliases].some((x) => wordSet.has(x));
+  const hasWomen = [...womenAliases].some((x) => wordSet.has(x));
+  const hasKids = [...kidsAliases].some((x) => wordSet.has(x));
+
+  if (hasKids) return "kids";
+  if (hasWomen) return "women";
+  if (hasMen) return "men";
+  return null;
+}
 function matchesSearchToken(p: Product, query: string) {
   const tokens = String(query || "")
     .split(/\s+/)
@@ -181,10 +211,11 @@ function matchesSearchToken(p: Product, query: string) {
   const hay = haystackParts
     .map((x) => normKey(String(x)))
     .join(" ");
+  const hayWords = new Set(splitNormWords(hay));
 
   return tokens.every((tok) => {
     const aliases = expandSearchToken(tok);
-    return aliases.some((alias) => hay.includes(alias));
+    return aliases.some((alias) => containsAliasStrict(hay, hayWords, alias));
   });
 }
 function matchesTagQuery(p: Product, rawTag: string) {
@@ -2454,6 +2485,7 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
   const catKey = useMemo(() => String(catParam || "").trim().toLowerCase(), [catParam]);
   const subKey = useMemo(() => String(subParam || "").trim().toLowerCase(), [subParam]);
   const navKey = useMemo(() => catOrTabValue(catParam, tabParam), [catParam, tabParam]);
+  const qGenderScope = useMemo(() => detectQueryGenderScope(String(qParam || "")), [qParam]);
 
   useEffect(() => {
     let cancelled = false;
@@ -2547,12 +2579,15 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
     if (tagParam) {
       list = list.filter((p) => matchesTagQuery(p, tagParam));
     }
+    if (qGenderScope) {
+      list = list.filter((p) => matchesGenderScope((p as any).gender, qGenderScope));
+    }
     if (qParam) {
       list = list.filter((p) => matchesSearchToken(p, qParam));
     }
 
     return list;
-  }, [allRaw, scope, navKey, subKey, kindParam, sportParam, modelParam, tagParam, qParam]);
+  }, [allRaw, scope, navKey, subKey, kindParam, sportParam, modelParam, tagParam, qParam, qGenderScope]);
 
   const { mounted, tick: favTick } = useFavoritesSignal();
 
