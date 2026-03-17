@@ -1,4 +1,3 @@
-// app/feedback/page.tsx
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -6,6 +5,16 @@ import Link from "next/link";
 
 type FeedbackType = "bug" | "idea" | "product" | "support";
 type Rating = 1 | 2 | 3 | 4 | 5;
+
+type FeedbackApiSuccess = {
+  ok: true;
+  message: string;
+};
+
+type FeedbackApiError = {
+  ok: false;
+  error: string;
+};
 
 export default function FeedbackPage() {
   const rootRef = useRef<HTMLElement | null>(null);
@@ -15,6 +24,8 @@ export default function FeedbackPage() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const el = rootRef.current;
@@ -93,17 +104,75 @@ export default function FeedbackPage() {
 
   const canSend = message.trim().length >= 12;
 
-  const onSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!canSend) return;
-    setSent(true);
+  const isValidEmail = (value: string) => {
+    if (!value.trim()) return true;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  };
 
-    // Aquí luego conectas endpoint si quieres.
-    // UX premium sin backend.
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const cleanMessage = message.trim();
+    const cleanEmail = email.trim().toLowerCase();
+
+    setError("");
+    setSent(false);
+
+    if (cleanMessage.length < 12) {
+      setError("Escribe al menos 12 caracteres.");
+      return;
+    }
+
+    if (!isValidEmail(cleanEmail)) {
+      setError("El email no es válido.");
+      return;
+    }
+
+    setSending(true);
+
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          type,
+          rating,
+          message: cleanMessage,
+          email: cleanEmail,
+        }),
+      });
+
+      const data = (await res.json().catch(() => null)) as
+        | FeedbackApiSuccess
+        | FeedbackApiError
+        | null;
+
+      if (!res.ok || !data || data.ok !== true) {
+        const msg =
+          data && "error" in data && typeof data.error === "string"
+            ? data.error
+            : "No se pudo enviar el feedback.";
+        throw new Error(msg);
+      }
+
+      setSent(true);
+    } catch (err) {
+      const msg =
+        err instanceof Error && err.message
+          ? err.message
+          : "No se pudo enviar el feedback.";
+      setError(msg);
+    } finally {
+      setSending(false);
+    }
   };
 
   const reset = () => {
     setSent(false);
+    setSending(false);
+    setError("");
     setMessage("");
     setEmail("");
     setRating(5);
@@ -113,12 +182,18 @@ export default function FeedbackPage() {
   return (
     <main ref={rootRef as any} className="juspFbRoot">
       <style>{`
-        /* ===========================
-           JUSP /feedback — NIVEL DIOS PRO MAX REAL
-           - NO toca global.css
-           - NO cambia layout/header (header blanco visible)
-           - Hero empieza debajo del header
-           =========================== */
+        html,
+        body {
+          margin: 0;
+          padding: 0;
+          background: #070709 !important;
+        }
+
+        body > div,
+        #__next {
+          background: #070709 !important;
+          min-height: 100%;
+        }
 
         .juspFbRoot{
           --gold:#F5C030;
@@ -139,12 +214,10 @@ export default function FeedbackPage() {
           position: relative;
           overflow: hidden;
           isolation: isolate;
-
-          /* deja espacio fijo para header blanco */
           padding-top: 72px;
+          padding-bottom: 110px;
         }
 
-        /* Background cinematic */
         .bgLayer{ position:absolute; inset:0; z-index:0; pointer-events:none; }
         .bgBase{ position:absolute; inset:0; background: var(--bg); }
 
@@ -239,7 +312,7 @@ export default function FeedbackPage() {
           z-index: 1;
           max-width: 1180px;
           margin: 0 auto;
-          padding: 34px 24px 110px;
+          padding: 34px 24px 0;
         }
 
         .topPill{
@@ -603,6 +676,27 @@ export default function FeedbackPage() {
           line-height: 1.45;
         }
 
+        .errorBox{
+          margin-top: 12px;
+          border-radius: 18px;
+          border: 1px solid rgba(255,120,120,0.24);
+          background: rgba(255,120,120,0.10);
+          padding: 12px 12px;
+        }
+        .errorTitle{
+          font-weight: 990;
+          color: #ffb3b3;
+          letter-spacing: -0.01em;
+          font-size: 13px;
+        }
+        .errorSub{
+          margin-top: 4px;
+          font-weight: 800;
+          color: rgba(255,255,255,0.70);
+          font-size: 12px;
+          line-height: 1.35;
+        }
+
         .toast{
           margin-top: 12px;
           border-radius: 18px;
@@ -672,7 +766,7 @@ export default function FeedbackPage() {
           .h1{ font-size: 48px; }
         }
         @media (max-width: 520px){
-          .wrap{ padding: 26px 16px 104px; }
+          .wrap{ padding: 26px 16px 0; }
           .h1{ font-size: 40px; }
           .textarea{ min-height: 170px; }
         }
@@ -707,7 +801,8 @@ export default function FeedbackPage() {
         </h1>
 
         <p className="sub">
-          Lo leemos de verdad. Tu feedback se usa para priorizar lo que impacta operación, confianza y velocidad.
+          Lo leemos de verdad. Tu feedback se usa para priorizar lo que impacta operación, confianza
+          y velocidad.
         </p>
 
         <div className="chipRow">
@@ -723,7 +818,6 @@ export default function FeedbackPage() {
         </div>
 
         <div className="grid">
-          {/* FORM */}
           <div className="card">
             <div className="cardHead">
               <h2 className="cardTitle">Enviar feedback</h2>
@@ -736,7 +830,11 @@ export default function FeedbackPage() {
               <button
                 type="button"
                 className={`segBtn ${type === "idea" ? "segActive" : ""}`}
-                onClick={() => setType("idea")}
+                onClick={() => {
+                  setType("idea");
+                  if (sent) setSent(false);
+                  if (error) setError("");
+                }}
                 aria-pressed={type === "idea"}
               >
                 <span className="segDot" /> Idea
@@ -745,7 +843,11 @@ export default function FeedbackPage() {
               <button
                 type="button"
                 className={`segBtn ${type === "bug" ? "segActive" : ""}`}
-                onClick={() => setType("bug")}
+                onClick={() => {
+                  setType("bug");
+                  if (sent) setSent(false);
+                  if (error) setError("");
+                }}
                 aria-pressed={type === "bug"}
               >
                 <span className="segDot" /> Bug
@@ -754,7 +856,11 @@ export default function FeedbackPage() {
               <button
                 type="button"
                 className={`segBtn ${type === "product" ? "segActive" : ""}`}
-                onClick={() => setType("product")}
+                onClick={() => {
+                  setType("product");
+                  if (sent) setSent(false);
+                  if (error) setError("");
+                }}
                 aria-pressed={type === "product"}
               >
                 <span className="segDot" /> Producto
@@ -763,7 +869,11 @@ export default function FeedbackPage() {
               <button
                 type="button"
                 className={`segBtn ${type === "support" ? "segActive" : ""}`}
-                onClick={() => setType("support")}
+                onClick={() => {
+                  setType("support");
+                  if (sent) setSent(false);
+                  if (error) setError("");
+                }}
                 aria-pressed={type === "support"}
               >
                 <span className="segDot" /> Soporte
@@ -779,7 +889,11 @@ export default function FeedbackPage() {
                       key={n}
                       type="button"
                       className={`starBtn ${n <= rating ? "starOn" : ""}`}
-                      onClick={() => setRating(n)}
+                      onClick={() => {
+                        setRating(n);
+                        if (sent) setSent(false);
+                        if (error) setError("");
+                      }}
                       aria-label={`Calificación ${n}`}
                       aria-pressed={n === rating}
                     >
@@ -790,12 +904,12 @@ export default function FeedbackPage() {
                     {rating === 5
                       ? "Excelente"
                       : rating === 4
-                      ? "Muy bien"
-                      : rating === 3
-                      ? "Bien"
-                      : rating === 2
-                      ? "Regular"
-                      : "Mal"}
+                        ? "Muy bien"
+                        : rating === 3
+                          ? "Bien"
+                          : rating === 2
+                            ? "Regular"
+                            : "Mal"}
                   </div>
                 </div>
               </div>
@@ -808,6 +922,7 @@ export default function FeedbackPage() {
                   onChange={(e) => {
                     setMessage(e.target.value);
                     if (sent) setSent(false);
+                    if (error) setError("");
                   }}
                   placeholder={meta.hint}
                 />
@@ -825,6 +940,7 @@ export default function FeedbackPage() {
                   onChange={(e) => {
                     setEmail(e.target.value);
                     if (sent) setSent(false);
+                    if (error) setError("");
                   }}
                   placeholder="tu@email.com"
                   autoComplete="email"
@@ -835,8 +951,8 @@ export default function FeedbackPage() {
               </div>
 
               <div className="actions">
-                <button className="btnPrimary" type="submit" disabled={!canSend}>
-                  {sent ? "Enviado ✓" : "Enviar →"}
+                <button className="btnPrimary" type="submit" disabled={!canSend || sending}>
+                  {sending ? "Enviando..." : sent ? "Enviado ✓" : "Enviar →"}
                 </button>
 
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -852,12 +968,20 @@ export default function FeedbackPage() {
                 </div>
               </div>
 
+              {error ? (
+                <div className="errorBox" role="alert" aria-live="assertive">
+                  <div className="errorTitle">No se pudo enviar.</div>
+                  <div className="errorSub">{error}</div>
+                </div>
+              ) : null}
+
               {sent ? (
                 <div className="toast" role="status" aria-live="polite">
                   <div>
                     <div className="toastTitle">Listo. Recibido.</div>
                     <div className="toastSub">
-                      Gracias. Esto entra a cola real de revisión. Si dejaste email, te escribimos cuando haya update.
+                      Gracias. Esto entra a cola real de revisión. Si dejaste email, te escribimos
+                      cuando haya update.
                     </div>
                   </div>
                   <button type="button" className="btnGhost" onClick={reset} style={{ height: 44 }}>
@@ -868,7 +992,6 @@ export default function FeedbackPage() {
             </form>
           </div>
 
-          {/* PANEL DERECHO */}
           <div className="card">
             <div className="cardHead">
               <h2 className="cardTitle">Cómo escribirlo bien</h2>
