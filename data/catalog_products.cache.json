@@ -1,8 +1,8 @@
 {
   "version": 5,
-  "generatedAt": "2026-03-15T23:39:27.612Z",
+  "generatedAt": "2026-03-17T02:30:43.419Z",
   "excelPath": "C:\\JUSP\\jusp-app2\\data\\catalogo_jusp.xlsx",
-  "excelMtimeMs": 1773617317268.5789,
+  "excelMtimeMs": 1773714639672.6538,
   "products": [
     {
       "id": "short-nike-kids",
@@ -80,7 +80,7 @@
       "title": "Sujetador deportivo Nike Dri-FIT",
       "name": "Sujetador deportivo Nike Dri-FIT",
       "brand": "Nike",
-      "price": 69990,
+      "price": 1,
       "currency": "COP",
       "description": "Sujetador deportivo Nike Dri-FIT. Producto disponible en JUSP.",
       "image": "/products/nike-bra-dri-fit/1.jpg",
@@ -130,14 +130,14 @@
           "key": "nike-bra-dri-fit-s-pink",
           "size": "S",
           "color": "pink",
-          "price": 69990,
+          "price": 1,
           "stock": 1
         },
         {
           "key": "nike-bra-dri-fit-m-pink",
           "size": "M",
           "color": "pink",
-          "price": 79990,
+          "price": 1,
           "stock": 1
         }
       ]
