@@ -38,7 +38,6 @@ type OrderRow = {
   shipping_address?: ShippingAddress | null;
   paid_at?: string | null;
 
-  // Campos opcionales que pueden venir de orders si existen
   shipping_origin?: string | null;
   origin_hub?: string | null;
   destination_country?: string | null;
@@ -288,7 +287,7 @@ function normalizeHub(rawA?: string | null, rawB?: string | null, carrier?: stri
   const raw = `${safeStr(rawA)} ${safeStr(rawB)} ${safeStr(carrier)}`.toLowerCase();
   if (raw.includes("miami") || raw.includes("mia") || raw.includes("florida")) return "Miami, Florida 🇺🇸";
   if (raw.includes("dallas") || raw.includes("texas") || raw.includes("dal")) return "Dallas, Texas 🇺🇸";
-  return "Dallas / Miami Hub 🇺🇸";
+  return "Centro logístico internacional";
 }
 
 function normalizeDestinationAddress(order: OrderRow, addr: ShippingAddress) {
@@ -299,10 +298,10 @@ function normalizeDestinationAddress(order: OrderRow, addr: ShippingAddress) {
   const country = safeStr(order.destination_country) || safeStr(addr.country);
   const postal = safeStr(addr.postalCode);
   return {
-    line1: line1 || "—",
-    line2: [city, country].filter(Boolean).join(" · ") || "—",
+    line1: line1 || "Dirección del cliente",
+    line2: [city, country].filter(Boolean).join(" · ") || "Centro de distribución local",
     postal: postal || "—",
-    city: city || "Ciudad destino",
+    city: city || "Centro de distribución",
     country: country || "País destino",
   };
 }
@@ -356,7 +355,7 @@ function buildRealisticTimeline(order: OrderRow, destination: { city: string; co
   return [
     {
       key: "created",
-      label: "Pedido creado",
+      label: "Pedido recibido",
       when: dateOrDash(createdAt),
       done: !!createdAt,
       tone: "good",
@@ -380,7 +379,7 @@ function buildRealisticTimeline(order: OrderRow, destination: { city: string; co
     },
     {
       key: "packed",
-      label: "Preparación y consolidación",
+      label: "Preparación logística",
       when: dateOrDash(packedAt),
       done: !!packedAt,
       tone: packedAt ? "good" : "neutral",
@@ -388,7 +387,7 @@ function buildRealisticTimeline(order: OrderRow, destination: { city: string; co
     },
     {
       key: "tracking",
-      label: tracking ? "Tracking asignado" : "Tracking pendiente",
+      label: tracking ? "Tracking asignado" : "Preparando envío",
       when: tracking ? dateOrDash(trackingAt) : "—",
       done: !!tracking,
       tone: tracking ? "good" : "neutral",
@@ -404,7 +403,7 @@ function buildRealisticTimeline(order: OrderRow, destination: { city: string; co
     },
     {
       key: "lastmile",
-      label: "Última milla",
+      label: "Centro de distribución local",
       when: st === "delivered" || st === "shipped" ? dateOrDash(safeStr(order.updated_at) || shippedAt) : "—",
       done: st === "shipped" || st === "delivered",
       tone: st === "shipped" || st === "delivered" ? "good" : "neutral",
@@ -412,7 +411,7 @@ function buildRealisticTimeline(order: OrderRow, destination: { city: string; co
     },
     {
       key: "delivered",
-      label: "Entregado",
+      label: "Entrega final",
       when: dateOrDash(deliveredAt),
       done: st === "delivered",
       tone: st === "delivered" ? "good" : "neutral",
@@ -560,8 +559,8 @@ export default function PedidoDetallePage() {
       hubLabel,
       progress,
       routeLabel,
-      etaLabel: safeStr(o?.eta_label) || "Se actualiza con el estado logístico",
-      healthLabel: safeStr(o?.health_label) || (tracking ? "En seguimiento" : "Pendiente de tracking"),
+      etaLabel: safeStr(o?.eta_label) || "Entrega estimada en actualización",
+      healthLabel: safeStr(o?.health_label) || (tracking ? "En seguimiento" : "Preparando envío"),
       healthTone: safeStr(o?.health_tone) || (tracking ? "good" : "neutral"),
     };
   }, [order]);
@@ -587,7 +586,7 @@ export default function PedidoDetallePage() {
                 Creado: <span className="mono">{loading ? "—" : view.createdAt}</span>
               </span>
               <span className="badge">
-                Ruta: <span className="mono">{loading ? "—" : view.routeLabel}</span>
+                Estado logístico: <span className="mono">{loading ? "—" : view.routeLabel}</span>
               </span>
             </div>
           </div>
@@ -759,11 +758,11 @@ export default function PedidoDetallePage() {
               <div className="route-wrap">
                 <div className="route-top">
                   <div>
-                    <div className="route-kicker">MAPA DE SEGUIMIENTO</div>
-                    <div className="route-title">Dallas / Miami → casa del cliente</div>
+                    <div className="route-kicker">SEGUIMIENTO DEL ENVÍO</div>
+                    <div className="route-title">Centro logístico → dirección de entrega</div>
                   </div>
                   <div className="route-right">
-                    <span className="route-note">ETA: {view.etaLabel}</span>
+                    <span className="route-note">Entrega estimada: {view.etaLabel}</span>
                     <span className="route-note strong">{view.routeLabel}</span>
                   </div>
                 </div>
@@ -773,7 +772,7 @@ export default function PedidoDetallePage() {
                     <div className="progress-fill" style={{ width: `${view.progress}%` }} />
                   </div>
                   <div className="progress-meta">
-                    <span>{view.progress}% completado</span>
+                    <span>Progreso del envío</span>
                     <span>{view.hubLabel}</span>
                   </div>
                 </div>
@@ -788,18 +787,18 @@ export default function PedidoDetallePage() {
                   <div className={`route-node ${view.progress >= 56 ? "done" : ""}`}>
                     <div className="route-dot" />
                     <div className="route-node-k">TRÁNSITO</div>
-                    <div className="route-node-v">{view.country}</div>
+                    <div className="route-node-v">En proceso de transporte</div>
                   </div>
 
                   <div className={`route-node ${view.progress >= 76 ? "done" : ""}`}>
                     <div className="route-dot" />
-                    <div className="route-node-k">CIUDAD</div>
-                    <div className="route-node-v">{view.city}</div>
+                    <div className="route-node-k">CENTRO LOCAL</div>
+                    <div className="route-node-v">Centro de distribución</div>
                   </div>
 
                   <div className={`route-node ${view.progress >= 96 ? "done" : ""}`}>
                     <div className="route-dot" />
-                    <div className="route-node-k">DESTINO</div>
+                    <div className="route-node-k">ENTREGA</div>
                     <div className="route-node-v">{view.line1}</div>
                   </div>
                 </div>
@@ -889,9 +888,9 @@ export default function PedidoDetallePage() {
 
                   {!view.tracking ? (
                     <div className="track-empty">
-                      <div className="track-empty-h">Aún no asignamos el tracking</div>
+                      <div className="track-empty-h">Preparando envío</div>
                       <div className="track-empty-p">
-                        Cuando tu pedido pase a <b>Enviado</b>, verás aquí el código y el link directo al courier.
+                        Cuando tu pedido pase a <b>Enviado</b>, verás aquí el código y el enlace directo al courier.
                       </div>
                     </div>
                   ) : null}
@@ -929,10 +928,9 @@ export default function PedidoDetallePage() {
                 <div className="sep" />
 
                 <div className="help">
-                  <div className="help-h">Estados logísticos reales</div>
+                  <div className="help-h">Seguimiento logístico</div>
                   <div className="help-p">
-                    La vista soporta <b>created</b>, <b>confirmed</b>, <b>packed</b>, <b>shipped</b> y <b>delivered</b>. Si tu backend empieza a llenar
-                    fechas como <b>confirmed_at</b>, <b>packed_at</b>, <b>shipped_at</b> o <b>delivered_at</b>, esta timeline se vuelve aún más precisa.
+                    Esta vista muestra el avance real del pedido con base en su estado, pago, tracking y fechas disponibles.
                   </div>
                   <div className="help-actions">
                     <Link className="btn small ghost" href="/account">
@@ -1001,7 +999,7 @@ export default function PedidoDetallePage() {
               ) : (
                 <div className="empty2">
                   <div className="empty2-h">Sin items</div>
-                  <div className="empty2-p">Esta orden no trae items. Revisa que tu backend esté guardando `items`.</div>
+                  <div className="empty2-p">Aún no hay productos visibles asociados a esta orden.</div>
                 </div>
               )}
 
@@ -1011,7 +1009,7 @@ export default function PedidoDetallePage() {
                 <div className="sum-l">
                   <div className="sum-k">Subtotal (calculado)</div>
                   <div className="sum-v">${safeMoney(view.total)}</div>
-                  <div className="sum-s">Nota: este total se calcula desde `items[]` (price * qty). No inventa cargos extra.</div>
+                  <div className="sum-s">Este total se calcula desde los productos del pedido disponibles en la orden.</div>
                 </div>
 
                 <div className="sum-r">
