@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useStore } from "../../components/store";
 
@@ -538,6 +538,49 @@ export default function ProductPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [activeImg, setActiveImg] = useState<number>(0);
   const [attemptedBuy, setAttemptedBuy] = useState(false);
+  const touchStartXRef = useRef<number | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
+
+  function goToPrevImage() {
+    if (imgs.length <= 1) return;
+    setActiveImg((prev) => (prev - 1 + imgs.length) % imgs.length);
+  }
+
+  function goToNextImage() {
+    if (imgs.length <= 1) return;
+    setActiveImg((prev) => (prev + 1) % imgs.length);
+  }
+
+  function onImageTouchStart(e: React.TouchEvent<HTMLDivElement>) {
+    const touch = e.touches?.[0];
+    if (!touch) return;
+    touchStartXRef.current = touch.clientX;
+    touchStartYRef.current = touch.clientY;
+  }
+
+  function onImageTouchEnd(e: React.TouchEvent<HTMLDivElement>) {
+    const startX = touchStartXRef.current;
+    const startY = touchStartYRef.current;
+    const touch = e.changedTouches?.[0];
+
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+
+    if (!touch || startX == null || startY == null || imgs.length <= 1) return;
+
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
+
+    if (Math.abs(dx) < 40 || Math.abs(dx) <= Math.abs(dy)) return;
+
+    if (dx < 0) {
+      goToNextImage();
+      return;
+    }
+
+    goToPrevImage();
+  }
+
 
   useEffect(() => {
     setActiveImg(0);
@@ -730,7 +773,7 @@ export default function ProductPage() {
                   </div>
                 ) : null}
 
-                <div className="imgBox">
+                <div className="imgBox" onTouchStart={onImageTouchStart} onTouchEnd={onImageTouchEnd}>
                   <button
                     type="button"
                     className={`favBtn ${isFavorite ? "on" : ""}`}
@@ -753,6 +796,12 @@ export default function ProductPage() {
                   </div>
 
                   <div className="imgGlow" aria-hidden="true" />
+
+                  {imgs.length > 1 ? (
+                    <div className="swipeHint" aria-hidden="true">
+                      Desliza para ver más
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -1073,6 +1122,7 @@ export default function ProductPage() {
           display: grid;
           place-items: center;
           box-shadow: var(--shadow2);
+          touch-action: pan-y;
         }
 
         .imgBox img {
@@ -1139,6 +1189,25 @@ export default function ProductPage() {
           pointer-events: none;
           mix-blend-mode: multiply;
         }
+        .swipeHint {
+          position: absolute;
+          left: 50%;
+          bottom: 16px;
+          transform: translateX(-50%);
+          display: none;
+          border-radius: 999px;
+          padding: 8px 12px;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          background: rgba(255, 255, 255, 0.82);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          font-weight: 900;
+          font-size: 11px;
+          color: rgba(0, 0, 0, 0.62);
+          pointer-events: none;
+          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+        }
+
 
         .ph {
           width: 22px;
@@ -1625,6 +1694,11 @@ export default function ProductPage() {
         }
 
         @media (max-width: 980px) {
+          .swipeHint {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+          }
           .grid {
             grid-template-columns: 1fr;
           }
