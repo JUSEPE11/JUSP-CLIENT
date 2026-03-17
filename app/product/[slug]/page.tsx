@@ -799,7 +799,7 @@ export default function ProductPage() {
 
                   {imgs.length > 1 ? (
                     <div className="swipeHint" aria-hidden="true">
-                      Desliza para ver más
+                      
                     </div>
                   ) : null}
                 </div>
