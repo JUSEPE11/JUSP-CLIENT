@@ -1,3 +1,4 @@
+// app/mis-pedidos/[id]/page.tsx
 "use client";
 
 import Link from "next/link";
@@ -27,6 +28,7 @@ type ShippingAddress = {
 type OrderRow = {
   id: string;
   created_at: string;
+  updated_at?: string | null;
   status?: string | null;
   payment_status?: string | null;
   payment_intent_id?: string | null;
@@ -35,10 +37,36 @@ type OrderRow = {
   items?: OrderItem[] | null;
   shipping_address?: ShippingAddress | null;
   paid_at?: string | null;
+
+  // Campos opcionales que pueden venir de orders si existen
+  shipping_origin?: string | null;
+  origin_hub?: string | null;
+  destination_country?: string | null;
+  destination_city?: string | null;
+  destination_address?: string | null;
+  eta_label?: string | null;
+  health_label?: string | null;
+  health_tone?: string | null;
+  progress_percent?: number | null;
+
+  confirmed_at?: string | null;
+  packed_at?: string | null;
+  shipped_at?: string | null;
+  delivered_at?: string | null;
+  tracking_assigned_at?: string | null;
 };
 
 type ApiOkOne = { ok: true; order: OrderRow };
 type ApiErr = { ok: false; error?: string };
+
+type LogisticStep = {
+  key: string;
+  label: string;
+  when: string;
+  done: boolean;
+  tone: "neutral" | "good" | "warn";
+  place?: string;
+};
 
 function safeMoney(n: number) {
   if (!Number.isFinite(n)) return "0";
@@ -84,7 +112,9 @@ function statusLabel(s?: string | null) {
   if (v === "created") return "Creada";
   if (v === "confirmed") return "Confirmada";
   if (v === "packed") return "Empacada";
+  if (v === "purchased") return "Comprada";
   if (v === "shipped") return "Enviada";
+  if (v === "in_transit") return "En tránsito";
   if (v === "delivered") return "Entregada";
   if (v === "cancelled" || v === "canceled") return "Cancelada";
   return String(s);
@@ -129,12 +159,6 @@ async function safeJson(res: Response) {
   }
 }
 
-/**
- * Reorder PRO MAX (sin DB):
- * - Detecta un key de carrito existente si lo hay
- * - Si no hay, usa "jusp_cart"
- * - Guarda { items: [...], updatedAt }
- */
 function detectCartKey(): string {
   try {
     const candidates = ["jusp_cart", "cart", "cart_v1", "jusp:cart", "jusp_cart_v1"];
@@ -196,24 +220,16 @@ function writeCart(items: OrderItem[]) {
 
   try {
     localStorage.setItem(key, JSON.stringify(payload));
-  } catch {
-    // Si storage está lleno o bloqueado, al menos no crashea
-  }
+  } catch {}
 
   return { key, count: normalized.reduce((a, it) => a + (Number(it.qty) || 0), 0) };
 }
 
-/** ✅ Tracking PRO MAX: normaliza carrier + genera URL real cuando se puede */
 function normalizeCarrier(raw: string) {
   const s = String(raw || "").trim().toLowerCase();
   if (!s) return "";
-  const clean = s
-    .replace(/\s+/g, " ")
-    .replace(/_/g, " ")
-    .replace(/-/g, " ")
-    .trim();
+  const clean = s.replace(/\s+/g, " ").replace(/_/g, " ").replace(/-/g, " ").trim();
 
-  // aliases
   if (clean.includes("dhl")) return "dhl";
   if (clean.includes("fedex") || clean.includes("fed ex")) return "fedex";
   if (clean === "ups" || clean.includes("united parcel")) return "ups";
@@ -236,7 +252,6 @@ function carrierLabel(c: string) {
   if (k === "servientrega") return "Servientrega";
   if (k === "coordinadora") return "Coordinadora";
   if (k === "interrapidisimo") return "Interrapidísimo";
-  // title-ish
   return k
     .split(" ")
     .filter(Boolean)
@@ -250,12 +265,10 @@ function buildTrackingUrl(carrierRaw: string, trackingRaw: string) {
 
   const carrier = normalizeCarrier(carrierRaw);
 
-  // URLs (sin prometer disponibilidad; si carrier no cuadra, fallback Google)
   if (carrier === "dhl") return `https://www.dhl.com/global-en/home/tracking.html?tracking-id=${encodeURIComponent(code)}`;
   if (carrier === "fedex") return `https://www.fedex.com/fedextrack/?trknbr=${encodeURIComponent(code)}`;
   if (carrier === "ups") return `https://www.ups.com/track?tracknum=${encodeURIComponent(code)}`;
   if (carrier === "usps") return `https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodeURIComponent(code)}`;
-  // Algunos couriers LATAM cambian URLs; dejamos fallback más robusto
   if (carrier === "servientrega") return `https://www.servientrega.com/wps/portal/Colombia/rastreo-envio/?guia=${encodeURIComponent(code)}`;
   if (carrier === "coordinadora") return `https://www.coordinadora.com/rastrear/?guia=${encodeURIComponent(code)}`;
   if (carrier === "interrapidisimo") return `https://www.interrapidisimo.com/sigue-tu-envio/?guia=${encodeURIComponent(code)}`;
@@ -269,6 +282,143 @@ function buildTrackingSearchUrl(carrierRaw: string, trackingRaw: string) {
   const car = carrierRaw ? `${carrierLabel(carrierRaw)} ` : "";
   const q = `${car}${code} tracking`;
   return `https://www.google.com/search?q=${encodeURIComponent(q)}`;
+}
+
+function normalizeHub(rawA?: string | null, rawB?: string | null, carrier?: string | null) {
+  const raw = `${safeStr(rawA)} ${safeStr(rawB)} ${safeStr(carrier)}`.toLowerCase();
+  if (raw.includes("miami") || raw.includes("mia") || raw.includes("florida")) return "Miami, Florida 🇺🇸";
+  if (raw.includes("dallas") || raw.includes("texas") || raw.includes("dal")) return "Dallas, Texas 🇺🇸";
+  return "Dallas / Miami Hub 🇺🇸";
+}
+
+function normalizeDestinationAddress(order: OrderRow, addr: ShippingAddress) {
+  const line1 =
+    safeStr(order.destination_address) ||
+    [safeStr(addr.address1), safeStr(addr.address2)].filter(Boolean).join(" · ");
+  const city = safeStr(order.destination_city) || safeStr(addr.city);
+  const country = safeStr(order.destination_country) || safeStr(addr.country);
+  const postal = safeStr(addr.postalCode);
+  return {
+    line1: line1 || "—",
+    line2: [city, country].filter(Boolean).join(" · ") || "—",
+    postal: postal || "—",
+    city: city || "Ciudad destino",
+    country: country || "País destino",
+  };
+}
+
+function dateOrDash(v?: string | null) {
+  return v ? fmtDate(v) : "—";
+}
+
+function clampPercent(n: number) {
+  return Math.max(0, Math.min(100, Math.round(n)));
+}
+
+function progressForLogistics(order: OrderRow) {
+  const manual = Number(order.progress_percent);
+  if (Number.isFinite(manual)) return clampPercent(manual);
+
+  const st = String(order.status || "").toLowerCase();
+  const paid = String(order.payment_status || "").toLowerCase() === "paid";
+  const tracking = !!safeStr(order.tracking_code);
+
+  if (st === "delivered") return 100;
+  if (st === "shipped") return tracking ? 76 : 70;
+  if (st === "packed") return 56;
+  if (st === "confirmed") return paid ? 36 : 28;
+  if (st === "created") return paid ? 22 : 12;
+  return tracking ? 66 : 14;
+}
+
+function routeStatus(order: OrderRow) {
+  const progress = progressForLogistics(order);
+  if (progress >= 100) return "Entregado";
+  if (progress >= 76) return "En camino a tu dirección";
+  if (progress >= 56) return "Listo para salida internacional";
+  if (progress >= 28) return "Preparando tu pedido";
+  return "Pedido recibido";
+}
+
+function buildRealisticTimeline(order: OrderRow, destination: { city: string; country: string; line1: string }, hubLabel: string): LogisticStep[] {
+  const st = String(order.status || "").toLowerCase();
+  const pay = String(order.payment_status || "").toLowerCase();
+  const tracking = safeStr(order.tracking_code);
+
+  const createdAt = safeStr(order.created_at);
+  const confirmedAt = safeStr(order.confirmed_at) || (st === "confirmed" || st === "packed" || st === "shipped" || st === "delivered" ? createdAt : "");
+  const paidAt = safeStr(order.paid_at) || (pay === "paid" ? safeStr(order.updated_at) : "");
+  const packedAt = safeStr(order.packed_at) || (st === "packed" || st === "shipped" || st === "delivered" ? safeStr(order.updated_at) || createdAt : "");
+  const shippedAt = safeStr(order.shipped_at) || (st === "shipped" || st === "delivered" ? safeStr(order.updated_at) || createdAt : "");
+  const trackingAt = safeStr(order.tracking_assigned_at) || (tracking ? safeStr(order.updated_at) || createdAt : "");
+  const deliveredAt = safeStr(order.delivered_at) || (st === "delivered" ? safeStr(order.updated_at) || createdAt : "");
+
+  return [
+    {
+      key: "created",
+      label: "Pedido creado",
+      when: dateOrDash(createdAt),
+      done: !!createdAt,
+      tone: "good",
+      place: "JUSP",
+    },
+    {
+      key: "payment",
+      label: pay === "paid" ? "Pago confirmado" : pay === "pending" ? "Pago pendiente" : "Pago",
+      when: dateOrDash(paidAt),
+      done: pay === "paid" || pay === "pending",
+      tone: pay === "paid" ? "good" : pay === "pending" ? "warn" : "neutral",
+      place: "Checkout",
+    },
+    {
+      key: "confirmed",
+      label: "Orden confirmada",
+      when: dateOrDash(confirmedAt),
+      done: !!confirmedAt,
+      tone: confirmedAt ? "good" : "neutral",
+      place: "JUSP",
+    },
+    {
+      key: "packed",
+      label: "Preparación y consolidación",
+      when: dateOrDash(packedAt),
+      done: !!packedAt,
+      tone: packedAt ? "good" : "neutral",
+      place: hubLabel,
+    },
+    {
+      key: "tracking",
+      label: tracking ? "Tracking asignado" : "Tracking pendiente",
+      when: tracking ? dateOrDash(trackingAt) : "—",
+      done: !!tracking,
+      tone: tracking ? "good" : "neutral",
+      place: tracking ? carrierLabel(safeStr(order.carrier)) : "Courier",
+    },
+    {
+      key: "route",
+      label: "Ruta internacional",
+      when: dateOrDash(shippedAt),
+      done: st === "shipped" || st === "delivered",
+      tone: st === "shipped" || st === "delivered" ? "good" : "neutral",
+      place: `${hubLabel} → ${destination.country}`,
+    },
+    {
+      key: "lastmile",
+      label: "Última milla",
+      when: st === "delivered" || st === "shipped" ? dateOrDash(safeStr(order.updated_at) || shippedAt) : "—",
+      done: st === "shipped" || st === "delivered",
+      tone: st === "shipped" || st === "delivered" ? "good" : "neutral",
+      place: destination.city,
+    },
+    {
+      key: "delivered",
+      label: "Entregado",
+      when: dateOrDash(deliveredAt),
+      done: st === "delivered",
+      tone: st === "delivered" ? "good" : "neutral",
+      place: destination.line1,
+    },
+  ];
 }
 
 export default function PedidoDetallePage() {
@@ -366,10 +516,7 @@ export default function PedidoDetallePage() {
     const countItems = items.reduce((acc, it) => acc + (Number(it?.qty) || 0), 0);
 
     const addr = (o?.shipping_address || {}) as ShippingAddress;
-    const line1 = [addr?.address1, addr?.address2].filter(Boolean).join(" · ");
-    const line2 = [addr?.city, addr?.country].filter(Boolean).join(" · ");
-    const postal = addr?.postalCode ? String(addr.postalCode) : "";
-    const notes = addr?.notes ? String(addr.notes) : "";
+    const destination = normalizeDestinationAddress(o || ({} as OrderRow), addr);
 
     const statusTone = pillTone(o?.status);
     const payTone = pillTone(o?.payment_status);
@@ -384,33 +531,21 @@ export default function PedidoDetallePage() {
     const trackingSearchUrl = tracking ? buildTrackingSearchUrl(carrier, tracking) : null;
 
     const pi = o?.payment_intent_id ? String(o.payment_intent_id) : "";
-
-    const t: Array<{ label: string; when: string; done: boolean; tone: "neutral" | "good" | "warn" }> = [];
-    t.push({ label: "Pedido creado", when: createdAt, done: !!o?.created_at, tone: "good" });
-
-    const pay = String(o?.payment_status || "").toLowerCase();
-    if (pay === "paid") t.push({ label: "Pago confirmado", when: paidAt || "—", done: true, tone: "good" });
-    else if (pay === "pending") t.push({ label: "Pago pendiente", when: "—", done: true, tone: "warn" });
-    else t.push({ label: "Pago", when: "—", done: false, tone: "neutral" });
-
-    const st = String(o?.status || "").toLowerCase();
-    t.push({ label: "Preparación", when: "—", done: st === "packed" || st === "shipped" || st === "delivered", tone: "neutral" });
-    t.push({
-      label: "Envío",
-      when: tracking ? "Tracking asignado" : "—",
-      done: st === "shipped" || st === "delivered",
-      tone: tracking ? "good" : "neutral",
-    });
-    t.push({ label: "Entregado", when: "—", done: st === "delivered", tone: st === "delivered" ? "good" : "neutral" });
+    const hubLabel = normalizeHub(o?.shipping_origin, o?.origin_hub, o?.carrier);
+    const progress = progressForLogistics(o || ({} as OrderRow));
+    const routeLabel = routeStatus(o || ({} as OrderRow));
+    const timeline = buildRealisticTimeline(o || ({} as OrderRow), destination, hubLabel);
 
     return {
       items,
       total,
       countItems,
-      line1,
-      line2,
-      postal,
-      notes,
+      line1: destination.line1,
+      line2: destination.line2,
+      postal: destination.postal,
+      notes: addr?.notes ? String(addr.notes) : "",
+      city: destination.city,
+      country: destination.country,
       statusTone,
       payTone,
       createdAt,
@@ -421,7 +556,13 @@ export default function PedidoDetallePage() {
       trackingUrl,
       trackingSearchUrl,
       pi,
-      timeline: t,
+      timeline,
+      hubLabel,
+      progress,
+      routeLabel,
+      etaLabel: safeStr(o?.eta_label) || "Se actualiza con el estado logístico",
+      healthLabel: safeStr(o?.health_label) || (tracking ? "En seguimiento" : "Pendiente de tracking"),
+      healthTone: safeStr(o?.health_tone) || (tracking ? "good" : "neutral"),
     };
   }, [order]);
 
@@ -435,7 +576,7 @@ export default function PedidoDetallePage() {
             <div className="pd-kicker">CUENTA</div>
             <h1 className="pd-title">Detalle del pedido</h1>
             <p className="pd-sub">
-              Vista PRO MAX: estado, pago, tracking, envío y productos. Todo sale de tu API real <b>/api/orders/[id]</b>.
+              Vista PRO MAX: estado, pago, tracking, envío, ruta logística y productos. Todo sale de tu API real <b>/api/orders/[id]</b>.
             </p>
 
             <div className="pd-badges">
@@ -444,6 +585,9 @@ export default function PedidoDetallePage() {
               </span>
               <span className="badge">
                 Creado: <span className="mono">{loading ? "—" : view.createdAt}</span>
+              </span>
+              <span className="badge">
+                Ruta: <span className="mono">{loading ? "—" : view.routeLabel}</span>
               </span>
             </div>
           </div>
@@ -515,7 +659,7 @@ export default function PedidoDetallePage() {
           </div>
         ) : order ? (
           <>
-            <div className="panel">
+            <div className="panel hero-panel">
               <div className="panel-head">
                 <div>
                   <div className="panel-kicker">RESUMEN</div>
@@ -523,6 +667,7 @@ export default function PedidoDetallePage() {
                   <div className="panel-p">
                     <span className={`pill ${view.statusTone}`}>{statusLabel(order.status)}</span>
                     <span className={`pill ${view.payTone}`}>{payLabel(order.payment_status)}</span>
+                    <span className={`pill ${view.healthTone}`}>{view.healthLabel}</span>
                   </div>
                 </div>
 
@@ -576,7 +721,6 @@ export default function PedidoDetallePage() {
                     Copiar Tracking
                   </button>
 
-                  {/* ✅ REORDER PRO MAX */}
                   <button
                     className="btn small"
                     type="button"
@@ -611,6 +755,55 @@ export default function PedidoDetallePage() {
                   <div className="stat-v">{view.paidAt || "—"}</div>
                 </div>
               </div>
+
+              <div className="route-wrap">
+                <div className="route-top">
+                  <div>
+                    <div className="route-kicker">MAPA DE SEGUIMIENTO</div>
+                    <div className="route-title">Dallas / Miami → casa del cliente</div>
+                  </div>
+                  <div className="route-right">
+                    <span className="route-note">ETA: {view.etaLabel}</span>
+                    <span className="route-note strong">{view.routeLabel}</span>
+                  </div>
+                </div>
+
+                <div className="progress-wrap">
+                  <div className="progress-track">
+                    <div className="progress-fill" style={{ width: `${view.progress}%` }} />
+                  </div>
+                  <div className="progress-meta">
+                    <span>{view.progress}% completado</span>
+                    <span>{view.hubLabel}</span>
+                  </div>
+                </div>
+
+                <div className="route-map">
+                  <div className={`route-node ${view.progress >= 10 ? "done" : ""}`}>
+                    <div className="route-dot" />
+                    <div className="route-node-k">ORIGEN</div>
+                    <div className="route-node-v">{view.hubLabel}</div>
+                  </div>
+
+                  <div className={`route-node ${view.progress >= 56 ? "done" : ""}`}>
+                    <div className="route-dot" />
+                    <div className="route-node-k">TRÁNSITO</div>
+                    <div className="route-node-v">{view.country}</div>
+                  </div>
+
+                  <div className={`route-node ${view.progress >= 76 ? "done" : ""}`}>
+                    <div className="route-dot" />
+                    <div className="route-node-k">CIUDAD</div>
+                    <div className="route-node-v">{view.city}</div>
+                  </div>
+
+                  <div className={`route-node ${view.progress >= 96 ? "done" : ""}`}>
+                    <div className="route-dot" />
+                    <div className="route-node-k">DESTINO</div>
+                    <div className="route-node-v">{view.line1}</div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="grid2">
@@ -627,6 +820,10 @@ export default function PedidoDetallePage() {
                 </div>
 
                 <div className="addr">
+                  <div className="addr-row">
+                    <div className="addr-l">Origen visible</div>
+                    <div className="addr-v">{view.hubLabel}</div>
+                  </div>
                   <div className="addr-row">
                     <div className="addr-l">Dirección</div>
                     <div className="addr-v">{view.line1 || "—"}</div>
@@ -647,7 +844,6 @@ export default function PedidoDetallePage() {
 
                 <div className="sep" />
 
-                {/* ✅ Tracking PRO MAX */}
                 <div className="trackbox">
                   <div className="track-top">
                     <div>
@@ -706,11 +902,11 @@ export default function PedidoDetallePage() {
                 <div className="panel-head2">
                   <div>
                     <div className="panel-kicker">PROGRESO</div>
-                    <div className="panel-h">Timeline</div>
+                    <div className="panel-h">Timeline automático</div>
                   </div>
                   <div className="mini">
                     <span className="mini-dot" />
-                    <span>Sin inventar</span>
+                    <span>Fechas reales disponibles</span>
                   </div>
                 </div>
 
@@ -720,7 +916,10 @@ export default function PedidoDetallePage() {
                       <div className={`tl-dot ${t.tone}`} />
                       <div className="tl-mid">
                         <div className="tl-l">{t.label}</div>
-                        <div className="tl-s">{t.when}</div>
+                        <div className="tl-s">
+                          {t.when}
+                          {t.place ? ` · ${t.place}` : ""}
+                        </div>
                       </div>
                       <div className="tl-r">{t.done ? "OK" : "—"}</div>
                     </div>
@@ -730,9 +929,10 @@ export default function PedidoDetallePage() {
                 <div className="sep" />
 
                 <div className="help">
-                  <div className="help-h">Acciones rápidas</div>
+                  <div className="help-h">Estados logísticos reales</div>
                   <div className="help-p">
-                    Si el tracking está en “—”, es porque aún no se ha asignado <b>tracking_code</b> en tu orden.
+                    La vista soporta <b>created</b>, <b>confirmed</b>, <b>packed</b>, <b>shipped</b> y <b>delivered</b>. Si tu backend empieza a llenar
+                    fechas como <b>confirmed_at</b>, <b>packed_at</b>, <b>shipped_at</b> o <b>delivered_at</b>, esta timeline se vuelve aún más precisa.
                   </div>
                   <div className="help-actions">
                     <Link className="btn small ghost" href="/account">
@@ -827,6 +1027,10 @@ export default function PedidoDetallePage() {
                     <span>Payment Intent</span>
                     <span className="mono">{compactId(view.pi || "—")}</span>
                   </div>
+                  <div className="sum-row">
+                    <span>Tracking</span>
+                    <span className="mono">{view.tracking || "—"}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -842,8 +1046,9 @@ export default function PedidoDetallePage() {
           padding-left: 16px;
           padding-right: 16px;
           padding-bottom: 34px;
-          background: radial-gradient(1200px 600px at 20% 0%, rgba(0, 0, 0, 0.06), transparent 55%),
-            radial-gradient(900px 520px at 90% 15%, rgba(0, 0, 0, 0.04), transparent 60%),
+          background:
+            radial-gradient(1200px 600px at 20% 0%, rgba(0, 0, 0, 0.06), transparent 55%),
+            radial-gradient(900px 520px at 90% 15%, rgba(255, 214, 0, 0.08), transparent 60%),
             #f7f7f7;
           min-height: 100vh;
         }
@@ -915,6 +1120,11 @@ export default function PedidoDetallePage() {
           box-shadow: 0 22px 60px rgba(0, 0, 0, 0.08);
           overflow: hidden;
           margin-top: 12px;
+        }
+        .hero-panel {
+          background:
+            linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,255,255,0.92)),
+            radial-gradient(800px 240px at 0% 0%, rgba(255,214,0,0.08), transparent 60%);
         }
         .panel-head {
           padding: 14px 14px 10px;
@@ -1014,6 +1224,116 @@ export default function PedidoDetallePage() {
           font-size: 16px;
           font-weight: 950;
           color: #111;
+          word-break: break-word;
+        }
+
+        .route-wrap {
+          padding: 0 14px 14px;
+        }
+        .route-top {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          align-items: flex-start;
+          flex-wrap: wrap;
+          margin-bottom: 12px;
+        }
+        .route-kicker {
+          font-size: 11px;
+          font-weight: 900;
+          letter-spacing: 0.12em;
+          color: rgba(0, 0, 0, 0.55);
+        }
+        .route-title {
+          margin-top: 6px;
+          font-size: 18px;
+          font-weight: 950;
+          color: #111;
+        }
+        .route-right {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          align-items: center;
+        }
+        .route-note {
+          display: inline-flex;
+          border-radius: 999px;
+          padding: 8px 10px;
+          font-size: 12px;
+          font-weight: 900;
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          background: rgba(255, 255, 255, 0.92);
+          color: rgba(0, 0, 0, 0.75);
+        }
+        .route-note.strong {
+          background: rgba(255, 214, 0, 0.18);
+          border-color: rgba(255, 214, 0, 0.4);
+          color: #111;
+        }
+        .progress-wrap {
+          margin-bottom: 14px;
+        }
+        .progress-track {
+          height: 10px;
+          border-radius: 999px;
+          background: rgba(0, 0, 0, 0.08);
+          overflow: hidden;
+        }
+        .progress-fill {
+          height: 100%;
+          border-radius: 999px;
+          background: linear-gradient(90deg, rgba(255, 214, 0, 0.95), rgba(17, 17, 17, 0.92));
+          box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+        }
+        .progress-meta {
+          margin-top: 8px;
+          display: flex;
+          justify-content: space-between;
+          gap: 10px;
+          flex-wrap: wrap;
+          font-size: 12px;
+          color: rgba(0, 0, 0, 0.62);
+          font-weight: 900;
+        }
+        .route-map {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 10px;
+        }
+        .route-node {
+          border-radius: 18px;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          background: rgba(0, 0, 0, 0.02);
+          padding: 12px;
+          display: grid;
+          gap: 6px;
+        }
+        .route-node.done {
+          background: rgba(255, 255, 255, 0.86);
+          border-color: rgba(255, 214, 0, 0.28);
+          box-shadow: inset 0 0 0 1px rgba(255, 214, 0, 0.14);
+        }
+        .route-dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 999px;
+          background: rgba(0, 0, 0, 0.16);
+        }
+        .route-node.done .route-dot {
+          background: rgba(16, 185, 129, 0.82);
+        }
+        .route-node-k {
+          font-size: 11px;
+          font-weight: 900;
+          letter-spacing: 0.12em;
+          color: rgba(0, 0, 0, 0.55);
+        }
+        .route-node-v {
+          font-size: 13px;
+          font-weight: 950;
+          color: #111;
+          line-height: 1.35;
           word-break: break-word;
         }
 
@@ -1553,6 +1873,9 @@ export default function PedidoDetallePage() {
             gap: 10px;
             flex-wrap: wrap;
             align-items: baseline;
+          }
+          .route-map {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>
