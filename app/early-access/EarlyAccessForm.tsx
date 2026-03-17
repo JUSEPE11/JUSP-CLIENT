@@ -4,6 +4,21 @@ import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState } from "react";
 
 type SubmitState = "idle" | "loading" | "success" | "error";
+type QueueStatus = "waiting" | "activated" | "rejected" | null;
+
+type EarlyAccessApiSuccess = {
+  ok: true;
+  alreadyJoined: boolean;
+  status: "waiting" | "activated" | "rejected";
+  position: number | null;
+  total: number;
+  message: string;
+};
+
+type EarlyAccessApiError = {
+  ok: false;
+  error: string;
+};
 
 function isValidEmail(email: string) {
   const v = (email || "").trim().toLowerCase();
@@ -16,22 +31,21 @@ export default function EarlyAccessForm() {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<SubmitState>("idle");
   const [msg, setMsg] = useState("");
-  const [already, setAlready] = useState(false);
+  const [joined, setJoined] = useState(false);
+  const [queueStatus, setQueueStatus] = useState<QueueStatus>(null);
+  const [position, setPosition] = useState<number | null>(null);
+  const [total, setTotal] = useState<number | null>(null);
 
   const canSubmit = useMemo(() => {
     if (state === "loading") return false;
-    if (already) return false;
     return isValidEmail(email);
-  }, [email, state, already]);
+  }, [email, state]);
 
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
       if (saved && isValidEmail(saved)) {
         setEmail(saved);
-        setAlready(true);
-        setState("success");
-        setMsg("Ya estás en Early Access en este dispositivo.");
       }
     } catch {
       // ignore
@@ -49,14 +63,11 @@ export default function EarlyAccessForm() {
       return;
     }
 
-    if (already) {
-      setState("success");
-      setMsg("Ya estás en Early Access en este dispositivo.");
-      return;
-    }
-
     setState("loading");
     setMsg("");
+    setQueueStatus(null);
+    setPosition(null);
+    setTotal(null);
 
     try {
       const res = await fetch("/api/early-access", {
@@ -65,8 +76,17 @@ export default function EarlyAccessForm() {
         body: JSON.stringify({ email: v, source: "early-access" }),
       });
 
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
+      const data = (await res.json().catch(() => null)) as
+        | EarlyAccessApiSuccess
+        | EarlyAccessApiError
+        | null;
+
+      if (!res.ok || !data || data.ok !== true) {
+        const message =
+          data && "error" in data && typeof data.error === "string"
+            ? data.error
+            : "No pudimos enviar ahora. Intenta de nuevo.";
+        throw new Error(message);
       }
 
       try {
@@ -75,9 +95,12 @@ export default function EarlyAccessForm() {
         // ignore
       }
 
-      setAlready(true);
+      setJoined(true);
+      setQueueStatus(data.status);
+      setPosition(data.position);
+      setTotal(data.total);
       setState("success");
-      setMsg("Listo. Te avisamos cuando habilitemos tu acceso.");
+      setMsg(data.message);
     } catch {
       setState("error");
       setMsg("No pudimos enviar ahora. Intenta de nuevo.");
@@ -86,7 +109,7 @@ export default function EarlyAccessForm() {
 
   return (
     <form onSubmit={onSubmit} style={s.form}>
-      <div style={s.stack}>
+      <div style={s.stack} className="ea-form-stack">
         <div>
           <label style={s.label}>Email</label>
           <input
@@ -96,6 +119,10 @@ export default function EarlyAccessForm() {
               if (state !== "idle") {
                 setState("idle");
                 setMsg("");
+                setJoined(false);
+                setQueueStatus(null);
+                setPosition(null);
+                setTotal(null);
               }
             }}
             placeholder="tu@email.com"
@@ -114,7 +141,11 @@ export default function EarlyAccessForm() {
             ...(canSubmit ? s.buttonOn : s.buttonOff),
           }}
         >
-          {already ? "Ya estás ✓" : state === "loading" ? "Enviando…" : "Entrar"}
+          {state === "loading"
+            ? "Enviando…"
+            : joined
+              ? "En lista ✓"
+              : "Entrar"}
         </button>
       </div>
 
@@ -125,7 +156,31 @@ export default function EarlyAccessForm() {
             ...(state === "error" ? s.toastError : s.toastOk),
           }}
         >
-          {msg}
+          <div style={s.toastTitle}>
+            {state === "error"
+              ? "No se pudo procesar"
+              : queueStatus === "activated"
+                ? "Acceso activado"
+                : joined
+                  ? "Waitlist confirmada"
+                  : "Waitlist"}
+          </div>
+
+          <div style={s.toastText}>{msg}</div>
+
+          {state === "success" && queueStatus === "waiting" && position && total ? (
+            <div style={s.queueBox}>
+              <div style={s.queueMetric}>
+                <span style={s.queueLabel}>Tu posición</span>
+                <span style={s.queueValue}>#{position}</span>
+              </div>
+
+              <div style={s.queueMetric}>
+                <span style={s.queueLabel}>Total en cola</span>
+                <span style={s.queueValue}>{total}</span>
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -134,6 +189,14 @@ export default function EarlyAccessForm() {
         <span style={s.chip}>⚡ Cupos por fases</span>
         <span style={s.chip}>🧠 Soporte humano</span>
       </div>
+
+      <style>{`
+        @media (max-width: 640px) {
+          .ea-form-stack {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </form>
   );
 }
@@ -194,11 +257,21 @@ const s: Record<string, CSSProperties> = {
     marginTop: 16,
     borderRadius: 18,
     border: "1px solid rgba(255,255,255,0.14)",
-    padding: "12px 14px",
+    padding: "14px 14px",
     fontSize: 14,
     lineHeight: 1.5,
     fontWeight: 700,
     backdropFilter: "blur(14px)",
+  },
+  toastTitle: {
+    fontSize: 14,
+    fontWeight: 900,
+    letterSpacing: -0.2,
+  },
+  toastText: {
+    marginTop: 6,
+    fontSize: 14,
+    lineHeight: 1.55,
   },
   toastOk: {
     borderColor: "rgba(250,204,21,0.22)",
@@ -209,6 +282,32 @@ const s: Record<string, CSSProperties> = {
     borderColor: "rgba(248,113,113,0.26)",
     background: "rgba(248,113,113,0.10)",
     color: "rgba(254,226,226,0.92)",
+  },
+  queueBox: {
+    marginTop: 12,
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: 10,
+  },
+  queueMetric: {
+    borderRadius: 16,
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(0,0,0,0.18)",
+    padding: "12px 14px",
+    display: "grid",
+    gap: 6,
+  },
+  queueLabel: {
+    fontSize: 12,
+    color: "rgba(255,245,210,0.72)",
+    fontWeight: 700,
+  },
+  queueValue: {
+    fontSize: 24,
+    lineHeight: 1,
+    fontWeight: 900,
+    letterSpacing: -0.8,
+    color: "rgba(255,255,255,0.98)",
   },
   chips: {
     marginTop: 16,

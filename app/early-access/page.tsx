@@ -44,7 +44,7 @@ export default function EarlyAccessPage() {
           </h1>
 
           <p style={styles.lead} className="ea-lead">
-            Gestión internacional transparente. Cupos limitados por operación.
+            Lista de espera real. Cupos limitados por operación y activación por fases.
           </p>
 
           <div style={styles.grid} className="ea-grid">
@@ -53,7 +53,8 @@ export default function EarlyAccessPage() {
                 <div>
                   <div style={styles.cardTitle}>Solicita acceso</div>
                   <div style={styles.cardSub}>
-                    Déjanos tu email y te habilitamos por fases.
+                    Déjanos tu email. Entrarás a una waitlist real con posición y revisión por
+                    fases.
                   </div>
                 </div>
 
