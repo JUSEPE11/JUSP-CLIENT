@@ -576,6 +576,7 @@ export default function PedidoDetallePage() {
             <div className="pd-kicker">CUENTA</div>
             <h1 className="pd-title">Detalle del pedido</h1>
             <p className="pd-sub">
+              Estado del pedido, pago, seguimiento logístico y entrega en tiempo real.
             </p>
 
             <div className="pd-badges">
