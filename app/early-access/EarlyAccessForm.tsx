@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState } from "react";
 
 type SubmitState = "idle" | "loading" | "success" | "error";
@@ -19,8 +20,9 @@ export default function EarlyAccessForm() {
 
   const canSubmit = useMemo(() => {
     if (state === "loading") return false;
+    if (already) return false;
     return isValidEmail(email);
-  }, [email, state]);
+  }, [email, state, already]);
 
   useEffect(() => {
     try {
@@ -38,11 +40,18 @@ export default function EarlyAccessForm() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+
     const v = (email || "").trim().toLowerCase();
 
     if (!isValidEmail(v)) {
       setState("error");
       setMsg("Escribe un email válido.");
+      return;
+    }
+
+    if (already) {
+      setState("success");
+      setMsg("Ya estás en Early Access en este dispositivo.");
       return;
     }
 
@@ -56,7 +65,9 @@ export default function EarlyAccessForm() {
         body: JSON.stringify({ email: v, source: "early-access" }),
       });
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
 
       try {
         window.localStorage.setItem(STORAGE_KEY, v);
@@ -74,9 +85,9 @@ export default function EarlyAccessForm() {
   }
 
   return (
-    <form onSubmit={onSubmit}>
-      <div style={s.row}>
-        <div style={{ flex: 1 }}>
+    <form onSubmit={onSubmit} style={s.form}>
+      <div style={s.stack}>
+        <div>
           <label style={s.label}>Email</label>
           <input
             value={email}
@@ -90,6 +101,7 @@ export default function EarlyAccessForm() {
             placeholder="tu@email.com"
             inputMode="email"
             autoComplete="email"
+            aria-label="Email"
             style={s.input}
           />
         </div>
@@ -126,35 +138,47 @@ export default function EarlyAccessForm() {
   );
 }
 
-const s: Record<string, React.CSSProperties> = {
-  row: {
-    display: "flex",
-    gap: 12,
-    alignItems: "flex-end",
-    flexWrap: "wrap",
+const s: Record<string, CSSProperties> = {
+  form: {
+    width: "100%",
+  },
+  stack: {
+    display: "grid",
+    gridTemplateColumns: "minmax(0, 1fr) auto",
+    gap: 14,
+    alignItems: "end",
   },
   label: {
     display: "block",
-    fontSize: 12,
-    color: "rgba(255,255,255,0.62)",
-    marginBottom: 8,
+    fontSize: 13,
+    fontWeight: 700,
+    color: "rgba(255,255,255,0.70)",
+    marginBottom: 10,
+    letterSpacing: 0.2,
   },
   input: {
-    width: "min(520px, 100%)",
-    borderRadius: 18,
+    width: "100%",
+    minHeight: 58,
+    borderRadius: 20,
     border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(0,0,0,0.34)",
+    background: "rgba(0,0,0,0.36)",
     color: "#fff",
-    padding: "12px 14px",
+    padding: "0 16px",
     outline: "none",
     boxShadow: "0 18px 60px rgba(0,0,0,0.35)",
+    fontSize: 16,
+    fontWeight: 700,
   },
   button: {
-    borderRadius: 18,
-    padding: "12px 16px",
+    minHeight: 58,
+    minWidth: 156,
+    borderRadius: 20,
+    padding: "0 18px",
     fontWeight: 900,
+    fontSize: 16,
     border: "1px solid rgba(255,255,255,0.16)",
     transition: "transform .12s ease",
+    boxShadow: "0 18px 60px rgba(0,0,0,0.35)",
   },
   buttonOn: {
     background: "#ffffff",
@@ -162,16 +186,18 @@ const s: Record<string, React.CSSProperties> = {
     cursor: "pointer",
   },
   buttonOff: {
-    background: "rgba(255,255,255,0.18)",
-    color: "rgba(255,255,255,0.75)",
+    background: "rgba(255,255,255,0.16)",
+    color: "rgba(255,255,255,0.72)",
     cursor: "not-allowed",
   },
   toast: {
-    marginTop: 14,
-    borderRadius: 16,
+    marginTop: 16,
+    borderRadius: 18,
     border: "1px solid rgba(255,255,255,0.14)",
-    padding: "10px 12px",
-    fontSize: 13,
+    padding: "12px 14px",
+    fontSize: 14,
+    lineHeight: 1.5,
+    fontWeight: 700,
     backdropFilter: "blur(14px)",
   },
   toastOk: {
@@ -185,17 +211,18 @@ const s: Record<string, React.CSSProperties> = {
     color: "rgba(254,226,226,0.92)",
   },
   chips: {
-    marginTop: 14,
+    marginTop: 16,
     display: "flex",
-    gap: 8,
+    gap: 10,
     flexWrap: "wrap",
   },
   chip: {
     fontSize: 12,
-    padding: "7px 10px",
+    fontWeight: 700,
+    padding: "8px 12px",
     borderRadius: 999,
     border: "1px solid rgba(255,255,255,0.12)",
     background: "rgba(255,255,255,0.06)",
-    color: "rgba(255,255,255,0.72)",
+    color: "rgba(255,255,255,0.76)",
   },
 };
