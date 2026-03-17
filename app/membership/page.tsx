@@ -1,4 +1,3 @@
-// app/membership/page.tsx
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -6,11 +5,23 @@ import Link from "next/link";
 
 type PlanKey = "core" | "plus" | "elite";
 
+type MembershipApiSuccess = {
+  ok: true;
+  message: string;
+};
+
+type MembershipApiError = {
+  ok: false;
+  error: string;
+};
+
 export default function MembershipPage() {
   const rootRef = useRef<HTMLElement | null>(null);
   const [plan, setPlan] = useState<PlanKey>("plus");
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const el = rootRef.current;
@@ -75,21 +86,83 @@ export default function MembershipPage() {
     return map[plan];
   }, [plan]);
 
-  const onSubmit = (e: React.FormEvent) => {
+  const isValidEmail = (value: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  };
+
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
-    setSent(true);
+
+    const cleanEmail = email.trim().toLowerCase();
+
+    setError("");
+    setSent(false);
+
+    if (!cleanEmail) {
+      setError("Escribe tu correo.");
+      return;
+    }
+
+    if (!isValidEmail(cleanEmail)) {
+      setError("Escribe un correo válido.");
+      return;
+    }
+
+    setSending(true);
+
+    try {
+      const res = await fetch("/api/membership", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          email: cleanEmail,
+          plan,
+        }),
+      });
+
+      const data = (await res.json().catch(() => null)) as
+        | MembershipApiSuccess
+        | MembershipApiError
+        | null;
+
+      if (!res.ok || !data || data.ok !== true) {
+        const message =
+          data && "error" in data && typeof data.error === "string"
+            ? data.error
+            : "No se pudo enviar la solicitud.";
+        throw new Error(message);
+      }
+
+      setSent(true);
+      setEmail("");
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : "No se pudo enviar la solicitud.";
+      setError(message);
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
     <main ref={rootRef as any} className="juspMemRoot">
       <style>{`
-        /* ===========================
-           JUSP /membership — NIVEL DIOS PRO MAX REAL (ORGANIZADO)
-           - NO toca global.css
-           - NO cambia layout/header (header blanco visible)
-           - Estructura limpia: HERO (1 col) + GRID (3 cards)
-           =========================== */
+        html,
+        body {
+          margin: 0;
+          padding: 0;
+          background: #070709 !important;
+        }
+
+        body > div,
+        #__next {
+          background: #070709 !important;
+          min-height: 100%;
+        }
 
         .juspMemRoot{
           --gold:#F5C030;
@@ -110,12 +183,10 @@ export default function MembershipPage() {
           position: relative;
           overflow: hidden;
           isolation: isolate;
-
-          /* deja espacio fijo para header blanco */
           padding-top: 72px;
+          padding-bottom: 110px;
         }
 
-        /* Background cinematic */
         .bgLayer{ position:absolute; inset:0; z-index:0; pointer-events:none; }
         .bgBase{ position:absolute; inset:0; background: var(--bg); }
 
@@ -210,7 +281,7 @@ export default function MembershipPage() {
           z-index: 1;
           max-width: 1180px;
           margin: 0 auto;
-          padding: 34px 24px 110px;
+          padding: 34px 24px 0;
         }
 
         .topPill{
@@ -297,7 +368,6 @@ export default function MembershipPage() {
           box-shadow: 0 0 0 4px rgba(245,192,48,0.12);
         }
 
-        /* GRID PRINCIPAL (organizado) */
         .mainGrid{
           margin-top: 18px;
           display:grid;
@@ -375,7 +445,6 @@ export default function MembershipPage() {
           color: rgba(255,255,255,0.56);
         }
 
-        /* PLAN (selección PRO y sin “azules raros”) */
         .planStack{
           margin-top: 14px;
           display:grid;
@@ -534,6 +603,12 @@ export default function MembershipPage() {
           transform: translateY(0px) scale(0.99);
           filter: brightness(0.98);
         }
+        .btnPrimary:disabled{
+          cursor: not-allowed;
+          opacity: 0.72;
+          transform: none;
+          filter: none;
+        }
 
         .btnGhost{
           height: 54px;
@@ -560,6 +635,19 @@ export default function MembershipPage() {
           transform: translateY(-1px);
         }
         .btnGhost:active{ transform: translateY(0px) scale(0.99); }
+
+        .statusText{
+          margin: 0;
+          font-size: 12px;
+          font-weight: 850;
+          line-height: 1.5;
+        }
+        .statusOk{
+          color: rgba(245,192,48,0.96);
+        }
+        .statusError{
+          color: #ffb3b3;
+        }
 
         .list{
           margin-top: 12px;
@@ -600,7 +688,6 @@ export default function MembershipPage() {
           white-space: nowrap;
         }
 
-        /* Responsive */
         @media (max-width: 1100px){
           .mainGrid{ grid-template-columns: 1fr 1fr; }
           .span2{ grid-column: 1 / -1; }
@@ -611,7 +698,7 @@ export default function MembershipPage() {
           .span2{ grid-column: auto; }
         }
         @media (max-width: 520px){
-          .wrap{ padding: 26px 16px 104px; }
+          .wrap{ padding: 26px 16px 0; }
           .h1{ font-size: 40px; }
           .input{ min-width: 0; width: 100%; }
         }
@@ -638,7 +725,6 @@ export default function MembershipPage() {
           <span className="pillText">JUSP · Membership</span>
         </div>
 
-        {/* HERO limpio (ya no se mezcla con los cards) */}
         <section className="hero">
           <div>
             <p className="kicker">MEMBERSHIP</p>
@@ -649,8 +735,8 @@ export default function MembershipPage() {
             </h1>
 
             <p className="sub">
-              En JUSP la operación es controlada para mantener calidad y soporte humano. Elige un nivel y deja tu correo
-              para habilitarte por fases.
+              En JUSP la operación es controlada para mantener calidad y soporte humano. Elige un
+              nivel y deja tu correo para habilitarte por fases.
             </p>
 
             <div className="chipRow">
@@ -666,9 +752,7 @@ export default function MembershipPage() {
             </div>
           </div>
 
-          {/* GRID ORGANIZADO (3 cards) */}
           <div className="mainGrid">
-            {/* 1) Plan selector (más ancho en desktop, ultra claro lo seleccionado) */}
             <div className="card span2">
               <div className="cardHead">
                 <h2 className="cardTitle">Elige tu nivel</h2>
@@ -688,7 +772,9 @@ export default function MembershipPage() {
                     <div className="planName">Core</div>
                     <div className="planTag">Base</div>
                   </div>
-                  <div className="planDesc">Explora referencias + flujo estándar. Ideal para empezar sin fricción.</div>
+                  <div className="planDesc">
+                    Explora referencias + flujo estándar. Ideal para empezar sin fricción.
+                  </div>
                 </button>
 
                 <button
@@ -701,7 +787,9 @@ export default function MembershipPage() {
                     <div className="planName">Plus</div>
                     <div className="planTag">Recomendado</div>
                   </div>
-                  <div className="planDesc">Prioridad + soporte humano. Mejor balance para operar rápido.</div>
+                  <div className="planDesc">
+                    Prioridad + soporte humano. Mejor balance para operar rápido.
+                  </div>
                 </button>
 
                 <button
@@ -714,7 +802,9 @@ export default function MembershipPage() {
                     <div className="planName">Elite</div>
                     <div className="planTag">Pro</div>
                   </div>
-                  <div className="planDesc">Gestión premium de punta a punta. Para ejecución sin pérdida de tiempo.</div>
+                  <div className="planDesc">
+                    Gestión premium de punta a punta. Para ejecución sin pérdida de tiempo.
+                  </div>
                 </button>
               </div>
 
@@ -728,21 +818,30 @@ export default function MembershipPage() {
                     onChange={(e) => {
                       setEmail(e.target.value);
                       if (sent) setSent(false);
+                      if (error) setError("");
                     }}
                     autoComplete="email"
                   />
-                  <button className="btnPrimary" type="submit">
-                    {sent ? "Listo ✓" : "Solicitar acceso →"}
+                  <button className="btnPrimary" type="submit" disabled={sending}>
+                    {sending ? "Enviando..." : sent ? "Listo ✓" : "Solicitar acceso →"}
                   </button>
                 </div>
 
+                {error ? (
+                  <p className="statusText statusError">{error}</p>
+                ) : sent ? (
+                  <p className="statusText statusOk">
+                    Solicitud enviada correctamente. Revisaremos tu acceso por fases.
+                  </p>
+                ) : null}
+
                 <div className="muted" style={{ margin: 0 }}>
-                  Activación por fases. Si cierras sesión o cambias de dispositivo, solo vuelves a solicitar.
+                  Activación por fases. Si cierras sesión o cambias de dispositivo, solo vuelves a
+                  solicitar.
                 </div>
               </form>
             </div>
 
-            {/* 2) Qué incluye */}
             <div className="card">
               <div className="cardHead">
                 <h2 className="cardTitle">¿Qué incluye?</h2>
@@ -753,7 +852,9 @@ export default function MembershipPage() {
                 <div className="row">
                   <div className="rowLeft">
                     <div className="rowTitle">Cupo controlado</div>
-                    <div className="rowSub">Entradas por fases para mantener calidad y soporte real.</div>
+                    <div className="rowSub">
+                      Entradas por fases para mantener calidad y soporte real.
+                    </div>
                   </div>
                   <div className="rowTag">Operación</div>
                 </div>
@@ -769,7 +870,9 @@ export default function MembershipPage() {
                 <div className="row">
                   <div className="rowLeft">
                     <div className="rowTitle">Trazabilidad real</div>
-                    <div className="rowSub">Seguimiento de estado y soporte humano cuando lo necesites.</div>
+                    <div className="rowSub">
+                      Seguimiento de estado y soporte humano cuando lo necesites.
+                    </div>
                   </div>
                   <div className="rowTag">Soporte</div>
                 </div>
@@ -792,7 +895,6 @@ export default function MembershipPage() {
               </p>
             </div>
 
-            {/* 3) Resumen */}
             <div className="card">
               <div className="cardHead">
                 <h2 className="cardTitle">Resumen</h2>
@@ -800,8 +902,8 @@ export default function MembershipPage() {
               </div>
 
               <p className="muted">
-                Entra por fases. Te habilitamos por cupo para mantener atención real. Si quieres empezar ya, usa Early
-                Access.
+                Entra por fases. Te habilitamos por cupo para mantener atención real. Si quieres
+                empezar ya, usa Early Access.
               </p>
 
               <div className="list">
