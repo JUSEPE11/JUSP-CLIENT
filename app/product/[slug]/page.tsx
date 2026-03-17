@@ -45,6 +45,8 @@ type Product = {
   variants?: ProductVariant[];
 };
 
+const FAVORITES_KEY = "jusp:favorites";
+
 function moneyCOP(n: number) {
   return Math.round(n).toLocaleString("es-CO");
 }
@@ -109,6 +111,32 @@ function loadImage(src: string): Promise<boolean> {
     img.onerror = () => resolve(false);
     img.src = src;
   });
+}
+
+function getFavoriteId(product?: Product, pageSlug?: string) {
+  return String(
+    product?.id || product?.slug || product?.product_code || pageSlug || ""
+  )
+    .trim()
+    .toLowerCase();
+}
+
+function readFavoriteIds(): string[] {
+  try {
+    const raw = window.localStorage.getItem(FAVORITES_KEY);
+    const parsed = JSON.parse(raw || "[]");
+    return Array.isArray(parsed)
+      ? uniqueStringsCaseInsensitive(parsed.map((x) => String(x || "").trim()).filter(Boolean))
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeFavoriteIds(ids: string[]) {
+  try {
+    window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(uniqueStringsCaseInsensitive(ids)));
+  } catch {}
 }
 
 type GenderScope = "men" | "women" | "kids";
@@ -341,6 +369,7 @@ export default function ProductPage() {
 
   const [product, setProduct] = useState<Product | undefined>(undefined);
   const [loadingProduct, setLoadingProduct] = useState(true);
+  const [isFavorite, setIsFavorite] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -452,6 +481,21 @@ export default function ProductPage() {
       cancelled = true;
     };
   }, [imageCandidates]);
+
+  useEffect(() => {
+    if (!product) {
+      setIsFavorite(false);
+      return;
+    }
+
+    const id = getFavoriteId(product, slug);
+    if (!id) {
+      setIsFavorite(false);
+      return;
+    }
+
+    setIsFavorite(readFavoriteIds().includes(id));
+  }, [product, slug]);
 
   const sizingMode = useMemo<SizingMode>(() => {
     if (!product) return "shoe";
@@ -592,6 +636,23 @@ export default function ProductPage() {
 
   const { addToCart, openCart } = useStore();
 
+  function toggleFavorite() {
+    if (!product) return;
+
+    const id = getFavoriteId(product, slug);
+    if (!id) return;
+
+    const current = readFavoriteIds();
+    const exists = current.includes(id);
+    const next = exists ? current.filter((x) => x !== id) : [...current, id];
+
+    writeFavoriteIds(next);
+    setIsFavorite(!exists);
+    setToast(exists ? "Eliminado de favoritos" : "Añadido a favoritos");
+
+    window.setTimeout(() => setToast(null), 1600);
+  }
+
   function onBuyReal(mode: "add" | "now") {
     setAttemptedBuy(true);
 
@@ -670,6 +731,19 @@ export default function ProductPage() {
                 ) : null}
 
                 <div className="imgBox">
+                  <button
+                    type="button"
+                    className={`favBtn ${isFavorite ? "on" : ""}`}
+                    onClick={toggleFavorite}
+                    aria-label={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+                    aria-pressed={isFavorite}
+                    title={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true" className="favIcon">
+                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                    </svg>
+                  </button>
+
                   {imgs[activeImg] ? <img src={imgs[activeImg]} alt={title} /> : <div className="ph" />}
 
                   <div className="imgBadge">
@@ -1010,6 +1084,52 @@ export default function ProductPage() {
           user-select: none;
           -webkit-user-select: none;
           transform: translateZ(0);
+        }
+
+        .favBtn {
+          position: absolute;
+          top: 14px;
+          right: 14px;
+          z-index: 4;
+          width: 54px;
+          height: 54px;
+          border-radius: 999px;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          background: rgba(255, 255, 255, 0.92);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+          box-shadow: 0 18px 44px rgba(0, 0, 0, 0.12);
+          display: grid;
+          place-items: center;
+          cursor: pointer;
+          transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease, border-color 140ms ease;
+        }
+        .favBtn:hover {
+          transform: translateY(-1px) scale(1.02);
+          box-shadow: 0 22px 54px rgba(0, 0, 0, 0.16);
+          background: rgba(255, 255, 255, 0.98);
+        }
+        .favBtn:active {
+          transform: scale(0.98);
+        }
+        .favBtn.on {
+          border-color: rgba(255, 70, 100, 0.28);
+          background: rgba(255, 240, 244, 0.96);
+          box-shadow: 0 0 0 4px rgba(255, 70, 100, 0.08), 0 22px 54px rgba(0, 0, 0, 0.14);
+        }
+        .favIcon {
+          width: 24px;
+          height: 24px;
+          display: block;
+          fill: transparent;
+          stroke: rgba(0, 0, 0, 0.82);
+          stroke-width: 2;
+          transition: fill 140ms ease, stroke 140ms ease, transform 140ms ease;
+        }
+        .favBtn.on .favIcon {
+          fill: #ff4d6d;
+          stroke: #ff4d6d;
+          transform: scale(1.06);
         }
 
         .imgGlow {
@@ -1541,6 +1661,12 @@ export default function ProductPage() {
           }
           .colorGrid {
             grid-template-columns: 1fr;
+          }
+          .favBtn {
+            width: 50px;
+            height: 50px;
+            top: 12px;
+            right: 12px;
           }
         }
 

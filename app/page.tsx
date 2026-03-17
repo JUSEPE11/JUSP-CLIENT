@@ -461,6 +461,28 @@ export default function Page() {
     window.scrollTo(0, 0);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(FAVORITES_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      setFavoriteIds(Array.isArray(parsed) ? parsed.map((v) => String(v)) : []);
+    } catch {
+      setFavoriteIds([]);
+    }
+  }, []);
+
+  const toggleFavorite = (productId: string) => {
+    setFavoriteIds((prev) => {
+      const exists = prev.includes(productId);
+      const next = exists ? prev.filter((id) => id !== productId) : [...prev, productId];
+      try {
+        window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
+
   const videos = ["/home/video/hero-1.mp4", "/home/video/hero-2.mp4"];
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [videoIndex, setVideoIndex] = useState(0);
@@ -497,6 +519,8 @@ export default function Page() {
 
   const SEARCH_RECENTS_KEY = "jusp_home_search_recents_v1";
   const USER_KEY = "jusp_user_v1";
+  const FAVORITES_KEY = "jusp_home_favorites_v1";
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const [q, setQ] = useState("");
   const [searchRecents, setSearchRecents] = useState<string[]>([]);
@@ -1799,37 +1823,83 @@ export default function Page() {
               gap: 14,
             }}
           >
-            {ALL_PRODUCTS.filter((p) => matchesHomeProductFilter(p, homeProductFilter)).map((p) => (
-              <a
-                key={p.id}
-                href={p.href}
-                style={{
-                  display: "block",
-                  textDecoration: "none",
-                  color: "inherit",
-                  borderRadius: 18,
-                  border: "1px solid rgba(0,0,0,0.08)",
-                  background: "white",
-                  overflow: "hidden",
-                  boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
-                }}
-              >
-                <div style={{ position: "relative", background: "#f7f7f7" }}>
-                  <div className="__jusp_home_product_media" style={{ height: 220, position: "relative" }}>
-                    <SmartImg
-                      baseSrc={p.imgBase}
-                      alt={p.name}
-                      style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
-                    />
-                  </div>
-                </div>
+            {ALL_PRODUCTS.filter((p) => matchesHomeProductFilter(p, homeProductFilter)).map((p) => {
+              const isFavorite = favoriteIds.includes(String(p.id));
 
-                <div style={{ padding: 12 }}>
-                  <div style={{ fontWeight: 1000, fontSize: 14, lineHeight: 1.2 }}>{p.name}</div>
-                  <div style={{ marginTop: 6, fontSize: 12, opacity: 0.72 }}>{p.price ?? "Oferta"}</div>
-                </div>
-              </a>
-            ))}
+              return (
+                <a
+                  key={p.id}
+                  href={p.href}
+                  style={{
+                    display: "block",
+                    textDecoration: "none",
+                    color: "inherit",
+                    borderRadius: 18,
+                    border: "1px solid rgba(0,0,0,0.08)",
+                    background: "white",
+                    overflow: "hidden",
+                    boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
+                  }}
+                >
+                  <div style={{ position: "relative", background: "#f7f7f7" }}>
+                    <button
+                      type="button"
+                      aria-label={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+                      aria-pressed={isFavorite}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleFavorite(String(p.id));
+                      }}
+                      style={{
+                        position: "absolute",
+                        top: 10,
+                        right: 10,
+                        zIndex: 3,
+                        width: 40,
+                        height: 40,
+                        borderRadius: 999,
+                        border: "1px solid rgba(0,0,0,0.08)",
+                        background: "rgba(255,255,255,0.96)",
+                        display: "grid",
+                        placeItems: "center",
+                        cursor: "pointer",
+                        boxShadow: "0 10px 24px rgba(0,0,0,0.10)",
+                        transform: isFavorite ? "scale(1.04)" : "scale(1)",
+                        transition: "transform 180ms ease, box-shadow 180ms ease, background 180ms ease",
+                        backdropFilter: "blur(10px)",
+                      }}
+                    >
+                      <span
+                        aria-hidden="true"
+                        style={{
+                          fontSize: 18,
+                          lineHeight: 1,
+                          color: isFavorite ? "#e11d48" : "rgba(0,0,0,0.80)",
+                          transition: "transform 180ms ease, color 180ms ease",
+                          transform: isFavorite ? "scale(1.08)" : "scale(1)",
+                        }}
+                      >
+                        {isFavorite ? "♥" : "♡"}
+                      </span>
+                    </button>
+
+                    <div className="__jusp_home_product_media" style={{ height: 220, position: "relative" }}>
+                      <SmartImg
+                        baseSrc={p.imgBase}
+                        alt={p.name}
+                        style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ padding: 12 }}>
+                    <div style={{ fontWeight: 1000, fontSize: 14, lineHeight: 1.2 }}>{p.name}</div>
+                    <div style={{ marginTop: 6, fontSize: 12, opacity: 0.72 }}>{p.price ?? "Oferta"}</div>
+                  </div>
+                </a>
+              );
+            })}
           </div>
 
           <style>{`
