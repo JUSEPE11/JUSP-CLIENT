@@ -576,7 +576,6 @@ export default function PedidoDetallePage() {
             <div className="pd-kicker">CUENTA</div>
             <h1 className="pd-title">Detalle del pedido</h1>
             <p className="pd-sub">
-              Vista PRO MAX: estado, pago, tracking, envío, ruta logística y productos. Todo sale de tu API real <b>/api/orders/[id]</b>.
             </p>
 
             <div className="pd-badges">
