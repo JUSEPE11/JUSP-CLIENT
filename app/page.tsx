@@ -415,139 +415,7 @@ type UserSession = {
 
 type SearchItem = { id: string; name: string; href: string; img: string; brand?: string };
 
-const SAVED_TOP_KEY = "jusp_saved_top_picks_v1";
-
-function useLocalStorageStringArray(key: string) {
-  const [value, setValue] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const raw = window.localStorage.getItem(key);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) setValue(parsed.map(String));
-      }
-    } catch {}
-  }, [key]);
-
-  const save = (next: string[]) => {
-    setValue(next);
-    try {
-      window.localStorage.setItem(key, JSON.stringify(next));
-    } catch {}
-  };
-
-  return [value, save] as const;
-}
-
-function TopPickMedia({ baseSrc, alt, active }: { baseSrc: string; alt: string; active: boolean }) {
-  const isMobile = useIsMobile();
-  const [ready, setReady] = React.useState(false);
-
-  React.useEffect(() => {
-    setReady(false);
-    const id = requestAnimationFrame(() => setReady(true));
-    return () => cancelAnimationFrame(id);
-  }, [baseSrc]);
-
-  const softMotion = isMobile;
-
-  const wrapStyle: React.CSSProperties = {
-    position: "absolute",
-    inset: 0,
-    borderRadius: 24,
-    overflow: "hidden",
-    transformStyle: "preserve-3d",
-    backfaceVisibility: "hidden",
-    willChange: "transform, opacity",
-    transitionProperty: "transform, opacity",
-    transitionDuration: softMotion ? "520ms" : "600ms",
-    transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
-    transformOrigin: "50% 60%",
-    opacity: active ? 1 : 0,
-    transform: active
-      ? softMotion
-        ? "translate3d(0,-1px,0) scale(1)"
-        : "perspective(900px) translateZ(0) rotateX(2deg) rotateY(-6deg) translateY(-2px) scale(1)"
-      : softMotion
-        ? "translate3d(0,10px,0) scale(0.992)"
-        : "perspective(900px) translateZ(0) rotateX(0deg) rotateY(0deg) translateY(10px) scale(0.985)",
-  };
-
-  const imgLayerStyle: React.CSSProperties = {
-    position: "absolute",
-    inset: 0,
-    opacity: ready ? 1 : 0,
-    transform: ready ? "translate3d(0,0,0) scale(1)" : "translate3d(0,8px,0) scale(0.995)",
-    transitionProperty: "opacity, transform",
-    transitionDuration: softMotion ? "420ms" : "480ms",
-    transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
-    willChange: "opacity, transform",
-  };
-
-  return (
-    <div style={wrapStyle} aria-hidden={!active}>
-      <div style={imgLayerStyle}>
-        <SmartImg
-          key={baseSrc}
-          baseSrc={baseSrc}
-          alt={alt}
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "contain",
-            display: "block",
-            transform: "scale(0.94)",
-            transformOrigin: "center",
-          }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function SaveTopButton({
-  id,
-  saved,
-  onToggle,
-}: {
-  id: string;
-  saved: boolean;
-  onToggle: (id: string) => void;
-}) {
-  return (
-    <button
-      type="button"
-      className="jusp-btn jusp-save jusp-focus"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onToggle(id);
-      }}
-      style={{
-        appearance: "none",
-        border: "1px solid rgba(255,255,255,0.22)",
-        background: saved ? "rgba(255,255,255,0.95)" : "rgba(0,0,0,0.30)",
-        color: saved ? "#000" : "#fff",
-        borderRadius: 999,
-        padding: "9px 12px",
-        fontSize: 12,
-        fontWeight: 900,
-        cursor: "pointer",
-        backdropFilter: "blur(10px)",
-      }}
-      aria-label={saved ? "Guardado" : "Guardar"}
-      title={saved ? "Guardado" : "Guardar"}
-      data-saved={saved ? "1" : "0"}
-    >
-      {saved ? "Guardado" : "Guardar"}
-    </button>
-  );
-}
-
 export default function Page() {
-  const [savedTopIds, setSavedTopIds] = useLocalStorageStringArray(SAVED_TOP_KEY);
   const [catalogProducts, setCatalogProducts] = useState<Product[]>([]);
 
   useEffect(() => {
@@ -577,9 +445,7 @@ export default function Page() {
 
   const ALL_PRODUCTS = useMemo(() => mapProductsToTopItems(catalogProducts), [catalogProducts]);
 
-  const [topQuery, setTopQuery] = useState("");
   const [homeProductFilter, setHomeProductFilter] = useState<"all" | "men" | "women" | "accessories" | "kids">("all");
-  const TOP_CHIPS = useMemo(() => ["Nike", "Jordan", "Adidas", "Dunk", "Air Max", "Tech Fleece"], []);
 
   const isMobile = useIsMobile();
   const reduceMotion = usePrefersReducedMotion();
@@ -615,7 +481,19 @@ export default function Page() {
     };
   }, [videoIndex]);
 
-  const topItems = TOP_ITEMS;
+  const topItems = useMemo(() => {
+    const live = ALL_PRODUCTS.filter((item) => String(item.imgBase || "").trim());
+    if (live.length >= 4) return live.slice(0, 10);
+
+    const merged = [...live];
+    for (const fallback of TOP_ITEMS) {
+      if (merged.length >= 10) break;
+      if (merged.some((it) => it.id === fallback.id || it.href === fallback.href)) continue;
+      merged.push(fallback);
+    }
+
+    return merged.slice(0, 10);
+  }, [ALL_PRODUCTS]);
 
   const SEARCH_RECENTS_KEY = "jusp_home_search_recents_v1";
   const USER_KEY = "jusp_user_v1";
@@ -1655,74 +1533,6 @@ export default function Page() {
             <div className="tpHeader">
               <div>
                 <div className="tpKicker">LO MÁS TOP</div>
-                <h2 className="tpTitle"></h2>
-              </div>
-
-              <Link className="tpAll" href="/search?tab=top">
-                Ver todo →
-              </Link>
-            </div>
-
-            <div className="tpControls">
-              <form
-                className="tpSearch"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (topQuery.trim()) window.location.href = `/search?q=${encodeURIComponent(topQuery.trim())}`;
-                }}
-              >
-                <span aria-hidden style={{ opacity: 0.65, fontSize: 14 }}>🔎</span>
-                <input
-                  value={topQuery}
-                  onChange={(e) => setTopQuery(e.target.value)}
-                  placeholder="Buscar (ej: Air Force, hoodie...)"
-                  style={{
-                    border: "none",
-                    outline: "none",
-                    flex: 1,
-                    minWidth: 0,
-                    fontSize: 14,
-                    background: "transparent",
-                  }}
-                />
-                <button
-                  type="submit"
-                  className="jusp-btn jusp-focus"
-                  style={{
-                    border: "none",
-                    background: "#0b0b0b",
-                    color: "#fff",
-                    borderRadius: 999,
-                    padding: "10px 14px",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  Buscar
-                </button>
-              </form>
-
-              <div className="tpChips">
-                {TOP_CHIPS.map((c) => (
-                  <button
-                    key={c}
-                    className="jusp-btn jusp-focus"
-                    onClick={() => {
-                      setTopQuery(c);
-                      window.location.href = `/search?q=${encodeURIComponent(c)}`;
-                    }}
-                    style={{
-                      border: "1px solid #e7e7e7",
-                      background: "#f7f7f7",
-                      borderRadius: 999,
-                      padding: "10px 14px",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {c}
-                  </button>
-                ))}
               </div>
             </div>
 
@@ -1882,97 +1692,63 @@ export default function Page() {
                       background: "#fff",
                     }}
                   >
-                    <div style={{ height: "min(66vh, 520px)", minHeight: 360, background: "#f6f6f6", position: "relative" }}>
-                      <TopPickMedia baseSrc={it.imgBase} alt={it.name} active={isActive} />
+                    <div
+                      style={{
+                        height: isMobile ? "min(68vh, 560px)" : "min(78vh, 680px)",
+                        minHeight: isMobile ? 360 : 500,
+                        background: "linear-gradient(180deg, #fbfbfb 0%, #f3f3f3 100%)",
+                        position: "relative",
+                      }}
+                    >
+                      <SmartImg
+                        baseSrc={it.imgBase}
+                        alt={it.name}
+                        loading={idx <= 1 ? "eager" : "lazy"}
+                        fetchPriority={idx === 0 ? "high" : idx === 1 ? "high" : "auto"}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "contain",
+                          objectPosition: "center center",
+                          transform: isActive ? "scale(1.02)" : "scale(1)",
+                          transition: "transform 900ms cubic-bezier(.22,1,.36,1), opacity 400ms ease",
+                          willChange: "transform",
+                          display: "block",
+                          background: "#f6f6f6",
+                          padding: isMobile ? "14px" : "24px",
+                        }}
+                      />
                       <div
                         style={{
                           position: "absolute",
                           inset: 0,
-                          background: "radial-gradient(1200px 520px at 50% 55%, rgba(0,0,0,0.0) 35%, rgba(0,0,0,0.38) 100%)",
+                          background: isMobile
+                            ? "linear-gradient(180deg, rgba(255,255,255,0.00) 0%, rgba(255,255,255,0.00) 62%, rgba(0,0,0,0.06) 100%)"
+                            : "radial-gradient(1200px 560px at 50% 50%, rgba(255,255,255,0.00) 48%, rgba(0,0,0,0.08) 100%)",
                           pointerEvents: "none",
-                          opacity: isActive ? 1 : 0.72,
-                          transition: "opacity 420ms ease",
+                          opacity: isActive ? 1 : 0.9,
+                          transition: "opacity 520ms ease",
                         }}
                       />
-                      <div style={{ position: "absolute", left: 0, bottom: 0, height: 3, width: "100%", background: "rgba(255,255,255,0.16)" }}>
+                      <div
+                        style={{
+                          position: "absolute",
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          height: 3,
+                          background: "rgba(255,255,255,0.14)",
+                        }}
+                      >
                         <div
                           style={{
                             height: "100%",
                             width: isActive ? "100%" : "0%",
                             background: "#fff",
-                            opacity: 0.92,
-                            transition: isActive ? "width 2600ms linear" : "width 220ms ease",
+                            opacity: 0.96,
+                            transition: isActive ? `width ${isMobile ? 5200 : 3600}ms linear` : "width 220ms ease",
                           }}
                         />
-                      </div>
-
-                      <div
-                        style={{
-                          position: "absolute",
-                          left: 16,
-                          right: 16,
-                          bottom: 14,
-                          display: "flex",
-                          alignItems: "end",
-                          justifyContent: "space-between",
-                          gap: 12,
-                          padding: "14px 14px",
-                          borderRadius: 18,
-                          background: "linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.55) 100%)",
-                          color: "#fff",
-                          backdropFilter: "blur(8px)",
-                          border: "1px solid rgba(255,255,255,0.14)",
-                        }}
-                      >
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 1.2, opacity: 0.9 }}>
-                            {(it.brand || "JUSP").toUpperCase()} · ORIGINALES
-                          </div>
-                          <div
-                            style={{
-                              marginTop: 6,
-                              fontSize: 18,
-                              fontWeight: 1000,
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            }}
-                          >
-                            {it.name}
-                          </div>
-                          <div style={{ marginTop: 6, fontSize: 12, opacity: 0.85 }}>
-                            {it.price || "Drop Top"} · Envío internacional transparente
-                          </div>
-                        </div>
-
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, flex: "0 0 auto" }}>
-                          <SaveTopButton
-                            id={it.id}
-                            saved={savedTopIds.includes(it.id)}
-                            onToggle={(id) => {
-                              const next = savedTopIds.includes(id)
-                                ? savedTopIds.filter((x) => x !== id)
-                                : [...savedTopIds, id];
-                              setSavedTopIds(next);
-                            }}
-                          />
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              width: 36,
-                              height: 36,
-                              borderRadius: 999,
-                              background: "rgba(255,255,255,0.90)",
-                              color: "#000",
-                              fontWeight: 1000,
-                            }}
-                            aria-hidden="true"
-                          >
-                            →
-                          </span>
-                        </div>
                       </div>
                     </div>
                   </Link>
@@ -1981,9 +1757,6 @@ export default function Page() {
             </div>
           </div>
 
-          <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px", fontSize: 12, opacity: 0.7 }}>
-            Desliza horizontalmente para ver más.
-          </div>
         </div>
       </section>
 
