@@ -55,7 +55,7 @@ async function fetchOrderByReference(reference: string): Promise<OrderRow | null
 
   const base = `${url.replace(/\/+$/, "")}/rest/v1/orders`;
   const select =
-    "id,order_code,status,total_cop,customer_email,phone,created_at,updated_at";
+    "id,order_code,status,total_cop,currency,customer_email,phone,created_at,updated_at";
 
   const endpoints = [
     `${base}?select=${select}&order_code=eq.${encodeURIComponent(reference)}&limit=1`,
@@ -297,15 +297,15 @@ function CheckoutSuccessContent() {
               </div>
 
               <div className="row">
-                <span>ID de pago Wompi</span>
-                <b>{order?.payment_id || "—"}</b>
+                <span>Referencia JUSP</span>
+                <b>{order?.order_code || "—"}</b>
               </div>
 
               <div className="row">
                 <span>Total</span>
                 <b>
-                  {typeof order?.total_amount === "number"
-                    ? `$${moneyCOP(order.total_amount)}`
+                  {typeof order?.total_cop === "number"
+                    ? `$${moneyCOP(order.total_cop)}`
                     : "—"}
                 </b>
               </div>
@@ -476,6 +476,14 @@ const baseCss = `
     font-weight:900;
     color:rgba(0,0,0,0.66);
     max-width:760px;
+  }
+
+  .heroMeta{
+    margin:10px 0 0;
+    font-size:14px;
+    line-height:1.45;
+    font-weight:900;
+    color:rgba(0,0,0,0.72);
   }
 
   .actions{
