@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 type OrderItem = {
@@ -26,6 +26,7 @@ type ShippingAddress = {
 
 type OrderRow = {
   id: string;
+  order_code?: string | null;
   created_at: string;
   status?: string | null;
   payment_status?: string | null;
@@ -107,10 +108,6 @@ function compactId(id: string) {
   return `${s.slice(0, 8)}…${s.slice(-4)}`;
 }
 
-function safeStr(v: unknown) {
-  return typeof v === "string" ? v : "";
-}
-
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
@@ -146,7 +143,6 @@ function uniqNonEmpty(list: string[]) {
 }
 
 function buildOrderSummary(items: OrderItem[]) {
-  // “Compra 1/3 items” + chips talla/color + title principal
   const countLines = items.length;
   const countItems = items.reduce((acc, it) => acc + (Number(it?.qty) || 0), 0);
 
@@ -220,6 +216,7 @@ type FilterKey = "all" | "paid" | "shipped" | "delivered";
 
 export default function MisPedidosPage() {
   const r = useRouter();
+  const searchParams = useSearchParams();
 
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<OrderRow[]>([]);
@@ -231,7 +228,14 @@ export default function MisPedidosPage() {
 
   const mounted = useRef(true);
   const toastTimer = useRef<any>(null);
-  const [entered, setEntered] = useState(false); // ✅ para animación suave (page enter)
+  const redirectedRef = useRef(false);
+  const [entered, setEntered] = useState(false);
+
+  const highlight = useMemo(() => {
+    return String(searchParams.get("highlight") || "")
+      .trim()
+      .toLowerCase();
+  }, [searchParams]);
 
   useEffect(() => {
     mounted.current = true;
@@ -242,7 +246,6 @@ export default function MisPedidosPage() {
   }, []);
 
   useEffect(() => {
-    // ✅ page enter (sin librerías)
     const t = setTimeout(() => setEntered(true), 10);
     return () => clearTimeout(t);
   }, []);
@@ -298,6 +301,27 @@ export default function MisPedidosPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (loading) return;
+    if (!highlight) return;
+    if (redirectedRef.current) return;
+    if (!orders.length) return;
+
+    const match = orders.find((o) => {
+      const id = String(o.id || "").trim().toLowerCase();
+      const code = String(o.order_code || "").trim().toLowerCase();
+      return id === highlight || code === highlight;
+    });
+
+    if (match?.id) {
+      redirectedRef.current = true;
+      r.replace(`/mis-pedidos/${encodeURIComponent(String(match.id))}?highlight=${encodeURIComponent(highlight)}`);
+      return;
+    }
+
+    showToast("No encontramos ese pedido en tu cuenta.");
+  }, [loading, highlight, orders, r]);
+
   const kpis = useMemo(() => {
     const total = orders.length;
     const paid = orders.filter((o) => String(o.payment_status || "").toLowerCase() === "paid").length;
@@ -320,7 +344,11 @@ export default function MisPedidosPage() {
     }
 
     if (qq) {
-      list = list.filter((o) => String(o.id || "").toLowerCase().includes(qq));
+      list = list.filter((o) => {
+        const id = String(o.id || "").toLowerCase();
+        const code = String(o.order_code || "").toLowerCase();
+        return id.includes(qq) || code.includes(qq);
+      });
     }
 
     return list;
@@ -329,7 +357,6 @@ export default function MisPedidosPage() {
   return (
     <main className={`mp-root ${entered ? "entered" : ""}`}>
       <div className="mp-wrap">
-        {/* Top header premium */}
         <div className="hero">
           <div className="hero-left">
             <div className="crumbs">
@@ -383,7 +410,6 @@ export default function MisPedidosPage() {
               </button>
             </div>
 
-            {/* Filtros + búsqueda */}
             <div className="toolbar">
               <div className="chips" role="tablist" aria-label="Filtros">
                 <button className={`chip ${filter === "all" ? "on" : ""}`} onClick={() => setFilter("all")} type="button">
@@ -415,7 +441,7 @@ export default function MisPedidosPage() {
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
-                  placeholder="Buscar por ID…"
+                  placeholder="Buscar por ID o código…"
                   className="search-in"
                   inputMode="text"
                 />
@@ -508,13 +534,20 @@ export default function MisPedidosPage() {
 
               const statusProg = clamp(progressForStatus(o.status), 0, 100);
               const canceled = isCancelled(o.status);
+              const isHighlighted =
+                !!highlight &&
+                (String(o.id || "").trim().toLowerCase() === highlight ||
+                  String(o.order_code || "").trim().toLowerCase() === highlight);
 
               const topImgs = items.slice(0, 3).map((it) => it.image).filter(Boolean) as string[];
               const sum = buildOrderSummary(items);
 
               return (
-                <div key={o.id} className="card" style={{ ["--i" as any]: idx }}>
-                  {/* ✅ Summary strip (arriba del card) */}
+                <div
+                  key={o.id}
+                  className={`card ${isHighlighted ? "hl" : ""}`}
+                  style={{ ["--i" as any]: idx }}
+                >
                   <div className="summary">
                     <div className="summary-left">
                       <div className="summary-meta">{sum.metaLine}</div>
@@ -536,12 +569,17 @@ export default function MisPedidosPage() {
                     </div>
                   </div>
 
-                  {/* Top */}
                   <div className="card-head">
                     <div className="card-left">
                       <div className="card-kicker">PEDIDO</div>
                       <div className="card-id">
                         <span className="mono">{compactId(String(o.id))}</span>
+                        {o.order_code ? (
+                          <>
+                            <span className="dot">•</span>
+                            <span className="mono code">{String(o.order_code)}</span>
+                          </>
+                        ) : null}
                         <span className="dot">•</span>
                         <span className="muted">{fmtDate(o.created_at)}</span>
                       </div>
@@ -553,12 +591,10 @@ export default function MisPedidosPage() {
                     </div>
                   </div>
 
-                  {/* Progress bar */}
                   <div className="bar">
                     <div className={`bar-fill ${canceled ? "bad" : ""}`} style={{ width: `${statusProg}%` }} />
                   </div>
 
-                  {/* Body */}
                   <div className="card-body">
                     <div className="row">
                       <div className="meta">
@@ -589,7 +625,6 @@ export default function MisPedidosPage() {
                       {topImgs.length ? (
                         topImgs.map((src, i) => (
                           <div key={src + i} className="img">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={src} alt="item" loading="lazy" />
                           </div>
                         ))
@@ -640,7 +675,10 @@ export default function MisPedidosPage() {
                           Copiar ID
                         </button>
 
-                        <Link className="btn small" href={`/mis-pedidos/${encodeURIComponent(String(o.id))}`}>
+                        <Link
+                          className="btn small"
+                          href={`/mis-pedidos/${encodeURIComponent(String(o.id))}${o.order_code ? `?highlight=${encodeURIComponent(String(o.order_code))}` : ""}`}
+                        >
                           Ver detalle
                         </Link>
                       </div>
@@ -679,7 +717,6 @@ export default function MisPedidosPage() {
           margin: 0 auto;
         }
 
-        /* HERO */
         .hero {
           display: grid;
           grid-template-columns: 1.15fr 0.85fr;
@@ -850,7 +887,6 @@ export default function MisPedidosPage() {
           background: rgba(0, 0, 0, 0.18);
         }
 
-        /* GRID + CARD */
         .grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -872,6 +908,10 @@ export default function MisPedidosPage() {
           animation: cardIn 360ms ease forwards;
           animation-delay: calc(var(--i, 0) * 40ms);
         }
+        .card.hl {
+          border-color: rgba(255, 214, 0, 0.85);
+          box-shadow: 0 28px 80px rgba(255, 214, 0, 0.18);
+        }
         @keyframes cardIn {
           to {
             opacity: 1;
@@ -885,7 +925,6 @@ export default function MisPedidosPage() {
           border-color: rgba(0, 0, 0, 0.12);
         }
 
-        /* ✅ Summary strip */
         .summary {
           padding: 12px 14px;
           display: flex;
@@ -964,6 +1003,9 @@ export default function MisPedidosPage() {
           font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
           font-weight: 950;
           color: #111;
+        }
+        .mono.code {
+          color: rgba(0, 0, 0, 0.72);
         }
         .dot {
           opacity: 0.5;
@@ -1153,7 +1195,6 @@ export default function MisPedidosPage() {
           flex-wrap: wrap;
         }
 
-        /* BUTTONS */
         .btn {
           border: 0;
           border-radius: 999px;
@@ -1193,7 +1234,6 @@ export default function MisPedidosPage() {
           display: inline-flex;
         }
 
-        /* ALERT */
         .alert {
           margin-top: 12px;
           border-radius: 18px;
@@ -1224,7 +1264,6 @@ export default function MisPedidosPage() {
           color: rgba(127, 29, 29, 0.9);
         }
 
-        /* EMPTY */
         .empty {
           margin-top: 12px;
           display: grid;
@@ -1294,7 +1333,6 @@ export default function MisPedidosPage() {
           flex-wrap: wrap;
         }
 
-        /* SKELETON */
         .sk {
           opacity: 1;
           transform: translateY(0);
@@ -1366,7 +1404,6 @@ export default function MisPedidosPage() {
           }
         }
 
-        /* TOAST */
         .toast {
           position: fixed;
           right: 16px;
