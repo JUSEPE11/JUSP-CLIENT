@@ -35,6 +35,7 @@ function getDeliveryEstimate() {
 const SHIPPING_KEY = "jusp_checkout_shipping_v1";
 const SHIPPING_PRICE = 99990;
 const FREE_SHIPPING_MIN_ITEMS = 4;
+const CREATE_ORDER_ENDPOINT = "/api/orders/create";
 
 const COLOMBIA_DEPARTMENTS = [
   "Amazonas",
@@ -278,49 +279,71 @@ export default function CheckoutPage() {
     try {
       const amountInCents = centsCOP(summary.total);
 
+      const payload = {
+        amountInCents,
+        currency: "COP",
+        reference: orderRef,
+        customer: {
+          fullName: ship.fullName.trim(),
+          email: ship.email.trim(),
+          documentType: ship.documentType,
+          documentNumber: ship.documentNumber.trim(),
+          phone: ship.phone.trim(),
+        },
+        shipping: {
+          fullName: ship.fullName.trim(),
+          email: ship.email.trim(),
+          documentType: ship.documentType,
+          documentNumber: ship.documentNumber.trim(),
+          phone: ship.phone.trim(),
+          city: ship.city.trim(),
+          region: ship.region.trim(),
+          addressLine1: ship.addressLine1.trim(),
+          notes: ship.notes.trim(),
+          country: "CO",
+        },
+        items: items.map((it) => ({
+          id: it.id,
+          product_id: it.id,
+          name: it.name,
+          qty: it.qty,
+          price: it.price,
+          image: it.image ?? null,
+          size: it.size ?? null,
+          color: it.color ?? null,
+        })),
+        totals: {
+          subtotal: summary.subtotal,
+          shipping: summary.shipping,
+          total: summary.total,
+        },
+      };
+
+      const createRes = await fetch(CREATE_ORDER_ENDPOINT, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        credentials: "include",
+        cache: "no-store",
+        body: JSON.stringify(payload),
+      });
+
+      const createData = await createRes.json().catch(() => null);
+
+      if (createRes.status === 401) {
+        goToLogin();
+        return;
+      }
+
+      if (!createRes.ok || !createData?.ok) {
+        alert(createData?.error || "No se pudo crear tu orden antes de iniciar el pago.");
+        return;
+      }
+
       const res = await fetch("/api/wompi/checkout-url", {
         method: "POST",
         headers: { "content-type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          amountInCents,
-          currency: "COP",
-          reference: orderRef,
-          customer: {
-            fullName: ship.fullName.trim(),
-            email: ship.email.trim(),
-            documentType: ship.documentType,
-            documentNumber: ship.documentNumber.trim(),
-            phone: ship.phone.trim(),
-          },
-          shipping: {
-            fullName: ship.fullName.trim(),
-            email: ship.email.trim(),
-            documentType: ship.documentType,
-            documentNumber: ship.documentNumber.trim(),
-            phone: ship.phone.trim(),
-            city: ship.city.trim(),
-            region: ship.region.trim(),
-            addressLine1: ship.addressLine1.trim(),
-            notes: ship.notes.trim(),
-            country: "CO",
-          },
-          items: items.map((it) => ({
-            id: it.id,
-            product_id: it.id,
-            name: it.name,
-            qty: it.qty,
-            price: it.price,
-            image: it.image ?? null,
-            size: it.size ?? null,
-            color: it.color ?? null,
-          })),
-          totals: {
-            subtotal: summary.subtotal,
-            shipping: summary.shipping,
-            total: summary.total,
-          },
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json().catch(() => null);

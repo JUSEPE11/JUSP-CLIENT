@@ -10,7 +10,7 @@ function moneyCOP(n: number) {
 }
 
 const DRAFT_KEY = "jusp_checkout_draft_v1";
-const ORDERS_KEY = "jusp_orders_local_v1";
+const CREATE_ORDER_ENDPOINT = "/api/orders/create";
 
 function safeParse(raw: string | null) {
   if (!raw) return null;
@@ -50,33 +50,65 @@ export default function PayClient() {
     return Number(t) || 0;
   }, [draft, cartTotal]);
 
-  function createLocalOrder() {
+  async function createRealOrder() {
     const now = Date.now();
-    const orderId = `JUSP-${now.toString(36).toUpperCase()}`;
+    const reference = `JUSP-${now.toString(36).toUpperCase()}`;
 
-    const order = {
-      id: orderId,
-      createdAt: now,
-      status: "created_local",
-      payment: {
-        method,
-        status: "pending_placeholder",
-      },
-      customer: draft?.customer ?? null,
-      items: draft?.items ?? state.cart,
-      totals: draft?.totals ?? { subtotal: cartTotal, shipping: 0, total },
-      currency: "COP",
-    };
+    const customer = draft?.customer ?? {};
+    const shipping = draft?.shipping ?? customer ?? {};
 
-    const prev = safeParse(localStorage.getItem(ORDERS_KEY));
-    const list = Array.isArray(prev) ? prev : [];
-    list.unshift(order);
+    const res = await fetch(CREATE_ORDER_ENDPOINT, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      credentials: "include",
+      cache: "no-store",
+      body: JSON.stringify({
+        reference,
+        currency: "COP",
+        customer: {
+          fullName: String(customer?.fullName ?? shipping?.fullName ?? ""),
+          email: String(customer?.email ?? shipping?.email ?? ""),
+          documentType: String(customer?.documentType ?? shipping?.documentType ?? ""),
+          documentNumber: String(customer?.documentNumber ?? shipping?.documentNumber ?? ""),
+          phone: String(customer?.phone ?? shipping?.phone ?? ""),
+        },
+        shipping: {
+          fullName: String(shipping?.fullName ?? customer?.fullName ?? ""),
+          email: String(shipping?.email ?? customer?.email ?? ""),
+          documentType: String(shipping?.documentType ?? customer?.documentType ?? ""),
+          documentNumber: String(shipping?.documentNumber ?? customer?.documentNumber ?? ""),
+          phone: String(shipping?.phone ?? customer?.phone ?? ""),
+          city: String(shipping?.city ?? ""),
+          region: String(shipping?.region ?? ""),
+          addressLine1: String(shipping?.addressLine1 ?? ""),
+          notes: String(shipping?.notes ?? ""),
+          country: "CO",
+        },
+        items: draft?.items ?? state.cart,
+        totals: draft?.totals ?? { subtotal: cartTotal, shipping: 0, total },
+        payment: {
+          method,
+          status: "pending_placeholder",
+        },
+      }),
+    });
 
-    localStorage.setItem(ORDERS_KEY, JSON.stringify(list));
-    localStorage.removeItem(DRAFT_KEY);
+    const data = await res.json().catch(() => null);
+
+    if (res.status === 401) {
+      throw new Error("Debes iniciar sesión para confirmar tu pedido.");
+    }
+
+    if (!res.ok || !data?.ok) {
+      throw new Error(data?.error || "No se pudo crear la orden real.");
+    }
+
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {}
 
     clearCart();
-    router.push(`/checkout/success?oid=${encodeURIComponent(orderId)}`);
+    router.push(`/checkout/success?reference=${encodeURIComponent(data.order?.order_code || reference)}`);
   }
 
   return (
@@ -86,7 +118,7 @@ export default function PayClient() {
           <div>
             <div className="brand">JUSP</div>
             <h1 className="h1">Pago</h1>
-            <p className="sub">Placeholder PRO. Crea orden local sin backend.</p>
+            <p className="sub">Confirma tu pedido y lo creamos en el backend real.</p>
           </div>
           <div className="right">
             <Link className="back" href="/checkout">
@@ -126,8 +158,7 @@ export default function PayClient() {
             <div className="box">
               <div className="b1">Esto es un paso PRO de prueba</div>
               <div className="b2">
-                No procesa pagos todavía. Al confirmar, se crea una <b>orden local</b>{" "}
-                (localStorage) y se limpia el carrito.
+                Este paso crea la orden real en tu backend, guarda el teléfono del cliente y deja lista la referencia para seguimiento.
               </div>
             </div>
 
@@ -137,7 +168,13 @@ export default function PayClient() {
               onClick={() => {
                 setLoading(true);
                 setTimeout(() => {
-                  createLocalOrder();
+                  createRealOrder()
+                    .catch((e: any) => {
+                      alert(e?.message || "No se pudo confirmar el pedido.");
+                    })
+                    .finally(() => {
+                      setLoading(false);
+                    });
                 }, 550);
               }}
               type="button"

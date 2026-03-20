@@ -16,11 +16,11 @@ type UiStatus =
 type OrderRow = {
   id: string;
   status?: string | null;
-  total_amount?: number | null;
+  order_code?: string | null;
+  total_cop?: number | null;
   currency?: string | null;
-  payment_id?: string | null;
-  customer_name?: string | null;
-  city?: string | null;
+  customer_email?: string | null;
+  phone?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
 };
@@ -53,39 +53,44 @@ async function fetchOrderByReference(reference: string): Promise<OrderRow | null
     throw new Error("Faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY.");
   }
 
-  const endpoint =
-    `${url.replace(/\/+$/, "")}/rest/v1/orders` +
-    `?select=id,status,total_amount,currency,payment_id,customer_name,city,created_at,updated_at` +
-    `&id=eq.${encodeURIComponent(reference)}` +
-    `&limit=1`;
+  const base = `${url.replace(/\/+$/, "")}/rest/v1/orders`;
+  const select =
+    "id,order_code,status,total_cop,customer_email,phone,created_at,updated_at";
 
-  const res = await fetch(endpoint, {
-    method: "GET",
-    headers: {
-      apikey: anonKey,
-      Authorization: `Bearer ${anonKey}`,
-      "Content-Type": "application/json",
-    },
-    cache: "no-store",
-  });
+  const endpoints = [
+    `${base}?select=${select}&order_code=eq.${encodeURIComponent(reference)}&limit=1`,
+    `${base}?select=${select}&id=eq.${encodeURIComponent(reference)}&limit=1`,
+  ];
 
-  const raw = await res.text();
-  if (!res.ok) {
-    throw new Error(raw || `Error consultando la orden (${res.status})`);
+  for (const endpoint of endpoints) {
+    const res = await fetch(endpoint, {
+      method: "GET",
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+    });
+
+    const raw = await res.text();
+    if (!res.ok) {
+      throw new Error(raw || `Error consultando la orden (${res.status})`);
+    }
+
+    let json: unknown = null;
+    try {
+      json = raw ? JSON.parse(raw) : null;
+    } catch {
+      json = null;
+    }
+
+    if (Array.isArray(json) && json.length > 0) {
+      return (json[0] as OrderRow) ?? null;
+    }
   }
 
-  let json: unknown = null;
-  try {
-    json = raw ? JSON.parse(raw) : null;
-  } catch {
-    json = null;
-  }
-
-  if (!Array.isArray(json) || json.length === 0) {
-    return null;
-  }
-
-  return (json[0] as OrderRow) ?? null;
+  return null;
 }
 
 function CheckoutSuccessContent() {
@@ -222,7 +227,7 @@ function CheckoutSuccessContent() {
           <div>
             <div className="brand">JUSP</div>
             <h1 className="h1">Resultado del pago</h1>
-            <p className="sub">Validación real de tu compra contra la orden guardada.</p>
+            <p className="sub">Validación real de tu compra contra la orden guardada en tu backend.</p>
           </div>
 
           <Link className="back" href="/products">
@@ -250,6 +255,9 @@ function CheckoutSuccessContent() {
           </h2>
 
           <p className="heroText">{message}</p>
+
+          {order?.order_code ? <p className="heroMeta">Pedido: <b>{order.order_code}</b></p> : null}
+          {order?.customer_email ? <p className="heroMeta">Correo: <b>{order.customer_email}</b></p> : null}
 
           <div className="actions">
             <Link className="cta dark" href="/products">
