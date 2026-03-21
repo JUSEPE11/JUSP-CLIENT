@@ -10,7 +10,7 @@ function supabaseAdmin() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !key) {
-    throw new Error("Missing Supabase env vars (NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)");
+    throw new Error("Missing Supabase env vars");
   }
 
   return createClient(url, key, {
@@ -39,28 +39,19 @@ async function requireSession(req: NextRequest) {
   }
 }
 
-function parseIntSafe(v: string | null, fallback: number) {
-  const n = Number(v);
-  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
-}
-
 function pickUserId(payload: any): string {
-  return String(
-    payload?.sub ||
-      payload?.userId ||
-      payload?.id ||
-      ""
-  ).trim();
+  return String(payload?.sub || payload?.userId || payload?.id || "").trim();
 }
 
 function pickEmail(payload: any): string {
-  return String(
-    payload?.email ||
-      payload?.user?.email ||
-      ""
-  )
+  return String(payload?.email || payload?.user?.email || "")
     .trim()
     .toLowerCase();
+}
+
+function parseIntSafe(v: string | null, fallback: number) {
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
 }
 
 export async function GET(req: NextRequest) {
@@ -88,7 +79,6 @@ export async function GET(req: NextRequest) {
 
     const supabase = supabaseAdmin();
 
-    // 1) Intento principal: por user_id
     if (userId) {
       const byUser = await supabase
         .from("orders")
@@ -116,7 +106,6 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 2) Fallback: por customer_email
     if (email) {
       const byEmail = await supabase
         .from("orders")
@@ -149,12 +138,101 @@ export async function GET(req: NextRequest) {
         count: 0,
         page,
         limit,
-        matched_by: "none",
       },
-      { status: 200, headers: { "Cache-Control": "no-store" } }
+      { status: 200 }
     );
   } catch (e: any) {
-    const msg = typeof e?.message === "string" ? e.message : "Server error";
-    return NextResponse.json({ ok: false, error: msg }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: e?.message || "Server error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(req: NextRequest) {
+  const gate = await requireSession(req);
+  if (!gate.ok) return gate.res;
+
+  try {
+    const payload = gate.payload;
+
+    const userId = pickUserId(payload);
+    const emailSession = pickEmail(payload);
+
+    const body = await req.json();
+
+    const items = Array.isArray(body.items) ? body.items : [];
+    const shipping = body.shipping || {};
+    const totals = body.totals || {};
+    const customer = body.customer || {};
+
+    const supabase = supabaseAdmin();
+
+    const orderInsert = {
+      order_code: body.reference,
+      wompi_reference: body.reference,
+
+      status: "pending",
+      payment_status: "pending",
+      payment_provider: "wompi",
+
+      user_id: userId || null,
+      user_email: emailSession || null,
+
+      customer_email: customer.email || emailSession || null,
+      customer_name: customer.fullName || null,
+
+      phone: customer.phone || null,
+
+      document_type: customer.documentType || null,
+      document_number: customer.documentNumber || null,
+
+      address: shipping.addressLine1 || null,
+      city: shipping.city || null,
+      region: shipping.region || null,
+      country: shipping.country || "CO",
+
+      shipping_address: shipping,
+      items: items,
+
+      items_count: items.reduce((a: number, b: any) => a + (b.qty || 0), 0),
+
+      subtotal_cop: totals.subtotal || 0,
+      shipping_cop: totals.shipping || 0,
+      total_cop: totals.total || 0,
+
+      amount_cents: body.amountInCents || 0,
+      currency: body.currency || "COP",
+
+      provider: "wompi",
+
+      created_at: new Date().toISOString(),
+    };
+
+    const insert = await supabase
+      .from("orders")
+      .insert(orderInsert)
+      .select()
+      .single();
+
+    if (insert.error) {
+      return NextResponse.json(
+        { ok: false, error: insert.error.message },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        ok: true,
+        order: insert.data,
+      },
+      { status: 200 }
+    );
+  } catch (e: any) {
+    return NextResponse.json(
+      { ok: false, error: e?.message || "Server error" },
+      { status: 500 }
+    );
   }
 }
