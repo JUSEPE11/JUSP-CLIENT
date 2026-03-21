@@ -35,7 +35,7 @@ function getDeliveryEstimate() {
 const SHIPPING_KEY = "jusp_checkout_shipping_v1";
 const SHIPPING_PRICE = 99990;
 const FREE_SHIPPING_MIN_ITEMS = 4;
-const CREATE_ORDER_ENDPOINT = "/api/orders/create";
+const CREATE_ORDER_ENDPOINT = "/api/orders";
 
 const COLOMBIA_DEPARTMENTS = [
   "Amazonas",
