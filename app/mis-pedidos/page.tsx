@@ -1,8 +1,9 @@
+// app/mis-pedidos/page.tsx
 "use client";
 
 import Link from "next/link";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import React, { useEffect, useMemo, useRef, useState } from "react";
 
 type OrderItem = {
   id: string;
@@ -214,7 +215,7 @@ function Icon({ name }: { name: "refresh" | "bag" | "copy" | "truck" | "check" |
 
 type FilterKey = "all" | "paid" | "shipped" | "delivered";
 
-export default function MisPedidosPage() {
+function MisPedidosContent() {
   const r = useRouter();
   const searchParams = useSearchParams();
 
@@ -1182,10 +1183,11 @@ export default function MisPedidosPage() {
           display: inline-flex;
           align-items: center;
           gap: 8px;
+          flex-wrap: wrap;
         }
         .hint-ico {
           display: inline-flex;
-          color: rgba(16, 185, 129, 0.95);
+          opacity: 0.85;
         }
 
         .cta {
@@ -1196,38 +1198,40 @@ export default function MisPedidosPage() {
         }
 
         .btn {
-          border: 0;
-          border-radius: 999px;
-          padding: 12px 14px;
-          font-weight: 950;
-          cursor: pointer;
-          background: #111;
-          color: #fff;
-          font-size: 13px;
-          text-decoration: none;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          line-height: 1;
           gap: 10px;
-          box-shadow: 0 16px 44px rgba(0, 0, 0, 0.14);
+          border-radius: 16px;
+          min-height: 46px;
+          padding: 0 16px;
+          border: 1px solid rgba(0, 0, 0, 0.12);
+          background: #111;
+          color: #fff;
+          text-decoration: none;
+          font-size: 13px;
+          font-weight: 950;
+          cursor: pointer;
+          transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease, background 120ms ease;
+          box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+        }
+        .btn:hover {
+          transform: translateY(-1px);
+          opacity: 0.96;
         }
         .btn:disabled {
-          opacity: 0.55;
           cursor: not-allowed;
+          opacity: 0.55;
+          transform: none;
+        }
+        .btn.small {
+          min-height: 40px;
+          padding: 0 14px;
+          border-radius: 14px;
         }
         .btn.ghost {
           background: rgba(255, 255, 255, 0.92);
           color: #111;
-          border: 1px solid rgba(0, 0, 0, 0.14);
-          box-shadow: 0 16px 44px rgba(0, 0, 0, 0.06);
-        }
-        .btn.ghost:hover {
-          background: rgba(0, 0, 0, 0.03);
-        }
-        .btn.small {
-          padding: 10px 12px;
-          font-size: 12px;
           box-shadow: none;
         }
         .btn-ico {
@@ -1237,21 +1241,22 @@ export default function MisPedidosPage() {
         .alert {
           margin-top: 12px;
           border-radius: 18px;
-          padding: 12px;
+          background: rgba(239, 68, 68, 0.08);
+          border: 1px solid rgba(239, 68, 68, 0.22);
+          padding: 12px 14px;
           display: flex;
           gap: 10px;
           align-items: flex-start;
-          background: rgba(239, 68, 68, 0.1);
-          border: 1px solid rgba(239, 68, 68, 0.2);
           color: rgba(127, 29, 29, 1);
         }
         .alert-ico {
-          width: 22px;
-          height: 22px;
+          width: 26px;
+          height: 26px;
           border-radius: 999px;
-          display: grid;
-          place-items: center;
-          background: rgba(239, 68, 68, 0.18);
+          background: rgba(239, 68, 68, 0.12);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
           font-weight: 900;
           flex: 0 0 auto;
         }
@@ -1450,5 +1455,13 @@ export default function MisPedidosPage() {
         }
       `}</style>
     </main>
+  );
+}
+
+export default function MisPedidosPage() {
+  return (
+    <Suspense fallback={null}>
+      <MisPedidosContent />
+    </Suspense>
   );
 }
