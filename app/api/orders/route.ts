@@ -173,7 +173,7 @@ export async function POST(req: NextRequest) {
       wompi_reference: body.reference,
 
       status: "pending",
-      payment_status: "pending",
+      payment_status: "in_progress",
       payment_provider: "wompi",
 
       user_id: userId || null,
