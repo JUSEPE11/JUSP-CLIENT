@@ -213,30 +213,28 @@ function cleanupReservations(records: ReservationRecord[]) {
   });
 }
 
-function readActiveReservations(excludeReference?: string | null) {
-  const records = cleanupReservations(readReservationsUnsafe());
-  const exclude = String(excludeReference || "").trim();
-  const filtered = exclude ? records.filter((r) => r.reference !== exclude) : records;
+function persistCleanupIfNeeded() {
+  const current = readReservationsUnsafe();
+  const cleaned = cleanupReservations(current);
 
-  const before = JSON.stringify(records);
-  const after = JSON.stringify(filtered);
-  if (before !== JSON.stringify(readReservationsUnsafe())) {
-    writeReservationsUnsafe(records);
-  } else if (exclude && before !== after) {
-    // no-op, solo filtro en memoria
+  if (JSON.stringify(current) !== JSON.stringify(cleaned)) {
+    writeReservationsUnsafe(cleaned);
   }
 
-  return records;
+  return cleaned;
+}
+
+function readActiveReservations(excludeReference?: string | null) {
+  const records = persistCleanupIfNeeded();
+  const exclude = String(excludeReference || "").trim();
+  return exclude ? records.filter((r) => r.reference !== exclude) : records;
 }
 
 export function getActiveReservationSummary(excludeReference?: string | null) {
   const active = readActiveReservations(excludeReference);
-  const exclude = String(excludeReference || "").trim();
   const map = new Map<string, number>();
 
   for (const record of active) {
-    if (exclude && record.reference === exclude) continue;
-
     for (const item of record.items) {
       const key = stockKeyParts(
         normalizeLoose(item.slug),
@@ -405,6 +403,26 @@ export async function releaseExcelReservation(reference: string) {
     const next = current.filter((record) => record.reference !== safeReference);
     writeReservationsUnsafe(next);
     return { ok: true, released: before - next.length };
+  } finally {
+    release();
+  }
+}
+
+export async function releaseExpiredExcelReservations() {
+  const release = await acquireLock();
+  try {
+    const current = readReservationsUnsafe();
+    const cleaned = cleanupReservations(current);
+
+    if (JSON.stringify(current) !== JSON.stringify(cleaned)) {
+      writeReservationsUnsafe(cleaned);
+    }
+
+    return {
+      ok: true,
+      released: current.length - cleaned.length,
+      active: cleaned.length,
+    };
   } finally {
     release();
   }
