@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { dbGetOrderByCode, dbInsertLog, dbUpsertOrder } from "@/lib/ordersRepo";
-import { decrementExcelStock } from "@/lib/stockExcel";
+import {
+  consumeExcelReservationAndDecrement,
+  decrementExcelStock,
+  releaseExcelReservation,
+} from "@/lib/stockExcel";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -164,16 +168,38 @@ export async function POST(req: Request) {
         throw new Error(`La orden ${reference} no tiene items válidos para descontar stock.`);
       }
 
-      await decrementExcelStock(orderItems);
+      try {
+        await consumeExcelReservationAndDecrement(reference, orderItems);
+      } catch {
+        await decrementExcelStock(orderItems);
+      }
 
       await dbInsertLog({
         level: "info",
         scope: "wompi.webhook",
-        message: "Stock descontado del Excel",
+        message: "Stock descontado del Excel consumiendo reserva",
         order_id: reference,
         meta: {
           transactionId,
           items: orderItems,
+        },
+      });
+    }
+
+    if (
+      (wompiStatus === "DECLINED" || wompiStatus === "VOIDED" || wompiStatus === "ERROR") &&
+      !wasAlreadyPaid
+    ) {
+      await releaseExcelReservation(reference);
+
+      await dbInsertLog({
+        level: "warn",
+        scope: "wompi.webhook",
+        message: "Reserva de stock liberada por pago no aprobado",
+        order_id: reference,
+        meta: {
+          transactionId,
+          wompiStatus,
         },
       });
     }

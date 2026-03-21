@@ -20,6 +20,15 @@ function formatDate(date: Date) {
   });
 }
 
+function formatDateTime(date: Date) {
+  return date.toLocaleString("es-CO", {
+    day: "numeric",
+    month: "long",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 function getDeliveryEstimate() {
   const now = new Date();
 
@@ -133,6 +142,7 @@ export default function CheckoutPage() {
   const [busy, setBusy] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [isAuthed, setIsAuthed] = useState(false);
+  const [reservedUntil, setReservedUntil] = useState<string | null>(null);
 
   const [ship, setShip] = useState<Shipping>(emptyShipping());
 
@@ -152,22 +162,38 @@ export default function CheckoutPage() {
 
   const orderRef = useMemo(() => `JUSP-${Date.now()}`, []);
 
+  const reservedUntilLabel = useMemo(() => {
+    if (!reservedUntil) return null;
+    const date = new Date(reservedUntil);
+    if (Number.isNaN(date.getTime())) return null;
+    return formatDateTime(date);
+  }, [reservedUntil]);
+
   useEffect(() => {
     const prev = safeParse(localStorage.getItem(SHIPPING_KEY));
     if (prev && typeof prev === "object") {
       const nextRegion = String((prev as any).region || "");
-      const nextDocumentType = (["CC", "CE", "NIT", "PAS"].includes(String((prev as any).documentType || ""))
-        ? String((prev as any).documentType || "")
-        : "") as DocumentType | "";
+      const nextDocumentType = (
+        ["CC", "CE", "NIT", "PAS"].includes(String((prev as any).documentType || ""))
+          ? String((prev as any).documentType || "")
+          : ""
+      ) as DocumentType | "";
 
       setShip({
         fullName: String((prev as any).fullName || ""),
         email: String((prev as any).email || ""),
         documentType: nextDocumentType,
-        documentNumber: sanitizeDocumentNumber(String((prev as any).documentNumber || ""), nextDocumentType),
+        documentNumber: sanitizeDocumentNumber(
+          String((prev as any).documentNumber || ""),
+          nextDocumentType
+        ),
         phone: onlyDigits(String((prev as any).phone || "")),
         city: String((prev as any).city || ""),
-        region: COLOMBIA_DEPARTMENTS.includes(nextRegion as (typeof COLOMBIA_DEPARTMENTS)[number]) ? nextRegion : "",
+        region: COLOMBIA_DEPARTMENTS.includes(
+          nextRegion as (typeof COLOMBIA_DEPARTMENTS)[number]
+        )
+          ? nextRegion
+          : "",
         addressLine1: String((prev as any).addressLine1 || ""),
         notes: String((prev as any).notes || ""),
       });
@@ -211,7 +237,10 @@ export default function CheckoutPage() {
     } catch {}
   }, [ship]);
 
-  const documentNumberValid = useMemo(() => hasAtLeastFiveDigits(ship.documentNumber), [ship.documentNumber]);
+  const documentNumberValid = useMemo(
+    () => hasAtLeastFiveDigits(ship.documentNumber),
+    [ship.documentNumber]
+  );
   const phoneValid = useMemo(() => hasAtLeastFiveDigits(ship.phone), [ship.phone]);
 
   const shipOk = useMemo(() => {
@@ -358,6 +387,8 @@ export default function CheckoutPage() {
         return;
       }
 
+      setReservedUntil(typeof data?.reservedUntil === "string" ? data.reservedUntil : null);
+
       window.location.href = data.checkoutUrl;
     } finally {
       setBusy(false);
@@ -459,7 +490,10 @@ export default function CheckoutPage() {
                           setShip((s) => ({
                             ...s,
                             documentType: e.target.value as DocumentType | "",
-                            documentNumber: sanitizeDocumentNumber(s.documentNumber, e.target.value as DocumentType | ""),
+                            documentNumber: sanitizeDocumentNumber(
+                              s.documentNumber,
+                              e.target.value as DocumentType | ""
+                            ),
                           }))
                         }
                       >
@@ -559,7 +593,9 @@ export default function CheckoutPage() {
                   </label>
                 </div>
 
-                {!authLoading && !isAuthed && <div className="authNote">Debes iniciar sesión antes de pasar a pago.</div>}
+                {!authLoading && !isAuthed && (
+                  <div className="authNote">Debes iniciar sesión antes de pasar a pago.</div>
+                )}
 
                 <button
                   className="cta"
@@ -584,6 +620,15 @@ export default function CheckoutPage() {
                   Te llevamos a Wompi para completar el pago. La orden queda registrada como pendiente y solo se marca
                   pagada cuando Wompi confirme la aprobación.
                 </div>
+
+                {reservedUntilLabel ? (
+                  <div className="reserveBox">
+                    <div className="reserveTitle">Stock reservado temporalmente</div>
+                    <div className="reserveText">
+                      Tu carrito quedó reservado hasta <b>{reservedUntilLabel}</b>.
+                    </div>
+                  </div>
+                ) : null}
 
                 <div className="payBox">
                   <div className="pRow">
@@ -664,6 +709,13 @@ export default function CheckoutPage() {
                   <span>Entrega estimada</span>
                   <b>{deliveryEstimate}</b>
                 </div>
+
+                {reservedUntilLabel ? (
+                  <div className="holdInfo">
+                    <span>Reserva activa</span>
+                    <b>Hasta {reservedUntilLabel}</b>
+                  </div>
+                ) : null}
               </div>
             </div>
           </aside>
@@ -805,6 +857,26 @@ const baseCss = `
     line-height: 1.35;
   }
 
+  .reserveBox{
+    margin-top: 14px;
+    border-radius: 16px;
+    padding: 12px 14px;
+    border: 1px solid rgba(212,175,55,0.28);
+    background: rgba(212,175,55,0.08);
+  }
+  .reserveTitle{
+    font-weight: 950;
+    color: #111;
+    font-size: 13px;
+  }
+  .reserveText{
+    margin-top: 4px;
+    font-weight: 900;
+    color: rgba(0,0,0,0.74);
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
   .cta{
     margin-top: 16px;
     width: 100%;
@@ -868,6 +940,23 @@ const baseCss = `
     text-align: right;
   }
 
+  .holdInfo{
+    display:flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: rgba(212,175,55,0.08);
+    border: 1px solid rgba(212,175,55,0.24);
+    font-weight: 900;
+    color: rgba(0,0,0,0.72);
+  }
+  .holdInfo b{
+    color:#111;
+    font-weight: 950;
+    text-align: right;
+  }
+
   .payBox{
     margin-top: 14px;
     border-radius: 18px;
@@ -913,6 +1002,12 @@ const baseCss = `
       flex-direction: column;
     }
     .delivery b{
+      text-align: left;
+    }
+    .holdInfo{
+      flex-direction: column;
+    }
+    .holdInfo b{
       text-align: left;
     }
   }

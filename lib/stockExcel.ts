@@ -23,7 +23,24 @@ export type StockCheckResult = {
   reason?: string;
 };
 
+type ReservationRecord = {
+  reference: string;
+  createdAt: string;
+  expiresAt: string;
+  items: Array<{
+    slug: string;
+    size: string;
+    color: string;
+    qty: number;
+  }>;
+};
+
+type CheckOptions = {
+  excludeReference?: string | null;
+};
+
 const LOCK_PATH = path.join(process.cwd(), "data", ".catalogo_jusp.stock.lock");
+const RESERVATIONS_PATH = path.join(process.cwd(), "data", "catalog_stock_reservations.json");
 
 function normalizeHeaderKey(value: unknown): string {
   return String(value ?? "")
@@ -110,6 +127,14 @@ function requestedQty(item: StockLineItem): number {
   return Number.isFinite(qty) && qty > 0 ? Math.floor(qty) : 0;
 }
 
+function stockKeyParts(slug: string, size: string, color: string) {
+  return `${slug}__${size}__${color}`;
+}
+
+function stockKeyFromItem(item: StockLineItem) {
+  return stockKeyParts(canonicalSlug(item), canonicalSize(item), canonicalColor(item));
+}
+
 function matchesRow(row: ExcelRow, item: StockLineItem): boolean {
   const rowSlug = normalizeLoose(getRowValue(row, ["product_slug", "slug", "productslug"], ""));
   const rowSize = String(getRowValue(row, ["size", "talla"], "")).trim();
@@ -150,8 +175,85 @@ function setRowStockValue(row: ExcelRow, next: number) {
   row.stock = next;
 }
 
-export function checkExcelStock(items: StockLineItem[]): StockCheckResult[] {
+function ensureDataDir() {
+  const dataDir = path.join(process.cwd(), "data");
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+}
+
+function readReservationsUnsafe(): ReservationRecord[] {
+  try {
+    if (!fs.existsSync(RESERVATIONS_PATH)) return [];
+    const raw = fs.readFileSync(RESERVATIONS_PATH, "utf8");
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeReservationsUnsafe(records: ReservationRecord[]) {
+  ensureDataDir();
+  fs.writeFileSync(RESERVATIONS_PATH, JSON.stringify(records, null, 2), "utf8");
+}
+
+function isReservationActive(record: ReservationRecord, nowMs: number) {
+  const expiresAtMs = new Date(record.expiresAt).getTime();
+  return Number.isFinite(expiresAtMs) && expiresAtMs > nowMs;
+}
+
+function cleanupReservations(records: ReservationRecord[]) {
+  const nowMs = Date.now();
+  return records.filter((record) => {
+    if (!record || typeof record !== "object") return false;
+    if (!String(record.reference || "").trim()) return false;
+    if (!Array.isArray(record.items) || !record.items.length) return false;
+    return isReservationActive(record, nowMs);
+  });
+}
+
+function readActiveReservations(excludeReference?: string | null) {
+  const records = cleanupReservations(readReservationsUnsafe());
+  const exclude = String(excludeReference || "").trim();
+  const filtered = exclude ? records.filter((r) => r.reference !== exclude) : records;
+
+  const before = JSON.stringify(records);
+  const after = JSON.stringify(filtered);
+  if (before !== JSON.stringify(readReservationsUnsafe())) {
+    writeReservationsUnsafe(records);
+  } else if (exclude && before !== after) {
+    // no-op, solo filtro en memoria
+  }
+
+  return records;
+}
+
+export function getActiveReservationSummary(excludeReference?: string | null) {
+  const active = readActiveReservations(excludeReference);
+  const exclude = String(excludeReference || "").trim();
+  const map = new Map<string, number>();
+
+  for (const record of active) {
+    if (exclude && record.reference === exclude) continue;
+
+    for (const item of record.items) {
+      const key = stockKeyParts(
+        normalizeLoose(item.slug),
+        String(item.size || "").trim(),
+        normalizeLoose(item.color)
+      );
+      map.set(key, (map.get(key) || 0) + requestedQty(item));
+    }
+  }
+
+  return map;
+}
+
+export function checkExcelStock(items: StockLineItem[], options?: CheckOptions): StockCheckResult[] {
   const excelPath = resolveExcelPath();
+  const reservedSummary = getActiveReservationSummary(options?.excludeReference);
+
   if (!excelPath) {
     return items.map((item) => ({
       ok: false,
@@ -182,10 +284,13 @@ export function checkExcelStock(items: StockLineItem[]): StockCheckResult[] {
 
   return items.map((item) => {
     const foundRows = rows.filter((row) => matchesRow(row, item));
-    const available = foundRows.reduce(
+    const rawAvailable = foundRows.reduce(
       (acc, row) => acc + toSafeNumber(getRowValue(row, ["stock", "inventario"], 0), 0),
       0
     );
+
+    const reserved = reservedSummary.get(stockKeyFromItem(item)) || 0;
+    const available = Math.max(0, rawAvailable - reserved);
     const requested = requestedQty(item);
 
     if (!foundRows.length) {
@@ -229,6 +334,79 @@ async function acquireLock(timeoutMs = 15000): Promise<() => void> {
       }
       await new Promise((resolve) => setTimeout(resolve, 120));
     }
+  }
+}
+
+export async function reserveExcelStock(
+  reference: string,
+  items: StockLineItem[],
+  holdMinutes = 10
+) {
+  const safeReference = String(reference || "").trim();
+  if (!safeReference) {
+    throw new Error("La reserva requiere reference.");
+  }
+
+  const filtered = items
+    .map((item) => ({
+      slug: canonicalSlug(item),
+      size: canonicalSize(item),
+      color: canonicalColor(item),
+      qty: requestedQty(item),
+    }))
+    .filter((item) => item.slug && item.qty > 0);
+
+  if (!filtered.length) {
+    throw new Error("La reserva no trae items válidos.");
+  }
+
+  const release = await acquireLock();
+  try {
+    const current = cleanupReservations(readReservationsUnsafe());
+
+    const precheck = checkExcelStock(filtered, { excludeReference: safeReference });
+    const failed = precheck.find((row) => !row.ok);
+    if (failed) {
+      throw new Error(
+        `Stock insuficiente para ${failed.slug}${failed.size ? ` / ${failed.size}` : ""}${
+          failed.color ? ` / ${failed.color}` : ""
+        }. Disponible: ${failed.available}.`
+      );
+    }
+
+    const expiresAt = new Date(Date.now() + holdMinutes * 60 * 1000).toISOString();
+
+    const next = [
+      ...current.filter((record) => record.reference !== safeReference),
+      {
+        reference: safeReference,
+        createdAt: new Date().toISOString(),
+        expiresAt,
+        items: filtered,
+      },
+    ];
+
+    writeReservationsUnsafe(next);
+
+    return { ok: true, expiresAt };
+  } finally {
+    release();
+  }
+}
+
+export async function releaseExcelReservation(reference: string) {
+  const safeReference = String(reference || "").trim();
+  if (!safeReference) return { ok: true, released: 0 };
+
+  const release = await acquireLock();
+  try {
+    const current = cleanupReservations(readReservationsUnsafe());
+    const before = current.length;
+    const next = current.filter((record) => record.reference !== safeReference);
+    writeReservationsUnsafe(next);
+    return { ok: true, released: before - next.length };
+  } finally {
+    release();
   }
 }
 
@@ -301,6 +479,99 @@ export async function decrementExcelStock(items: StockLineItem[]) {
     const nextSheet = XLSX.utils.json_to_sheet(rows);
     workbook.Sheets[sheetName] = nextSheet;
     XLSX.writeFile(workbook, excelPath);
+
+    const cachePath = path.join(process.cwd(), "data", "catalog_products.cache.json");
+    try {
+      if (fs.existsSync(cachePath)) fs.unlinkSync(cachePath);
+    } catch {}
+
+    return { ok: true, updated: filtered.length };
+  } finally {
+    release();
+  }
+}
+
+export async function consumeExcelReservationAndDecrement(
+  reference: string,
+  items: StockLineItem[]
+) {
+  const safeReference = String(reference || "").trim();
+  if (!safeReference) {
+    throw new Error("Falta reference para consumir la reserva.");
+  }
+
+  const filtered = items
+    .map((item) => ({
+      ...item,
+      qty: requestedQty(item),
+      size: canonicalSize(item),
+      color: canonicalColor(item),
+      slug: canonicalSlug(item),
+    }))
+    .filter((item) => item.slug && Number(item.qty || 0) > 0);
+
+  if (!filtered.length) {
+    return { ok: true, updated: 0 };
+  }
+
+  const release = await acquireLock();
+  try {
+    const reservations = cleanupReservations(readReservationsUnsafe());
+
+    const precheck = checkExcelStock(filtered, { excludeReference: safeReference });
+    const failed = precheck.find((row) => !row.ok);
+    if (failed) {
+      throw new Error(
+        `Stock insuficiente para ${failed.slug}${failed.size ? ` / ${failed.size}` : ""}${
+          failed.color ? ` / ${failed.color}` : ""
+        }. Disponible: ${failed.available}. Pedido: ${failed.requested}.`
+      );
+    }
+
+    const excelPath = resolveExcelPath();
+    if (!excelPath) throw new Error("No se encontró data/catalogo_jusp.xlsx");
+
+    const workbook = loadWorkbook(excelPath);
+    const sheetName = getProductsSheetName(workbook);
+    const sheet = sheetName ? workbook.Sheets[sheetName] : null;
+
+    if (!sheet || !sheetName) {
+      throw new Error("No se encontró la hoja de productos en el Excel");
+    }
+
+    const rows = XLSX.utils.sheet_to_json<ExcelRow>(sheet, { defval: "", raw: false });
+
+    for (const item of filtered) {
+      let remaining = requestedQty(item);
+
+      for (const row of rows) {
+        if (!matchesRow(row, item)) continue;
+        if (remaining <= 0) break;
+
+        const current = toSafeNumber(getRowValue(row, ["stock", "inventario"], 0), 0);
+        if (current <= 0) continue;
+
+        const discount = Math.min(current, remaining);
+        const next = current - discount;
+        remaining -= discount;
+
+        setRowStockValue(row, next);
+      }
+
+      if (remaining > 0) {
+        throw new Error(
+          `No fue posible descontar todo el stock de ${item.slug}${item.size ? ` / ${item.size}` : ""}${
+            item.color ? ` / ${item.color}` : ""
+          }.`
+        );
+      }
+    }
+
+    const nextSheet = XLSX.utils.json_to_sheet(rows);
+    workbook.Sheets[sheetName] = nextSheet;
+    XLSX.writeFile(workbook, excelPath);
+
+    writeReservationsUnsafe(reservations.filter((record) => record.reference !== safeReference));
 
     const cachePath = path.join(process.cwd(), "data", "catalog_products.cache.json");
     try {

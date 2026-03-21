@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { dbInsertLog, dbUpsertOrder, type OrderItem } from "@/lib/ordersRepo";
 import { COOKIE_AT, verifyAccessToken } from "@/lib/auth";
+import { reserveExcelStock } from "@/lib/stockExcel";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -67,16 +68,18 @@ type AuthedUser = {
 function normalizeItems(input: unknown): OrderItem[] {
   if (!Array.isArray(input)) return [];
 
-  return input.map((raw: any) => ({
-    id: String(raw?.id || raw?.product_id || crypto.randomUUID()),
-    product_id: raw?.product_id ? String(raw.product_id) : null,
-    name: raw?.name ? String(raw.name) : null,
-    qty: Number.isFinite(Number(raw?.qty)) ? Number(raw.qty) : 1,
-    price: Number.isFinite(Number(raw?.price)) ? Number(raw.price) : 0,
-    image: raw?.image ? String(raw.image) : null,
-    size: raw?.size ? String(raw.size) : null,
-    color: raw?.color ? String(raw.color) : null,
-  }));
+  return input
+    .map((raw: any) => ({
+      id: String(raw?.id || raw?.product_id || crypto.randomUUID()),
+      product_id: raw?.product_id ? String(raw.product_id) : null,
+      name: raw?.name ? String(raw.name) : null,
+      qty: Number.isFinite(Number(raw?.qty)) ? Number(raw.qty) : 1,
+      price: Number.isFinite(Number(raw?.price)) ? Number(raw.price) : 0,
+      image: raw?.image ? String(raw.image) : null,
+      size: raw?.size ? String(raw.size) : null,
+      color: raw?.color ? String(raw.color) : null,
+    }))
+    .filter((it) => Number.isFinite(Number(it.qty)) && Number(it.qty) > 0);
 }
 
 function sumQty(items: OrderItem[]) {
@@ -112,11 +115,13 @@ function buildAdminNote(input: {
   email: string;
   documentType: DocumentType;
   documentNumber: string;
+  reservedUntil?: string | null;
 }) {
   const blocks = [
     input.notes.trim(),
     `Email: ${input.email}`,
     `Documento: ${input.documentType} ${input.documentNumber}`,
+    input.reservedUntil ? `Reserva stock hasta: ${input.reservedUntil}` : "",
   ].filter(Boolean);
 
   return blocks.join("\n");
@@ -226,17 +231,11 @@ export async function POST(req: NextRequest) {
     }
 
     if (!isValidDocumentNumber(documentNumber)) {
-      return NextResponse.json(
-        { ok: false, error: "Número de documento inválido." },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: "Número de documento inválido." }, { status: 400 });
     }
 
     if (!isValidPhone(phone)) {
-      return NextResponse.json(
-        { ok: false, error: "Teléfono inválido." },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: "Teléfono inválido." }, { status: 400 });
     }
 
     if (!/^[A-Z]{2}$/.test(country)) {
@@ -272,11 +271,15 @@ export async function POST(req: NextRequest) {
 
     const redirectUrl = `${origin}/checkout/success?reference=${encodeURIComponent(reference)}`;
     const signature = sha256Hex(`${reference}${amountInCents}${currency}${integrity}`);
+
+    const reservation = await reserveExcelStock(reference, items, 10);
+
     const adminNote = buildAdminNote({
       notes,
       email,
       documentType,
       documentNumber,
+      reservedUntil: reservation.expiresAt,
     });
 
     await dbUpsertOrder({
@@ -304,7 +307,7 @@ export async function POST(req: NextRequest) {
     await dbInsertLog({
       level: "info",
       scope: "wompi.checkout-url",
-      message: "Checkout Wompi creado",
+      message: "Checkout Wompi creado con reserva de stock",
       order_id: reference,
       user_email: typeof user.email === "string" ? user.email : null,
       meta: {
@@ -317,6 +320,7 @@ export async function POST(req: NextRequest) {
         customer_document_number: documentNumber,
         shipping_address_line_1: addressLine1,
         shipping_region: region,
+        reserved_until: reservation.expiresAt,
       },
     });
 
@@ -343,6 +347,7 @@ export async function POST(req: NextRequest) {
       amountInCents,
       currency,
       redirectUrl,
+      reservedUntil: reservation.expiresAt,
     });
   } catch (e: any) {
     try {
@@ -356,9 +361,11 @@ export async function POST(req: NextRequest) {
       });
     } catch {}
 
+    const status = String(e?.message || "").toLowerCase().includes("stock insuficiente") ? 409 : 500;
+
     return NextResponse.json(
       { ok: false, error: e?.message || "Error inesperado creando sesión Wompi" },
-      { status: 500 }
+      { status }
     );
   }
 }

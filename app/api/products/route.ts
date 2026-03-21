@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import path from "path";
 import fs from "fs";
 import * as XLSX from "xlsx";
+import { getActiveReservationSummary } from "@/lib/stockExcel";
 
 export const runtime = "nodejs";
 
@@ -48,14 +49,14 @@ type Product = {
 };
 
 type CatalogCacheFile = {
-  version: 6;
+  version: 7;
   generatedAt: string;
   excelPath: string;
   excelMtimeMs: number;
   products: Product[];
 };
 
-const CACHE_VERSION = 6;
+const CACHE_VERSION = 7;
 
 function resolveExcelPath(): string | null {
   const dataDir = path.join(process.cwd(), "data");
@@ -110,15 +111,7 @@ function toSafeBoolean(value: unknown): boolean {
     .trim()
     .toLowerCase();
 
-  return (
-    v === "1" ||
-    v === "true" ||
-    v === "yes" ||
-    v === "si" ||
-    v === "sí" ||
-    v === "x" ||
-    v === "ok"
-  );
+  return v === "1" || v === "true" || v === "yes" || v === "si" || v === "sí" || v === "x" || v === "ok";
 }
 
 function normalizeColor(value: unknown): string {
@@ -199,13 +192,7 @@ function listProductImages(slug: string): string[] {
 function inferCategoryFromTitle(title: string): string {
   const t = title.toLowerCase();
 
-  if (
-    t.includes("dunk") ||
-    t.includes("air force") ||
-    t.includes("zapatilla") ||
-    t.includes("tenis") ||
-    t.includes("sneaker")
-  ) {
+  if (t.includes("dunk") || t.includes("air force") || t.includes("zapatilla") || t.includes("tenis") || t.includes("sneaker")) {
     return "Sneakers";
   }
 
@@ -219,13 +206,7 @@ function inferCategoryFromTitle(title: string): string {
 function inferProductType(title: string): ProductType {
   const t = title.toLowerCase();
 
-  if (
-    t.includes("dunk") ||
-    t.includes("air force") ||
-    t.includes("zapatilla") ||
-    t.includes("tenis") ||
-    t.includes("sneaker")
-  ) {
+  if (t.includes("dunk") || t.includes("air force") || t.includes("zapatilla") || t.includes("tenis") || t.includes("sneaker")) {
     return "shoes";
   }
 
@@ -258,13 +239,7 @@ function inferKind(title: string): string {
   if (t.includes("jacket") || t.includes("chaqueta")) return "jackets";
   if (t.includes("camiseta") || t.includes("t-shirt") || t.includes("tee")) return "tshirts";
 
-  if (
-    t.includes("dunk") ||
-    t.includes("air force") ||
-    t.includes("zapatilla") ||
-    t.includes("tenis") ||
-    t.includes("sneaker")
-  ) {
+  if (t.includes("dunk") || t.includes("air force") || t.includes("zapatilla") || t.includes("tenis") || t.includes("sneaker")) {
     return "zapatillas";
   }
 
@@ -292,6 +267,12 @@ function buildVariantKey(slug: string, size?: string, color?: string): string {
   return `${slug}-${sizePart}-${colorPart}`;
 }
 
+function reservationKey(slug: string, size?: string, color?: string) {
+  return `${String(slug || "").trim().toLowerCase()}__${String(size || "").trim()}__${String(color || "")
+    .trim()
+    .toLowerCase()}`;
+}
+
 function inferCollectionsFromTitle(title: string, productType: ProductType, kind: string): string[] {
   const t = title.toLowerCase();
   const collections: string[] = [];
@@ -300,52 +281,19 @@ function inferCollectionsFromTitle(title: string, productType: ProductType, kind
   if (productType === "clothing") collections.push("clothing");
   if (productType === "accessory") collections.push("accessories");
 
-  if (
-    kind === "tops" ||
-    kind === "sports-bra" ||
-    t.includes("top") ||
-    t.includes("bra") ||
-    t.includes("sujetador") ||
-    t.includes("tank")
-  ) {
+  if (kind === "tops" || kind === "sports-bra" || t.includes("top") || t.includes("bra") || t.includes("sujetador") || t.includes("tank")) {
     collections.push("tops");
   }
 
-  if (
-    kind === "leggings" ||
-    kind === "shorts" ||
-    t.includes("leggings") ||
-    t.includes("tight") ||
-    t.includes("short") ||
-    t.includes("jogger") ||
-    t.includes("pants") ||
-    t.includes("pantalon") ||
-    t.includes("pantalón")
-  ) {
+  if (kind === "leggings" || kind === "shorts" || t.includes("leggings") || t.includes("tight") || t.includes("short") || t.includes("jogger") || t.includes("pants") || t.includes("pantalon") || t.includes("pantalón")) {
     collections.push("bottoms");
   }
 
-  if (
-    kind === "hoodies" ||
-    kind === "jackets" ||
-    t.includes("hoodie") ||
-    t.includes("sudadera") ||
-    t.includes("jacket") ||
-    t.includes("chaqueta")
-  ) {
+  if (kind === "hoodies" || kind === "jackets" || t.includes("hoodie") || t.includes("sudadera") || t.includes("jacket") || t.includes("chaqueta")) {
     collections.push("outerwear");
   }
 
-  if (
-    t.includes("gym") ||
-    t.includes("training") ||
-    t.includes("train") ||
-    t.includes("dri-fit") ||
-    t.includes("compression") ||
-    t.includes("fitness") ||
-    kind === "sports-bra" ||
-    kind === "leggings"
-  ) {
+  if (t.includes("gym") || t.includes("training") || t.includes("train") || t.includes("dri-fit") || t.includes("compression") || t.includes("fitness") || kind === "sports-bra" || kind === "leggings") {
     collections.push("gym", "training");
   }
 
@@ -358,13 +306,7 @@ function inferCollectionsFromTitle(title: string, productType: ProductType, kind
     collections.push("accessories");
   }
 
-  if (
-    collections.length === 0 ||
-    t.includes("club") ||
-    t.includes("sportswear") ||
-    t.includes("essential") ||
-    t.includes("casual")
-  ) {
+  if (collections.length === 0 || t.includes("club") || t.includes("sportswear") || t.includes("essential") || t.includes("casual")) {
     collections.push("lifestyle");
   }
 
@@ -375,14 +317,7 @@ function inferSportFromTitle(title: string): string[] {
   const t = title.toLowerCase();
   const out: string[] = [];
 
-  if (
-    t.includes("gym") ||
-    t.includes("training") ||
-    t.includes("train") ||
-    t.includes("dri-fit") ||
-    t.includes("fitness") ||
-    t.includes("compression")
-  ) {
+  if (t.includes("gym") || t.includes("training") || t.includes("train") || t.includes("dri-fit") || t.includes("fitness") || t.includes("compression")) {
     out.push("training");
   }
 
@@ -419,16 +354,11 @@ function loadExcelProducts(): Product[] {
   const workbook = loadWorkbook(excelPath);
   if (!workbook) return [];
 
-  const sheet =
-    workbook.Sheets["productos"] ??
-    workbook.Sheets["Productos"] ??
-    workbook.Sheets[workbook.SheetNames[0]];
+  const sheet = workbook.Sheets["productos"] ?? workbook.Sheets["Productos"] ?? workbook.Sheets[workbook.SheetNames[0]];
   if (!sheet) return [];
 
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
-    defval: "",
-    raw: false,
-  });
+  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "", raw: false });
+  const reservationSummary = getActiveReservationSummary();
   const map = new Map<string, Product>();
 
   for (const rawRow of rows) {
@@ -438,7 +368,9 @@ function loadExcelProducts(): Product[] {
     const size = String(getRowValue(rawRow, ["size", "talla"], "")).trim();
     const color = normalizeColor(getRowValue(rawRow, ["color", "colour"], ""));
     const price = toSafeNumber(getRowValue(rawRow, ["price", "precio"], 0), 0);
-    const stock = toSafeNumber(getRowValue(rawRow, ["stock", "inventario"], 0), 0);
+    const rawStock = toSafeNumber(getRowValue(rawRow, ["stock", "inventario"], 0), 0);
+    const reserved = reservationSummary.get(reservationKey(slug, size, color)) || 0;
+    const stock = Math.max(0, rawStock - reserved);
     const excelGender = normalizeExcelGender(getRowValue(rawRow, ["gender", "genero", "género"], ""));
     const excelCategory = normalizeExcelCategory(getRowValue(rawRow, ["category", "categoria", "categoría"], ""));
     const pickupToday = toSafeBoolean(getRowValue(rawRow, ["pickup_today", "pickup", "retiro_hoy"], ""));
