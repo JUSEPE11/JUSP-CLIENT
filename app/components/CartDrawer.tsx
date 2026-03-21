@@ -1,12 +1,79 @@
 // app/components/CartDrawer.tsx
 "use client";
 
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useStore } from "./store";
 
+type ProductVariant = {
+  key: string;
+  size?: string;
+  color?: string;
+  price: number;
+  stock?: number;
+  isAvailable?: boolean;
+};
+
+type ProductApi = {
+  id: string;
+  slug?: string;
+  product_code?: string;
+  title?: string;
+  name?: string;
+  stockHint?: number;
+  variants?: ProductVariant[];
+};
+
 function moneyCOP(n: number) {
   return Math.round(n).toLocaleString("es-CO");
+}
+
+function normalizeLoose(value: unknown) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function toSafeStock(value: unknown): number | null {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  return Math.max(0, Math.floor(n));
+}
+
+function findMaxStockForCartItem(products: ProductApi[], item: { id: string; color?: string | null; size?: string | null }) {
+  const itemId = normalizeLoose(item.id);
+  const itemColor = normalizeLoose(item.color);
+  const itemSize = String(item.size ?? "").trim();
+
+  const product = products.find((p) => {
+    const pid = normalizeLoose(p.id);
+    const pslug = normalizeLoose(p.slug);
+    const pcode = normalizeLoose(p.product_code);
+    return pid === itemId || pslug === itemId || pcode === itemId;
+  });
+
+  if (!product) return null;
+
+  const variants = Array.isArray(product.variants) ? product.variants : [];
+  if (variants.length) {
+    const byColor = itemColor
+      ? variants.filter((v) => normalizeLoose(v.color) === itemColor)
+      : variants;
+
+    if (itemSize) {
+      const exact = byColor.find((v) => String(v.size ?? "").trim() === itemSize);
+      if (exact) return toSafeStock(exact.stock);
+    }
+
+    if (byColor.length === 1) {
+      return toSafeStock(byColor[0]?.stock);
+    }
+
+    if (!itemSize && byColor.length > 0) {
+      const total = byColor.reduce((acc, v) => acc + (toSafeStock(v.stock) ?? 0), 0);
+      return total;
+    }
+  }
+
+  return toSafeStock(product.stockHint);
 }
 
 export default function CartDrawer() {
@@ -14,6 +81,9 @@ export default function CartDrawer() {
 
   const open = state.ui.panel === "cart";
   const items = state.cart;
+
+  const [products, setProducts] = useState<ProductApi[]>([]);
+  const [loadingStock, setLoadingStock] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -32,7 +102,56 @@ export default function CartDrawer() {
     };
   }, [open, closePanel]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadProducts() {
+      if (!open || !items.length) return;
+
+      try {
+        setLoadingStock(true);
+        const res = await fetch("/api/products", {
+          cache: "no-store",
+          headers: { "cache-control": "no-store" },
+        });
+        const data = await res.json().catch(() => []);
+        if (cancelled) return;
+        setProducts(Array.isArray(data) ? data : []);
+      } catch {
+        if (cancelled) return;
+        setProducts([]);
+      } finally {
+        if (cancelled) return;
+        setLoadingStock(false);
+      }
+    }
+
+    loadProducts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, items.length]);
+
   const empty = useMemo(() => items.length === 0, [items.length]);
+
+  const itemStocks = useMemo(() => {
+    const out = new Map<string, number | null>();
+
+    for (const it of items) {
+      const key = `${it.id}__${it.color ?? ""}__${it.size ?? ""}`;
+      out.set(
+        key,
+        findMaxStockForCartItem(products, {
+          id: it.id,
+          color: it.color ?? null,
+          size: it.size ?? null,
+        })
+      );
+    }
+
+    return out;
+  }, [items, products]);
 
   if (!open) return null;
 
@@ -70,45 +189,82 @@ export default function CartDrawer() {
         ) : (
           <>
             <div className="list">
-              {items.map((it) => (
-                <div key={`${it.id}__${it.color ?? ""}__${it.size ?? ""}`} className="row">
-                  <div className="img">
-                    {it.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={it.image} alt={it.name} />
-                    ) : (
-                      <div className="ph" />
-                    )}
-                  </div>
+              {items.map((it) => {
+                const rowKey = `${it.id}__${it.color ?? ""}__${it.size ?? ""}`;
+                const maxStock = itemStocks.get(rowKey) ?? null;
+                const soldOut = maxStock === 0;
+                const atLimit = maxStock !== null && it.qty >= maxStock;
 
-                  <div className="mid">
-                    <div className="nm">{it.name}</div>
-
-                    <div className="meta">
-                      {it.color ? <span className="tag">{it.color}</span> : null}
-                      {it.size ? <span className="tag">Talla {it.size}</span> : null}
+                return (
+                  <div key={rowKey} className="row">
+                    <div className="img">
+                      {it.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={it.image} alt={it.name} />
+                      ) : (
+                        <div className="ph" />
+                      )}
                     </div>
 
-                    <div className="bot">
-                      <div className="qty">
-                        <button type="button" className="q" onClick={() => decQty(it.id, it.color ?? null, it.size ?? null)} aria-label="Disminuir">
-                          −
-                        </button>
-                        <div className="qv">{it.qty}</div>
-                        <button type="button" className="q" onClick={() => incQty(it.id, it.color ?? null, it.size ?? null)} aria-label="Aumentar">
-                          +
-                        </button>
+                    <div className="mid">
+                      <div className="nm">{it.name}</div>
+
+                      <div className="meta">
+                        {it.color ? <span className="tag">{it.color}</span> : null}
+                        {it.size ? <span className="tag">Talla {it.size}</span> : null}
                       </div>
 
-                      <button type="button" className="rm" onClick={() => removeFromCart(it.id, it.color ?? null, it.size ?? null)}>
-                        Quitar
-                      </button>
-                    </div>
-                  </div>
+                      {soldOut ? (
+                        <div className="stock soldOut">Agotado</div>
+                      ) : maxStock !== null ? (
+                        <div className="stock">
+                          {maxStock <= 1
+                            ? "Última unidad disponible"
+                            : atLimit
+                              ? "Llegaste al máximo disponible"
+                              : `Disponibles: ${maxStock}`}
+                        </div>
+                      ) : loadingStock ? (
+                        <div className="stock">Validando stock…</div>
+                      ) : null}
 
-                  <div className="pr">${moneyCOP(it.price * it.qty)}</div>
-                </div>
-              ))}
+                      <div className="bot">
+                        <div className="qty">
+                          <button
+                            type="button"
+                            className="q"
+                            onClick={() => decQty(it.id, it.color ?? null, it.size ?? null)}
+                            aria-label="Disminuir"
+                          >
+                            −
+                          </button>
+                          <div className="qv">{it.qty}</div>
+                          <button
+                            type="button"
+                            className="q"
+                            onClick={() => incQty(it.id, it.color ?? null, it.size ?? null, maxStock)}
+                            aria-label="Aumentar"
+                            disabled={soldOut || atLimit}
+                            title={soldOut ? "Producto agotado" : atLimit ? "Ya llegaste al stock máximo" : ""}
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <button
+                          type="button"
+                          className="rm"
+                          onClick={() => removeFromCart(it.id, it.color ?? null, it.size ?? null)}
+                        >
+                          Quitar
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="pr">${moneyCOP(it.price * it.qty)}</div>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="foot">
@@ -279,6 +435,16 @@ export default function CartDrawer() {
           background: #fff;
         }
 
+        .stock {
+          margin-top: 8px;
+          font-size: 11px;
+          font-weight: 950;
+          color: rgba(0, 0, 0, 0.62);
+        }
+        .stock.soldOut {
+          color: #b3261e;
+        }
+
         .bot {
           margin-top: 10px;
           display: flex;
@@ -303,6 +469,10 @@ export default function CartDrawer() {
           background: rgba(0, 0, 0, 0.06);
           cursor: pointer;
           font-weight: 950;
+        }
+        .q:disabled {
+          opacity: 0.45;
+          cursor: not-allowed;
         }
         .qv {
           min-width: 20px;
