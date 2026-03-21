@@ -93,6 +93,47 @@ async function fetchOrderByReference(reference: string): Promise<OrderRow | null
   return null;
 }
 
+function formatDateTime(value?: string | null) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+
+  return d.toLocaleString("es-CO", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function statusLabel(status: UiStatus) {
+  if (status === "approved") return "Aprobado";
+  if (status === "pending") return "Pendiente";
+  if (status === "declined") return "No aprobado";
+  if (status === "loading") return "Verificando";
+  if (status === "error") return "Error";
+  return "Sin confirmación";
+}
+
+function statusTitle(status: UiStatus) {
+  if (status === "approved") return "Compra confirmada";
+  if (status === "pending") return "Pago en revisión";
+  if (status === "declined") return "Pago no aprobado";
+  if (status === "loading") return "Validando pago";
+  if (status === "error") return "No pudimos validar el pago";
+  return "Orden aún no visible";
+}
+
+function statusLead(status: UiStatus) {
+  if (status === "approved") return "Tu pago fue aprobado y la orden quedó registrada correctamente en JUSP.";
+  if (status === "pending") return "Wompi todavía no ha confirmado el resultado final. Tu carrito no se vacía hasta ver aprobación real.";
+  if (status === "declined") return "El pago no fue aprobado. Tus productos siguen protegidos en el carrito para que puedas intentarlo otra vez.";
+  if (status === "loading") return "Estamos contrastando el retorno del pago contra la orden real guardada en backend.";
+  if (status === "error") return "Ocurrió un problema consultando el estado final. No estamos asumiendo nada sin evidencia real.";
+  return "La orden aún puede estar propagándose. Normalmente esto tarda pocos segundos.";
+}
+
 function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
   const { clearCart } = useStore();
@@ -222,12 +263,15 @@ function CheckoutSuccessContent() {
 
   return (
     <main className="root">
+      <div className="bgGlow bgGlowA" />
+      <div className="bgGlow bgGlowB" />
+
       <div className="wrap">
         <div className="top">
           <div>
             <div className="brand">JUSP</div>
             <h1 className="h1">Resultado del pago</h1>
-            <p className="sub">Validación real de tu compra contra la orden guardada en tu backend.</p>
+            <p className="sub">Validación real contra tu orden guardada en backend.</p>
           </div>
 
           <Link className="back" href="/products">
@@ -235,49 +279,111 @@ function CheckoutSuccessContent() {
           </Link>
         </div>
 
-        <section className={`card hero ${statusTone}`}>
-          <div className="pill">
-            {uiStatus === "loading" && "Verificando"}
-            {uiStatus === "approved" && "Aprobado"}
-            {uiStatus === "pending" && "Pendiente"}
-            {uiStatus === "declined" && "No aprobado"}
-            {uiStatus === "error" && "Error"}
-            {uiStatus === "not_found" && "Sin confirmación"}
+        <section className={`hero ${statusTone}`}>
+          <div className="heroTop">
+            <div className="heroBadge">
+              <span className="heroDot" />
+              {statusLabel(uiStatus)}
+            </div>
+
+            <div className="heroRef">
+              {reference ? (
+                <>
+                  <span>Referencia</span>
+                  <b>{reference}</b>
+                </>
+              ) : (
+                <>
+                  <span>Referencia</span>
+                  <b>—</b>
+                </>
+              )}
+            </div>
           </div>
 
-          <h2 className="heroTitle">
-            {uiStatus === "approved" && "Tu compra fue aprobada"}
-            {uiStatus === "pending" && "Tu compra sigue pendiente"}
-            {uiStatus === "declined" && "Tu pago no fue aprobado"}
-            {uiStatus === "loading" && "Estamos validando tu pago"}
-            {uiStatus === "error" && "No pudimos validar el pago"}
-            {uiStatus === "not_found" && "Aún no encontramos la orden"}
-          </h2>
+          <div className="heroGrid">
+            <div className="heroMain">
+              <h2 className="heroTitle">{statusTitle(uiStatus)}</h2>
+              <p className="heroLead">{statusLead(uiStatus)}</p>
+              <p className="heroText">{message}</p>
 
-          <p className="heroText">{message}</p>
+              <div className="heroMetaWrap">
+                <div className="heroMetaCard">
+                  <span>Pedido JUSP</span>
+                  <b>{order?.order_code || "—"}</b>
+                </div>
 
-          {order?.order_code ? <p className="heroMeta">Pedido: <b>{order.order_code}</b></p> : null}
-          {order?.customer_email ? <p className="heroMeta">Correo: <b>{order.customer_email}</b></p> : null}
+                <div className="heroMetaCard">
+                  <span>Correo</span>
+                  <b>{order?.customer_email || "—"}</b>
+                </div>
 
-          <div className="actions">
-            <Link className="cta dark" href="/products">
-              Seguir comprando
-            </Link>
+                <div className="heroMetaCard">
+                  <span>Total</span>
+                  <b>{typeof order?.total_cop === "number" ? `$${moneyCOP(order.total_cop)}` : "—"}</b>
+                </div>
 
-            {uiStatus === "approved" ? (
-              <Link className="cta" href="/orders">
-                Ver mis pedidos
-              </Link>
-            ) : (
-              <Link className="cta" href="/checkout">
-                Volver al checkout
-              </Link>
-            )}
+                <div className="heroMetaCard">
+                  <span>Actualizado</span>
+                  <b>{formatDateTime(order?.updated_at || order?.created_at)}</b>
+                </div>
+              </div>
+
+              <div className="actions">
+                <Link className="cta dark" href="/products">
+                  Seguir comprando
+                </Link>
+
+                {uiStatus === "approved" ? (
+                  <Link className="cta" href="/orders">
+                    Ver mis pedidos
+                  </Link>
+                ) : (
+                  <Link className="cta" href="/checkout">
+                    Volver al checkout
+                  </Link>
+                )}
+              </div>
+            </div>
+
+            <div className="heroSide">
+              <div className="signalCard">
+                <div className="signalKicker">Señal actual</div>
+                <div className="signalValue">{statusLabel(uiStatus)}</div>
+                <div className="signalSub">
+                  {uiStatus === "approved" && "Orden confirmada correctamente."}
+                  {uiStatus === "pending" && "Seguimiento en espera de confirmación real."}
+                  {uiStatus === "declined" && "Pago no aprobado por el procesador."}
+                  {uiStatus === "loading" && "Comparando retorno vs backend."}
+                  {uiStatus === "error" && "No hay validación concluyente todavía."}
+                  {uiStatus === "not_found" && "La orden aún no es visible."}
+                </div>
+              </div>
+
+              <div className="signalMiniGrid">
+                <div className="mini">
+                  <span>Intentos</span>
+                  <b>{pollCount}</b>
+                </div>
+                <div className="mini">
+                  <span>Estado DB</span>
+                  <b>{order?.status || "—"}</b>
+                </div>
+                <div className="mini">
+                  <span>Moneda</span>
+                  <b>{order?.currency || "COP"}</b>
+                </div>
+                <div className="mini">
+                  <span>Teléfono</span>
+                  <b>{order?.phone || "—"}</b>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
-        <section className="grid">
-          <div className="card">
+        <section className="detailGrid">
+          <div className="card glass">
             <div className="cT">Detalle de verificación</div>
 
             <div className="kv">
@@ -287,51 +393,52 @@ function CheckoutSuccessContent() {
               </div>
 
               <div className="row">
-                <span>Estado</span>
+                <span>Estado guardado</span>
                 <b>{order?.status || "—"}</b>
               </div>
 
               <div className="row">
-                <span>Intentos de verificación</span>
-                <b>{pollCount}</b>
-              </div>
-
-              <div className="row">
-                <span>Referencia JUSP</span>
+                <span>Pedido JUSP</span>
                 <b>{order?.order_code || "—"}</b>
               </div>
 
               <div className="row">
                 <span>Total</span>
-                <b>
-                  {typeof order?.total_cop === "number"
-                    ? `$${moneyCOP(order.total_cop)}`
-                    : "—"}
-                </b>
+                <b>{typeof order?.total_cop === "number" ? `$${moneyCOP(order.total_cop)}` : "—"}</b>
               </div>
 
               <div className="row">
                 <span>Moneda</span>
                 <b>{order?.currency || "COP"}</b>
               </div>
+
+              <div className="row">
+                <span>Creado</span>
+                <b>{formatDateTime(order?.created_at)}</b>
+              </div>
+
+              <div className="row">
+                <span>Última actualización</span>
+                <b>{formatDateTime(order?.updated_at)}</b>
+              </div>
             </div>
           </div>
 
-          <div className="card">
+          <div className="card glass">
             <div className="cT">Qué hace JUSP aquí</div>
 
             <div className="list">
               <div className="li">
-                <strong>Pago aprobado:</strong> vaciamos el carrito automáticamente.
+                <strong>Pago aprobado:</strong> vaciamos el carrito automáticamente y dejamos la orden lista para seguimiento.
               </div>
               <div className="li">
-                <strong>Pago pendiente:</strong> no tocamos el carrito.
+                <strong>Pago pendiente:</strong> mantenemos el carrito intacto hasta ver aprobación real, no por apariencia.
               </div>
               <div className="li">
-                <strong>Pago rechazado o error:</strong> tus productos se mantienen en el carrito.
+                <strong>Pago rechazado o error:</strong> no destruimos tu carrito y te dejamos volver a intentar.
               </div>
               <div className="li">
-                <strong>Fuente de verdad:</strong> el estado guardado de la orden, no solo el redirect.
+                <strong>Fuente de verdad:</strong> manda la orden en base de datos, no solo el redirect del procesador.
               </div>
             </div>
           </div>
@@ -348,6 +455,9 @@ export default function CheckoutSuccessPage() {
     <Suspense
       fallback={
         <main className="root">
+          <div className="bgGlow bgGlowA" />
+          <div className="bgGlow bgGlowB" />
+
           <div className="wrap">
             <div className="top">
               <div>
@@ -361,12 +471,29 @@ export default function CheckoutSuccessPage() {
               </Link>
             </div>
 
-            <section className="card hero neutral">
-              <div className="pill">Verificando</div>
-              <h2 className="heroTitle">Estamos validando tu pago</h2>
-              <p className="heroText">
-                Espera un momento mientras consultamos el estado real de tu orden.
-              </p>
+            <section className="hero neutral">
+              <div className="heroTop">
+                <div className="heroBadge">
+                  <span className="heroDot" />
+                  Verificando
+                </div>
+              </div>
+
+              <div className="heroGrid">
+                <div className="heroMain">
+                  <h2 className="heroTitle">Estamos validando tu pago</h2>
+                  <p className="heroLead">Consultando el estado real de la orden en backend.</p>
+                  <p className="heroText">Espera un momento mientras contrastamos la compra contra la orden guardada.</p>
+                </div>
+
+                <div className="heroSide">
+                  <div className="signalCard">
+                    <div className="signalKicker">Señal actual</div>
+                    <div className="signalValue">Verificando</div>
+                    <div className="signalSub">Esto puede tardar unos segundos.</div>
+                  </div>
+                </div>
+              </div>
             </section>
           </div>
 
@@ -381,13 +508,42 @@ export default function CheckoutSuccessPage() {
 
 const baseCss = `
   .root{
+    position:relative;
+    overflow:hidden;
     padding-top: calc(var(--jusp-header-h, 64px) + 18px);
-    padding: 18px 16px 34px;
-    background:#fff;
+    padding: 18px 16px 40px;
+    background:
+      radial-gradient(circle at top left, rgba(255,214,10,0.08), transparent 28%),
+      radial-gradient(circle at top right, rgba(0,0,0,0.05), transparent 34%),
+      linear-gradient(180deg, #ffffff 0%, #f7f7f8 100%);
     min-height:100vh;
   }
+  .bgGlow{
+    position:absolute;
+    border-radius:999px;
+    filter: blur(70px);
+    pointer-events:none;
+    opacity:0.5;
+  }
+  .bgGlowA{
+    width:260px;
+    height:260px;
+    top:110px;
+    left:-70px;
+    background: rgba(255,214,10,0.16);
+  }
+  .bgGlowB{
+    width:280px;
+    height:280px;
+    right:-90px;
+    top:180px;
+    background: rgba(17,17,17,0.06);
+  }
+
   .wrap{
-    max-width: 1160px;
+    position:relative;
+    z-index:1;
+    max-width: 1180px;
     margin: 0 auto;
   }
   .top{
@@ -398,92 +554,181 @@ const baseCss = `
   }
   .brand{
     font-weight:950;
-    letter-spacing:0.12em;
+    letter-spacing:0.16em;
     font-size:12px;
-    color:rgba(0,0,0,0.55);
+    color:rgba(0,0,0,0.5);
   }
   .h1{
     margin:8px 0 0;
-    font-size:44px;
-    font-weight:950;
-    letter-spacing:-0.04em;
-    color:#111;
-    line-height:1.02;
+    font-size:52px;
+    font-weight:1000;
+    letter-spacing:-0.05em;
+    color:#0f0f10;
+    line-height:0.98;
   }
   .sub{
-    margin:8px 0 0;
+    margin:10px 0 0;
     font-weight:900;
     color:rgba(0,0,0,0.62);
+    font-size:15px;
   }
   .back{
     text-decoration:none;
     font-weight:950;
     border-radius:999px;
-    padding:12px 14px;
-    border:1px solid rgba(0,0,0,0.14);
+    padding:12px 16px;
+    border:1px solid rgba(0,0,0,0.1);
     color:#111;
-    background:#fff;
+    background:rgba(255,255,255,0.82);
+    backdrop-filter: blur(14px);
     white-space:nowrap;
     height:fit-content;
-  }
-
-  .card{
-    border:1px solid rgba(0,0,0,0.08);
-    border-radius:22px;
-    padding:16px;
-    background:#fff;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.06);
   }
 
   .hero{
-    margin-top:18px;
+    margin-top:20px;
+    border-radius:30px;
+    padding:24px;
+    border:1px solid rgba(0,0,0,0.08);
+    background: rgba(255,255,255,0.76);
+    backdrop-filter: blur(18px);
+    box-shadow:
+      0 20px 60px rgba(0,0,0,0.08),
+      inset 0 1px 0 rgba(255,255,255,0.7);
   }
   .hero.ok{
-    border-color:rgba(0,0,0,0.12);
-    background:rgba(0,0,0,0.015);
+    background:
+      linear-gradient(135deg, rgba(255,255,255,0.9), rgba(248,248,248,0.82)),
+      radial-gradient(circle at top left, rgba(255,214,10,0.14), transparent 30%);
+    border-color: rgba(0,0,0,0.08);
   }
   .hero.bad{
-    border-color:rgba(0,0,0,0.12);
-    background:rgba(0,0,0,0.02);
+    background:
+      linear-gradient(135deg, rgba(255,255,255,0.9), rgba(248,248,248,0.84)),
+      radial-gradient(circle at top left, rgba(0,0,0,0.05), transparent 28%);
+    border-color: rgba(0,0,0,0.1);
   }
   .hero.neutral{
-    border-color:rgba(0,0,0,0.08);
-    background:#fff;
+    background:
+      linear-gradient(135deg, rgba(255,255,255,0.92), rgba(249,249,250,0.84)),
+      radial-gradient(circle at top left, rgba(255,214,10,0.1), transparent 28%);
   }
 
-  .pill{
+  .heroTop{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .heroBadge{
     display:inline-flex;
     align-items:center;
+    gap:10px;
     border-radius:999px;
-    padding:8px 12px;
+    padding:10px 14px;
     font-weight:950;
     font-size:12px;
-    border:1px solid rgba(0,0,0,0.12);
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    border:1px solid rgba(0,0,0,0.1);
     color:#111;
-    background:#fff;
+    background:rgba(255,255,255,0.9);
+    box-shadow: 0 8px 22px rgba(0,0,0,0.05);
   }
-  .heroTitle{
-    margin:14px 0 0;
-    font-size:34px;
-    line-height:1.04;
-    letter-spacing:-0.04em;
+  .heroDot{
+    width:10px;
+    height:10px;
+    border-radius:999px;
+    background:#111;
+    box-shadow: 0 0 0 6px rgba(17,17,17,0.08);
+  }
+  .heroRef{
+    display:grid;
+    gap:3px;
+    text-align:right;
+  }
+  .heroRef span{
+    font-size:11px;
+    font-weight:900;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:rgba(0,0,0,0.45);
+  }
+  .heroRef b{
+    font-size:14px;
     font-weight:950;
     color:#111;
+    word-break:break-word;
+  }
+
+  .heroGrid{
+    margin-top:18px;
+    display:grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+    gap:18px;
+    align-items:stretch;
+  }
+  .heroMain{
+    min-width:0;
+  }
+  .heroTitle{
+    margin:0;
+    font-size:48px;
+    line-height:0.98;
+    letter-spacing:-0.05em;
+    font-weight:1000;
+    color:#0f0f10;
+    max-width:760px;
+  }
+  .heroLead{
+    margin:14px 0 0;
+    font-size:18px;
+    line-height:1.35;
+    font-weight:950;
+    color:#18181a;
+    max-width:820px;
   }
   .heroText{
     margin:10px 0 0;
     font-size:14px;
-    line-height:1.45;
+    line-height:1.6;
     font-weight:900;
-    color:rgba(0,0,0,0.66);
+    color:rgba(0,0,0,0.62);
     max-width:760px;
   }
 
-  .heroMeta{
-    margin:10px 0 0;
-    font-size:14px;
-    line-height:1.45;
+  .heroMetaWrap{
+    margin-top:18px;
+    display:grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap:12px;
+  }
+  .heroMetaCard{
+    border-radius:18px;
+    padding:14px 14px;
+    border:1px solid rgba(0,0,0,0.08);
+    background: rgba(255,255,255,0.8);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
+    min-width:0;
+  }
+  .heroMetaCard span{
+    display:block;
+    font-size:11px;
     font-weight:900;
-    color:rgba(0,0,0,0.72);
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:rgba(0,0,0,0.46);
+  }
+  .heroMetaCard b{
+    display:block;
+    margin-top:8px;
+    font-size:14px;
+    line-height:1.35;
+    font-weight:950;
+    color:#111;
+    word-break:break-word;
   }
 
   .actions{
@@ -498,42 +743,128 @@ const baseCss = `
     justify-content:center;
     text-decoration:none;
     border-radius:999px;
-    padding:14px 16px;
+    padding:14px 18px;
     font-weight:950;
-    border:1px solid rgba(0,0,0,0.14);
-    background:#fff;
+    border:1px solid rgba(0,0,0,0.12);
+    background:rgba(255,255,255,0.84);
     color:#111;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.06);
   }
   .cta.dark{
-    background:rgba(17,17,17,0.92);
-    color:rgba(255,255,255,0.95);
+    background:rgba(17,17,17,0.94);
+    color:rgba(255,255,255,0.96);
+    border-color: rgba(17,17,17,0.94);
   }
 
-  .grid{
+  .heroSide{
+    display:grid;
+    gap:12px;
+    align-content:start;
+  }
+  .signalCard{
+    border-radius:24px;
+    padding:18px;
+    border:1px solid rgba(0,0,0,0.08);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.9), rgba(250,250,250,0.82));
+    box-shadow:
+      0 14px 36px rgba(0,0,0,0.06),
+      inset 0 1px 0 rgba(255,255,255,0.72);
+  }
+  .signalKicker{
+    font-size:11px;
+    font-weight:900;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:rgba(0,0,0,0.46);
+  }
+  .signalValue{
+    margin-top:8px;
+    font-size:28px;
+    line-height:1;
+    letter-spacing:-0.04em;
+    font-weight:1000;
+    color:#111;
+  }
+  .signalSub{
+    margin-top:10px;
+    font-size:13px;
+    line-height:1.55;
+    font-weight:900;
+    color:rgba(0,0,0,0.62);
+  }
+
+  .signalMiniGrid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+  .mini{
+    border-radius:18px;
+    padding:14px;
+    border:1px solid rgba(0,0,0,0.08);
+    background: rgba(255,255,255,0.8);
+  }
+  .mini span{
+    display:block;
+    font-size:11px;
+    font-weight:900;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:rgba(0,0,0,0.46);
+  }
+  .mini b{
+    display:block;
+    margin-top:8px;
+    font-size:14px;
+    line-height:1.35;
+    font-weight:950;
+    color:#111;
+    word-break:break-word;
+  }
+
+  .detailGrid{
     margin-top:18px;
     display:grid;
     grid-template-columns:1fr 1fr;
     gap:18px;
     align-items:start;
   }
+  .card.glass{
+    border-radius:24px;
+    padding:18px;
+    border:1px solid rgba(0,0,0,0.08);
+    background: rgba(255,255,255,0.78);
+    backdrop-filter: blur(16px);
+    box-shadow:
+      0 18px 42px rgba(0,0,0,0.05),
+      inset 0 1px 0 rgba(255,255,255,0.72);
+  }
 
   .cT{
     font-weight:950;
     color:#111;
-    font-size:16px;
+    font-size:18px;
+    letter-spacing:-0.02em;
   }
 
   .kv{
     margin-top:14px;
     display:grid;
-    gap:10px;
+    gap:12px;
   }
   .row{
     display:flex;
     justify-content:space-between;
     gap:12px;
     font-weight:900;
-    color:rgba(0,0,0,0.7);
+    color:rgba(0,0,0,0.68);
+    padding-bottom:12px;
+    border-bottom:1px solid rgba(0,0,0,0.06);
+  }
+  .row:last-child{
+    border-bottom:0;
+    padding-bottom:0;
   }
   .row b{
     color:#111;
@@ -545,12 +876,16 @@ const baseCss = `
   .list{
     margin-top:14px;
     display:grid;
-    gap:10px;
+    gap:12px;
   }
   .li{
+    padding:14px 14px;
+    border-radius:16px;
+    background: rgba(0,0,0,0.025);
+    border:1px solid rgba(0,0,0,0.06);
     font-weight:900;
     color:rgba(0,0,0,0.72);
-    line-height:1.4;
+    line-height:1.55;
   }
   .li strong{
     color:#111;
@@ -558,21 +893,42 @@ const baseCss = `
   }
 
   @media (max-width: 980px){
-    .grid{
+    .heroGrid,
+    .detailGrid{
+      grid-template-columns:1fr;
+    }
+  }
+
+  @media (max-width: 720px){
+    .h1{
+      font-size:38px;
+    }
+    .heroTitle{
+      font-size:34px;
+    }
+    .heroMetaWrap{
       grid-template-columns:1fr;
     }
   }
 
   @media (max-width: 520px){
-    .h1{
-      font-size:32px;
-    }
-    .heroTitle{
-      font-size:28px;
-    }
     .top{
       flex-direction:column;
       align-items:flex-start;
+    }
+    .hero{
+      padding:18px;
+      border-radius:24px;
+    }
+    .heroTop{
+      flex-direction:column;
+      align-items:flex-start;
+    }
+    .heroRef{
+      text-align:left;
+    }
+    .signalMiniGrid{
+      grid-template-columns:1fr;
     }
     .row{
       flex-direction:column;
