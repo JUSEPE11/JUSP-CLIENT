@@ -33,21 +33,24 @@ type State = {
   };
 };
 
+type AddToCartOptions = {
+  color?: string | null;
+  size?: string | null;
+  qty?: number;
+  maxStock?: number | null;
+};
+
 type StoreShape = {
   state: State;
-
   cartCount: number;
   cartTotal: number;
-
   isFav: (id: string) => boolean;
   toggleFav: (id: string, product?: Product) => void;
-
   openCart: () => void;
   openFavs: () => void;
   closePanel: () => void;
-
-  addToCart: (product: Product, opts?: { color?: string | null; size?: string | null; qty?: number }) => void;
-  incQty: (id: string, color?: string | null, size?: string | null) => void;
+  addToCart: (product: Product, opts?: AddToCartOptions) => boolean;
+  incQty: (id: string, color?: string | null, size?: string | null, maxStock?: number | null) => void;
   decQty: (id: string, color?: string | null, size?: string | null) => void;
   removeFromCart: (id: string, color?: string | null, size?: string | null) => void;
   clearCart: () => void;
@@ -135,7 +138,6 @@ function firstValidPrice(...values: unknown[]): number | null {
 
     if (typeof value === "object") {
       const v = value as any;
-
       const directCandidates = [
         v?.price,
         v?.amount,
@@ -163,7 +165,6 @@ function firstValidPrice(...values: unknown[]): number | null {
         v?.selectedPrice,
         v?.selected_price
       );
-
       if (deep !== null) return deep;
     }
   }
@@ -199,13 +200,7 @@ function normalizePriceFromProduct(product?: Product): number | null {
 
 function normalizeTitleFromProduct(product?: Product, id?: string): string {
   const anyProduct = product as any;
-
-  const title =
-    anyProduct?.name ??
-    anyProduct?.title ??
-    anyProduct?.product_title ??
-    null;
-
+  const title = anyProduct?.name ?? anyProduct?.title ?? anyProduct?.product_title ?? null;
   if (typeof title === "string" && title.trim()) return title.trim();
   return id || "Producto";
 }
@@ -225,11 +220,7 @@ function normalizeHrefFromProduct(product?: Product, id?: string): string {
     if (rawHref.startsWith("/")) return rawHref;
   }
 
-  const rawId =
-    ((anyProduct?.id && String(anyProduct.id).trim()) ||
-      (id ? String(id).trim() : "") ||
-      "");
-
+  const rawId = ((anyProduct?.id && String(anyProduct.id).trim()) || (id ? String(id).trim() : "") || "");
   return rawId ? `/product/${encodeURIComponent(rawId)}` : "/products";
 }
 
@@ -300,7 +291,6 @@ function normalizeFavoritesArray(input: unknown): FavoriteStored[] {
 function mergeFavoritesWithLegacy(storeFavorites: FavoriteStored[], legacyFavorites: unknown): FavoriteStored[] {
   const normalizedStore = normalizeFavoritesArray(storeFavorites);
   const normalizedLegacy = normalizeFavoritesArray(legacyFavorites);
-
   const out: FavoriteStored[] = [];
 
   for (const item of [...normalizedStore, ...normalizedLegacy]) {
@@ -314,7 +304,6 @@ function mergeFavoritesWithLegacy(storeFavorites: FavoriteStored[], legacyFavori
     }
 
     const existing = out[existingIndex];
-
     if (typeof existing === "string" && isFavoriteObject(item)) {
       out[existingIndex] = item;
       continue;
@@ -364,6 +353,13 @@ function writeLegacyFavorites(favorites: FavoriteStored[]) {
   } catch {}
 }
 
+function normalizeMaxStock(value: unknown): number | null {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  if (n <= 0) return null;
+  return Math.floor(n);
+}
+
 export const useStore = create<StoreShape>((set, get) => ({
   state: initialState,
   cartCount: 0,
@@ -374,7 +370,6 @@ export const useStore = create<StoreShape>((set, get) => ({
   toggleFav: (id, product) => {
     const s = get().state;
     const exists = s.favorites.some((fav) => favoriteIdOf(fav) === id);
-
     const favorites = exists
       ? s.favorites.filter((fav) => favoriteIdOf(fav) !== id)
       : [...s.favorites.filter((fav) => favoriteIdOf(fav) !== id), buildFavorite(id, product)];
@@ -399,11 +394,11 @@ export const useStore = create<StoreShape>((set, get) => ({
 
   addToCart: (product, opts) => {
     const s = get().state;
-
-    const qty = opts?.qty ?? 1;
+    const qty = Math.max(1, opts?.qty ?? 1);
     const id = product.id;
     const color = opts?.color ?? null;
     const size = opts?.size ?? null;
+    const maxStock = normalizeMaxStock(opts?.maxStock);
 
     const resolvedPrice = normalizePriceFromProduct(product) ?? 0;
 
@@ -419,23 +414,40 @@ export const useStore = create<StoreShape>((set, get) => ({
 
     const k = keyOf(newItem);
     const idx = s.cart.findIndex((it) => keyOf(it) === k);
+    const existingQty = idx >= 0 ? s.cart[idx].qty : 0;
+    const desiredQty = existingQty + qty;
+    const finalQty = maxStock !== null ? Math.min(desiredQty, maxStock) : desiredQty;
+
+    if (maxStock !== null && finalQty <= existingQty) {
+      return false;
+    }
 
     const cart =
       idx >= 0
-        ? s.cart.map((it, i) => (i === idx ? { ...it, qty: it.qty + qty } : it))
-        : [...s.cart, newItem];
+        ? s.cart.map((it, i) => (i === idx ? { ...it, qty: finalQty } : it))
+        : [...s.cart, { ...newItem, qty: finalQty }];
 
     set({
       state: { ...s, cart, ui: { panel: "cart" } },
       cartCount: calcCount(cart),
       cartTotal: calcTotal(cart),
     });
+
+    return true;
   },
 
-  incQty: (id, color, size) => {
+  incQty: (id, color, size, maxStock) => {
     const s = get().state;
     const k = keyOf({ id, color: color ?? null, size: size ?? null });
-    const cart = s.cart.map((it) => (keyOf(it) === k ? { ...it, qty: it.qty + 1 } : it));
+    const safeMaxStock = normalizeMaxStock(maxStock);
+
+    const cart = s.cart.map((it) => {
+      if (keyOf(it) !== k) return it;
+      const nextQty = it.qty + 1;
+      const finalQty = safeMaxStock !== null ? Math.min(nextQty, safeMaxStock) : nextQty;
+      return { ...it, qty: finalQty };
+    });
+
     set({ state: { ...s, cart }, cartCount: calcCount(cart), cartTotal: calcTotal(cart) });
   },
 
@@ -445,6 +457,7 @@ export const useStore = create<StoreShape>((set, get) => ({
     const cart = s.cart
       .map((it) => (keyOf(it) === k ? { ...it, qty: Math.max(1, it.qty - 1) } : it))
       .filter((it) => it.qty > 0);
+
     set({ state: { ...s, cart }, cartCount: calcCount(cart), cartTotal: calcTotal(cart) });
   },
 

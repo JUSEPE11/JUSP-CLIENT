@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { dbInsertLog, dbUpsertOrder } from "@/lib/ordersRepo";
+import { dbGetOrderByCode, dbInsertLog, dbUpsertOrder } from "@/lib/ordersRepo";
+import { decrementExcelStock } from "@/lib/stockExcel";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,6 +48,24 @@ function mapWompiStatus(statusRaw: string | undefined | null) {
   return "pending";
 }
 
+function toSafeQty(value: unknown): number {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.floor(n);
+}
+
+function sanitizeOrderItems(items: any[]) {
+  return items
+    .map((item) => ({
+      id: String(item?.id || item?.product_id || "").trim(),
+      product_id: String(item?.product_id || item?.id || "").trim() || null,
+      size: item?.size ? String(item.size).trim() : null,
+      color: item?.color ? String(item.color).trim() : null,
+      qty: toSafeQty(item?.qty),
+    }))
+    .filter((item) => item.id && item.qty > 0);
+}
+
 async function fetchTransactionFromWompi(transactionId: string): Promise<WompiTransaction> {
   const privateKey = (process.env.WOMPI_PRIVATE_KEY || "").trim();
 
@@ -73,7 +92,9 @@ async function fetchTransactionFromWompi(transactionId: string): Promise<WompiTr
   }
 
   if (!res.ok) {
-    throw new Error(`No se pudo verificar la transacción en Wompi (${res.status}): ${raw || "sin detalle"}`);
+    throw new Error(
+      `No se pudo verificar la transacción en Wompi (${res.status}): ${raw || "sin detalle"}`
+    );
   }
 
   const tx = json?.data;
@@ -132,6 +153,31 @@ export async function POST(req: Request) {
       throw new Error("La transacción verificada en Wompi no trae reference.");
     }
 
+    const existingOrder = await dbGetOrderByCode(reference);
+    const wasAlreadyPaid = String(existingOrder?.status || "").toLowerCase() === "paid";
+
+    if (wompiStatus === "APPROVED" && !wasAlreadyPaid) {
+      const rawOrderItems = Array.isArray(existingOrder?.items) ? existingOrder.items : [];
+      const orderItems = sanitizeOrderItems(rawOrderItems);
+
+      if (!orderItems.length) {
+        throw new Error(`La orden ${reference} no tiene items válidos para descontar stock.`);
+      }
+
+      await decrementExcelStock(orderItems);
+
+      await dbInsertLog({
+        level: "info",
+        scope: "wompi.webhook",
+        message: "Stock descontado del Excel",
+        order_id: reference,
+        meta: {
+          transactionId,
+          items: orderItems,
+        },
+      });
+    }
+
     await dbUpsertOrder({
       order_code: reference,
       wompi_reference: reference,
@@ -152,7 +198,10 @@ export async function POST(req: Request) {
     await dbInsertLog({
       level: wompiStatus === "APPROVED" ? "info" : "warn",
       scope: "wompi.webhook",
-      message: wompiStatus === "APPROVED" ? "Pago aprobado por Wompi" : `Cambio de estado Wompi: ${wompiStatus}`,
+      message:
+        wompiStatus === "APPROVED"
+          ? "Pago aprobado por Wompi"
+          : `Cambio de estado Wompi: ${wompiStatus}`,
       order_id: reference,
       meta: {
         transactionId,
@@ -162,6 +211,7 @@ export async function POST(req: Request) {
         currency: tx.currency || null,
         shipping_address_line_1: shipping?.address_line_1 || null,
         shipping_region: shipping?.region || null,
+        skippedStockDiscountBecauseAlreadyPaid: wasAlreadyPaid,
       },
     });
 

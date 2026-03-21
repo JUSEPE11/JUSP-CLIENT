@@ -14,6 +14,7 @@ type Variant = {
   color?: string;
   price: number;
   stock?: number;
+  isAvailable?: boolean;
 };
 
 type Product = {
@@ -42,17 +43,19 @@ type Product = {
   pickupToday?: boolean;
   expressDelivery?: boolean;
   variants: Variant[];
+  isActive: boolean;
+  isSoldOut: boolean;
 };
 
 type CatalogCacheFile = {
-  version: 5;
+  version: 6;
   generatedAt: string;
   excelPath: string;
   excelMtimeMs: number;
   products: Product[];
 };
 
-const CACHE_VERSION = 5;
+const CACHE_VERSION = 6;
 
 function resolveExcelPath(): string | null {
   const dataDir = path.join(process.cwd(), "data");
@@ -64,8 +67,7 @@ function resolveExcelPath(): string | null {
 
   const files = fs.readdirSync(dataDir);
   const candidate = files.find(
-    (file) =>
-      /^catalogo_jusp(\.[^.]+)?\.xlsx$/i.test(file) || /^catalogo_jusp\.xlsx$/i.test(file)
+    (file) => /^catalogo_jusp(\.[^.]+)?\.xlsx$/i.test(file) || /^catalogo_jusp\.xlsx$/i.test(file)
   );
 
   return candidate ? path.join(dataDir, candidate) : null;
@@ -132,7 +134,7 @@ function sanitizeVariantPart(value?: string): string {
 }
 
 function uniqCaseInsensitive(values: string[]): string[] {
-  const seen = new Set<string>();
+  const seen = new Set();
   const out: string[] = [];
 
   for (const raw of values) {
@@ -157,11 +159,7 @@ function normalizeHeaderKey(value: unknown): string {
     .replace(/\s+/g, "_");
 }
 
-function getRowValue(
-  row: Record<string, unknown>,
-  possibleKeys: string[],
-  fallback: unknown = ""
-): unknown {
+function getRowValue(row: Record<string, unknown>, possibleKeys: string[], fallback: unknown = ""): unknown {
   const normalizedMap = new Map<string, unknown>();
 
   for (const [key, value] of Object.entries(row)) {
@@ -242,14 +240,7 @@ function inferGender(title: string): Gender {
   const t = title.toLowerCase();
 
   if (t.includes("niño") || t.includes("niños") || t.includes("kids")) return "kids";
-  if (
-    t.includes("mujer") ||
-    t.includes("women") ||
-    t.includes("bra") ||
-    t.includes("sujetador")
-  ) {
-    return "women";
-  }
+  if (t.includes("mujer") || t.includes("women") || t.includes("bra") || t.includes("sujetador")) return "women";
   if (t.includes("hombre") || t.includes("men")) return "men";
 
   return "unisex";
@@ -286,9 +277,7 @@ function normalizeExcelGender(value: unknown): Gender | null {
   if (v === "men" || v === "women" || v === "kids" || v === "unisex") return v;
   if (v === "hombre") return "men";
   if (v === "mujer") return "women";
-  if (v === "niños" || v === "ninos" || v === "niño" || v === "nino" || v === "kid") {
-    return "kids";
-  }
+  if (v === "niños" || v === "ninos" || v === "niño" || v === "nino" || v === "kid") return "kids";
 
   return null;
 }
@@ -307,17 +296,9 @@ function inferCollectionsFromTitle(title: string, productType: ProductType, kind
   const t = title.toLowerCase();
   const collections: string[] = [];
 
-  if (productType === "shoes") {
-    collections.push("shoes");
-  }
-
-  if (productType === "clothing") {
-    collections.push("clothing");
-  }
-
-  if (productType === "accessory") {
-    collections.push("accessories");
-  }
+  if (productType === "shoes") collections.push("shoes");
+  if (productType === "clothing") collections.push("clothing");
+  if (productType === "accessory") collections.push("accessories");
 
   if (
     kind === "tops" ||
@@ -365,49 +346,15 @@ function inferCollectionsFromTitle(title: string, productType: ProductType, kind
     kind === "sports-bra" ||
     kind === "leggings"
   ) {
-    collections.push("gym");
-    collections.push("training");
+    collections.push("gym", "training");
   }
 
-  if (
-    t.includes("running") ||
-    t.includes("run") ||
-    t.includes("runner")
-  ) {
-    collections.push("running");
-  }
+  if (t.includes("running") || t.includes("run") || t.includes("runner")) collections.push("running");
+  if (t.includes("football") || t.includes("soccer") || t.includes("futbol") || t.includes("fútbol")) collections.push("football");
+  if (t.includes("basketball") || t.includes("baloncesto") || t.includes("basket")) collections.push("basketball");
+  if (t.includes("tennis") || t.includes("tenis")) collections.push("tennis");
 
-  if (
-    t.includes("football") ||
-    t.includes("soccer") ||
-    t.includes("futbol") ||
-    t.includes("fútbol")
-  ) {
-    collections.push("football");
-  }
-
-  if (
-    t.includes("basketball") ||
-    t.includes("baloncesto") ||
-    t.includes("basket")
-  ) {
-    collections.push("basketball");
-  }
-
-  if (
-    t.includes("tennis") ||
-    t.includes("tenis")
-  ) {
-    collections.push("tennis");
-  }
-
-  if (
-    productType === "accessory" ||
-    t.includes("cap") ||
-    t.includes("gorra") ||
-    t.includes("bag") ||
-    t.includes("mochila")
-  ) {
+  if (productType === "accessory" || t.includes("cap") || t.includes("gorra") || t.includes("bag") || t.includes("mochila")) {
     collections.push("accessories");
   }
 
@@ -439,30 +386,11 @@ function inferSportFromTitle(title: string): string[] {
     out.push("training");
   }
 
-  if (t.includes("running") || t.includes("run") || t.includes("runner")) {
-    out.push("running");
-  }
-
-  if (
-    t.includes("football") ||
-    t.includes("soccer") ||
-    t.includes("futbol") ||
-    t.includes("fútbol")
-  ) {
-    out.push("football");
-  }
-
-  if (t.includes("basketball") || t.includes("basket") || t.includes("baloncesto")) {
-    out.push("basketball");
-  }
-
-  if (t.includes("tennis") || t.includes("tenis")) {
-    out.push("tennis");
-  }
-
-  if (out.length === 0) {
-    out.push("lifestyle");
-  }
+  if (t.includes("running") || t.includes("run") || t.includes("runner")) out.push("running");
+  if (t.includes("football") || t.includes("soccer") || t.includes("futbol") || t.includes("fútbol")) out.push("football");
+  if (t.includes("basketball") || t.includes("basket") || t.includes("baloncesto")) out.push("basketball");
+  if (t.includes("tennis") || t.includes("tenis")) out.push("tennis");
+  if (!out.length) out.push("lifestyle");
 
   return uniqCaseInsensitive(out);
 }
@@ -471,14 +399,8 @@ function inferTagsFromTitle(title: string, brand: string, kind: string, collecti
   const t = title.toLowerCase();
   const tags: string[] = ["nuevo"];
 
-  if (brand.trim()) {
-    tags.push(brand.trim().toLowerCase());
-  }
-
-  if (kind && kind !== "general") {
-    tags.push(kind);
-  }
-
+  if (brand.trim()) tags.push(brand.trim().toLowerCase());
+  if (kind && kind !== "general") tags.push(kind);
   tags.push(...collections);
 
   if (t.includes("dri-fit")) tags.push("dri-fit");
@@ -501,62 +423,26 @@ function loadExcelProducts(): Product[] {
     workbook.Sheets["productos"] ??
     workbook.Sheets["Productos"] ??
     workbook.Sheets[workbook.SheetNames[0]];
-
   if (!sheet) return [];
 
   const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
     defval: "",
     raw: false,
   });
-
   const map = new Map<string, Product>();
 
   for (const rawRow of rows) {
-    const slug = String(
-      getRowValue(rawRow, ["product_slug", "slug", "productslug"], "")
-    ).trim();
-
-    const title = String(
-      getRowValue(rawRow, ["title", "titulo", "name", "nombre"], "")
-    ).trim();
-
-    const brand = String(
-      getRowValue(rawRow, ["brand", "marca"], "JUSP")
-    ).trim();
-
-    const size = String(
-      getRowValue(rawRow, ["size", "talla"], "")
-    ).trim();
-
-    const color = normalizeColor(
-      getRowValue(rawRow, ["color", "colour"], "")
-    );
-
-    const price = toSafeNumber(
-      getRowValue(rawRow, ["price", "precio"], 0),
-      0
-    );
-
-    const stock = toSafeNumber(
-      getRowValue(rawRow, ["stock", "inventario"], 0),
-      0
-    );
-
-    const excelGender = normalizeExcelGender(
-      getRowValue(rawRow, ["gender", "genero", "género"], "")
-    );
-
-    const excelCategory = normalizeExcelCategory(
-      getRowValue(rawRow, ["category", "categoria", "categoría"], "")
-    );
-
-    const pickupToday = toSafeBoolean(
-      getRowValue(rawRow, ["pickup_today", "pickup", "retiro_hoy"], "")
-    );
-
-    const expressDelivery = toSafeBoolean(
-      getRowValue(rawRow, ["express_delivery", "express", "envio_express"], "")
-    );
+    const slug = String(getRowValue(rawRow, ["product_slug", "slug", "productslug"], "")).trim();
+    const title = String(getRowValue(rawRow, ["title", "titulo", "name", "nombre"], "")).trim();
+    const brand = String(getRowValue(rawRow, ["brand", "marca"], "JUSP")).trim();
+    const size = String(getRowValue(rawRow, ["size", "talla"], "")).trim();
+    const color = normalizeColor(getRowValue(rawRow, ["color", "colour"], ""));
+    const price = toSafeNumber(getRowValue(rawRow, ["price", "precio"], 0), 0);
+    const stock = toSafeNumber(getRowValue(rawRow, ["stock", "inventario"], 0), 0);
+    const excelGender = normalizeExcelGender(getRowValue(rawRow, ["gender", "genero", "género"], ""));
+    const excelCategory = normalizeExcelCategory(getRowValue(rawRow, ["category", "categoria", "categoría"], ""));
+    const pickupToday = toSafeBoolean(getRowValue(rawRow, ["pickup_today", "pickup", "retiro_hoy"], ""));
+    const expressDelivery = toSafeBoolean(getRowValue(rawRow, ["express_delivery", "express", "envio_express"], ""));
 
     if (!slug || !title || price <= 0) continue;
 
@@ -594,15 +480,14 @@ function loadExcelProducts(): Product[] {
         pickupToday,
         expressDelivery,
         variants: [],
+        isActive: true,
+        isSoldOut: false,
       });
     }
 
     const product = map.get(slug)!;
     const variantKey = buildVariantKey(slug, size, color);
-
-    const existingVariantIndex = product.variants.findIndex(
-      (variant) => variant.key === variantKey
-    );
+    const existingVariantIndex = product.variants.findIndex((variant) => variant.key === variantKey);
 
     if (existingVariantIndex >= 0) {
       const existing = product.variants[existingVariantIndex];
@@ -610,6 +495,7 @@ function loadExcelProducts(): Product[] {
       existing.stock = stock;
       existing.size = size || existing.size;
       existing.color = color || existing.color;
+      existing.isAvailable = stock > 0;
     } else {
       product.variants.push({
         key: variantKey,
@@ -617,37 +503,41 @@ function loadExcelProducts(): Product[] {
         color: color || undefined,
         price,
         stock,
+        isAvailable: stock > 0,
       });
     }
 
-    if (size) {
-      product.sizes = uniqCaseInsensitive([...product.sizes, size]);
-    }
+    if (size) product.sizes = uniqCaseInsensitive([...product.sizes, size]);
+    if (color) product.colors = uniqCaseInsensitive([...product.colors, color]);
 
-    if (color) {
-      product.colors = uniqCaseInsensitive([...product.colors, color]);
-    }
-
-    product.stockHint = product.variants.reduce((acc, variant) => {
-      return acc + toSafeNumber(variant.stock, 0);
-    }, 0);
-
+    product.stockHint = product.variants.reduce((acc, variant) => acc + toSafeNumber(variant.stock, 0), 0);
     product.pickupToday = Boolean(product.pickupToday || pickupToday);
     product.expressDelivery = Boolean(product.expressDelivery || expressDelivery);
 
-    if (price < product.price) {
-      product.price = price;
-    }
+    if (price < product.price) product.price = price;
   }
 
-  return Array.from(map.values()).map((product) => ({
-    ...product,
-    sizes: uniqCaseInsensitive(product.sizes),
-    colors: uniqCaseInsensitive(product.colors),
-    collections: uniqCaseInsensitive(product.collections),
-    sport: uniqCaseInsensitive(product.sport),
-    tags: uniqCaseInsensitive(product.tags),
-  }));
+  return Array.from(map.values()).map((product) => {
+    const stockHint = product.variants.reduce((acc, variant) => acc + toSafeNumber(variant.stock, 0), 0);
+    const isSoldOut = stockHint <= 0;
+
+    return {
+      ...product,
+      stockHint,
+      isSoldOut,
+      isActive: !isSoldOut,
+      sizes: uniqCaseInsensitive(product.sizes),
+      colors: uniqCaseInsensitive(product.colors),
+      collections: uniqCaseInsensitive(product.collections),
+      sport: uniqCaseInsensitive(product.sport),
+      tags: uniqCaseInsensitive(product.tags),
+      variants: product.variants.map((variant) => ({
+        ...variant,
+        stock: toSafeNumber(variant.stock, 0),
+        isAvailable: toSafeNumber(variant.stock, 0) > 0,
+      })),
+    };
+  });
 }
 
 function readCatalogCache(): CatalogCacheFile | null {
@@ -716,7 +606,6 @@ function getProductsFast(): Product[] {
       excelMtimeMs,
       products: excelProducts,
     });
-
     return excelProducts;
   }
 

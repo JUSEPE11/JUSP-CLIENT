@@ -113,6 +113,14 @@ function headers(): HeadersInit {
   };
 }
 
+function headersGet(): HeadersInit {
+  const { key } = getEnv();
+  return {
+    apikey: key,
+    Authorization: `Bearer ${key}`,
+  };
+}
+
 function restUrl(table: string) {
   const { url } = getEnv();
   return `${url.replace(/\/+$/, "")}/rest/v1/${table}`;
@@ -122,7 +130,11 @@ async function rest<T>(
   input: RequestInfo,
   init?: RequestInit
 ): Promise<{ data: T; status: number; raw: string }> {
-  const res = await fetch(input, init);
+  const res = await fetch(input, {
+    cache: "no-store",
+    ...init,
+  });
+
   const raw = await res.text();
 
   if (!res.ok) {
@@ -174,6 +186,23 @@ export async function dbUpsertOrder(order: Order): Promise<Order> {
   return order;
 }
 
+export async function dbGetOrderByCode(orderCode: string): Promise<Order | null> {
+  const code = String(orderCode || "").trim();
+  if (!code) return null;
+
+  const url =
+    restUrl("orders") +
+    `?select=*&order_code=eq.${encodeURIComponent(code)}&limit=1`;
+
+  const { data } = await rest<Order[] | null>(url, {
+    method: "GET",
+    headers: headersGet(),
+  });
+
+  if (Array.isArray(data) && data.length) return data[0] as Order;
+  return null;
+}
+
 /** List orders for a given customer email */
 export async function myListOrdersByEmail(email: string): Promise<Order[]> {
   const url =
@@ -182,7 +211,7 @@ export async function myListOrdersByEmail(email: string): Promise<Order[]> {
 
   const { data } = await rest<Order[]>(url, {
     method: "GET",
-    headers: headers(),
+    headers: headersGet(),
   });
 
   return Array.isArray(data) ? data : [];
@@ -190,11 +219,12 @@ export async function myListOrdersByEmail(email: string): Promise<Order[]> {
 
 /** Admin list */
 export async function adminListOrders(limit = 50): Promise<Order[]> {
-  const url = restUrl("orders") + `?select=*&order=created_at.desc&limit=${limit}`;
+  const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 50;
+  const url = restUrl("orders") + `?select=*&order=created_at.desc&limit=${safeLimit}`;
 
   const { data } = await rest<Order[]>(url, {
     method: "GET",
-    headers: headers(),
+    headers: headersGet(),
   });
 
   return Array.isArray(data) ? data : [];
@@ -202,11 +232,12 @@ export async function adminListOrders(limit = 50): Promise<Order[]> {
 
 /** Admin list logs */
 export async function adminListLogs(limit = 100): Promise<LogRow[]> {
-  const url = restUrl("logs") + `?select=*&order=created_at.desc&limit=${limit}`;
+  const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 100;
+  const url = restUrl("logs") + `?select=*&order=created_at.desc&limit=${safeLimit}`;
 
   const { data } = await rest<LogRow[]>(url, {
     method: "GET",
-    headers: headers(),
+    headers: headersGet(),
   });
 
   return Array.isArray(data) ? data : [];

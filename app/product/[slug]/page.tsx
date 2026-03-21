@@ -205,6 +205,23 @@ function uniq(arr: string[]) {
   return out;
 }
 
+function normalizeCompareValue(value: string | null | undefined) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function toSafeStock(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.max(0, Math.floor(value));
+  }
+
+  if (typeof value === "string") {
+    const n = Number(value);
+    if (Number.isFinite(n)) return Math.max(0, Math.floor(n));
+  }
+
+  return null;
+}
+
 type SizingMode = "shoe" | "apparel";
 
 const WOMEN_SHOE_FULL_US = ["5.5", "6", "6.5", "7", "7.5", "8", "8.5", "9", "9.5"];
@@ -581,7 +598,6 @@ export default function ProductPage() {
     goToPrevImage();
   }
 
-
   useEffect(() => {
     setActiveImg(0);
     setAttemptedBuy(false);
@@ -644,12 +660,28 @@ export default function ProductPage() {
     return Math.round(displayPrice / (1 - discountPct / 100));
   }, [displayPrice, discountPct]);
 
+  const currentStock = useMemo(() => {
+    if (!product) return 0;
+
+    if (selectedVariant) {
+      const variantStock = toSafeStock(selectedVariant.stock);
+      if (variantStock !== null) return variantStock;
+    }
+
+    const hintStock = toSafeStock(product.stockHint);
+    if (hintStock !== null) return hintStock;
+
+    return 0;
+  }, [product, selectedVariant]);
+
+  const isSoldOut = currentStock <= 0;
+
   const urgencyText = useMemo(() => {
-    const hint = Number(product?.stockHint ?? 0);
-    if (hint > 0 && hint <= 2) return "Quedan muy pocas";
-    if (hint > 0 && hint <= 8) return "Stock limitado";
+    if (isSoldOut) return "Agotado";
+    if (currentStock > 0 && currentStock <= 2) return "Quedan muy pocas";
+    if (currentStock > 0 && currentStock <= 8) return "Stock limitado";
     return "Disponible";
-  }, [product]);
+  }, [currentStock, isSoldOut]);
 
   const selectionMissing = useMemo(() => {
     if (!hasRealVariants) return false;
@@ -677,7 +709,57 @@ export default function ProductPage() {
     return null;
   }, [selectedColor, selectedVariant, colors]);
 
-  const { addToCart, openCart } = useStore();
+  const { state, addToCart, openCart } = useStore();
+
+  const qtyAlreadyInCart = useMemo(() => {
+    const cart = Array.isArray(state?.cart) ? state.cart : [];
+    const selectedId = normalizeCompareValue(product?.id);
+    const selectedColorValue = normalizeCompareValue(visibleColorLabel);
+    const selectedSizeValue = normalizeCompareValue(size);
+
+    return cart.reduce((acc, item) => {
+      const sameId = normalizeCompareValue(item?.id) === selectedId;
+      const sameColor = normalizeCompareValue(item?.color) === selectedColorValue;
+      const sameSize = normalizeCompareValue(item?.size) === selectedSizeValue;
+
+      if (!sameId || !sameColor || !sameSize) return acc;
+
+      const itemQty =
+        typeof item?.qty === "number" && Number.isFinite(item.qty) ? Math.max(0, item.qty) : 0;
+
+      return acc + itemQty;
+    }, 0);
+  }, [state?.cart, product?.id, visibleColorLabel, size]);
+
+  const maxQtyAllowed = useMemo(() => {
+    if (selectionMissing) return 0;
+    return Math.max(0, currentStock - qtyAlreadyInCart);
+  }, [selectionMissing, currentStock, qtyAlreadyInCart]);
+
+  const stockMessage = useMemo(() => {
+    if (selectionMissing) return null;
+    if (isSoldOut) return "Agotado";
+    if (maxQtyAllowed <= 0) return "Ya tienes el máximo disponible en el carrito";
+    if (maxQtyAllowed === 1) return "Solo queda 1 disponible";
+    return `Disponibles: ${maxQtyAllowed}`;
+  }, [selectionMissing, isSoldOut, maxQtyAllowed]);
+
+  useEffect(() => {
+    if (selectionMissing) {
+      setQty(1);
+      return;
+    }
+
+    if (maxQtyAllowed <= 0) {
+      setQty(1);
+      return;
+    }
+
+    setQty((prev) => {
+      const next = Math.max(1, Math.min(prev, maxQtyAllowed));
+      return next;
+    });
+  }, [maxQtyAllowed, selectionMissing]);
 
   function toggleFavorite() {
     if (!product) return;
@@ -705,10 +787,23 @@ export default function ProductPage() {
       return;
     }
 
-    const cloned: any = { ...product, price: displayPrice };
-    addToCart(cloned, { color: visibleColorLabel, size, qty });
+    if (isSoldOut) {
+      setToast("Producto agotado");
+      window.setTimeout(() => setToast(null), 1600);
+      return;
+    }
 
-    setToast("Añadido al carrito");
+    if (maxQtyAllowed <= 0) {
+      setToast("Ya no hay más stock disponible para esta selección");
+      window.setTimeout(() => setToast(null), 1600);
+      return;
+    }
+
+    const finalQty = Math.max(1, Math.min(qty, maxQtyAllowed));
+    const cloned: any = { ...product, price: displayPrice };
+    addToCart(cloned, { color: visibleColorLabel, size, qty: finalQty });
+
+    setToast(finalQty === 1 ? "Añadido al carrito" : `${finalQty} unidades añadidas al carrito`);
     openCart();
     window.setTimeout(() => setToast(null), 1600);
 
@@ -798,9 +893,7 @@ export default function ProductPage() {
                   <div className="imgGlow" aria-hidden="true" />
 
                   {imgs.length > 1 ? (
-                    <div className="swipeHint" aria-hidden="true">
-                      
-                    </div>
+                    <div className="swipeHint" aria-hidden="true"></div>
                   ) : null}
                 </div>
               </div>
@@ -847,6 +940,12 @@ export default function ProductPage() {
 
               {selectionHint ? (
                 <div className={`hint ${attemptedBuy && selectionMissing ? "err" : ""}`}>{selectionHint}</div>
+              ) : null}
+
+              {stockMessage ? (
+                <div className={`stockHint ${isSoldOut || maxQtyAllowed <= 0 ? "soldOut" : ""}`}>
+                  {stockMessage}
+                </div>
               ) : null}
 
               {colors.length ? (
@@ -904,22 +1003,42 @@ export default function ProductPage() {
               <div className="blk">
                 <div className="lbl">Cantidad</div>
                 <div className="qty">
-                  <button type="button" className="qbtn" onClick={() => setQty((v) => Math.max(1, v - 1))}>
+                  <button
+                    type="button"
+                    className="qbtn"
+                    onClick={() => setQty((v) => Math.max(1, v - 1))}
+                    disabled={isSoldOut || maxQtyAllowed <= 0}
+                  >
                     −
                   </button>
                   <div className="qval">{qty}</div>
-                  <button type="button" className="qbtn" onClick={() => setQty((v) => v + 1)}>
+                  <button
+                    type="button"
+                    className="qbtn"
+                    onClick={() => setQty((v) => Math.min(maxQtyAllowed || 1, v + 1))}
+                    disabled={isSoldOut || maxQtyAllowed <= 1 || qty >= maxQtyAllowed}
+                  >
                     +
                   </button>
                 </div>
               </div>
 
               <div className="ctaRow">
-                <button className="ctaAlt" type="button" onClick={() => onBuyReal("add")}>
-                  Añadir al carrito
+                <button
+                  className="ctaAlt"
+                  type="button"
+                  onClick={() => onBuyReal("add")}
+                  disabled={selectionMissing || isSoldOut || maxQtyAllowed <= 0}
+                >
+                  {isSoldOut ? "Agotado" : "Añadir al carrito"}
                 </button>
-                <button className="ctaBlack" type="button" onClick={() => onBuyReal("now")}>
-                  Comprar ahora
+                <button
+                  className="ctaBlack"
+                  type="button"
+                  onClick={() => onBuyReal("now")}
+                  disabled={selectionMissing || isSoldOut || maxQtyAllowed <= 0}
+                >
+                  {isSoldOut ? "No disponible" : "Comprar ahora"}
                 </button>
               </div>
 
@@ -940,19 +1059,35 @@ export default function ProductPage() {
           </div>
           {hasRealVariants ? (
             <div className={`mHint ${attemptedBuy && selectionMissing ? "mErr" : ""}`}>
-              {selectionMissing ? "Selecciona talla o color" : "Listo para comprar"}
+              {selectionMissing
+                ? "Selecciona talla o color"
+                : isSoldOut
+                  ? "Agotado"
+                  : maxQtyAllowed <= 0
+                    ? "Sin más stock"
+                    : "Listo para comprar"}
             </div>
           ) : (
-            <div className="mHint">Listo para comprar</div>
+            <div className="mHint">{isSoldOut ? "Agotado" : "Listo para comprar"}</div>
           )}
         </div>
 
         <div className="mBtns">
-          <button className="mBtnAlt" type="button" onClick={() => onBuyReal("add")}>
-            Añadir
+          <button
+            className="mBtnAlt"
+            type="button"
+            onClick={() => onBuyReal("add")}
+            disabled={selectionMissing || isSoldOut || maxQtyAllowed <= 0}
+          >
+            {isSoldOut ? "Agotado" : "Añadir"}
           </button>
-          <button className="mBtnBlack" type="button" onClick={() => onBuyReal("now")}>
-            Ahora
+          <button
+            className="mBtnBlack"
+            type="button"
+            onClick={() => onBuyReal("now")}
+            disabled={selectionMissing || isSoldOut || maxQtyAllowed <= 0}
+          >
+            {isSoldOut ? "No disponible" : "Ahora"}
           </button>
         </div>
       </div>
@@ -1208,7 +1343,6 @@ export default function ProductPage() {
           box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
         }
 
-
         .ph {
           width: 22px;
           height: 22px;
@@ -1377,6 +1511,23 @@ export default function ProductPage() {
           color: rgba(255, 40, 0, 0.9);
         }
 
+        .stockHint {
+          position: relative;
+          margin-top: 10px;
+          border-radius: 16px;
+          border: 1px solid rgba(212, 175, 55, 0.24);
+          background: rgba(212, 175, 55, 0.08);
+          padding: 11px 12px;
+          font-weight: 950;
+          color: rgba(0, 0, 0, 0.8);
+          font-size: 12px;
+        }
+        .stockHint.soldOut {
+          border-color: rgba(255, 40, 0, 0.22);
+          background: rgba(255, 40, 0, 0.05);
+          color: rgba(170, 20, 0, 0.95);
+        }
+
         .blk {
           position: relative;
           margin-top: 14px;
@@ -1510,7 +1661,7 @@ export default function ProductPage() {
           font-weight: 950;
           font-size: 16px;
           color: rgba(0, 0, 0, 0.86);
-          transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+          transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease, opacity 120ms ease;
         }
         .qbtn:hover {
           background: rgba(0, 0, 0, 0.02);
@@ -1519,6 +1670,12 @@ export default function ProductPage() {
         }
         .qbtn:active {
           transform: translateY(0);
+        }
+        .qbtn:disabled {
+          opacity: 0.45;
+          cursor: not-allowed;
+          box-shadow: none;
+          transform: none;
         }
         .qval {
           min-width: 34px;
@@ -1545,7 +1702,7 @@ export default function ProductPage() {
           background: linear-gradient(90deg, var(--jusp-gold), var(--jusp-gold-2));
           color: rgba(0, 0, 0, 0.92);
           box-shadow: 0 20px 54px rgba(212, 175, 55, 0.22);
-          transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
+          transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease, opacity 120ms ease;
         }
         .ctaAlt:hover {
           filter: saturate(1.06);
@@ -1554,6 +1711,13 @@ export default function ProductPage() {
         }
         .ctaAlt:active {
           transform: translateY(0);
+        }
+        .ctaAlt:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
+          filter: none;
         }
 
         .ctaBlack {
@@ -1566,7 +1730,7 @@ export default function ProductPage() {
           background: linear-gradient(180deg, rgba(0, 0, 0, 0.92), rgba(0, 0, 0, 0.84));
           color: rgba(255, 255, 255, 0.96);
           box-shadow: 0 22px 60px rgba(0, 0, 0, 0.22);
-          transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
+          transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease, opacity 120ms ease;
         }
         .ctaBlack:hover {
           transform: translateY(-1px);
@@ -1575,6 +1739,13 @@ export default function ProductPage() {
         }
         .ctaBlack:active {
           transform: translateY(0);
+        }
+        .ctaBlack:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
+          filter: none;
         }
 
         .footNote {
@@ -1691,6 +1862,12 @@ export default function ProductPage() {
           color: rgba(255, 255, 255, 0.96);
           box-shadow: 0 18px 56px rgba(0, 0, 0, 0.22);
           min-width: 120px;
+        }
+        .mBtnAlt:disabled,
+        .mBtnBlack:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          box-shadow: none;
         }
 
         @media (max-width: 980px) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { COOKIE_AT, verifyAccessToken } from "@/lib/auth";
+import { checkExcelStock } from "@/lib/stockExcel";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,6 +55,27 @@ function parseIntSafe(v: string | null, fallback: number) {
   return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
 }
 
+function toSafeQty(value: unknown): number {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.floor(n);
+}
+
+function sanitizeOrderItems(items: any[]) {
+  return items
+    .map((item) => ({
+      id: String(item?.id || item?.product_id || "").trim(),
+      product_id: String(item?.product_id || item?.id || "").trim() || null,
+      name: String(item?.name || "").trim() || null,
+      qty: toSafeQty(item?.qty),
+      price: Number.isFinite(Number(item?.price)) ? Number(item?.price) : 0,
+      image: item?.image ? String(item.image).trim() : null,
+      size: item?.size ? String(item.size).trim() : null,
+      color: item?.color ? String(item.color).trim() : null,
+    }))
+    .filter((item) => item.id && item.qty > 0);
+}
+
 export async function GET(req: NextRequest) {
   const gate = await requireSession(req);
   if (!gate.ok) return gate.res;
@@ -71,7 +93,6 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-
     const page = Math.max(1, parseIntSafe(searchParams.get("page"), 1));
     const limit = Math.max(1, parseIntSafe(searchParams.get("limit"), 50));
     const from = (page - 1) * limit;
@@ -142,10 +163,7 @@ export async function GET(req: NextRequest) {
       { status: 200 }
     );
   } catch (e: any) {
-    return NextResponse.json(
-      { ok: false, error: e?.message || "Server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, error: e?.message || "Server error" }, { status: 500 });
   }
 }
 
@@ -155,71 +173,90 @@ export async function POST(req: NextRequest) {
 
   try {
     const payload = gate.payload;
-
     const userId = pickUserId(payload);
     const emailSession = pickEmail(payload);
 
     const body = await req.json();
-
-    const items = Array.isArray(body.items) ? body.items : [];
+    const rawItems = Array.isArray(body.items) ? body.items : [];
+    const items = sanitizeOrderItems(rawItems);
     const shipping = body.shipping || {};
     const totals = body.totals || {};
     const customer = body.customer || {};
+    const reference = String(body.reference || "").trim();
+
+    if (!reference) {
+      return NextResponse.json(
+        { ok: false, error: "La orden no trae referencia." },
+        { status: 400 }
+      );
+    }
+
+    if (!items.length) {
+      return NextResponse.json(
+        { ok: false, error: "La orden no trae items válidos." },
+        { status: 400 }
+      );
+    }
+
+    const stockChecks = checkExcelStock(
+      items.map((item) => ({
+        id: item.id,
+        product_id: item.product_id,
+        size: item.size,
+        color: item.color,
+        qty: item.qty,
+      }))
+    );
+
+    const failed = stockChecks.find((row) => !row.ok);
+    if (failed) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: `Stock insuficiente para ${failed.slug}${failed.size ? ` / talla ${failed.size}` : ""}${
+            failed.color ? ` / ${failed.color}` : ""
+          }. Disponible: ${failed.available}.`,
+          stock: stockChecks,
+        },
+        { status: 409 }
+      );
+    }
 
     const supabase = supabaseAdmin();
 
     const orderInsert = {
-      order_code: body.reference,
-      wompi_reference: body.reference,
-
+      order_code: reference,
+      wompi_reference: reference,
       status: "pending",
       payment_status: "in_progress",
       payment_provider: "wompi",
-
       user_id: userId || null,
       user_email: emailSession || null,
-
       customer_email: customer.email || emailSession || null,
       customer_name: customer.fullName || null,
-
       phone: customer.phone || null,
-
       document_type: customer.documentType || null,
       document_number: customer.documentNumber || null,
-
       address: shipping.addressLine1 || null,
       city: shipping.city || null,
       region: shipping.region || null,
       country: shipping.country || "CO",
-
       shipping_address: shipping,
-      items: items,
-
+      items,
       items_count: items.reduce((a: number, b: any) => a + (b.qty || 0), 0),
-
-      subtotal_cop: totals.subtotal || 0,
-      shipping_cop: totals.shipping || 0,
-      total_cop: totals.total || 0,
-
-      amount_cents: body.amountInCents || 0,
+      subtotal_cop: Number(totals.subtotal || 0),
+      shipping_cop: Number(totals.shipping || 0),
+      total_cop: Number(totals.total || 0),
+      amount_cents: Number(body.amountInCents || 0),
       currency: body.currency || "COP",
-
       provider: "wompi",
-
       created_at: new Date().toISOString(),
     };
 
-    const insert = await supabase
-      .from("orders")
-      .insert(orderInsert)
-      .select()
-      .single();
+    const insert = await supabase.from("orders").insert(orderInsert).select().single();
 
     if (insert.error) {
-      return NextResponse.json(
-        { ok: false, error: insert.error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ ok: false, error: insert.error.message }, { status: 500 });
     }
 
     return NextResponse.json(
@@ -227,12 +264,9 @@ export async function POST(req: NextRequest) {
         ok: true,
         order: insert.data,
       },
-      { status: 200 }
+      { status: 200, headers: { "Cache-Control": "no-store" } }
     );
   } catch (e: any) {
-    return NextResponse.json(
-      { ok: false, error: e?.message || "Server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, error: e?.message || "Server error" }, { status: 500 });
   }
 }
