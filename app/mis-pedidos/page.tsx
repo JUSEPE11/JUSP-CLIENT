@@ -1,4 +1,3 @@
-// app/mis-pedidos/page.tsx
 "use client";
 
 import Link from "next/link";
@@ -74,9 +73,19 @@ function fmtDate(iso: string) {
 
 function pillTone(s?: string | null) {
   const v = String(s || "").toLowerCase();
-  if (v.includes("paid") || v.includes("succeeded") || v.includes("ok")) return "good";
-  if (v.includes("pending") || v.includes("processing")) return "warn";
-  if (v.includes("failed") || v.includes("canceled") || v.includes("cancelled")) return "bad";
+  if (v.includes("paid") || v.includes("approved") || v.includes("succeeded") || v.includes("ok")) return "good";
+  if (v.includes("pending") || v.includes("processing") || v.includes("in_progress")) return "warn";
+  if (
+    v.includes("failed") ||
+    v.includes("declined") ||
+    v.includes("rejected") ||
+    v.includes("voided") ||
+    v.includes("error") ||
+    v.includes("canceled") ||
+    v.includes("cancelled")
+  ) {
+    return "bad";
+  }
   return "neutral";
 }
 
@@ -89,6 +98,7 @@ function statusLabel(s?: string | null) {
   if (v === "shipped") return "Enviada";
   if (v === "delivered") return "Entregada";
   if (v === "cancelled" || v === "canceled") return "Cancelada";
+  if (v === "paid") return "Pagada";
   return String(s);
 }
 
@@ -97,8 +107,10 @@ function payLabel(s?: string | null) {
   if (!v) return "—";
   if (v === "none") return "Sin pago";
   if (v === "pending") return "Pendiente";
-  if (v === "paid") return "Pagado";
+  if (v === "in_progress") return "En proceso";
+  if (v === "paid" || v === "approved") return "Pagado";
   if (v === "failed") return "Fallido";
+  if (v === "declined") return "Rechazado";
   if (v === "refunded") return "Reembolsado";
   return String(s);
 }
@@ -120,6 +132,7 @@ function progressForStatus(status?: string | null) {
   if (s === "packed") return 55;
   if (s === "shipped") return 75;
   if (s === "delivered") return 100;
+  if (s === "paid") return 30;
   if (s === "cancelled" || s === "canceled") return 100;
   return 15;
 }
@@ -127,6 +140,38 @@ function progressForStatus(status?: string | null) {
 function isCancelled(status?: string | null) {
   const s = String(status || "").toLowerCase();
   return s === "cancelled" || s === "canceled";
+}
+
+function isCustomerVisibleOrder(order: OrderRow) {
+  const payment = String(order?.payment_status || "").trim().toLowerCase();
+  const status = String(order?.status || "").trim().toLowerCase();
+
+  const paymentApproved =
+    payment === "paid" ||
+    payment === "approved";
+
+  const hiddenByPayment =
+    payment === "failed" ||
+    payment === "declined" ||
+    payment === "rejected" ||
+    payment === "voided" ||
+    payment === "error" ||
+    payment === "refunded" ||
+    payment === "none" ||
+    payment === "pending" ||
+    payment === "in_progress";
+
+  const hiddenByStatus =
+    status === "cancelled" ||
+    status === "canceled" ||
+    status === "failed" ||
+    status === "declined" ||
+    status === "rejected" ||
+    status === "error";
+
+  if (hiddenByPayment || hiddenByStatus) return false;
+
+  return paymentApproved;
 }
 
 function uniqNonEmpty(list: string[]) {
@@ -289,7 +334,9 @@ function MisPedidosContent() {
       }
 
       const list = Array.isArray((json as ApiOk).orders) ? (json as ApiOk).orders : [];
-      if (mounted.current) setOrders(list);
+      const visible = list.filter(isCustomerVisibleOrder);
+
+      if (mounted.current) setOrders(visible);
     } catch {
       if (mounted.current) setErr("Error de red. Revisa tu conexión.");
     } finally {
@@ -325,7 +372,10 @@ function MisPedidosContent() {
 
   const kpis = useMemo(() => {
     const total = orders.length;
-    const paid = orders.filter((o) => String(o.payment_status || "").toLowerCase() === "paid").length;
+    const paid = orders.filter((o) => {
+      const payment = String(o.payment_status || "").toLowerCase();
+      return payment === "paid" || payment === "approved";
+    }).length;
     const shipped = orders.filter((o) => String(o.status || "").toLowerCase() === "shipped").length;
     const delivered = orders.filter((o) => String(o.status || "").toLowerCase() === "delivered").length;
     return { total, paid, shipped, delivered };
@@ -337,7 +387,10 @@ function MisPedidosContent() {
     let list = orders.slice();
 
     if (filter === "paid") {
-      list = list.filter((o) => String(o.payment_status || "").toLowerCase() === "paid");
+      list = list.filter((o) => {
+        const payment = String(o.payment_status || "").toLowerCase();
+        return payment === "paid" || payment === "approved";
+      });
     } else if (filter === "shipped") {
       list = list.filter((o) => String(o.status || "").toLowerCase() === "shipped");
     } else if (filter === "delivered") {
@@ -371,7 +424,7 @@ function MisPedidosContent() {
             <h1 className="hero-title">Mis pedidos</h1>
 
             <p className="hero-sub">
-              Historial real desde tu tabla <b>orders</b>. Estado, pago y tracking con ADN elegante.
+              Aquí solo ves pedidos aprobados y válidos para cliente. Las órdenes fallidas, rechazadas o canceladas quedan solo en admin.
             </p>
 
             <div className="kpis">
@@ -497,7 +550,7 @@ function MisPedidosContent() {
           <div className="empty">
             <div className="empty-card">
               <div className="empty-top">
-                <div className="empty-badge">Sin pedidos</div>
+                <div className="empty-badge">Sin pedidos visibles</div>
                 <div className="empty-art" aria-hidden="true">
                   <div className="art-dot" />
                   <div className="art-line" />
@@ -507,8 +560,10 @@ function MisPedidosContent() {
                 </div>
               </div>
 
-              <div className="empty-h">Cuando compres, aquí verás todo.</div>
-              <div className="empty-p">Estado, pago y tracking en una vista premium. Sin loops.</div>
+              <div className="empty-h">Aquí solo aparecen pedidos aprobados.</div>
+              <div className="empty-p">
+                Las órdenes canceladas, rechazadas, fallidas o pendientes no se muestran al cliente. Solo verás compras válidas.
+              </div>
 
               <div className="empty-actions">
                 <Link className="btn" href="/products">
@@ -645,16 +700,20 @@ function MisPedidosContent() {
                     <div className="foot">
                       <div className="hint">
                         <span className="hint-dot" />
-                        {String(o.payment_status || "").toLowerCase() === "paid" ? (
-                          <span className="hint-t">
-                            <span className="hint-ico">
-                              <Icon name="check" />
-                            </span>
-                            Pago confirmado
-                          </span>
-                        ) : (
-                          <span className="hint-t">Pago: {payLabel(o.payment_status)}</span>
-                        )}
+                        {(() => {
+                          const payment = String(o.payment_status || "").toLowerCase();
+                          if (payment === "paid" || payment === "approved") {
+                            return (
+                              <span className="hint-t">
+                                <span className="hint-ico">
+                                  <Icon name="check" />
+                                </span>
+                                Pago confirmado
+                              </span>
+                            );
+                          }
+                          return <span className="hint-t">Pago: {payLabel(o.payment_status)}</span>;
+                        })()}
                       </div>
 
                       <div className="cta">
