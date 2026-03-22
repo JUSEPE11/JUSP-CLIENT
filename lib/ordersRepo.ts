@@ -152,6 +152,22 @@ async function rest<T>(
   return { data: data as T, status: res.status, raw };
 }
 
+function cleanUndefined<T extends Record<string, any>>(obj: T): T {
+  const out: Record<string, any> = {};
+
+  for (const [key, value] of Object.entries(obj || {})) {
+    if (value !== undefined) {
+      out[key] = value;
+    }
+  }
+
+  return out as T;
+}
+
+function buildEqFilter(field: string, value: string) {
+  return `${field}=eq.${encodeURIComponent(value)}`;
+}
+
 /** Insert a log row into public.logs */
 export async function dbInsertLog(row: LogRow): Promise<void> {
   const url = restUrl("logs");
@@ -162,37 +178,13 @@ export async function dbInsertLog(row: LogRow): Promise<void> {
   });
 }
 
-/**
- * Upsert an order into public.orders by order_code.
- * Requiere que public.orders.order_code exista y sea UNIQUE.
- */
-export async function dbUpsertOrder(order: Order): Promise<Order> {
-  if (!order.order_code || !String(order.order_code).trim()) {
-    throw new Error("dbUpsertOrder requiere order_code");
-  }
-
-  const url = restUrl("orders") + "?on_conflict=order_code";
-
-  const { data } = await rest<Order[] | null>(url, {
-    method: "POST",
-    headers: {
-      ...headers(),
-      Prefer: "resolution=merge-duplicates,return=representation",
-    },
-    body: JSON.stringify(order),
-  });
-
-  if (Array.isArray(data) && data.length) return data[0] as Order;
-  return order;
-}
-
 export async function dbGetOrderByCode(orderCode: string): Promise<Order | null> {
   const code = String(orderCode || "").trim();
   if (!code) return null;
 
   const url =
     restUrl("orders") +
-    `?select=*&order_code=eq.${encodeURIComponent(code)}&limit=1`;
+    `?select=*&${buildEqFilter("order_code", code)}&limit=1`;
 
   const { data } = await rest<Order[] | null>(url, {
     method: "GET",
@@ -203,11 +195,126 @@ export async function dbGetOrderByCode(orderCode: string): Promise<Order | null>
   return null;
 }
 
+/**
+ * Upsert real y blindado:
+ * 1) busca por order_code
+ * 2) si existe, hace PATCH
+ * 3) si no existe, hace INSERT
+ *
+ * Esto evita depender del upsert implícito REST que en tu caso está fallando
+ * con el unique constraint orders_order_code_key.
+ */
+export async function dbUpsertOrder(order: Order): Promise<Order> {
+  const orderCode = String(order.order_code || "").trim();
+
+  if (!orderCode) {
+    throw new Error("dbUpsertOrder requiere order_code");
+  }
+
+  const payload = cleanUndefined({
+    ...order,
+    order_code: orderCode,
+  });
+
+  const existing = await dbGetOrderByCode(orderCode);
+
+  if (existing?.id) {
+    const patchUrl =
+      restUrl("orders") +
+      `?${buildEqFilter("order_code", orderCode)}&select=*`;
+
+    const mergedPayload = cleanUndefined({
+      ...payload,
+      id: existing.id,
+      created_at: existing.created_at || payload.created_at || null,
+      updated_at: new Date().toISOString(),
+    });
+
+    const { data } = await rest<Order[] | null>(patchUrl, {
+      method: "PATCH",
+      headers: {
+        ...headers(),
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify(mergedPayload),
+    });
+
+    if (Array.isArray(data) && data.length) return data[0] as Order;
+
+    const reloaded = await dbGetOrderByCode(orderCode);
+    if (reloaded) return reloaded;
+
+    throw new Error(`No se pudo actualizar la orden ${orderCode}`);
+  }
+
+  const insertUrl = restUrl("orders") + "?select=*";
+
+  try {
+    const { data } = await rest<Order[] | null>(insertUrl, {
+      method: "POST",
+      headers: {
+        ...headers(),
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (Array.isArray(data) && data.length) return data[0] as Order;
+
+    const reloaded = await dbGetOrderByCode(orderCode);
+    if (reloaded) return reloaded;
+
+    return payload;
+  } catch (error: any) {
+    const message = String(error?.message || "");
+
+    const isDuplicate =
+      message.includes("orders_order_code_key") ||
+      message.toLowerCase().includes("duplicate key value violates unique constraint");
+
+    if (!isDuplicate) {
+      throw error;
+    }
+
+    const existingAfterDuplicate = await dbGetOrderByCode(orderCode);
+    if (!existingAfterDuplicate) {
+      throw error;
+    }
+
+    const patchUrl =
+      restUrl("orders") +
+      `?${buildEqFilter("order_code", orderCode)}&select=*`;
+
+    const mergedPayload = cleanUndefined({
+      ...payload,
+      id: existingAfterDuplicate.id,
+      created_at: existingAfterDuplicate.created_at || payload.created_at || null,
+      updated_at: new Date().toISOString(),
+    });
+
+    const { data } = await rest<Order[] | null>(patchUrl, {
+      method: "PATCH",
+      headers: {
+        ...headers(),
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify(mergedPayload),
+    });
+
+    if (Array.isArray(data) && data.length) return data[0] as Order;
+
+    const reloaded = await dbGetOrderByCode(orderCode);
+    if (reloaded) return reloaded;
+
+    throw new Error(`No se pudo reconciliar la orden duplicada ${orderCode}`);
+  }
+}
+
 /** List orders for a given customer email */
 export async function myListOrdersByEmail(email: string): Promise<Order[]> {
   const url =
     restUrl("orders") +
-    `?select=*&customer_email=eq.${encodeURIComponent(email)}&order=created_at.desc`;
+    `?select=*&${buildEqFilter("customer_email", email)}&order=created_at.desc`;
 
   const { data } = await rest<Order[]>(url, {
     method: "GET",
