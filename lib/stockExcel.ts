@@ -49,9 +49,13 @@ type LockPayload = {
 const LOCK_PATH = path.join(process.cwd(), "data", ".catalogo_jusp.stock.lock");
 const RESERVATIONS_PATH = path.join(process.cwd(), "data", "catalog_stock_reservations.json");
 
-const LOCK_WAIT_STEP_MS = 120;
-const LOCK_TIMEOUT_MS = 7000;
-const LOCK_STALE_MS = 5000;
+const LOCK_WAIT_STEP_MS = 200;
+const LOCK_TIMEOUT_MS = 25000;
+const LOCK_STALE_MS = 60000;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function normalizeHeaderKey(value: unknown): string {
   return String(value ?? "")
@@ -224,19 +228,8 @@ function cleanupReservations(records: ReservationRecord[]) {
   });
 }
 
-function persistCleanupIfNeeded() {
-  const current = readReservationsUnsafe();
-  const cleaned = cleanupReservations(current);
-
-  if (JSON.stringify(current) !== JSON.stringify(cleaned)) {
-    writeReservationsUnsafe(cleaned);
-  }
-
-  return cleaned;
-}
-
-function readActiveReservations(excludeReference?: string | null) {
-  const records = persistCleanupIfNeeded();
+function readActiveReservationsSnapshot(excludeReference?: string | null) {
+  const records = cleanupReservations(readReservationsUnsafe());
   const exclude = String(excludeReference || "").trim();
   return exclude ? records.filter((r) => r.reference !== exclude) : records;
 }
@@ -245,12 +238,12 @@ function findActiveReservationByReference(reference: string): ReservationRecord 
   const safeReference = String(reference || "").trim();
   if (!safeReference) return null;
 
-  const records = persistCleanupIfNeeded();
+  const records = cleanupReservations(readReservationsUnsafe());
   return records.find((r) => r.reference === safeReference) || null;
 }
 
 export function getActiveReservationSummary(excludeReference?: string | null) {
-  const active = readActiveReservations(excludeReference);
+  const active = readActiveReservationsSnapshot(excludeReference);
   const map = new Map<string, number>();
 
   for (const record of active) {
@@ -364,11 +357,31 @@ function getLockAgeMs(): number | null {
   }
 }
 
+function getLockCreatedAgeMs(payload: LockPayload | null): number | null {
+  if (!payload?.createdAt) return null;
+  const createdAtMs = new Date(payload.createdAt).getTime();
+  if (!Number.isFinite(createdAtMs)) return null;
+  const ageMs = Date.now() - createdAtMs;
+  return Number.isFinite(ageMs) ? ageMs : null;
+}
+
 function removeLockIfStale(staleMs = LOCK_STALE_MS): boolean {
   try {
     if (!fs.existsSync(LOCK_PATH)) return false;
-    const ageMs = getLockAgeMs();
+
+    const payload = safeReadLockPayload();
+    const ageByMtime = getLockAgeMs();
+    const ageByPayload = getLockCreatedAgeMs(payload);
+
+    const ageMs =
+      ageByPayload !== null
+        ? ageByPayload
+        : ageByMtime !== null
+        ? ageByMtime
+        : null;
+
     if (ageMs === null || ageMs < staleMs) return false;
+
     fs.unlinkSync(LOCK_PATH);
     return true;
   } catch {
@@ -394,6 +407,7 @@ async function acquireLock(timeoutMs = LOCK_TIMEOUT_MS): Promise<() => void> {
       return () => {
         try {
           const current = safeReadLockPayload();
+
           if (!current) {
             if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
             return;
@@ -404,23 +418,29 @@ async function acquireLock(timeoutMs = LOCK_TIMEOUT_MS): Promise<() => void> {
           }
         } catch {}
       };
-    } catch {
+    } catch (error: any) {
+      const code = String(error?.code || "");
+      if (code && code !== "EEXIST") {
+        throw error;
+      }
+
       removeLockIfStale();
 
       if (Date.now() - started > timeoutMs) {
         const current = safeReadLockPayload();
         const ageMs = getLockAgeMs();
+        const createdAgeMs = getLockCreatedAgeMs(current);
 
         throw new Error(
           `No se pudo obtener el lock del Excel a tiempo.${
             current?.owner ? ` owner=${current.owner}` : ""
           }${current?.pid ? ` pid=${current.pid}` : ""}${
             ageMs !== null ? ` ageMs=${Math.floor(ageMs)}` : ""
-          }`
+          }${createdAgeMs !== null ? ` createdAgeMs=${Math.floor(createdAgeMs)}` : ""}`
         );
       }
 
-      await new Promise((resolve) => setTimeout(resolve, LOCK_WAIT_STEP_MS));
+      await sleep(LOCK_WAIT_STEP_MS);
     }
   }
 }

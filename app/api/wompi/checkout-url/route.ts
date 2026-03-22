@@ -86,6 +86,7 @@ function normalizeItems(input: unknown): OrderItem[] {
       image: raw?.image ? String(raw.image) : null,
       size: raw?.size ? String(raw.size) : null,
       color: raw?.color ? String(raw.color) : null,
+      slug: raw?.slug ? String(raw.slug) : raw?.product_id ? String(raw.product_id) : String(raw?.id || ""),
     }))
     .filter((it) => Number.isFinite(Number(it.qty)) && Number(it.qty) > 0);
 }
@@ -105,12 +106,18 @@ function isValidEmail(email: string) {
 }
 
 function normalizePhone(phone: string) {
-  return phone.replace(/[^\d+]/g, "").trim();
+  let digits = String(phone || "").replace(/\D/g, "").trim();
+
+  if (digits.startsWith("00")) {
+    digits = digits.slice(2);
+  }
+
+  return digits;
 }
 
 function isValidPhone(phone: string) {
-  const normalized = normalizePhone(phone);
-  return normalized.length >= 7 && normalized.length <= 20;
+  const digits = normalizePhone(phone);
+  return digits.length >= 7 && digits.length <= 15;
 }
 
 function isValidDocumentNumber(value: string) {
@@ -228,7 +235,7 @@ export async function POST(req: NextRequest) {
       !email ||
       !documentType ||
       !documentNumber ||
-      !phone ||
+      !rawPhone ||
       !city ||
       !addressLine1 ||
       !region
@@ -252,15 +259,24 @@ export async function POST(req: NextRequest) {
     }
 
     if (!isValidPhone(phone)) {
-      return NextResponse.json({ ok: false, error: "Teléfono inválido." }, { status: 400 });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Teléfono inválido. Debe tener entre 7 y 15 dígitos.",
+          meta: {
+            rawPhone,
+            normalizedPhone: phone,
+          },
+        },
+        { status: 400 }
+      );
     }
 
     if (!/^[A-Z]{2}$/.test(country)) {
       return NextResponse.json(
         {
           ok: false,
-          error:
-            "shipping.country inválido. Debe ser código ISO de 2 letras, por ejemplo CO.",
+          error: "shipping.country inválido. Debe ser código ISO de 2 letras, por ejemplo CO.",
         },
         { status: 400 }
       );
@@ -365,6 +381,7 @@ export async function POST(req: NextRequest) {
           customer_document_number: documentNumber,
           shipping_address_line_1: addressLine1,
           shipping_region: region,
+          normalized_phone: phone,
           reserved_until: reservation.expiresAt,
         },
       });
@@ -414,6 +431,8 @@ export async function POST(req: NextRequest) {
         ? 409
         : msg.includes("debes iniciar sesión")
         ? 401
+        : msg.includes("no se pudo obtener el lock del excel a tiempo")
+        ? 503
         : msg.includes("amountincents inválido") ||
           msg.includes("currency debe ser cop") ||
           msg.includes("reference requerida") ||
