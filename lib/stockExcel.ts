@@ -46,8 +46,17 @@ type LockPayload = {
   createdAt: string;
 };
 
-const LOCK_PATH = path.join(process.cwd(), "data", ".catalogo_jusp.stock.lock");
-const RESERVATIONS_PATH = path.join(process.cwd(), "data", "catalog_stock_reservations.json");
+const RUNTIME_WRITABLE_DIR =
+  process.env.JUSP_RUNTIME_TMP_DIR?.trim() || "/tmp";
+
+const LOCK_PATH = path.join(
+  RUNTIME_WRITABLE_DIR,
+  ".catalogo_jusp.stock.lock"
+);
+const RESERVATIONS_PATH = path.join(
+  RUNTIME_WRITABLE_DIR,
+  "catalog_stock_reservations.json"
+);
 
 const LOCK_WAIT_STEP_MS = 200;
 const LOCK_TIMEOUT_MS = 25000;
@@ -92,6 +101,12 @@ function toSafeNumber(value: unknown, fallback = 0): number {
 
 function normalizeLoose(value: unknown): string {
   return String(value ?? "").trim().toLowerCase();
+}
+
+function ensureRuntimeWritableDir() {
+  if (!fs.existsSync(RUNTIME_WRITABLE_DIR)) {
+    fs.mkdirSync(RUNTIME_WRITABLE_DIR, { recursive: true });
+  }
 }
 
 function ensureDataDir() {
@@ -209,7 +224,7 @@ function readReservationsUnsafe(): ReservationRecord[] {
 }
 
 function writeReservationsUnsafe(records: ReservationRecord[]) {
-  ensureDataDir();
+  ensureRuntimeWritableDir();
   fs.writeFileSync(RESERVATIONS_PATH, JSON.stringify(records, null, 2), "utf8");
 }
 
@@ -390,7 +405,7 @@ function removeLockIfStale(staleMs = LOCK_STALE_MS): boolean {
 }
 
 async function acquireLock(timeoutMs = LOCK_TIMEOUT_MS): Promise<() => void> {
-  ensureDataDir();
+  ensureRuntimeWritableDir();
 
   const started = Date.now();
   const owner = crypto.randomUUID();
