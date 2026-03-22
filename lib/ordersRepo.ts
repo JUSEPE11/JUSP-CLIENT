@@ -1,12 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-/**
- * JUSP — Orders/Logs repository (Supabase REST)
- * - En servidor usa SUPABASE_SERVICE_ROLE_KEY
- * - En cliente usa NEXT_PUBLIC_SUPABASE_ANON_KEY
- * - Sin dependencia de @supabase/supabase-js
- */
-
 export type OrderStatus =
   | "created"
   | "pending"
@@ -19,7 +12,7 @@ export type OrderStatus =
   | string;
 
 export type OrderItem = {
-  id: string;
+  id?: string | null;
   product_id?: string | null;
   name?: string | null;
   qty?: number | null;
@@ -31,40 +24,29 @@ export type OrderItem = {
 
 export type Order = {
   id?: string | null;
-
   order_code?: string | null;
   wompi_reference?: string | null;
-
   created_at?: string | null;
   updated_at?: string | null;
   paid_at?: string | null;
-
   status?: OrderStatus | null;
-
   total_amount?: number | null;
   currency?: string | null;
-
   customer_name?: string | null;
   customer_email?: string | null;
   customer_document_type?: string | null;
   customer_document?: string | null;
-
   phone?: string | null;
-
   country?: string | null;
   city?: string | null;
   customer_region?: string | null;
   address?: string | null;
-
   items_count?: number | null;
-
   provider?: string | null;
   payment_id?: string | null;
   risk_score?: number | null;
   tracking_code?: string | null;
-
   items?: OrderItem[] | null;
-
   admin_note?: string | null;
 };
 
@@ -86,19 +68,11 @@ function getEnv(): Env {
   const anonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "").trim();
   const serviceRoleKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
 
-  if (!url) {
-    throw new Error("Missing env var: NEXT_PUBLIC_SUPABASE_URL");
-  }
-
   const isServer = typeof window === "undefined";
   const key = isServer ? serviceRoleKey || anonKey : anonKey;
 
-  if (!key) {
-    throw new Error(
-      isServer
-        ? "Missing env var: SUPABASE_SERVICE_ROLE_KEY (or fallback NEXT_PUBLIC_SUPABASE_ANON_KEY)"
-        : "Missing env var: NEXT_PUBLIC_SUPABASE_ANON_KEY"
-    );
+  if (!url || !key) {
+    throw new Error("Supabase env vars missing");
   }
 
   return { url, key };
@@ -129,27 +103,29 @@ function restUrl(table: string) {
 async function rest<T>(
   input: RequestInfo,
   init?: RequestInit
-): Promise<{ data: T; status: number; raw: string }> {
+): Promise<{ data: T; status: number; text: string }> {
   const res = await fetch(input, {
     cache: "no-store",
     ...init,
   });
 
-  const raw = await res.text();
+  const text = await res.text();
 
   if (!res.ok) {
-    const msg = raw || res.statusText || "Supabase REST error";
-    throw new Error(`${res.status} ${msg}`);
+    throw new Error(text || "Supabase error");
   }
 
-  let data: any = null;
-  try {
-    data = raw ? JSON.parse(raw) : null;
-  } catch {
-    data = raw as any;
-  }
+  const data = text ? JSON.parse(text) : null;
 
-  return { data: data as T, status: res.status, raw };
+  return { data, status: res.status, text };
+}
+
+function isDuplicateOrderCodeError(error: unknown) {
+  const message = String((error as any)?.message || "").toLowerCase();
+  return (
+    message.includes("orders_order_code_key") ||
+    message.includes("duplicate key value violates unique constraint")
+  );
 }
 
 function cleanUndefined<T extends Record<string, any>>(obj: T): T {
@@ -164,17 +140,14 @@ function cleanUndefined<T extends Record<string, any>>(obj: T): T {
   return out as T;
 }
 
-function buildEqFilter(field: string, value: string) {
-  return `${field}=eq.${encodeURIComponent(value)}`;
-}
-
-/** Insert a log row into public.logs */
 export async function dbInsertLog(row: LogRow): Promise<void> {
-  const url = restUrl("logs");
-  await rest<any>(url, {
+  await rest<null>(restUrl("logs"), {
     method: "POST",
-    headers: { ...headers(), Prefer: "return=minimal" },
-    body: JSON.stringify(row),
+    headers: {
+      ...headers(),
+      Prefer: "return=minimal",
+    },
+    body: JSON.stringify(cleanUndefined(row)),
   });
 }
 
@@ -184,168 +157,126 @@ export async function dbGetOrderByCode(orderCode: string): Promise<Order | null>
 
   const url =
     restUrl("orders") +
-    `?select=*&${buildEqFilter("order_code", code)}&limit=1`;
+    `?select=*&order_code=eq.${encodeURIComponent(code)}&limit=1`;
 
-  const { data } = await rest<Order[] | null>(url, {
+  const { data } = await rest<Order[]>(url, {
     method: "GET",
     headers: headersGet(),
   });
 
-  if (Array.isArray(data) && data.length) return data[0] as Order;
+  if (Array.isArray(data) && data.length > 0) {
+    return data[0] || null;
+  }
+
   return null;
 }
 
-/**
- * Upsert real y blindado:
- * 1) busca por order_code
- * 2) si existe, hace PATCH
- * 3) si no existe, hace INSERT
- *
- * Esto evita depender del upsert implícito REST que en tu caso está fallando
- * con el unique constraint orders_order_code_key.
- */
+/* -------------------------------------------------------------------------- */
+/*                              SAFE UPSERT ORDER                             */
+/* -------------------------------------------------------------------------- */
+
 export async function dbUpsertOrder(order: Order): Promise<Order> {
   const orderCode = String(order.order_code || "").trim();
 
   if (!orderCode) {
-    throw new Error("dbUpsertOrder requiere order_code");
+    throw new Error("order_code requerido");
   }
 
-  const payload = cleanUndefined({
+  const code = encodeURIComponent(orderCode);
+
+  const basePayload = cleanUndefined({
     ...order,
     order_code: orderCode,
   });
 
-  const existing = await dbGetOrderByCode(orderCode);
+  /* 1) Buscar si ya existe */
+  const checkUrl =
+    restUrl("orders") +
+    `?select=*&order_code=eq.${code}&limit=1`;
 
-  if (existing?.id) {
-    const patchUrl =
+  const { data: existing } = await rest<Order[]>(checkUrl, {
+    method: "GET",
+    headers: headersGet(),
+  });
+
+  /* 2) UPDATE si ya existe */
+  if (Array.isArray(existing) && existing.length) {
+    const current = existing[0];
+
+    const updateUrl =
       restUrl("orders") +
-      `?${buildEqFilter("order_code", orderCode)}&select=*`;
+      `?order_code=eq.${code}&select=*`;
 
-    const mergedPayload = cleanUndefined({
-      ...payload,
-      id: existing.id,
-      created_at: existing.created_at || payload.created_at || null,
-      updated_at: new Date().toISOString(),
-    });
-
-    const { data } = await rest<Order[] | null>(patchUrl, {
+    const { data } = await rest<Order[]>(updateUrl, {
       method: "PATCH",
       headers: {
         ...headers(),
         Prefer: "return=representation",
       },
-      body: JSON.stringify(mergedPayload),
+      body: JSON.stringify(
+        cleanUndefined({
+          ...basePayload,
+          id: current?.id ?? null,
+          created_at: current?.created_at ?? basePayload.created_at ?? null,
+          updated_at: new Date().toISOString(),
+        })
+      ),
     });
 
-    if (Array.isArray(data) && data.length) return data[0] as Order;
-
-    const reloaded = await dbGetOrderByCode(orderCode);
-    if (reloaded) return reloaded;
-
-    throw new Error(`No se pudo actualizar la orden ${orderCode}`);
+    return (Array.isArray(data) && data[0]) || current || basePayload;
   }
 
+  /* 3) INSERT si no existe */
   const insertUrl = restUrl("orders") + "?select=*";
 
   try {
-    const { data } = await rest<Order[] | null>(insertUrl, {
+    const { data } = await rest<Order[]>(insertUrl, {
       method: "POST",
       headers: {
         ...headers(),
         Prefer: "return=representation",
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(
+        cleanUndefined({
+          ...basePayload,
+          created_at: basePayload.created_at || new Date().toISOString(),
+        })
+      ),
     });
 
-    if (Array.isArray(data) && data.length) return data[0] as Order;
-
-    const reloaded = await dbGetOrderByCode(orderCode);
-    if (reloaded) return reloaded;
-
-    return payload;
-  } catch (error: any) {
-    const message = String(error?.message || "");
-
-    const isDuplicate =
-      message.includes("orders_order_code_key") ||
-      message.toLowerCase().includes("duplicate key value violates unique constraint");
-
-    if (!isDuplicate) {
+    return (Array.isArray(data) && data[0]) || basePayload;
+  } catch (error) {
+    if (!isDuplicateOrderCodeError(error)) {
       throw error;
     }
 
-    const existingAfterDuplicate = await dbGetOrderByCode(orderCode);
-    if (!existingAfterDuplicate) {
+    /* 4) Si chocó por carrera, recargar y actualizar */
+    const current = await dbGetOrderByCode(orderCode);
+
+    if (!current) {
       throw error;
     }
 
-    const patchUrl =
+    const updateUrl =
       restUrl("orders") +
-      `?${buildEqFilter("order_code", orderCode)}&select=*`;
+      `?order_code=eq.${code}&select=*`;
 
-    const mergedPayload = cleanUndefined({
-      ...payload,
-      id: existingAfterDuplicate.id,
-      created_at: existingAfterDuplicate.created_at || payload.created_at || null,
-      updated_at: new Date().toISOString(),
-    });
-
-    const { data } = await rest<Order[] | null>(patchUrl, {
+    const { data } = await rest<Order[]>(updateUrl, {
       method: "PATCH",
       headers: {
         ...headers(),
         Prefer: "return=representation",
       },
-      body: JSON.stringify(mergedPayload),
+      body: JSON.stringify(
+        cleanUndefined({
+          ...basePayload,
+          id: current.id ?? null,
+          created_at: current.created_at ?? basePayload.created_at ?? null,
+          updated_at: new Date().toISOString(),
+        })
+      ),
     });
 
-    if (Array.isArray(data) && data.length) return data[0] as Order;
-
-    const reloaded = await dbGetOrderByCode(orderCode);
-    if (reloaded) return reloaded;
-
-    throw new Error(`No se pudo reconciliar la orden duplicada ${orderCode}`);
+    return (Array.isArray(data) && data[0]) || current;
   }
-}
-
-/** List orders for a given customer email */
-export async function myListOrdersByEmail(email: string): Promise<Order[]> {
-  const url =
-    restUrl("orders") +
-    `?select=*&${buildEqFilter("customer_email", email)}&order=created_at.desc`;
-
-  const { data } = await rest<Order[]>(url, {
-    method: "GET",
-    headers: headersGet(),
-  });
-
-  return Array.isArray(data) ? data : [];
-}
-
-/** Admin list */
-export async function adminListOrders(limit = 50): Promise<Order[]> {
-  const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 50;
-  const url = restUrl("orders") + `?select=*&order=created_at.desc&limit=${safeLimit}`;
-
-  const { data } = await rest<Order[]>(url, {
-    method: "GET",
-    headers: headersGet(),
-  });
-
-  return Array.isArray(data) ? data : [];
-}
-
-/** Admin list logs */
-export async function adminListLogs(limit = 100): Promise<LogRow[]> {
-  const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 100;
-  const url = restUrl("logs") + `?select=*&order=created_at.desc&limit=${safeLimit}`;
-
-  const { data } = await rest<LogRow[]>(url, {
-    method: "GET",
-    headers: headersGet(),
-  });
-
-  return Array.isArray(data) ? data : [];
 }

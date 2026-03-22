@@ -29,6 +29,14 @@ function pickOrigin(req: NextRequest) {
   return "";
 }
 
+function isDuplicateOrderCodeError(error: unknown) {
+  const message = String((error as any)?.message || "").toLowerCase();
+  return (
+    message.includes("orders_order_code_key") ||
+    message.includes("duplicate key value violates unique constraint")
+  );
+}
+
 type DocumentType = "CC" | "CE" | "NIT" | "PAS";
 
 type Shipping = {
@@ -215,7 +223,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "reference requerida" }, { status: 400 });
     }
 
-    if (!fullName || !email || !documentType || !documentNumber || !phone || !city || !addressLine1 || !region) {
+    if (
+      !fullName ||
+      !email ||
+      !documentType ||
+      !documentNumber ||
+      !phone ||
+      !city ||
+      !addressLine1 ||
+      !region
+    ) {
       return NextResponse.json(
         {
           ok: false,
@@ -240,13 +257,20 @@ export async function POST(req: NextRequest) {
 
     if (!/^[A-Z]{2}$/.test(country)) {
       return NextResponse.json(
-        { ok: false, error: "shipping.country inválido. Debe ser código ISO de 2 letras, por ejemplo CO." },
+        {
+          ok: false,
+          error:
+            "shipping.country inválido. Debe ser código ISO de 2 letras, por ejemplo CO.",
+        },
         { status: 400 }
       );
     }
 
     if (!items.length) {
-      return NextResponse.json({ ok: false, error: "No hay items para procesar la compra." }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "No hay items para procesar la compra." },
+        { status: 400 }
+      );
     }
 
     const totalFromBody = Number(totals.total);
@@ -282,47 +306,69 @@ export async function POST(req: NextRequest) {
       reservedUntil: reservation.expiresAt,
     });
 
-    await dbUpsertOrder({
-      order_code: reference,
-      wompi_reference: reference,
-      status: "pending",
-      total_amount: totalCalculated,
-      currency,
-      customer_name: fullName,
-      customer_email: email,
-      customer_document_type: documentType,
-      customer_document: documentNumber,
-      phone,
-      country,
-      city,
-      customer_region: region,
-      address: addressLine1,
-      items_count: sumQty(items),
-      provider: "wompi",
-      payment_id: null,
-      items,
-      admin_note: adminNote || null,
-    });
-
-    await dbInsertLog({
-      level: "info",
-      scope: "wompi.checkout-url",
-      message: "Checkout Wompi creado con reserva de stock",
-      order_id: reference,
-      user_email: typeof user.email === "string" ? user.email : null,
-      meta: {
-        reference,
-        amountInCents,
+    try {
+      await dbUpsertOrder({
+        order_code: reference,
+        wompi_reference: reference,
+        status: "pending",
+        total_amount: totalCalculated,
         currency,
-        redirectUrl,
+        customer_name: fullName,
         customer_email: email,
         customer_document_type: documentType,
-        customer_document_number: documentNumber,
-        shipping_address_line_1: addressLine1,
-        shipping_region: region,
-        reserved_until: reservation.expiresAt,
-      },
-    });
+        customer_document: documentNumber,
+        phone,
+        country,
+        city,
+        customer_region: region,
+        address: addressLine1,
+        items_count: sumQty(items),
+        provider: "wompi",
+        payment_id: null,
+        items,
+        admin_note: adminNote || null,
+      });
+    } catch (orderError) {
+      if (!isDuplicateOrderCodeError(orderError)) {
+        throw orderError;
+      }
+
+      try {
+        await dbInsertLog({
+          level: "warn",
+          scope: "wompi.checkout-url",
+          message: "Duplicate order_code detectado; se continúa reutilizando la referencia",
+          order_id: reference,
+          user_email: typeof user.email === "string" ? user.email : null,
+          meta: {
+            reference,
+            duplicate_error: String((orderError as any)?.message || ""),
+          },
+        });
+      } catch {}
+    }
+
+    try {
+      await dbInsertLog({
+        level: "info",
+        scope: "wompi.checkout-url",
+        message: "Checkout Wompi creado con reserva de stock",
+        order_id: reference,
+        user_email: typeof user.email === "string" ? user.email : null,
+        meta: {
+          reference,
+          amountInCents,
+          currency,
+          redirectUrl,
+          customer_email: email,
+          customer_document_type: documentType,
+          customer_document_number: documentNumber,
+          shipping_address_line_1: addressLine1,
+          shipping_region: region,
+          reserved_until: reservation.expiresAt,
+        },
+      });
+    } catch {}
 
     const u = new URL("https://checkout.wompi.co/p/");
     u.searchParams.set("public-key", pubKey);
@@ -361,7 +407,29 @@ export async function POST(req: NextRequest) {
       });
     } catch {}
 
-    const status = String(e?.message || "").toLowerCase().includes("stock insuficiente") ? 409 : 500;
+    const msg = String(e?.message || "").toLowerCase();
+
+    const status =
+      msg.includes("stock insuficiente")
+        ? 409
+        : msg.includes("debes iniciar sesión")
+        ? 401
+        : msg.includes("amountincents inválido") ||
+          msg.includes("currency debe ser cop") ||
+          msg.includes("reference requerida") ||
+          msg.includes("body inválido") ||
+          msg.includes("faltan datos obligatorios") ||
+          msg.includes("correo electrónico inválido") ||
+          msg.includes("número de documento inválido") ||
+          msg.includes("teléfono inválido") ||
+          msg.includes("shipping.country inválido") ||
+          msg.includes("no hay items para procesar la compra") ||
+          msg.includes("el total enviado no coincide con amountincents") ||
+          msg.includes("no se pudo inferir el origin") ||
+          msg.includes("falta next_public_wompi_public_key") ||
+          msg.includes("falta wompi_integrity_secret")
+        ? 400
+        : 500;
 
     return NextResponse.json(
       { ok: false, error: e?.message || "Error inesperado creando sesión Wompi" },
