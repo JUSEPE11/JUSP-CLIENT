@@ -11,7 +11,7 @@ function isAuthorized(req: NextRequest) {
   const expected = String(process.env.CRON_SECRET || "").trim();
 
   if (!expected) return true;
-  return token && token === expected;
+  return !!token && token === expected;
 }
 
 export async function GET(req: NextRequest) {
@@ -29,16 +29,10 @@ export async function GET(req: NextRequest) {
       meta: result,
     });
 
-    return NextResponse.json(
-      {
-        ok: true,
-        ...result,
-      },
-      {
-        status: 200,
-        headers: { "Cache-Control": "no-store" },
-      }
-    );
+    return NextResponse.json(result, {
+      status: 200,
+      headers: { "Cache-Control": "no-store" },
+    });
   } catch (e: any) {
     try {
       await dbInsertLog({
