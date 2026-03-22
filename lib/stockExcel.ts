@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import * as XLSX from "xlsx";
 
 type ExcelRow = Record<string, unknown>;
@@ -39,8 +40,17 @@ type CheckOptions = {
   excludeReference?: string | null;
 };
 
+type LockPayload = {
+  owner: string;
+  pid: number;
+  createdAt: string;
+};
+
 const LOCK_PATH = path.join(process.cwd(), "data", ".catalogo_jusp.stock.lock");
 const RESERVATIONS_PATH = path.join(process.cwd(), "data", "catalog_stock_reservations.json");
+const LOCK_WAIT_STEP_MS = 120;
+const LOCK_TIMEOUT_MS = 15000;
+const LOCK_STALE_MS = 30000;
 
 function normalizeHeaderKey(value: unknown): string {
   return String(value ?? "")
@@ -77,6 +87,13 @@ function toSafeNumber(value: unknown, fallback = 0): number {
 
 function normalizeLoose(value: unknown): string {
   return String(value ?? "").trim().toLowerCase();
+}
+
+function ensureDataDir() {
+  const dataDir = path.join(process.cwd(), "data");
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
 }
 
 function resolveExcelPath(): string | null {
@@ -173,13 +190,6 @@ function setRowStockValue(row: ExcelRow, next: number) {
   }
 
   row.stock = next;
-}
-
-function ensureDataDir() {
-  const dataDir = path.join(process.cwd(), "data");
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
 }
 
 function readReservationsUnsafe(): ReservationRecord[] {
@@ -315,22 +325,98 @@ export function checkExcelStock(items: StockLineItem[], options?: CheckOptions):
   });
 }
 
-async function acquireLock(timeoutMs = 15000): Promise<() => void> {
+function safeReadLockPayload(): LockPayload | null {
+  try {
+    if (!fs.existsSync(LOCK_PATH)) return null;
+    const raw = fs.readFileSync(LOCK_PATH, "utf8");
+    if (!raw.trim()) return null;
+
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+
+    return {
+      owner: String((parsed as any).owner || "").trim(),
+      pid: Number((parsed as any).pid || 0),
+      createdAt: String((parsed as any).createdAt || "").trim(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function getLockAgeMs(): number | null {
+  try {
+    if (!fs.existsSync(LOCK_PATH)) return null;
+    const stat = fs.statSync(LOCK_PATH);
+    const ageMs = Date.now() - stat.mtimeMs;
+    return Number.isFinite(ageMs) ? ageMs : null;
+  } catch {
+    return null;
+  }
+}
+
+function removeLockIfStale(staleMs = LOCK_STALE_MS): boolean {
+  try {
+    if (!fs.existsSync(LOCK_PATH)) return false;
+    const ageMs = getLockAgeMs();
+    if (ageMs === null || ageMs < staleMs) return false;
+    fs.unlinkSync(LOCK_PATH);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function acquireLock(timeoutMs = LOCK_TIMEOUT_MS): Promise<() => void> {
+  ensureDataDir();
+
   const started = Date.now();
+  const owner = crypto.randomUUID();
+  const payload: LockPayload = {
+    owner,
+    pid: process.pid,
+    createdAt: new Date().toISOString(),
+  };
 
   while (true) {
     try {
-      fs.writeFileSync(LOCK_PATH, String(process.pid), { flag: "wx" });
+      fs.writeFileSync(LOCK_PATH, JSON.stringify(payload), { flag: "wx" });
+
       return () => {
         try {
-          fs.unlinkSync(LOCK_PATH);
+          const current = safeReadLockPayload();
+          if (!current) {
+            if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
+            return;
+          }
+
+          if (current.owner === owner) {
+            fs.unlinkSync(LOCK_PATH);
+          }
         } catch {}
       };
-    } catch {
+    } catch (error: any) {
+      removeLockIfStale();
+
       if (Date.now() - started > timeoutMs) {
-        throw new Error("No se pudo obtener el lock del Excel a tiempo.");
+        const current = safeReadLockPayload();
+        const ageMs = getLockAgeMs();
+
+        throw new Error(
+          `No se pudo obtener el lock del Excel a tiempo.${
+            current?.owner ? ` owner=${current.owner}` : ""
+          }${current?.pid ? ` pid=${current.pid}` : ""}${
+            ageMs !== null ? ` ageMs=${Math.floor(ageMs)}` : ""
+          }`
+        );
       }
-      await new Promise((resolve) => setTimeout(resolve, 120));
+
+      if (error?.code !== "EEXIST") {
+        await new Promise((resolve) => setTimeout(resolve, LOCK_WAIT_STEP_MS));
+        continue;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, LOCK_WAIT_STEP_MS));
     }
   }
 }
