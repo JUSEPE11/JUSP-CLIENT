@@ -48,9 +48,10 @@ type LockPayload = {
 
 const LOCK_PATH = path.join(process.cwd(), "data", ".catalogo_jusp.stock.lock");
 const RESERVATIONS_PATH = path.join(process.cwd(), "data", "catalog_stock_reservations.json");
+
 const LOCK_WAIT_STEP_MS = 120;
-const LOCK_TIMEOUT_MS = 15000;
-const LOCK_STALE_MS = 30000;
+const LOCK_TIMEOUT_MS = 7000;
+const LOCK_STALE_MS = 5000;
 
 function normalizeHeaderKey(value: unknown): string {
   return String(value ?? "")
@@ -240,6 +241,14 @@ function readActiveReservations(excludeReference?: string | null) {
   return exclude ? records.filter((r) => r.reference !== exclude) : records;
 }
 
+function findActiveReservationByReference(reference: string): ReservationRecord | null {
+  const safeReference = String(reference || "").trim();
+  if (!safeReference) return null;
+
+  const records = persistCleanupIfNeeded();
+  return records.find((r) => r.reference === safeReference) || null;
+}
+
 export function getActiveReservationSummary(excludeReference?: string | null) {
   const active = readActiveReservations(excludeReference);
   const map = new Map<string, number>();
@@ -390,12 +399,12 @@ async function acquireLock(timeoutMs = LOCK_TIMEOUT_MS): Promise<() => void> {
             return;
           }
 
-          if (current.owner === owner) {
+          if (current.owner === owner && fs.existsSync(LOCK_PATH)) {
             fs.unlinkSync(LOCK_PATH);
           }
         } catch {}
       };
-    } catch (error: any) {
+    } catch {
       removeLockIfStale();
 
       if (Date.now() - started > timeoutMs) {
@@ -411,14 +420,32 @@ async function acquireLock(timeoutMs = LOCK_TIMEOUT_MS): Promise<() => void> {
         );
       }
 
-      if (error?.code !== "EEXIST") {
-        await new Promise((resolve) => setTimeout(resolve, LOCK_WAIT_STEP_MS));
-        continue;
-      }
-
       await new Promise((resolve) => setTimeout(resolve, LOCK_WAIT_STEP_MS));
     }
   }
+}
+
+function sameReservationItems(
+  a: Array<{ slug: string; size: string; color: string; qty: number }>,
+  b: Array<{ slug: string; size: string; color: string; qty: number }>
+) {
+  if (a.length !== b.length) return false;
+
+  const normalize = (items: Array<{ slug: string; size: string; color: string; qty: number }>) =>
+    [...items]
+      .map((item) => ({
+        slug: normalizeLoose(item.slug),
+        size: String(item.size || "").trim(),
+        color: normalizeLoose(item.color),
+        qty: requestedQty(item),
+      }))
+      .sort((x, y) =>
+        `${x.slug}|${x.size}|${x.color}|${x.qty}`.localeCompare(
+          `${y.slug}|${y.size}|${y.color}|${y.qty}`
+        )
+      );
+
+  return JSON.stringify(normalize(a)) === JSON.stringify(normalize(b));
 }
 
 export async function reserveExcelStock(
@@ -444,9 +471,19 @@ export async function reserveExcelStock(
     throw new Error("La reserva no trae items válidos.");
   }
 
+  const existingBeforeLock = findActiveReservationByReference(safeReference);
+  if (existingBeforeLock && sameReservationItems(existingBeforeLock.items, filtered)) {
+    return { ok: true, expiresAt: existingBeforeLock.expiresAt, reused: true };
+  }
+
   const release = await acquireLock();
   try {
     const current = cleanupReservations(readReservationsUnsafe());
+
+    const existingInsideLock = current.find((record) => record.reference === safeReference);
+    if (existingInsideLock && sameReservationItems(existingInsideLock.items, filtered)) {
+      return { ok: true, expiresAt: existingInsideLock.expiresAt, reused: true };
+    }
 
     const precheck = checkExcelStock(filtered, { excludeReference: safeReference });
     const failed = precheck.find((row) => !row.ok);
@@ -472,7 +509,7 @@ export async function reserveExcelStock(
 
     writeReservationsUnsafe(next);
 
-    return { ok: true, expiresAt };
+    return { ok: true, expiresAt, reused: false };
   } finally {
     release();
   }
