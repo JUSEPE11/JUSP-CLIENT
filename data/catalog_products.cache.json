@@ -1,0 +1,1084 @@
+{
+  "version": 7,
+  "generatedAt": "2026-03-24T01:30:09.653Z",
+  "excelPath": "C:\\JUSP\\jusp-app2\\data\\catalogo_jusp.xlsx",
+  "excelMtimeMs": 1774312970816.9778,
+  "products": [
+    {
+      "id": "short-nike-kids",
+      "slug": "short-nike-kids",
+      "product_code": "short-nike-kids",
+      "title": "Pantalones cortos Nike niños",
+      "name": "Pantalones cortos Nike niños",
+      "brand": "Nike",
+      "price": 88990,
+      "currency": "COP",
+      "description": "Pantalones cortos Nike niños. Producto disponible en JUSP.",
+      "image": "/products/short-nike-kids/1.jpg",
+      "images": [
+        "/products/short-nike-kids/1.jpg",
+        "/products/short-nike-kids/2.jpg",
+        "/products/short-nike-kids/3.jpg",
+        "/products/short-nike-kids/4.jpg",
+        "/products/short-nike-kids/5.jpg",
+        "/products/short-nike-kids/6.jpg",
+        "/products/short-nike-kids/7.jpg",
+        "/products/short-nike-kids/8.jpg",
+        "/products/short-nike-kids/9.jpg",
+        "/products/short-nike-kids/10.jpg"
+      ],
+      "sizes": [
+        "XS (135)",
+        "S (140)"
+      ],
+      "colors": [
+        "black"
+      ],
+      "category": "kisd",
+      "gender": "kids",
+      "productType": "clothing",
+      "kind": "shorts",
+      "collections": [
+        "clothing",
+        "bottoms"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "shorts",
+        "clothing",
+        "bottoms"
+      ],
+      "isNew": true,
+      "stockHint": 2,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "short-nike-kids-xs-135-black",
+          "size": "XS (135)",
+          "color": "black",
+          "price": 88990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "short-nike-kids-s-140-black",
+          "size": "S (140)",
+          "color": "black",
+          "price": 88990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "nike-bra-dri-fit",
+      "slug": "nike-bra-dri-fit",
+      "product_code": "nike-bra-dri-fit",
+      "title": "Sujetador deportivo Nike Dri-FIT",
+      "name": "Sujetador deportivo Nike Dri-FIT",
+      "brand": "Nike",
+      "price": 89990,
+      "currency": "COP",
+      "description": "Sujetador deportivo Nike Dri-FIT. Producto disponible en JUSP.",
+      "image": "/products/nike-bra-dri-fit/1.jpg",
+      "images": [
+        "/products/nike-bra-dri-fit/1.jpg",
+        "/products/nike-bra-dri-fit/2.jpg",
+        "/products/nike-bra-dri-fit/3.jpg",
+        "/products/nike-bra-dri-fit/4.jpg",
+        "/products/nike-bra-dri-fit/5.jpg"
+      ],
+      "sizes": [
+        "S",
+        "M"
+      ],
+      "colors": [
+        "pink"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "sports-bra",
+      "collections": [
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "sport": [
+        "training"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "sports-bra",
+        "clothing",
+        "tops",
+        "gym",
+        "training",
+        "dri-fit"
+      ],
+      "isNew": true,
+      "stockHint": 2,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "nike-bra-dri-fit-s-pink",
+          "size": "S",
+          "color": "pink",
+          "price": 89990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-bra-dri-fit-m-pink",
+          "size": "M",
+          "color": "pink",
+          "price": 89990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "jordan-club-cap",
+      "slug": "jordan-club-cap",
+      "product_code": "jordan-club-cap",
+      "title": "Jordan Club Cap",
+      "name": "Jordan Club Cap",
+      "brand": "Jordan",
+      "price": 75990,
+      "currency": "COP",
+      "description": "Jordan Club Cap. Producto disponible en JUSP.",
+      "image": "/products/jordan-club-cap/1.jpg",
+      "images": [
+        "/products/jordan-club-cap/1.jpg",
+        "/products/jordan-club-cap/2.jpg",
+        "/products/jordan-club-cap/3.jpg",
+        "/products/jordan-club-cap/4.jpg",
+        "/products/jordan-club-cap/5.jpg",
+        "/products/jordan-club-cap/6.jpg"
+      ],
+      "sizes": [
+        "S/M",
+        "M/L",
+        "L/XL"
+      ],
+      "colors": [
+        "beige"
+      ],
+      "category": "men",
+      "gender": "men",
+      "productType": "accessory",
+      "kind": "gorras",
+      "collections": [
+        "accessories",
+        "lifestyle"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "jordan",
+        "gorras",
+        "accessories",
+        "lifestyle",
+        "club"
+      ],
+      "isNew": true,
+      "stockHint": 5,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "jordan-club-cap-sm-beige",
+          "size": "S/M",
+          "color": "beige",
+          "price": 75990,
+          "stock": 2,
+          "isAvailable": true
+        },
+        {
+          "key": "jordan-club-cap-ml-beige",
+          "size": "M/L",
+          "color": "beige",
+          "price": 79990,
+          "stock": 2,
+          "isAvailable": true
+        },
+        {
+          "key": "jordan-club-cap-lxl-beige",
+          "size": "L/XL",
+          "color": "beige",
+          "price": 78990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "nike-sports-pants-womens-purple",
+      "slug": "nike-sports-pants-womens-purple",
+      "product_code": "nike-sports-pants-womens-purple",
+      "title": "Nike Pants",
+      "name": "Nike Pants",
+      "brand": "Nike",
+      "price": 69990,
+      "currency": "COP",
+      "description": "Nike Pants. Producto disponible en JUSP.",
+      "image": "/products/nike-sports-pants-womens-purple/1.jpg",
+      "images": [
+        "/products/nike-sports-pants-womens-purple/1.jpg",
+        "/products/nike-sports-pants-womens-purple/2.jpg",
+        "/products/nike-sports-pants-womens-purple/3.jpg",
+        "/products/nike-sports-pants-womens-purple/4.jpg",
+        "/products/nike-sports-pants-womens-purple/5.jpg",
+        "/products/nike-sports-pants-womens-purple/6.jpg"
+      ],
+      "sizes": [
+        "M"
+      ],
+      "colors": [
+        "purple"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "general",
+      "collections": [
+        "clothing",
+        "bottoms"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "clothing",
+        "bottoms"
+      ],
+      "isNew": true,
+      "stockHint": 1,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "nike-sports-pants-womens-purple-m-purple",
+          "size": "M",
+          "color": "purple",
+          "price": 69990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women",
+      "slug": "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women",
+      "product_code": "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women",
+      "title": "Nike sujetador tops",
+      "name": "Nike sujetador tops",
+      "brand": "Nike",
+      "price": 99990,
+      "currency": "COP",
+      "description": "Nike sujetador tops. Producto disponible en JUSP.",
+      "image": "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/1.jpg",
+      "images": [
+        "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/1.jpg",
+        "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/2.jpg",
+        "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/3.jpg",
+        "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/4.jpg",
+        "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/5.jpg"
+      ],
+      "sizes": [
+        "M"
+      ],
+      "colors": [
+        "white"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "sports-bra",
+      "collections": [
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "sports-bra",
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "isNew": true,
+      "stockHint": 1,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women-m-white",
+          "size": "M",
+          "color": "white",
+          "price": 99990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "nike-dunk-low-retro",
+      "slug": "nike-dunk-low-retro",
+      "product_code": "nike-dunk-low-retro",
+      "title": "Nike low",
+      "name": "Nike low",
+      "brand": "Nike",
+      "price": 99990,
+      "currency": "COP",
+      "description": "Nike low. Producto disponible en JUSP.",
+      "image": "/products/nike-dunk-low-retro/1.jpg",
+      "images": [
+        "/products/nike-dunk-low-retro/1.jpg",
+        "/products/nike-dunk-low-retro/2.jpg",
+        "/products/nike-dunk-low-retro/3.jpg",
+        "/products/nike-dunk-low-retro/4.jpg",
+        "/products/nike-dunk-low-retro/5.jpg",
+        "/products/nike-dunk-low-retro/6.jpg",
+        "/products/nike-dunk-low-retro/7.jpg",
+        "/products/nike-dunk-low-retro/8.jpg"
+      ],
+      "sizes": [
+        "7"
+      ],
+      "colors": [
+        "beige"
+      ],
+      "category": "men",
+      "gender": "men",
+      "productType": "clothing",
+      "kind": "general",
+      "collections": [
+        "clothing"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "clothing"
+      ],
+      "isNew": true,
+      "stockHint": 1,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "nike-dunk-low-retro-7-beige",
+          "size": "7",
+          "color": "beige",
+          "price": 99990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "nike-sport-high",
+      "slug": "nike-sport-high",
+      "product_code": "nike-sport-high",
+      "title": "Nike Sport BH High Compression Bra Swoosh Sujetador",
+      "name": "Nike Sport BH High Compression Bra Swoosh Sujetador",
+      "brand": "Nike",
+      "price": 119990,
+      "currency": "COP",
+      "description": "Nike Sport BH High Compression Bra Swoosh Sujetador. Producto disponible en JUSP.",
+      "image": "/products/nike-sport-high/1.jpg",
+      "images": [
+        "/products/nike-sport-high/1.jpg",
+        "/products/nike-sport-high/2.jpg",
+        "/products/nike-sport-high/3.jpg",
+        "/products/nike-sport-high/4.jpg"
+      ],
+      "sizes": [
+        "L"
+      ],
+      "colors": [
+        "white"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "sports-bra",
+      "collections": [
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "sport": [
+        "training"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "sports-bra",
+        "clothing",
+        "tops",
+        "gym",
+        "training",
+        "compression"
+      ],
+      "isNew": true,
+      "stockHint": 1,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "nike-sport-high-l-white",
+          "size": "L",
+          "color": "white",
+          "price": 119990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap",
+      "slug": "nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap",
+      "product_code": "nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap",
+      "title": "NIKE Unisex Dri-fit Fly Unstrukturierte Swoosh-Cap",
+      "name": "NIKE Unisex Dri-fit Fly Unstrukturierte Swoosh-Cap",
+      "brand": "Nike",
+      "price": 65990,
+      "currency": "COP",
+      "description": "NIKE Unisex Dri-fit Fly Unstrukturierte Swoosh-Cap. Producto disponible en JUSP.",
+      "image": "/products/nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap/1.jpg",
+      "images": [
+        "/products/nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap/1.jpg",
+        "/products/nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap/2.jpg",
+        "/products/nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap/3.jpg",
+        "/products/nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap/4.jpg",
+        "/products/nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap/5.jpg",
+        "/products/nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap/6.jpg"
+      ],
+      "sizes": [
+        "S/M",
+        "M/L",
+        "L/XL"
+      ],
+      "colors": [
+        "violet"
+      ],
+      "category": "men",
+      "gender": "men",
+      "productType": "accessory",
+      "kind": "gorras",
+      "collections": [
+        "accessories",
+        "gym",
+        "training"
+      ],
+      "sport": [
+        "training"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "gorras",
+        "accessories",
+        "gym",
+        "training",
+        "dri-fit"
+      ],
+      "isNew": true,
+      "stockHint": 3,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap-sm-violet",
+          "size": "S/M",
+          "color": "violet",
+          "price": 65990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap-ml-violet",
+          "size": "M/L",
+          "color": "violet",
+          "price": 75990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap-lxl-violet",
+          "size": "L/XL",
+          "color": "violet",
+          "price": 85990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "nike-sportswear",
+      "slug": "nike-sportswear",
+      "product_code": "nike-sportswear",
+      "title": "Nike Sportswear Women's Ribbed Tank Top",
+      "name": "Nike Sportswear Women's Ribbed Tank Top",
+      "brand": "Nike",
+      "price": 79990,
+      "currency": "COP",
+      "description": "Nike Sportswear Women's Ribbed Tank Top. Producto disponible en JUSP.",
+      "image": "/products/nike-sportswear/1.jpg",
+      "images": [
+        "/products/nike-sportswear/1.jpg",
+        "/products/nike-sportswear/2.jpg",
+        "/products/nike-sportswear/3.jpg",
+        "/products/nike-sportswear/4.jpg",
+        "/products/nike-sportswear/5.jpg",
+        "/products/nike-sportswear/6.jpg"
+      ],
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
+      "colors": [
+        "beige"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "tops",
+      "collections": [
+        "clothing",
+        "tops",
+        "lifestyle"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "tops",
+        "clothing",
+        "lifestyle"
+      ],
+      "isNew": true,
+      "stockHint": 5,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "nike-sportswear-xs-beige",
+          "size": "XS",
+          "color": "beige",
+          "price": 79990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-sportswear-s-beige",
+          "size": "S",
+          "color": "beige",
+          "price": 79990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-sportswear-m-beige",
+          "size": "M",
+          "color": "beige",
+          "price": 79990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-sportswear-l-beige",
+          "size": "L",
+          "color": "beige",
+          "price": 79990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-sportswear-xl-beige",
+          "size": "XL",
+          "color": "beige",
+          "price": 79990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "nike-dri-fit-pro-cropped-printed-women",
+      "slug": "nike-dri-fit-pro-cropped-printed-women",
+      "product_code": "nike-dri-fit-pro-cropped-printed-women",
+      "title": "NIKE Dri-FIT Pro Cropped Printed Women's Training Tank",
+      "name": "NIKE Dri-FIT Pro Cropped Printed Women's Training Tank",
+      "brand": "Nike",
+      "price": 155990,
+      "currency": "COP",
+      "description": "NIKE Dri-FIT Pro Cropped Printed Women's Training Tank. Producto disponible en JUSP.",
+      "image": "/products/nike-dri-fit-pro-cropped-printed-women/1.jpg",
+      "images": [
+        "/products/nike-dri-fit-pro-cropped-printed-women/1.jpg",
+        "/products/nike-dri-fit-pro-cropped-printed-women/2.jpg",
+        "/products/nike-dri-fit-pro-cropped-printed-women/3.jpg",
+        "/products/nike-dri-fit-pro-cropped-printed-women/4.jpg",
+        "/products/nike-dri-fit-pro-cropped-printed-women/5.jpg",
+        "/products/nike-dri-fit-pro-cropped-printed-women/6.jpg",
+        "/products/nike-dri-fit-pro-cropped-printed-women/7.jpg",
+        "/products/nike-dri-fit-pro-cropped-printed-women/8.jpg",
+        "/products/nike-dri-fit-pro-cropped-printed-women/9.jpg",
+        "/products/nike-dri-fit-pro-cropped-printed-women/10.jpg"
+      ],
+      "sizes": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
+      "colors": [
+        "grey"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "general",
+      "collections": [
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "sport": [
+        "training"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "clothing",
+        "tops",
+        "gym",
+        "training",
+        "dri-fit"
+      ],
+      "isNew": true,
+      "stockHint": 4,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "nike-dri-fit-pro-cropped-printed-women-s-grey",
+          "size": "S",
+          "color": "grey",
+          "price": 155990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-dri-fit-pro-cropped-printed-women-m-grey",
+          "size": "M",
+          "color": "grey",
+          "price": 155990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-dri-fit-pro-cropped-printed-women-l-grey",
+          "size": "L",
+          "color": "grey",
+          "price": 155990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-dri-fit-pro-cropped-printed-women-xl-grey",
+          "size": "XL",
+          "color": "grey",
+          "price": 155990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "puma-622575-01",
+      "slug": "puma-622575-01",
+      "product_code": "puma-622575-01",
+      "title": "Puma Camiseta Deportiva sin Mangas Ajustada con Estampado de Letras para Mujer Negro",
+      "name": "Puma Camiseta Deportiva sin Mangas Ajustada con Estampado de Letras para Mujer Negro",
+      "brand": "Puma",
+      "price": 49990,
+      "currency": "COP",
+      "description": "Puma Camiseta Deportiva sin Mangas Ajustada con Estampado de Letras para Mujer Negro. Producto disponible en JUSP.",
+      "image": "/products/puma-622575-01/1.jpg",
+      "images": [
+        "/products/puma-622575-01/1.jpg",
+        "/products/puma-622575-01/2.jpg",
+        "/products/puma-622575-01/3.jpg",
+        "/products/puma-622575-01/4.jpg"
+      ],
+      "sizes": [
+        "S",
+        "M"
+      ],
+      "colors": [
+        "black"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "tshirts",
+      "collections": [
+        "clothing"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "puma",
+        "tshirts",
+        "clothing"
+      ],
+      "isNew": true,
+      "stockHint": 2,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "puma-622575-01-s-black",
+          "size": "S",
+          "color": "black",
+          "price": 49990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "puma-622575-01-m-black",
+          "size": "M",
+          "color": "black",
+          "price": 49990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "jordan-cw2427-360",
+      "slug": "jordan-cw2427-360",
+      "product_code": "jordan-cw2427-360",
+      "title": "Jordan Jumpman",
+      "name": "Jordan Jumpman",
+      "brand": "Jordan",
+      "price": 125990,
+      "currency": "COP",
+      "description": "Jordan Jumpman. Producto disponible en JUSP.",
+      "image": "/products/jordan-cw2427-360/1.jpg",
+      "images": [
+        "/products/jordan-cw2427-360/1.jpg",
+        "/products/jordan-cw2427-360/2.jpg",
+        "/products/jordan-cw2427-360/3.jpg",
+        "/products/jordan-cw2427-360/4.jpg",
+        "/products/jordan-cw2427-360/5.jpg",
+        "/products/jordan-cw2427-360/6.jpg",
+        "/products/jordan-cw2427-360/7.jpg",
+        "/products/jordan-cw2427-360/8.jpg",
+        "/products/jordan-cw2427-360/9.jpg",
+        "/products/jordan-cw2427-360/10.jpg"
+      ],
+      "sizes": [
+        "M"
+      ],
+      "colors": [
+        "green"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "general",
+      "collections": [
+        "clothing"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "jordan",
+        "clothing"
+      ],
+      "isNew": true,
+      "stockHint": 1,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "jordan-cw2427-360-m-green",
+          "size": "M",
+          "color": "green",
+          "price": 125990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "nike-hq5684-345",
+      "slug": "nike-hq5684-345",
+      "product_code": "nike-hq5684-345",
+      "title": "NIKE Dri-FIT Pro Cropped Printed Women",
+      "name": "NIKE Dri-FIT Pro Cropped Printed Women",
+      "brand": "Nike",
+      "price": 155990,
+      "currency": "COP",
+      "description": "NIKE Dri-FIT Pro Cropped Printed Women. Producto disponible en JUSP.",
+      "image": "/products/nike-hq5684-345/1.jpg",
+      "images": [
+        "/products/nike-hq5684-345/1.jpg",
+        "/products/nike-hq5684-345/2.jpg",
+        "/products/nike-hq5684-345/3.jpg",
+        "/products/nike-hq5684-345/4.jpg",
+        "/products/nike-hq5684-345/5.jpg",
+        "/products/nike-hq5684-345/6.jpg",
+        "/products/nike-hq5684-345/7.jpg",
+        "/products/nike-hq5684-345/8.jpg",
+        "/products/nike-hq5684-345/9.jpg"
+      ],
+      "sizes": [
+        "S",
+        "L",
+        "XL"
+      ],
+      "colors": [
+        "blue"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "general",
+      "collections": [
+        "clothing",
+        "gym",
+        "training"
+      ],
+      "sport": [
+        "training"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "clothing",
+        "gym",
+        "training",
+        "dri-fit"
+      ],
+      "isNew": true,
+      "stockHint": 3,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "nike-hq5684-345-s-blue",
+          "size": "S",
+          "color": "blue",
+          "price": 155990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-hq5684-345-l-blue",
+          "size": "L",
+          "color": "blue",
+          "price": 155990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-hq5684-345-xl-blue",
+          "size": "XL",
+          "color": "blue",
+          "price": 155990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "nike-im9607-010",
+      "slug": "nike-im9607-010",
+      "product_code": "nike-im9607-010",
+      "title": "Gorra de golf sin estructura",
+      "name": "Gorra de golf sin estructura",
+      "brand": "Nike",
+      "price": 129990,
+      "currency": "COP",
+      "description": "Gorra de golf sin estructura. Producto disponible en JUSP.",
+      "image": "/products/nike-im9607-010/1.jpg",
+      "images": [
+        "/products/nike-im9607-010/1.jpg",
+        "/products/nike-im9607-010/2.jpg",
+        "/products/nike-im9607-010/3.jpg",
+        "/products/nike-im9607-010/4.jpg",
+        "/products/nike-im9607-010/5.jpg",
+        "/products/nike-im9607-010/6.jpg"
+      ],
+      "sizes": [
+        "M/L",
+        "L/XL"
+      ],
+      "colors": [
+        "black"
+      ],
+      "category": "unisex",
+      "gender": "unisex",
+      "productType": "accessory",
+      "kind": "gorras",
+      "collections": [
+        "accessories"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "gorras",
+        "accessories"
+      ],
+      "isNew": true,
+      "stockHint": 2,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "nike-im9607-010-ml-black",
+          "size": "M/L",
+          "color": "black",
+          "price": 129990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-im9607-010-lxl-black",
+          "size": "L/XL",
+          "color": "black",
+          "price": 129990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "lacoste-rk5398",
+      "slug": "lacoste-rk5398",
+      "product_code": "lacoste-rk5398",
+      "title": "Unisex Microfiber Sport Cap",
+      "name": "Unisex Microfiber Sport Cap",
+      "brand": "Lacoste",
+      "price": 179990,
+      "currency": "COP",
+      "description": "Unisex Microfiber Sport Cap. Producto disponible en JUSP.",
+      "image": "/products/lacoste-rk5398/1.jpg",
+      "images": [
+        "/products/lacoste-rk5398/1.jpg",
+        "/products/lacoste-rk5398/2.jpg",
+        "/products/lacoste-rk5398/3.jpg",
+        "/products/lacoste-rk5398/4.jpg",
+        "/products/lacoste-rk5398/5.jpg",
+        "/products/lacoste-rk5398/6.jpg"
+      ],
+      "sizes": [
+        "Ajustable"
+      ],
+      "colors": [
+        "black"
+      ],
+      "category": "unisex",
+      "gender": "unisex",
+      "productType": "accessory",
+      "kind": "gorras",
+      "collections": [
+        "accessories"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "lacoste",
+        "gorras",
+        "accessories"
+      ],
+      "isNew": true,
+      "stockHint": 1,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "lacoste-rk5398-ajustable-black",
+          "size": "Ajustable",
+          "color": "black",
+          "price": 179990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    }
+  ]
+}
