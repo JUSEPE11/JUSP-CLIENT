@@ -189,10 +189,28 @@ function listProductImages(slug: string): string[] {
   }
 }
 
-function inferCategoryFromTitle(title: string): string {
-  const t = title.toLowerCase();
+function normalizeTextForMatch(value: unknown): string {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
 
-  if (t.includes("dunk") || t.includes("air force") || t.includes("zapatilla") || t.includes("tenis") || t.includes("sneaker")) {
+function normalizeExcelCategory(value: unknown): string {
+  return String(value || "").trim();
+}
+
+function inferCategoryFromTitle(title: string): string {
+  const t = normalizeTextForMatch(title);
+
+  if (
+    t.includes("dunk") ||
+    t.includes("air force") ||
+    t.includes("zapatilla") ||
+    t.includes("tenis") ||
+    t.includes("sneaker")
+  ) {
     return "Sneakers";
   }
 
@@ -204,9 +222,15 @@ function inferCategoryFromTitle(title: string): string {
 }
 
 function inferProductType(title: string): ProductType {
-  const t = title.toLowerCase();
+  const t = normalizeTextForMatch(title);
 
-  if (t.includes("dunk") || t.includes("air force") || t.includes("zapatilla") || t.includes("tenis") || t.includes("sneaker")) {
+  if (
+    t.includes("dunk") ||
+    t.includes("air force") ||
+    t.includes("zapatilla") ||
+    t.includes("tenis") ||
+    t.includes("sneaker")
+  ) {
     return "shoes";
   }
 
@@ -218,9 +242,9 @@ function inferProductType(title: string): ProductType {
 }
 
 function inferGender(title: string): Gender {
-  const t = title.toLowerCase();
+  const t = normalizeTextForMatch(title);
 
-  if (t.includes("niño") || t.includes("niños") || t.includes("kids")) return "kids";
+  if (t.includes("nino") || t.includes("ninos") || t.includes("kids")) return "kids";
   if (t.includes("mujer") || t.includes("women") || t.includes("bra") || t.includes("sujetador")) return "women";
   if (t.includes("hombre") || t.includes("men")) return "men";
 
@@ -228,7 +252,7 @@ function inferGender(title: string): Gender {
 }
 
 function inferKind(title: string): string {
-  const t = title.toLowerCase();
+  const t = normalizeTextForMatch(title);
 
   if (t.includes("leggings")) return "leggings";
   if (t.includes("short") || t.includes("pantalones cortos")) return "shorts";
@@ -239,7 +263,13 @@ function inferKind(title: string): string {
   if (t.includes("jacket") || t.includes("chaqueta")) return "jackets";
   if (t.includes("camiseta") || t.includes("t-shirt") || t.includes("tee")) return "tshirts";
 
-  if (t.includes("dunk") || t.includes("air force") || t.includes("zapatilla") || t.includes("tenis") || t.includes("sneaker")) {
+  if (
+    t.includes("dunk") ||
+    t.includes("air force") ||
+    t.includes("zapatilla") ||
+    t.includes("tenis") ||
+    t.includes("sneaker")
+  ) {
     return "zapatillas";
   }
 
@@ -257,8 +287,106 @@ function normalizeExcelGender(value: unknown): Gender | null {
   return null;
 }
 
-function normalizeExcelCategory(value: unknown): string {
-  return String(value || "").trim();
+function inferProductTypeFromCategory(category: string | undefined, title: string): ProductType {
+  const c = normalizeTextForMatch(category);
+  const t = normalizeTextForMatch(title);
+  const hay = `${c} ${t}`.trim();
+
+  const shoeWords = [
+    "shoe",
+    "shoes",
+    "sneaker",
+    "sneakers",
+    "tenis",
+    "zapatilla",
+    "zapatillas",
+    "calzado",
+    "running",
+    "runner",
+    "dunk",
+    "air force",
+    "af1",
+    "tn",
+    "jordan",
+    "slides",
+    "slide",
+    "sandalia",
+    "sandalias",
+    "slipper",
+    "slippers",
+    "boot",
+    "boots",
+    "bota",
+    "botas",
+    "guayo",
+    "guayos",
+    "cleat",
+    "cleats",
+  ];
+
+  const accessoryWords = [
+    "accessory",
+    "accessories",
+    "accesorio",
+    "accesorios",
+    "gorra",
+    "gorras",
+    "cap",
+    "caps",
+    "hat",
+    "hats",
+    "bag",
+    "bags",
+    "mochila",
+    "mochilas",
+    "backpack",
+    "backpacks",
+    "sock",
+    "socks",
+    "calcetin",
+    "calcetines",
+    "belt",
+    "belts",
+    "wallet",
+    "wallets",
+    "beanie",
+    "beanies",
+  ];
+
+  if (shoeWords.some((word) => hay.includes(word))) return "shoes";
+  if (accessoryWords.some((word) => hay.includes(word))) return "accessory";
+  return "clothing";
+}
+
+function inferKindFromCategory(category: string | undefined, title: string): string {
+  const c = normalizeTextForMatch(category);
+  const t = normalizeTextForMatch(title);
+  const hay = `${c} ${t}`.trim();
+
+  if (hay.includes("boxer") || hay.includes("boxers")) return "boxers";
+  if (hay.includes("brief") || hay.includes("briefs")) return "briefs";
+  if (hay.includes("underwear") || hay.includes("ropa interior")) return "underwear";
+  if (hay.includes("legging") || hay.includes("leggings")) return "leggings";
+  if (hay.includes("short") || hay.includes("shorts") || hay.includes("bermuda")) return "shorts";
+  if (hay.includes("gorra") || hay.includes("gorras") || hay.includes("cap") || hay.includes("caps")) return "gorras";
+  if (hay.includes("bra") || hay.includes("sujetador")) return "sports-bra";
+  if (hay.includes("top") || hay.includes("tops")) return "tops";
+  if (hay.includes("hoodie") || hay.includes("hoodies") || hay.includes("sudadera")) return "hoodies";
+  if (hay.includes("jacket") || hay.includes("jackets") || hay.includes("chaqueta")) return "jackets";
+  if (hay.includes("camiseta") || hay.includes("t-shirt") || hay.includes("tee")) return "tshirts";
+  if (
+    hay.includes("dunk") ||
+    hay.includes("air force") ||
+    hay.includes("zapatilla") ||
+    hay.includes("zapatillas") ||
+    hay.includes("tenis") ||
+    hay.includes("sneaker") ||
+    hay.includes("sneakers")
+  ) {
+    return "zapatillas";
+  }
+
+  return inferKind(title);
 }
 
 function buildVariantKey(slug: string, size?: string, color?: string): string {
@@ -273,70 +401,157 @@ function reservationKey(slug: string, size?: string, color?: string) {
     .toLowerCase()}`;
 }
 
-function inferCollectionsFromTitle(title: string, productType: ProductType, kind: string): string[] {
-  const t = title.toLowerCase();
+function inferCollections(
+  title: string,
+  category: string | undefined,
+  productType: ProductType,
+  kind: string
+): string[] {
+  const t = normalizeTextForMatch(title);
+  const c = normalizeTextForMatch(category);
+  const hay = `${c} ${t}`.trim();
   const collections: string[] = [];
 
   if (productType === "shoes") collections.push("shoes");
   if (productType === "clothing") collections.push("clothing");
   if (productType === "accessory") collections.push("accessories");
 
-  if (kind === "tops" || kind === "sports-bra" || t.includes("top") || t.includes("bra") || t.includes("sujetador") || t.includes("tank")) {
+  if (
+    kind === "tops" ||
+    kind === "sports-bra" ||
+    hay.includes("top") ||
+    hay.includes("bra") ||
+    hay.includes("sujetador") ||
+    hay.includes("tank")
+  ) {
     collections.push("tops");
   }
 
-  if (kind === "leggings" || kind === "shorts" || t.includes("leggings") || t.includes("tight") || t.includes("short") || t.includes("jogger") || t.includes("pants") || t.includes("pantalon") || t.includes("pantalón")) {
+  if (
+    kind === "leggings" ||
+    kind === "shorts" ||
+    kind === "boxers" ||
+    kind === "briefs" ||
+    kind === "underwear" ||
+    hay.includes("leggings") ||
+    hay.includes("tight") ||
+    hay.includes("short") ||
+    hay.includes("jogger") ||
+    hay.includes("pants") ||
+    hay.includes("pantalon") ||
+    hay.includes("ropa interior") ||
+    hay.includes("underwear") ||
+    hay.includes("boxer") ||
+    hay.includes("brief")
+  ) {
     collections.push("bottoms");
   }
 
-  if (kind === "hoodies" || kind === "jackets" || t.includes("hoodie") || t.includes("sudadera") || t.includes("jacket") || t.includes("chaqueta")) {
+  if (
+    kind === "underwear" ||
+    kind === "boxers" ||
+    kind === "briefs" ||
+    hay.includes("underwear") ||
+    hay.includes("ropa interior") ||
+    hay.includes("boxer") ||
+    hay.includes("brief")
+  ) {
+    collections.push("underwear");
+  }
+
+  if (
+    kind === "hoodies" ||
+    kind === "jackets" ||
+    hay.includes("hoodie") ||
+    hay.includes("sudadera") ||
+    hay.includes("jacket") ||
+    hay.includes("chaqueta")
+  ) {
     collections.push("outerwear");
   }
 
-  if (t.includes("gym") || t.includes("training") || t.includes("train") || t.includes("dri-fit") || t.includes("compression") || t.includes("fitness") || kind === "sports-bra" || kind === "leggings") {
+  if (
+    hay.includes("gym") ||
+    hay.includes("training") ||
+    hay.includes("train") ||
+    hay.includes("dri-fit") ||
+    hay.includes("compression") ||
+    hay.includes("fitness") ||
+    kind === "sports-bra" ||
+    kind === "leggings"
+  ) {
     collections.push("gym", "training");
   }
 
-  if (t.includes("running") || t.includes("run") || t.includes("runner")) collections.push("running");
-  if (t.includes("football") || t.includes("soccer") || t.includes("futbol") || t.includes("fútbol")) collections.push("football");
-  if (t.includes("basketball") || t.includes("baloncesto") || t.includes("basket")) collections.push("basketball");
-  if (t.includes("tennis") || t.includes("tenis")) collections.push("tennis");
+  if (hay.includes("running") || hay.includes("run") || hay.includes("runner")) collections.push("running");
+  if (hay.includes("football") || hay.includes("soccer") || hay.includes("futbol")) collections.push("football");
+  if (hay.includes("basketball") || hay.includes("baloncesto") || hay.includes("basket")) collections.push("basketball");
+  if (hay.includes("tennis") || hay.includes("tenis")) collections.push("tennis");
 
-  if (productType === "accessory" || t.includes("cap") || t.includes("gorra") || t.includes("bag") || t.includes("mochila")) {
+  if (
+    productType === "accessory" ||
+    hay.includes("cap") ||
+    hay.includes("gorra") ||
+    hay.includes("bag") ||
+    hay.includes("mochila")
+  ) {
     collections.push("accessories");
   }
 
-  if (collections.length === 0 || t.includes("club") || t.includes("sportswear") || t.includes("essential") || t.includes("casual")) {
+  if (collections.length === 0 || hay.includes("club") || hay.includes("sportswear") || hay.includes("essential") || hay.includes("casual")) {
     collections.push("lifestyle");
   }
 
   return uniqCaseInsensitive(collections);
 }
 
-function inferSportFromTitle(title: string): string[] {
-  const t = title.toLowerCase();
+function inferSport(title: string, category?: string): string[] {
+  const t = normalizeTextForMatch(title);
+  const c = normalizeTextForMatch(category);
+  const hay = `${c} ${t}`.trim();
   const out: string[] = [];
 
-  if (t.includes("gym") || t.includes("training") || t.includes("train") || t.includes("dri-fit") || t.includes("fitness") || t.includes("compression")) {
+  if (
+    hay.includes("gym") ||
+    hay.includes("training") ||
+    hay.includes("train") ||
+    hay.includes("dri-fit") ||
+    hay.includes("fitness") ||
+    hay.includes("compression")
+  ) {
     out.push("training");
   }
 
-  if (t.includes("running") || t.includes("run") || t.includes("runner")) out.push("running");
-  if (t.includes("football") || t.includes("soccer") || t.includes("futbol") || t.includes("fútbol")) out.push("football");
-  if (t.includes("basketball") || t.includes("basket") || t.includes("baloncesto")) out.push("basketball");
-  if (t.includes("tennis") || t.includes("tenis")) out.push("tennis");
+  if (hay.includes("running") || hay.includes("run") || hay.includes("runner")) out.push("running");
+  if (hay.includes("football") || hay.includes("soccer") || hay.includes("futbol")) out.push("football");
+  if (hay.includes("basketball") || hay.includes("basket") || hay.includes("baloncesto")) out.push("basketball");
+  if (hay.includes("tennis") || hay.includes("tenis")) out.push("tennis");
   if (!out.length) out.push("lifestyle");
 
   return uniqCaseInsensitive(out);
 }
 
-function inferTagsFromTitle(title: string, brand: string, kind: string, collections: string[]): string[] {
-  const t = title.toLowerCase();
+function inferTags(
+  title: string,
+  brand: string,
+  kind: string,
+  category: string | undefined,
+  collections: string[]
+): string[] {
+  const t = normalizeTextForMatch(title);
+  const c = normalizeTextForMatch(category);
   const tags: string[] = ["nuevo"];
 
   if (brand.trim()) tags.push(brand.trim().toLowerCase());
   if (kind && kind !== "general") tags.push(kind);
+  if (category && category.trim()) tags.push(category.trim().toLowerCase());
   tags.push(...collections);
+
+  if (c.includes("boxer") || t.includes("boxer")) tags.push("boxer", "underwear");
+  if (c.includes("brief") || t.includes("brief")) tags.push("brief", "underwear");
+  if (c.includes("ropa interior") || c.includes("underwear") || t.includes("ropa interior") || t.includes("underwear")) {
+    tags.push("underwear");
+  }
 
   if (t.includes("dri-fit")) tags.push("dri-fit");
   if (t.includes("compression")) tags.push("compression");
@@ -380,11 +595,12 @@ function loadExcelProducts(): Product[] {
 
     if (!map.has(slug)) {
       const images = listProductImages(slug);
-      const productType = inferProductType(title);
-      const kind = inferKind(title);
-      const collections = inferCollectionsFromTitle(title, productType, kind);
-      const sport = inferSportFromTitle(title);
-      const tags = inferTagsFromTitle(title, brand, kind, collections);
+      const resolvedCategory = excelCategory || inferCategoryFromTitle(title);
+      const productType = inferProductTypeFromCategory(resolvedCategory, title);
+      const kind = inferKindFromCategory(resolvedCategory, title);
+      const collections = inferCollections(title, resolvedCategory, productType, kind);
+      const sport = inferSport(title, resolvedCategory);
+      const tags = inferTags(title, brand, kind, resolvedCategory, collections);
 
       map.set(slug, {
         id: slug,
@@ -400,7 +616,7 @@ function loadExcelProducts(): Product[] {
         images,
         sizes: [],
         colors: [],
-        category: excelCategory || inferCategoryFromTitle(title),
+        category: resolvedCategory,
         gender: excelGender || inferGender(title),
         productType,
         kind,
@@ -437,6 +653,15 @@ function loadExcelProducts(): Product[] {
         stock,
         isAvailable: stock > 0,
       });
+    }
+
+    if (excelCategory && !product.category) {
+      product.category = excelCategory;
+      product.productType = inferProductTypeFromCategory(excelCategory, product.title);
+      product.kind = inferKindFromCategory(excelCategory, product.title);
+      product.collections = inferCollections(product.title, excelCategory, product.productType, product.kind || "general");
+      product.sport = inferSport(product.title, excelCategory);
+      product.tags = inferTags(product.title, product.brand || "", product.kind || "general", excelCategory, product.collections);
     }
 
     if (size) product.sizes = uniqCaseInsensitive([...product.sizes, size]);
