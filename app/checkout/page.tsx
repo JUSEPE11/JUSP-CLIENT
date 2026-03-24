@@ -43,7 +43,8 @@ function getDeliveryEstimate() {
 
 const SHIPPING_KEY = "jusp_checkout_shipping_v1";
 const SHIPPING_PRICE = 99990;
-const FREE_SHIPPING_MIN_ITEMS = 4;
+const HALF_SHIPPING_MIN_ITEMS = 3;
+const FREE_SHIPPING_MIN_ITEMS = 6;
 const CREATE_ORDER_ENDPOINT = "/api/orders";
 
 const COLOMBIA_DEPARTMENTS = [
@@ -81,6 +82,76 @@ const COLOMBIA_DEPARTMENTS = [
   "Vaupés",
   "Vichada",
 ] as const;
+
+const COLOMBIA_CITIES_BY_DEPARTMENT: Record<(typeof COLOMBIA_DEPARTMENTS)[number], string[]> = {
+  Amazonas: ["Leticia", "Puerto Nariño"],
+  Antioquia: [
+    "Medellín",
+    "Bello",
+    "Itagüí",
+    "Envigado",
+    "Sabaneta",
+    "Rionegro",
+    "Apartadó",
+    "Turbo",
+    "Santa Fe de Antioquia",
+    "La Ceja",
+    "Copacabana",
+  ],
+  Arauca: ["Arauca", "Arauquita", "Saravena", "Tame"],
+  Atlántico: ["Barranquilla", "Soledad", "Malambo", "Puerto Colombia", "Sabanalarga", "Baranoa"],
+  "Bogotá D.C.": ["Bogotá"],
+  Bolívar: ["Cartagena", "Magangué", "Turbaco", "Arjona", "El Carmen de Bolívar", "Mompós"],
+  Boyacá: ["Tunja", "Duitama", "Sogamoso", "Chiquinquirá", "Paipa", "Villa de Leyva"],
+  Caldas: ["Manizales", "La Dorada", "Chinchiná", "Villamaría", "Riosucio"],
+  Caquetá: ["Florencia", "San Vicente del Caguán", "Puerto Rico", "El Doncello"],
+  Casanare: ["Yopal", "Aguazul", "Villanueva", "Paz de Ariporo", "Tauramena"],
+  Cauca: ["Popayán", "Santander de Quilichao", "Puerto Tejada", "Patía", "Piendamó"],
+  Cesar: ["Valledupar", "Aguachica", "Bosconia", "La Jagua de Ibirico", "Curumaní"],
+  Chocó: ["Quibdó", "Istmina", "Tadó", "Condoto", "Riosucio"],
+  Córdoba: ["Montería", "Cereté", "Lorica", "Sahagún", "Montelíbano", "Planeta Rica"],
+  Cundinamarca: [
+    "Soacha",
+    "Chía",
+    "Zipaquirá",
+    "Facatativá",
+    "Girardot",
+    "Mosquera",
+    "Funza",
+    "Madrid",
+    "Cajicá",
+    "Fusagasugá",
+  ],
+  Guainía: ["Inírida"],
+  Guaviare: ["San José del Guaviare", "Calamar", "El Retorno"],
+  Huila: ["Neiva", "Pitalito", "Garzón", "La Plata", "Campoalegre"],
+  "La Guajira": ["Riohacha", "Maicao", "Uribia", "Fonseca", "San Juan del Cesar"],
+  Magdalena: ["Santa Marta", "Ciénaga", "Fundación", "Plato", "Aracataca"],
+  Meta: ["Villavicencio", "Acacías", "Granada", "Puerto López", "Restrepo"],
+  Nariño: ["Pasto", "Tumaco", "Ipiales", "Túquerres", "La Unión"],
+  "Norte de Santander": ["Cúcuta", "Ocaña", "Pamplona", "Villa del Rosario", "Los Patios"],
+  Putumayo: ["Mocoa", "Puerto Asís", "Sibundoy", "Orito", "Villagarzón"],
+  Quindío: ["Armenia", "Calarcá", "La Tebaida", "Montenegro", "Quimbaya"],
+  Risaralda: ["Pereira", "Dosquebradas", "Santa Rosa de Cabal", "La Virginia", "Belén de Umbría"],
+  "San Andrés y Providencia": ["San Andrés", "Providencia"],
+  Santander: ["Bucaramanga", "Floridablanca", "Girón", "Piedecuesta", "Barrancabermeja", "San Gil"],
+  Sucre: ["Sincelejo", "Corozal", "Sampués", "Tolú", "San Marcos"],
+  Tolima: ["Ibagué", "Espinal", "Melgar", "Honda", "Líbano"],
+  "Valle del Cauca": [
+    "Cali",
+    "Palmira",
+    "Buenaventura",
+    "Tuluá",
+    "Buga",
+    "Cartago",
+    "Jamundí",
+    "Yumbo",
+    "Florida",
+    "Candelaria",
+  ],
+  Vaupés: ["Mitú"],
+  Vichada: ["Puerto Carreño"],
+};
 
 function safeParse(raw: string | null) {
   if (!raw) return null;
@@ -150,8 +221,19 @@ export default function CheckoutPage() {
   const canContinue = cartCount > 0;
   const deliveryEstimate = useMemo(() => getDeliveryEstimate(), []);
 
+  const selectedDepartmentCities = useMemo(() => {
+    if (!ship.region) return [];
+    return COLOMBIA_CITIES_BY_DEPARTMENT[ship.region as keyof typeof COLOMBIA_CITIES_BY_DEPARTMENT] ?? [];
+  }, [ship.region]);
+
   const summary = useMemo(() => {
-    const shipping = cartCount >= FREE_SHIPPING_MIN_ITEMS ? 0 : SHIPPING_PRICE;
+    let shipping = SHIPPING_PRICE;
+
+    if (cartCount >= FREE_SHIPPING_MIN_ITEMS) {
+      shipping = 0;
+    } else if (cartCount >= HALF_SHIPPING_MIN_ITEMS) {
+      shipping = Math.round(SHIPPING_PRICE * 0.5);
+    }
 
     return {
       subtotal: cartTotal,
@@ -159,6 +241,12 @@ export default function CheckoutPage() {
       total: cartTotal + shipping,
     };
   }, [cartTotal, cartCount]);
+
+  const shippingLabel = useMemo(() => {
+    if (summary.shipping === 0) return "Envío gratis";
+    if (cartCount >= HALF_SHIPPING_MIN_ITEMS) return `Envío 50% OFF · $${moneyCOP(summary.shipping)}`;
+    return `$${moneyCOP(summary.shipping)}`;
+  }, [summary.shipping, cartCount]);
 
   const orderRef = useMemo(() => `JUSP-${Date.now()}`, []);
 
@@ -173,11 +261,22 @@ export default function CheckoutPage() {
     const prev = safeParse(localStorage.getItem(SHIPPING_KEY));
     if (prev && typeof prev === "object") {
       const nextRegion = String((prev as any).region || "");
+      const nextCity = String((prev as any).city || "");
       const nextDocumentType = (
         ["CC", "CE", "NIT", "PAS"].includes(String((prev as any).documentType || ""))
           ? String((prev as any).documentType || "")
           : ""
       ) as DocumentType | "";
+
+      const regionIsValid = COLOMBIA_DEPARTMENTS.includes(
+        nextRegion as (typeof COLOMBIA_DEPARTMENTS)[number]
+      );
+
+      const cityIsValid = regionIsValid
+        ? (COLOMBIA_CITIES_BY_DEPARTMENT[nextRegion as keyof typeof COLOMBIA_CITIES_BY_DEPARTMENT] ?? []).includes(
+            nextCity
+          )
+        : false;
 
       setShip({
         fullName: String((prev as any).fullName || ""),
@@ -188,12 +287,8 @@ export default function CheckoutPage() {
           nextDocumentType
         ),
         phone: onlyDigits(String((prev as any).phone || "")),
-        city: String((prev as any).city || ""),
-        region: COLOMBIA_DEPARTMENTS.includes(
-          nextRegion as (typeof COLOMBIA_DEPARTMENTS)[number]
-        )
-          ? nextRegion
-          : "",
+        city: cityIsValid ? nextCity : "",
+        region: regionIsValid ? nextRegion : "",
         addressLine1: String((prev as any).addressLine1 || ""),
         notes: String((prev as any).notes || ""),
       });
@@ -550,19 +645,16 @@ export default function CheckoutPage() {
 
                   <div className="two">
                     <label className="f">
-                      <span>Ciudad *</span>
-                      <input
-                        value={ship.city}
-                        onChange={(e) => setShip((s) => ({ ...s, city: e.target.value }))}
-                        placeholder="Ej: Bogotá"
-                      />
-                    </label>
-
-                    <label className="f">
                       <span>Departamento *</span>
                       <select
                         value={ship.region}
-                        onChange={(e) => setShip((s) => ({ ...s, region: e.target.value }))}
+                        onChange={(e) =>
+                          setShip((s) => ({
+                            ...s,
+                            region: e.target.value,
+                            city: "",
+                          }))
+                        }
                       >
                         <option value="">Selecciona un departamento</option>
                         {COLOMBIA_DEPARTMENTS.map((department) => (
@@ -572,7 +664,43 @@ export default function CheckoutPage() {
                         ))}
                       </select>
                     </label>
+
+                    <label className="f">
+                      <span>Ciudad *</span>
+                      <select
+                        value={ship.city}
+                        onChange={(e) => setShip((s) => ({ ...s, city: e.target.value }))}
+                        disabled={!ship.region}
+                      >
+                        <option value="">
+                          {!ship.region ? "Primero selecciona un departamento" : "Selecciona una ciudad"}
+                        </option>
+                        {selectedDepartmentCities.map((city) => (
+                          <option key={city} value={city}>
+                            {city}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                   </div>
+
+                  {ship.region && selectedDepartmentCities.length > 0 ? (
+                    <div className="cityMegaMenu">
+                      <div className="cityMegaTitle">Ciudades disponibles en {ship.region}</div>
+                      <div className="cityMegaGrid">
+                        {selectedDepartmentCities.map((city) => (
+                          <button
+                            key={city}
+                            type="button"
+                            className={`cityChip ${ship.city === city ? "active" : ""}`}
+                            onClick={() => setShip((s) => ({ ...s, city }))}
+                          >
+                            {city}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
 
                   <label className="f">
                     <span>Dirección *</span>
@@ -698,7 +826,7 @@ export default function CheckoutPage() {
                 </div>
                 <div className="r">
                   <span>Envío</span>
-                  <b>{summary.shipping === 0 ? "Envío gratis" : `$${moneyCOP(summary.shipping)}`}</b>
+                  <b>{shippingLabel}</b>
                 </div>
                 <div className="r tot">
                   <span>Total</span>
@@ -834,7 +962,51 @@ const baseCss = `
     color: #111;
   }
   .f textarea{ min-height: 92px; resize: vertical; }
+  .f select:disabled{
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
   .two{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .cityMegaMenu{
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 18px;
+    padding: 14px;
+    background: rgba(0,0,0,0.018);
+  }
+  .cityMegaTitle{
+    font-size: 12px;
+    font-weight: 950;
+    color: rgba(0,0,0,0.72);
+    margin-bottom: 10px;
+  }
+  .cityMegaGrid{
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .cityChip{
+    border: 1px solid rgba(0,0,0,0.1);
+    background: #fff;
+    color: #111;
+    border-radius: 12px;
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 900;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all .18s ease;
+  }
+  .cityChip:hover{
+    transform: translateY(-1px);
+    border-color: rgba(0,0,0,0.18);
+  }
+  .cityChip.active{
+    background: rgba(17,17,17,0.92);
+    color: rgba(255,255,255,0.95);
+    border-color: rgba(17,17,17,0.92);
+  }
 
   .err{
     display:block;
@@ -993,6 +1165,7 @@ const baseCss = `
 
   @media (max-width: 980px){
     .grid{ grid-template-columns: 1fr; }
+    .cityMegaGrid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 520px){
     .h1{ font-size: 32px; }
@@ -1010,5 +1183,6 @@ const baseCss = `
     .holdInfo b{
       text-align: left;
     }
+    .cityMegaGrid{ grid-template-columns: 1fr; }
   }
 `;
