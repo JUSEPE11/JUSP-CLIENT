@@ -83,7 +83,12 @@ const COLOMBIA_DEPARTMENTS = [
   "Vichada",
 ] as const;
 
-const COLOMBIA_CITIES_BY_DEPARTMENT: Record<(typeof COLOMBIA_DEPARTMENTS)[number], string[]> = {
+// Base actual del checkout.
+// Está preparada para crecer a un catálogo oficial completo de cobertura por transportadora.
+const COLOMBIA_MUNICIPALITIES_BY_DEPARTMENT: Record<
+  (typeof COLOMBIA_DEPARTMENTS)[number],
+  string[]
+> = {
   Amazonas: ["Leticia", "Puerto Nariño"],
   Antioquia: [
     "Medellín",
@@ -153,6 +158,44 @@ const COLOMBIA_CITIES_BY_DEPARTMENT: Record<(typeof COLOMBIA_DEPARTMENTS)[number
   Vichada: ["Puerto Carreño"],
 };
 
+type CarrierCode =
+  | "COORDINADORA"
+  | "INTERRAPIDISIMO"
+  | "ENVIA"
+  | "SERVIENTREGA";
+
+const CARRIER_OPTIONS: Array<{
+  code: CarrierCode;
+  label: string;
+  shortLabel: string;
+  coverageNote: string;
+}> = [
+  {
+    code: "COORDINADORA",
+    label: "Coordinadora",
+    shortLabel: "Coordinadora",
+    coverageNote: "Consulta oficial de poblaciones y reexpediciones autorizadas.",
+  },
+  {
+    code: "INTERRAPIDISIMO",
+    label: "Inter Rapidísimo",
+    shortLabel: "Inter Rapidísimo",
+    coverageNote: "Cobertura nacional consultable por departamentos en Colombia.",
+  },
+  {
+    code: "ENVIA",
+    label: "Envía",
+    shortLabel: "Envía",
+    coverageNote: "Cobertura nacional publicada de más de 1.390 destinos.",
+  },
+  {
+    code: "SERVIENTREGA",
+    label: "Servientrega",
+    shortLabel: "Servientrega",
+    coverageNote: "Consulta oficial de destinos y trayectos disponibles.",
+  },
+];
+
 function safeParse(raw: string | null) {
   if (!raw) return null;
   try {
@@ -178,15 +221,20 @@ function hasAtLeastFiveDigits(value: string) {
   return onlyDigits(value).length >= 5;
 }
 
+function isCarrierCode(value: string): value is CarrierCode {
+  return CARRIER_OPTIONS.some((option) => option.code === value);
+}
+
 type DocumentType = "CC" | "CE" | "NIT" | "PAS";
 
 type Shipping = {
+  carrier: CarrierCode;
   fullName: string;
   email: string;
   documentType: DocumentType | "";
   documentNumber: string;
   phone: string;
-  city: string;
+  municipality: string;
   region: string;
   addressLine1: string;
   notes: string;
@@ -194,12 +242,13 @@ type Shipping = {
 
 function emptyShipping(): Shipping {
   return {
+    carrier: "COORDINADORA",
     fullName: "",
     email: "",
     documentType: "",
     documentNumber: "",
     phone: "",
-    city: "",
+    municipality: "",
     region: "",
     addressLine1: "",
     notes: "",
@@ -221,10 +270,18 @@ export default function CheckoutPage() {
   const canContinue = cartCount > 0;
   const deliveryEstimate = useMemo(() => getDeliveryEstimate(), []);
 
-  const selectedDepartmentCities = useMemo(() => {
+  const selectedMunicipalities = useMemo(() => {
     if (!ship.region) return [];
-    return COLOMBIA_CITIES_BY_DEPARTMENT[ship.region as keyof typeof COLOMBIA_CITIES_BY_DEPARTMENT] ?? [];
+    return COLOMBIA_MUNICIPALITIES_BY_DEPARTMENT[
+      ship.region as keyof typeof COLOMBIA_MUNICIPALITIES_BY_DEPARTMENT
+    ] ?? [];
   }, [ship.region]);
+
+  const selectedCarrierMeta = useMemo(() => {
+    return (
+      CARRIER_OPTIONS.find((option) => option.code === ship.carrier) ?? CARRIER_OPTIONS[0]
+    );
+  }, [ship.carrier]);
 
   const summary = useMemo(() => {
     let shipping = SHIPPING_PRICE;
@@ -260,8 +317,12 @@ export default function CheckoutPage() {
   useEffect(() => {
     const prev = safeParse(localStorage.getItem(SHIPPING_KEY));
     if (prev && typeof prev === "object") {
+      const nextCarrierRaw = String((prev as any).carrier || "");
+      const nextCarrier = isCarrierCode(nextCarrierRaw) ? nextCarrierRaw : "COORDINADORA";
       const nextRegion = String((prev as any).region || "");
-      const nextCity = String((prev as any).city || "");
+      const nextMunicipality = String(
+        (prev as any).municipality || (prev as any).city || ""
+      );
       const nextDocumentType = (
         ["CC", "CE", "NIT", "PAS"].includes(String((prev as any).documentType || ""))
           ? String((prev as any).documentType || "")
@@ -272,13 +333,16 @@ export default function CheckoutPage() {
         nextRegion as (typeof COLOMBIA_DEPARTMENTS)[number]
       );
 
-      const cityIsValid = regionIsValid
-        ? (COLOMBIA_CITIES_BY_DEPARTMENT[nextRegion as keyof typeof COLOMBIA_CITIES_BY_DEPARTMENT] ?? []).includes(
-            nextCity
-          )
+      const municipalityIsValid = regionIsValid
+        ? (
+            COLOMBIA_MUNICIPALITIES_BY_DEPARTMENT[
+              nextRegion as keyof typeof COLOMBIA_MUNICIPALITIES_BY_DEPARTMENT
+            ] ?? []
+          ).includes(nextMunicipality)
         : false;
 
       setShip({
+        carrier: nextCarrier,
         fullName: String((prev as any).fullName || ""),
         email: String((prev as any).email || ""),
         documentType: nextDocumentType,
@@ -287,7 +351,7 @@ export default function CheckoutPage() {
           nextDocumentType
         ),
         phone: onlyDigits(String((prev as any).phone || "")),
-        city: cityIsValid ? nextCity : "",
+        municipality: municipalityIsValid ? nextMunicipality : "",
         region: regionIsValid ? nextRegion : "",
         addressLine1: String((prev as any).addressLine1 || ""),
         notes: String((prev as any).notes || ""),
@@ -344,14 +408,16 @@ export default function CheckoutPage() {
     const documentType = ship.documentType.trim();
     const documentNumber = ship.documentNumber.trim();
     const phone = ship.phone.trim();
-    const city = ship.city.trim();
+    const municipality = ship.municipality.trim();
     const address = ship.addressLine1.trim();
     const region = ship.region.trim();
+    const carrier = ship.carrier.trim();
 
     const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
     return Boolean(
-      fullName &&
+      carrier &&
+        fullName &&
         email &&
         emailOk &&
         documentType &&
@@ -359,7 +425,7 @@ export default function CheckoutPage() {
         documentNumberValid &&
         phone &&
         phoneValid &&
-        city &&
+        municipality &&
         address &&
         region
     );
@@ -415,12 +481,15 @@ export default function CheckoutPage() {
           phone: ship.phone.trim(),
         },
         shipping: {
+          carrier: ship.carrier,
+          carrierLabel: selectedCarrierMeta.label,
           fullName: ship.fullName.trim(),
           email: ship.email.trim(),
           documentType: ship.documentType,
           documentNumber: ship.documentNumber.trim(),
           phone: ship.phone.trim(),
-          city: ship.city.trim(),
+          city: ship.municipality.trim(),
+          municipality: ship.municipality.trim(),
           region: ship.region.trim(),
           addressLine1: ship.addressLine1.trim(),
           notes: ship.notes.trim(),
@@ -556,6 +625,49 @@ export default function CheckoutPage() {
 
                 <div className="form">
                   <label className="f">
+                    <span>Transportadora *</span>
+                    <select
+                      value={ship.carrier}
+                      onChange={(e) =>
+                        setShip((s) => ({
+                          ...s,
+                          carrier: isCarrierCode(e.target.value) ? e.target.value : "COORDINADORA",
+                        }))
+                      }
+                    >
+                      {CARRIER_OPTIONS.map((option) => (
+                        <option key={option.code} value={option.code}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <div className="carrierMegaMenu">
+                    <div className="carrierMegaGrid">
+                      {CARRIER_OPTIONS.map((option) => (
+                        <button
+                          key={option.code}
+                          type="button"
+                          className={`carrierChip ${ship.carrier === option.code ? "active" : ""}`}
+                          onClick={() =>
+                            setShip((s) => ({
+                              ...s,
+                              carrier: option.code,
+                            }))
+                          }
+                        >
+                          {option.shortLabel}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="carrierInfo">
+                      <div className="carrierInfoTitle">{selectedCarrierMeta.label}</div>
+                      <div className="carrierInfoText">{selectedCarrierMeta.coverageNote}</div>
+                    </div>
+                  </div>
+
+                  <label className="f">
                     <span>Nombre completo *</span>
                     <input
                       value={ship.fullName}
@@ -652,7 +764,7 @@ export default function CheckoutPage() {
                           setShip((s) => ({
                             ...s,
                             region: e.target.value,
-                            city: "",
+                            municipality: "",
                           }))
                         }
                       >
@@ -666,36 +778,47 @@ export default function CheckoutPage() {
                     </label>
 
                     <label className="f">
-                      <span>Ciudad *</span>
+                      <span>Municipio / ciudad *</span>
                       <select
-                        value={ship.city}
-                        onChange={(e) => setShip((s) => ({ ...s, city: e.target.value }))}
+                        value={ship.municipality}
+                        onChange={(e) =>
+                          setShip((s) => ({
+                            ...s,
+                            municipality: e.target.value,
+                          }))
+                        }
                         disabled={!ship.region}
                       >
                         <option value="">
-                          {!ship.region ? "Primero selecciona un departamento" : "Selecciona una ciudad"}
+                          {!ship.region
+                            ? "Primero selecciona un departamento"
+                            : "Selecciona un municipio o ciudad"}
                         </option>
-                        {selectedDepartmentCities.map((city) => (
-                          <option key={city} value={city}>
-                            {city}
+                        {selectedMunicipalities.map((municipality) => (
+                          <option key={municipality} value={municipality}>
+                            {municipality}
                           </option>
                         ))}
                       </select>
                     </label>
                   </div>
 
-                  {ship.region && selectedDepartmentCities.length > 0 ? (
+                  {ship.region && selectedMunicipalities.length > 0 ? (
                     <div className="cityMegaMenu">
-                      <div className="cityMegaTitle">Ciudades disponibles en {ship.region}</div>
                       <div className="cityMegaGrid">
-                        {selectedDepartmentCities.map((city) => (
+                        {selectedMunicipalities.map((municipality) => (
                           <button
-                            key={city}
+                            key={municipality}
                             type="button"
-                            className={`cityChip ${ship.city === city ? "active" : ""}`}
-                            onClick={() => setShip((s) => ({ ...s, city }))}
+                            className={`cityChip ${ship.municipality === municipality ? "active" : ""}`}
+                            onClick={() =>
+                              setShip((s) => ({
+                                ...s,
+                                municipality,
+                              }))
+                            }
                           >
-                            {city}
+                            {municipality}
                           </button>
                         ))}
                       </div>
@@ -760,6 +883,10 @@ export default function CheckoutPage() {
 
                 <div className="payBox">
                   <div className="pRow">
+                    <span>Transportadora</span>
+                    <b>{selectedCarrierMeta.label}</b>
+                  </div>
+                  <div className="pRow">
                     <span>Método</span>
                     <b>Wompi Checkout (redirect)</b>
                   </div>
@@ -820,6 +947,10 @@ export default function CheckoutPage() {
               </div>
 
               <div className="sum">
+                <div className="r">
+                  <span>Transportadora</span>
+                  <b>{selectedCarrierMeta.shortLabel}</b>
+                </div>
                 <div className="r">
                   <span>Subtotal</span>
                   <b>${moneyCOP(summary.subtotal)}</b>
@@ -969,17 +1100,64 @@ const baseCss = `
 
   .two{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
+  .carrierMegaMenu{
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 18px;
+    padding: 14px;
+    background: rgba(0,0,0,0.018);
+    display:grid;
+    gap: 12px;
+  }
+  .carrierMegaGrid{
+    display:grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .carrierChip{
+    border: 1px solid rgba(0,0,0,0.1);
+    background: #fff;
+    color: #111;
+    border-radius: 12px;
+    padding: 11px 12px;
+    text-align: left;
+    font-weight: 900;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all .18s ease;
+  }
+  .carrierChip:hover{
+    transform: translateY(-1px);
+    border-color: rgba(0,0,0,0.18);
+  }
+  .carrierChip.active{
+    background: rgba(17,17,17,0.92);
+    color: rgba(255,255,255,0.95);
+    border-color: rgba(17,17,17,0.92);
+  }
+  .carrierInfo{
+    border-radius: 14px;
+    padding: 12px 13px;
+    background: rgba(255,255,255,0.92);
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+  .carrierInfoTitle{
+    font-weight: 950;
+    color: #111;
+    font-size: 13px;
+  }
+  .carrierInfoText{
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 1.35;
+    font-weight: 900;
+    color: rgba(0,0,0,0.68);
+  }
+
   .cityMegaMenu{
     border: 1px solid rgba(0,0,0,0.08);
     border-radius: 18px;
     padding: 14px;
     background: rgba(0,0,0,0.018);
-  }
-  .cityMegaTitle{
-    font-size: 12px;
-    font-weight: 950;
-    color: rgba(0,0,0,0.72);
-    margin-bottom: 10px;
   }
   .cityMegaGrid{
     display: grid;
@@ -1165,12 +1343,14 @@ const baseCss = `
 
   @media (max-width: 980px){
     .grid{ grid-template-columns: 1fr; }
+    .carrierMegaGrid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .cityMegaGrid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 520px){
     .h1{ font-size: 32px; }
     .top{ flex-direction: column; align-items:flex-start; }
     .two{ grid-template-columns: 1fr; }
+    .carrierMegaGrid{ grid-template-columns: 1fr; }
     .delivery{
       flex-direction: column;
     }
