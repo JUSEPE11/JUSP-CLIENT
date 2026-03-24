@@ -46,6 +46,8 @@ const SHIPPING_PRICE = 99990;
 const HALF_SHIPPING_MIN_ITEMS = 3;
 const FREE_SHIPPING_MIN_ITEMS = 6;
 const CREATE_ORDER_ENDPOINT = "/api/orders";
+const DEFAULT_CARRIER_CODE = "COORDINADORA";
+const DEFAULT_CARRIER_LABEL = "Coordinadora";
 
 const COLOMBIA_DEPARTMENTS = [
   "Amazonas",
@@ -84,7 +86,7 @@ const COLOMBIA_DEPARTMENTS = [
 ] as const;
 
 // Base actual del checkout.
-// Está preparada para crecer a un catálogo oficial completo de cobertura.
+// Sigue siendo la base local actual del proyecto.
 const COLOMBIA_MUNICIPALITIES_BY_DEPARTMENT: Record<
   (typeof COLOMBIA_DEPARTMENTS)[number],
   string[]
@@ -426,6 +428,8 @@ export default function CheckoutPage() {
           phone: ship.phone.trim(),
         },
         shipping: {
+          carrier: DEFAULT_CARRIER_CODE,
+          carrierLabel: DEFAULT_CARRIER_LABEL,
           fullName: ship.fullName.trim(),
           email: ship.email.trim(),
           documentType: ship.documentType,
