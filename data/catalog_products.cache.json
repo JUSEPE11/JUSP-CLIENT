@@ -1,8 +1,8 @@
 {
   "version": 7,
-  "generatedAt": "2026-03-24T01:30:09.653Z",
+  "generatedAt": "2026-03-24T03:18:26.437Z",
   "excelPath": "C:\\JUSP\\jusp-app2\\data\\catalogo_jusp.xlsx",
-  "excelMtimeMs": 1774312970816.9778,
+  "excelMtimeMs": 1774322301543.0298,
   "products": [
     {
       "id": "short-nike-kids",
@@ -1073,6 +1073,452 @@
           "size": "Ajustable",
           "color": "black",
           "price": 179990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "nike-iq4185-010",
+      "slug": "nike-iq4185-010",
+      "product_code": "nike-iq4185-010",
+      "title": "Nike Fly Unstructured Cap",
+      "name": "Nike Fly Unstructured Cap",
+      "brand": "Nike",
+      "price": 159990,
+      "currency": "COP",
+      "description": "Nike Fly Unstructured Cap. Producto disponible en JUSP.",
+      "image": "/products/nike-iq4185-010/1.jpg",
+      "images": [
+        "/products/nike-iq4185-010/1.jpg",
+        "/products/nike-iq4185-010/2.jpg",
+        "/products/nike-iq4185-010/3.jpg",
+        "/products/nike-iq4185-010/4.jpg",
+        "/products/nike-iq4185-010/5.jpg",
+        "/products/nike-iq4185-010/6.jpg",
+        "/products/nike-iq4185-010/7.jpg",
+        "/products/nike-iq4185-010/8.jpg",
+        "/products/nike-iq4185-010/9.jpg"
+      ],
+      "sizes": [
+        "Ajustable"
+      ],
+      "colors": [
+        "black"
+      ],
+      "category": "unisex",
+      "gender": "unisex",
+      "productType": "accessory",
+      "kind": "gorras",
+      "collections": [
+        "accessories"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "gorras",
+        "accessories"
+      ],
+      "isNew": true,
+      "stockHint": 1,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "nike-iq4185-010-ajustable-black",
+          "size": "Ajustable",
+          "color": "black",
+          "price": 159990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "nike-ih9258-010",
+      "slug": "nike-ih9258-010",
+      "product_code": "nike-ih9258-010",
+      "title": "Nike Club Cap",
+      "name": "Nike Club Cap",
+      "brand": "Nike",
+      "price": 134990,
+      "currency": "COP",
+      "description": "Nike Club Cap. Producto disponible en JUSP.",
+      "image": "/products/nike-ih9258-010/1.jpg",
+      "images": [
+        "/products/nike-ih9258-010/1.jpg",
+        "/products/nike-ih9258-010/2.jpg",
+        "/products/nike-ih9258-010/3.jpg",
+        "/products/nike-ih9258-010/4.jpg",
+        "/products/nike-ih9258-010/5.jpg"
+      ],
+      "sizes": [
+        "S/M",
+        "M/L",
+        "L/XL"
+      ],
+      "colors": [
+        "black"
+      ],
+      "category": "unisex",
+      "gender": "unisex",
+      "productType": "accessory",
+      "kind": "gorras",
+      "collections": [
+        "accessories",
+        "lifestyle"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "gorras",
+        "accessories",
+        "lifestyle",
+        "club"
+      ],
+      "isNew": true,
+      "stockHint": 3,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "nike-ih9258-010-sm-black",
+          "size": "S/M",
+          "color": "black",
+          "price": 134990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-ih9258-010-ml-black",
+          "size": "M/L",
+          "color": "black",
+          "price": 134990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-ih9258-010-lxl-black",
+          "size": "L/XL",
+          "color": "black",
+          "price": 134990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "nike-fb5061-010",
+      "slug": "nike-fb5061-010",
+      "product_code": "nike-fb5061-010",
+      "title": "Nike Dri-FIT Ace Kids' Swoosh Visor",
+      "name": "Nike Dri-FIT Ace Kids' Swoosh Visor",
+      "brand": "Nike",
+      "price": 79990,
+      "currency": "COP",
+      "description": "Nike Dri-FIT Ace Kids' Swoosh Visor. Producto disponible en JUSP.",
+      "image": "/products/nike-fb5061-010/1.jpg",
+      "images": [
+        "/products/nike-fb5061-010/1.jpg",
+        "/products/nike-fb5061-010/2.jpg",
+        "/products/nike-fb5061-010/3.jpg",
+        "/products/nike-fb5061-010/4.jpg",
+        "/products/nike-fb5061-010/5.jpg",
+        "/products/nike-fb5061-010/6.jpg"
+      ],
+      "sizes": [
+        "Unica"
+      ],
+      "colors": [
+        "black"
+      ],
+      "category": "Kisd",
+      "gender": "kids",
+      "productType": "clothing",
+      "kind": "general",
+      "collections": [
+        "clothing",
+        "gym",
+        "training"
+      ],
+      "sport": [
+        "training"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "clothing",
+        "gym",
+        "training",
+        "dri-fit"
+      ],
+      "isNew": true,
+      "stockHint": 1,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "nike-fb5061-010-unica-black",
+          "size": "Unica",
+          "color": "black",
+          "price": 79990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "nike-if1805-010",
+      "slug": "nike-if1805-010",
+      "product_code": "nike-if1805-010",
+      "title": "NIKE AIR JORDAN OVERSIZED T",
+      "name": "NIKE AIR JORDAN OVERSIZED T",
+      "brand": "Nike",
+      "price": 134990,
+      "currency": "COP",
+      "description": "NIKE AIR JORDAN OVERSIZED T. Producto disponible en JUSP.",
+      "image": "/products/nike-if1805-010/1.jpg",
+      "images": [
+        "/products/nike-if1805-010/1.jpg",
+        "/products/nike-if1805-010/2.jpg",
+        "/products/nike-if1805-010/3.jpg",
+        "/products/nike-if1805-010/4.jpg",
+        "/products/nike-if1805-010/5.jpg",
+        "/products/nike-if1805-010/6.jpg"
+      ],
+      "sizes": [
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "colors": [
+        "black"
+      ],
+      "category": "men",
+      "gender": "men",
+      "productType": "clothing",
+      "kind": "general",
+      "collections": [
+        "clothing"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "clothing"
+      ],
+      "isNew": true,
+      "stockHint": 5,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "nike-if1805-010-s-black",
+          "size": "S",
+          "color": "black",
+          "price": 134990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-if1805-010-m-black",
+          "size": "M",
+          "color": "black",
+          "price": 134990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-if1805-010-l-black",
+          "size": "L",
+          "color": "black",
+          "price": 134990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-if1805-010-xl-black",
+          "size": "XL",
+          "color": "black",
+          "price": 134990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-if1805-010-xxl-black",
+          "size": "XXL",
+          "color": "black",
+          "price": 134990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "jordan-jd2413048AD-001",
+      "slug": "jordan-jd2413048AD-001",
+      "product_code": "jordan-jd2413048AD-001",
+      "title": "Bóxer Nike Jordan Flight",
+      "name": "Bóxer Nike Jordan Flight",
+      "brand": "Jordan",
+      "price": 119990,
+      "currency": "COP",
+      "description": "Bóxer Nike Jordan Flight. Producto disponible en JUSP.",
+      "image": "/products/jordan-jd2413048AD-001/1.jpg",
+      "images": [
+        "/products/jordan-jd2413048AD-001/1.jpg",
+        "/products/jordan-jd2413048AD-001/2.jpg",
+        "/products/jordan-jd2413048AD-001/3.jpg",
+        "/products/jordan-jd2413048AD-001/4.jpg",
+        "/products/jordan-jd2413048AD-001/5.jpg"
+      ],
+      "sizes": [
+        "S",
+        "M",
+        "L"
+      ],
+      "colors": [
+        "black"
+      ],
+      "category": "accessories",
+      "gender": "men",
+      "productType": "accessory",
+      "kind": "boxers",
+      "collections": [
+        "accessories",
+        "clothing",
+        "bottoms",
+        "underwear"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "jordan",
+        "boxers",
+        "accessories",
+        "clothing",
+        "bottoms",
+        "underwear"
+      ],
+      "isNew": true,
+      "stockHint": 3,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "jordan-jd2413048AD-001-s-black",
+          "size": "S",
+          "color": "black",
+          "price": 119990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "jordan-jd2413048AD-001-m-black",
+          "size": "M",
+          "color": "black",
+          "price": 119990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "jordan-jd2413048AD-001-l-black",
+          "size": "L",
+          "color": "black",
+          "price": 119990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "jordan-jd2413048AD-002",
+      "slug": "jordan-jd2413048AD-002",
+      "product_code": "jordan-jd2413048AD-002",
+      "title": "Bóxer Nike Jordan",
+      "name": "Bóxer Nike Jordan",
+      "brand": "Jordan",
+      "price": 119990,
+      "currency": "COP",
+      "description": "Bóxer Nike Jordan. Producto disponible en JUSP.",
+      "image": "/products/jordan-jd2413048AD-002/1.jpg",
+      "images": [
+        "/products/jordan-jd2413048AD-002/1.jpg",
+        "/products/jordan-jd2413048AD-002/2.jpg",
+        "/products/jordan-jd2413048AD-002/3.jpg",
+        "/products/jordan-jd2413048AD-002/4.jpg"
+      ],
+      "sizes": [
+        "M",
+        "L"
+      ],
+      "colors": [
+        "white"
+      ],
+      "category": "accessories",
+      "gender": "men",
+      "productType": "accessory",
+      "kind": "boxers",
+      "collections": [
+        "accessories",
+        "clothing",
+        "bottoms",
+        "underwear"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "jordan",
+        "boxers",
+        "accessories",
+        "clothing",
+        "bottoms",
+        "underwear"
+      ],
+      "isNew": true,
+      "stockHint": 2,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "jordan-jd2413048AD-002-m-white",
+          "size": "M",
+          "color": "white",
+          "price": 119990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "jordan-jd2413048AD-002-l-white",
+          "size": "L",
+          "color": "white",
+          "price": 119990,
           "stock": 1,
           "isAvailable": true
         }
