@@ -1378,7 +1378,7 @@ export default function Page() {
         />
         <div style={{ position: "relative", zIndex: 2, padding: "120px 18px 56px", maxWidth: 1180, margin: "0 auto" }}>
           <div style={{ color: "#fff", opacity: 0.92, fontSize: 12, letterSpacing: 1.6, fontWeight: 800 }}>
-            JUSP · ORIGINALES · PREMIUM
+            JUSP · ORIGINALES.
           </div>
           <h1 style={{ color: "#fff", margin: "10px 0 0", fontSize: 46, lineHeight: 1.05 }}>JUSP · DO MORE</h1>
         </div>
