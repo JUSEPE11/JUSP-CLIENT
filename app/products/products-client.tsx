@@ -2055,7 +2055,7 @@ const ProductCard = memo(function ProductCard({
   }, [main, alt, JSON.stringify(fallbacks)]);
 
   return (
-    <article className={`card ${imgReady ? "ready" : ""}`} style={{ contentVisibility: "auto", containIntrinsicSize: "360px 560px" as any }}>
+    <article className={`card ${imgReady ? "ready" : ""}`}>
       <div className="imgWrap">
         <Link className="img" href={href} prefetch={false} onMouseEnter={() => onPrefetch(href)} onFocus={() => onPrefetch(href)}>
           {currentImg ? (
