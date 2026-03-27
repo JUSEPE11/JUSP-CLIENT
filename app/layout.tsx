@@ -29,9 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
 
       <body className="min-h-screen h-full bg-[#070709] text-white antialiased overflow-x-hidden selection:bg-yellow-300/30 selection:text-white">
-        
-        {/* 🔴 ELIMINADO: noscript que causaba el bug visual */}
-        {/*
+        {/* Google Tag Manager (noscript) */}
         <noscript>
           <iframe
             src="https://www.googletagmanager.com/ns.html?id=GTM-WGZSFVJH"
@@ -40,7 +38,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             style={{ display: "none", visibility: "hidden" }}
           ></iframe>
         </noscript>
-        */}
 
         <Providers>
           <ClientLayout>{children}</ClientLayout>
