@@ -67,7 +67,7 @@ function currentYear() {
 }
 
 const LS_MEGA_OPEN = "jusp.mega.open.v3";
-const WHATSAPP_NUMBER = "56985516447";
+const WHATSAPP_NUMBER = "573146377698";
 const WHATSAPP_TEXT = "Hola, quiero ayuda con JUSP.";
 
 function safeGetLS(key: string) {
