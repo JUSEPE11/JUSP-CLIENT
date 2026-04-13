@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { type Product } from "@/lib/products";
 
@@ -439,7 +439,7 @@ type UserSession = {
 
 type SearchItem = { id: string; name: string; href: string; img: string; brand?: string };
 
-export default function Page() {
+function HomePageContent() {
   const searchParams = useSearchParams();
   const [catalogProducts, setCatalogProducts] = useState<Product[]>([]);
 
@@ -2624,5 +2624,14 @@ export default function Page() {
         ) : null}
       </section>
     </main>
+  );
+}
+
+
+export default function Page() {
+  return (
+    <Suspense fallback={<main style={{ minHeight: "100vh", background: "#fff" }} />}>
+      <HomePageContent />
+    </Suspense>
   );
 }
