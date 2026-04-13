@@ -4,6 +4,7 @@ import Link from "next/link";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useStore } from "../../components/store";
+import ProductReviews from "./ProductReviews";
 
 type ProductVariant = {
   key: string;
@@ -1148,6 +1149,14 @@ export default function ProductPage() {
             </div>
           </section>
         </div>
+
+        {product ? (
+          <ProductReviews
+            productId={product.id}
+            productSlug={product.slug || slug}
+            productTitle={title}
+          />
+        ) : null}
       </div>
 
       <div className="mobileBar" role="presentation">
