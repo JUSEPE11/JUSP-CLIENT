@@ -19,6 +19,44 @@ type Section = {
   }>;
 };
 
+const SUPPORT_EMAIL = "contacto@juspco.com";
+
+const OPEN_CASE_SUBJECT = "Abrir caso | Devoluciones y Garantías | JUSP";
+const OPEN_CASE_BODY = [
+  "Hola JUSP, quiero abrir un caso.",
+  "",
+  "Número de pedido:",
+  "Nombre completo:",
+  "Correo de contacto:",
+  "Teléfono:",
+  "",
+  "Tipo de caso:",
+  "- Producto defectuoso",
+  "- Daño en transporte",
+  "- Error de referencia",
+  "- Faltantes",
+  "- Otro",
+  "",
+  "Descripción clara del caso:",
+  "",
+  "Fecha de entrega:",
+  "",
+  "Evidencia adjunta:",
+  "- Fotos",
+  "- Videos",
+  "- Estado del empaque",
+  "",
+  "Quedo atento(a).",
+].join("\n");
+
+const OPEN_CASE_MAILTO = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(
+  OPEN_CASE_SUBJECT
+)}&body=${encodeURIComponent(OPEN_CASE_BODY)}`;
+
+const OPEN_CASE_GMAIL = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
+  SUPPORT_EMAIL
+)}&su=${encodeURIComponent(OPEN_CASE_SUBJECT)}&body=${encodeURIComponent(OPEN_CASE_BODY)}`;
+
 const glass: CSSProperties = {
   border: "1px solid rgba(255,255,255,0.08)",
   background: "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03))",
@@ -526,7 +564,7 @@ const sections: Section[] = [
     id: "proceso",
     title: "4. Proceso",
     bullets: [
-      "Escribe al canal oficial con número de pedido, descripción clara del caso y evidencia.",
+      "Abre el caso desde el botón oficial o escribe al canal oficial con número de pedido, descripción clara del caso y evidencia.",
       "JUSP revisa la incidencia y define el camino aplicable: reposición, devolución logística, nota crédito o gestión con proveedor/fabricante.",
       "Si se requiere devolución física, se compartirán instrucciones y condiciones según el proveedor y el operador logístico.",
     ],
@@ -563,7 +601,7 @@ export default function ReturnsPage() {
             <span style={styles.pill}>JUSP · Devoluciones</span>
             <span style={styles.pill}>Garantías</span>
             <span style={styles.pillAccent}>NIT 902044152</span>
-            <span style={styles.pill}>Últ. actualización: 07 mar 2026</span>
+            <span style={styles.pill}>Últ. actualización: 13 abr 2026</span>
           </div>
 
           <div style={styles.heroGrid}>
@@ -572,18 +610,24 @@ export default function ReturnsPage() {
 
               <h1 style={styles.heroTitle}>
                 Devoluciones y Garantías
-                <span style={styles.heroSubtitle}>seriedad cuando de verdad importa</span>
+                <span style={styles.heroSubtitle}>respuestas reales cuando algo falla</span>
               </h1>
 
               <p style={styles.heroText}>
                 Esta política aplica a compras internacionales gestionadas por{" "}
-                <strong style={styles.strong}>JUSP CLUB INTERNACIONAL S.A.S.</strong> como intermediario.
-                Por la naturaleza transfronteriza de la operación, algunas condiciones dependen del
-                proveedor, del fabricante y del operador logístico correspondiente.
+                <strong style={styles.strong}>JUSP CLUB INTERNACIONAL S.A.S.</strong> como
+                intermediario. Si algo no sale como debería, lo enfrentamos contigo. Evaluamos cada
+                caso con evidencia real y definimos la mejor solución posible según el proveedor, el
+                fabricante y la logística internacional involucrada.
               </p>
 
               <div style={styles.actions}>
-                <a href="mailto:DIRECTOR@JUSPCO.COM" style={styles.primaryBtn}>
+                <a
+                  href={OPEN_CASE_GMAIL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={styles.primaryBtn}
+                >
                   Abrir caso
                 </a>
                 <Link href="/shipping" style={styles.secondaryBtn}>
@@ -597,21 +641,32 @@ export default function ReturnsPage() {
 
             <div style={styles.summaryCard}>
               <div style={styles.summaryEyebrow}>Resumen clave</div>
-              <h2 style={styles.summaryTitle}>Si algo pasa, lo enfrentamos contigo</h2>
+              <h2 style={styles.summaryTitle}>No estás solo si algo falla</h2>
 
               <div style={styles.chipsRow}>
-                <span style={styles.chip}>Reporte en 3 días</span>
+                <span style={styles.chip}>Reporte en máximo 3 días</span>
                 <span style={styles.chip}>Evidencia requerida</span>
                 <span style={styles.chip}>Gestión acompañada</span>
               </div>
 
-              <p style={styles.summaryText}>
-                JUSP acompaña la evaluación del caso, orienta el proceso y coordina la gestión que
-                corresponda según la incidencia, el proveedor y la logística aplicable.
+              <p
+                style={{
+                  marginTop: 10,
+                  fontSize: 13,
+                  fontWeight: 900,
+                  color: "#ffe36a",
+                }}
+              >
+                Autenticidad protegida: si no es original, aplican compensaciones según términos.
               </p>
 
-              <a href="mailto:DIRECTOR@JUSPCO.COM" style={styles.mailLink}>
-                DIRECTOR@JUSPCO.COM
+              <p style={styles.summaryText}>
+                Analizamos cada caso con evidencia real, te acompañamos en todo el proceso y
+                ejecutamos la solución que corresponda según la situación.
+              </p>
+
+              <a href={OPEN_CASE_MAILTO} style={styles.mailLink}>
+                {SUPPORT_EMAIL}
               </a>
             </div>
           </div>
@@ -632,8 +687,8 @@ export default function ReturnsPage() {
                         return (
                           <p key={`${section.id}-${index}`} style={styles.paragraph}>
                             El reporte debe enviarse al canal oficial{" "}
-                            <a href="mailto:DIRECTOR@JUSPCO.COM" style={styles.inlineLink}>
-                              DIRECTOR@JUSPCO.COM
+                            <a href={OPEN_CASE_MAILTO} style={styles.inlineLink}>
+                              {SUPPORT_EMAIL}
                             </a>{" "}
                             con número de pedido, descripción del caso y evidencia suficiente.
                           </p>
@@ -681,19 +736,38 @@ export default function ReturnsPage() {
                     </p>
                   </div>
                 ) : null}
+
+                {section.id === "proceso" ? (
+                  <div style={styles.noteBox}>
+                    <div style={styles.noteTitle}>Cómo abrir el caso</div>
+                    <p style={styles.noteText}>
+                      Usa el botón <strong style={styles.strong}>Abrir caso</strong> para abrir Gmail
+                      con la plantilla lista. Si no usas Gmail, también puedes escribir directamente a{" "}
+                      <a href={OPEN_CASE_MAILTO} style={styles.inlineLink}>
+                        {SUPPORT_EMAIL}
+                      </a>
+                      .
+                    </p>
+                  </div>
+                ) : null}
               </section>
             ))}
 
             <section style={styles.ctaCard}>
               <div style={styles.ctaEyebrow}>Soporte real</div>
-              <h3 style={styles.ctaTitle}>Si algo pasa, lo enfrentamos contigo.</h3>
+              <h3 style={styles.ctaTitle}>Si algo falla, actuamos contigo.</h3>
               <p style={styles.ctaText}>
                 Si necesitas abrir un caso, comparte el número de pedido, una descripción clara y
                 evidencia suficiente para acelerar la evaluación y la respuesta.
               </p>
 
               <div style={styles.actions}>
-                <a href="mailto:DIRECTOR@JUSPCO.COM" style={styles.primaryBtn}>
+                <a
+                  href={OPEN_CASE_GMAIL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={styles.primaryBtn}
+                >
                   Abrir caso
                 </a>
                 <Link href="/shipping" style={styles.secondaryBtn}>
@@ -732,8 +806,8 @@ export default function ReturnsPage() {
 
               <div style={styles.reportBox}>
                 <div style={styles.reportLabel}>Reporte</div>
-                <div style={styles.reportValue}>Dentro de 3 días</div>
-                <div style={styles.reportSub}>DIRECTOR@JUSPCO.COM</div>
+                <div style={styles.reportValue}>Dentro de máximo 3 días</div>
+                <div style={styles.reportSub}>{SUPPORT_EMAIL}</div>
               </div>
             </section>
 
@@ -743,8 +817,8 @@ export default function ReturnsPage() {
               <div style={styles.companyMeta}>Nombre comercial: JUSP S.A.S.</div>
               <div style={styles.companyMeta}>NIT: 902044152</div>
               <div style={styles.companyMeta}>País: Colombia</div>
-              <a href="mailto:DIRECTOR@JUSPCO.COM" style={styles.mailLink}>
-                DIRECTOR@JUSPCO.COM
+              <a href={OPEN_CASE_MAILTO} style={styles.mailLink}>
+                {SUPPORT_EMAIL}
               </a>
             </section>
 

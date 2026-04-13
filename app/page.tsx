@@ -1744,13 +1744,29 @@ function HomePageContent() {
         <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px" }}>
           <div style={{ display: "flex", alignItems: "end", justifyContent: "space-between", gap: 12 }}>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.2, opacity: 0.7 }}>CONFIANZA</div>
-              <div style={{ fontSize: 22, fontWeight: 1000, marginTop: 6 }}>Originales ➡️ Directo ➡️ Flash</div>
+              <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: 1.2, opacity: 0.7 }}>
+                CONFIANZA
+              </div>
+
+              <div style={{ fontSize: 22, fontWeight: 1000, marginTop: 6 }}>
+                Compra protegida por JUSP
+              </div>
+
               <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75 }}>
-                Transparencia total: compra internacional + entrega a Colombia, con acompañamiento real.
+                Garantía 
               </div>
             </div>
-            <Link href="/terms" style={{ fontSize: 13, fontWeight: 900, textDecoration: "none", color: "#000", opacity: 0.85 }}>
+
+            <Link
+              href="/terms"
+              style={{
+                fontSize: 13,
+                fontWeight: 900,
+                textDecoration: "none",
+                color: "#000",
+                opacity: 0.85,
+              }}
+            >
               Ver términos →
             </Link>
           </div>
@@ -1764,9 +1780,24 @@ function HomePageContent() {
             }}
           >
             {[
-              { k: "auth", t: "Originales verificados", d: "Proveedores seleccionados + control de calidad.", i: "✅" },
-              { k: "ship", t: "Envío internacional claro", d: "Costo y tiempos transparentes. Sin sorpresas.", i: "✈️" },
-              { k: "care", t: "Soporte humano", d: "Te acompañamos antes y después de comprar.", i: "💬" },
+              {
+                k: "auth",
+                t: "Autenticidad protegida",
+                d: "Te devolvemos cuatro veces el precio si es falso.\nSi un cliente recibe un producto que no es auténtico, JUSP pagará 4 veces el valor real del producto como compensación.",
+                i: "🔒",
+              },
+              {
+                k: "refund",
+                t: "Compra protegida",
+                d: "Políticas de devolución.\nReembolso instantáneo.\nSi tu pedido cumple las condiciones, procesamos tu dinero de forma rápida y clara.",
+                i: "💸",
+              },
+              {
+                k: "support",
+                t: "Soporte real",
+                d: "Te respondemos antes, durante y después.\nAcompañamiento real en todo el proceso de compra.",
+                i: "💬",
+              },
             ].map((b) => (
               <div
                 key={b.k}
@@ -1779,8 +1810,23 @@ function HomePageContent() {
                 }}
               >
                 <div style={{ fontSize: 22 }}>{b.i}</div>
-                <div style={{ marginTop: 10, fontWeight: 1000, fontSize: 15 }}>{b.t}</div>
-                <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75, lineHeight: 1.4 }}>{b.d}</div>
+
+                <div style={{ marginTop: 10, fontWeight: 1000, fontSize: 15 }}>
+                  {b.t}
+                </div>
+
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: 13,
+                    opacity: 0.75,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {b.d.split("\n").map((line, i) => (
+                    <div key={i}>{line}</div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
