@@ -14,13 +14,18 @@ type Section = {
   bullets?: string[];
 };
 
+const LEGAL_EMAIL = "contacto@juspco.com";
+const LEGAL_GMAIL_URL = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
+  LEGAL_EMAIL
+)}`;
+
 const sections: Section[] = [
   {
     id: "identificacion",
     title: "1. Identificación del comerciante",
     paragraphs: [
       "JUSP CLUB INTERNACIONAL S.A.S., nombre comercial JUSP S.A.S., identificada con NIT 902044152, es una sociedad constituida conforme a las leyes de la República de Colombia y titular del sitio juspco.com.",
-      "Su canal legal oficial es DIRECTOR@JUSPCO.COM. Para efectos del sitio, JUSP actúa como intermediario en la gestión de compras internacionales.",
+      "Su canal legal oficial es contacto@juspco.com. Para efectos del sitio, JUSP actúa como intermediario en la gestión de compras internacionales.",
     ],
   },
   {
@@ -81,7 +86,7 @@ const sections: Section[] = [
     title: "8. Retracto y devoluciones",
     paragraphs: [
       "El derecho de retracto se regirá por lo previsto en la Ley 1480 de 2011 y demás normas aplicables en Colombia, cuando resulte procedente y sin perjuicio de las excepciones legales.",
-      "Para iniciar un trámite, el usuario deberá contactar a JUSP a través de DIRECTOR@JUSPCO.COM.",
+      "Para iniciar un trámite, el usuario deberá contactar a JUSP a través de contacto@juspco.com.",
     ],
   },
   {
@@ -139,7 +144,7 @@ const sections: Section[] = [
     id: "pqrs",
     title: "15. PQRS y soporte",
     paragraphs: [
-      "Para peticiones, quejas, reclamos y solicitudes (PQRS), el usuario podrá comunicarse a través de DIRECTOR@JUSPCO.COM.",
+      "Para peticiones, quejas, reclamos y solicitudes (PQRS), el usuario podrá comunicarse a través de contacto@juspco.com.",
       "El tiempo objetivo de respuesta es de 1 a 2 días hábiles, sin perjuicio de la complejidad del caso.",
     ],
   },
@@ -854,8 +859,8 @@ function renderParagraph(sectionId: string, text: string, index: number) {
     return (
       <p className="paragraph">
         Su canal legal oficial es{" "}
-        <a href="mailto:DIRECTOR@JUSPCO.COM" className="inlineLink">
-          DIRECTOR@JUSPCO.COM
+        <a href={`mailto:${LEGAL_EMAIL}`} className="inlineLink">
+          {LEGAL_EMAIL}
         </a>
         . Para efectos del sitio, JUSP actúa como intermediario en la gestión de compras
         internacionales.
@@ -867,8 +872,8 @@ function renderParagraph(sectionId: string, text: string, index: number) {
     return (
       <p className="paragraph">
         Para iniciar un trámite, el usuario deberá contactar a JUSP a través de{" "}
-        <a href="mailto:DIRECTOR@JUSPCO.COM" className="inlineLink">
-          DIRECTOR@JUSPCO.COM
+        <a href={`mailto:${LEGAL_EMAIL}`} className="inlineLink">
+          {LEGAL_EMAIL}
         </a>
         .
       </p>
@@ -892,8 +897,8 @@ function renderParagraph(sectionId: string, text: string, index: number) {
       <p className="paragraph">
         Para peticiones, quejas, reclamos y solicitudes (PQRS), el usuario podrá comunicarse a
         través de{" "}
-        <a href="mailto:DIRECTOR@JUSPCO.COM" className="inlineLink">
-          DIRECTOR@JUSPCO.COM
+        <a href={`mailto:${LEGAL_EMAIL}`} className="inlineLink">
+          {LEGAL_EMAIL}
         </a>
         .
       </p>
@@ -919,7 +924,7 @@ export default function TermsPage() {
             <span className="pill">JUSP · Legal</span>
             <span className="pill">Colombia</span>
             <span className="pill pillAccent">NIT 902044152</span>
-            <span className="pill">Últ. actualización: 07 mar 2026</span>
+            <span className="pill">Últ. actualización: 13 abr 2026</span>
           </div>
 
           <div className="heroGrid">
@@ -928,7 +933,7 @@ export default function TermsPage() {
 
               <h1 className="heroTitle">
                 Términos y Condiciones
-                <span className="heroSubtitle">claros, serios y con presencia premium</span>
+                <span className="heroSubtitle">claridad legal para una compra internacional</span>
               </h1>
 
               <p className="heroText">
@@ -940,7 +945,12 @@ export default function TermsPage() {
               </p>
 
               <div className="actions">
-                <a href="mailto:DIRECTOR@JUSPCO.COM" className="primaryBtn">
+                <a
+                  href={LEGAL_GMAIL_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="primaryBtn"
+                >
                   Contacto legal
                 </a>
                 <Link href="/privacy" className="secondaryBtn">
@@ -965,8 +975,8 @@ export default function TermsPage() {
                 internacionales al cliente final.
               </p>
 
-              <a href="mailto:DIRECTOR@JUSPCO.COM" className="mailLink">
-                DIRECTOR@JUSPCO.COM
+              <a href={`mailto:${LEGAL_EMAIL}`} className="mailLink">
+                {LEGAL_EMAIL}
               </a>
             </div>
           </div>
@@ -1010,8 +1020,8 @@ export default function TermsPage() {
               </p>
 
               <div className="actions">
-                <a href="mailto:DIRECTOR@JUSPCO.COM" className="primaryBtn">
-                  DIRECTOR@JUSPCO.COM
+                <a href={`mailto:${LEGAL_EMAIL}`} className="primaryBtn">
+                  {LEGAL_EMAIL}
                 </a>
                 <Link href="/help" className="secondaryBtn">
                   Centro de ayuda
@@ -1041,8 +1051,8 @@ export default function TermsPage() {
               <div className="companyMeta">Nombre comercial: JUSP S.A.S.</div>
               <div className="companyMeta">NIT: 902044152</div>
               <div className="companyMeta">País: Colombia</div>
-              <a href="mailto:DIRECTOR@JUSPCO.COM" className="mailLink">
-                DIRECTOR@JUSPCO.COM
+              <a href={`mailto:${LEGAL_EMAIL}`} className="mailLink">
+                {LEGAL_EMAIL}
               </a>
             </section>
 
