@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React
+import { getFavorites } from "@/lib/favorites", { useEffect, useMemo, useRef, useState } from "react";
 
 /** =========================
  *  Types
@@ -816,6 +817,20 @@ function FavoriteCardImage({ item, title }: { item: FavoriteItem; title: string 
   const [failedAll, setFailedAll] = useState(false);
 
   useEffect(() => {
+  setFavorites(getFavorites());
+
+  const sync = () => setFavorites(getFavorites());
+
+  window.addEventListener("storage", sync);
+  window.addEventListener("jusp:favorites-changed", sync);
+
+  return () => {
+    window.removeEventListener("storage", sync);
+    window.removeEventListener("jusp:favorites-changed", sync);
+  };
+}, []);
+
+useEffect(() => {
     setIndex(0);
     setFailedAll(false);
   }, [candidates.join("|")]);
