@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React
-import { getFavorites } from "@/lib/favorites", { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 /** =========================
  *  Types
@@ -27,7 +26,7 @@ type AuthState = "checking" | "authed" | "guest";
 /** =========================
  *  Storage keys candidates
  *  ========================= */
-const KEYS_CANDIDATES = ["jusp_favorites", "favorites", "wishlist", "jusp_wishlist"];
+const KEYS_CANDIDATES = ["jusp_home_favorites_v1", "jusp_favorites_v1", "jusp_favorites", "favorites", "wishlist", "jusp_wishlist"];
 
 /** =========================
  *  Helpers
@@ -753,6 +752,7 @@ function removeFavoriteEverywhere(id: string) {
 
   try {
     window.dispatchEvent(new Event("jusp:favorites"));
+    window.dispatchEvent(new Event("jusp:favorites-changed"));
   } catch {}
 }
 
@@ -765,6 +765,7 @@ function clearFavoritesEverywhere() {
 
   try {
     window.dispatchEvent(new Event("jusp:favorites"));
+    window.dispatchEvent(new Event("jusp:favorites-changed"));
   } catch {}
 }
 
@@ -815,20 +816,6 @@ function FavoriteCardImage({ item, title }: { item: FavoriteItem; title: string 
   const candidates = useMemo(() => productFolderImageCandidates(item), [item]);
   const [index, setIndex] = useState(0);
   const [failedAll, setFailedAll] = useState(false);
-
-  useEffect(() => {
-  setFavorites(getFavorites());
-
-  const sync = () => setFavorites(getFavorites());
-
-  window.addEventListener("storage", sync);
-  window.addEventListener("jusp:favorites-changed", sync);
-
-  return () => {
-    window.removeEventListener("storage", sync);
-    window.removeEventListener("jusp:favorites-changed", sync);
-  };
-}, []);
 
 useEffect(() => {
     setIndex(0);
@@ -986,10 +973,12 @@ export default function FavoritesPage() {
 
     window.addEventListener("storage", onStorage);
     window.addEventListener("jusp:favorites", onFavoritesChanged);
+    window.addEventListener("jusp:favorites-changed", onFavoritesChanged);
 
     return () => {
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("jusp:favorites", onFavoritesChanged);
+      window.removeEventListener("jusp:favorites-changed", onFavoritesChanged);
     };
   }, [authState]);
 
