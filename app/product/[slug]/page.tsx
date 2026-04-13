@@ -69,6 +69,80 @@ function uniqueStringsCaseInsensitive(arr: string[]) {
   return out;
 }
 
+const FAVORITES_COMPAT_KEYS = [
+  "jusp_home_favorites_v1",
+  "jusp_favorites_v1",
+  "jusp_favorites",
+  "favorites",
+] as const;
+
+function normalizeFavoriteId(value: any): string | null {
+  const candidate =
+    typeof value === "string" || typeof value === "number"
+      ? String(value)
+      : typeof value === "object" && value
+      ? String(value.id ?? value.productId ?? value.slug ?? value.product_code ?? "").trim()
+      : "";
+
+  const safe = String(candidate || "").trim();
+  return safe ? safe : null;
+}
+
+function loadFavoriteIdsCompat(): string[] {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const merged: string[] = [];
+
+    for (const key of FAVORITES_COMPAT_KEYS) {
+      const raw = window.localStorage.getItem(key);
+      if (!raw) continue;
+
+      let parsed: any = null;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        parsed = raw;
+      }
+
+      const source = Array.isArray(parsed)
+        ? parsed
+        : parsed && Array.isArray(parsed.items)
+        ? parsed.items
+        : parsed && Array.isArray(parsed.favorites)
+        ? parsed.favorites
+        : [];
+
+      for (const entry of source) {
+        const id = normalizeFavoriteId(entry);
+        if (id && !merged.includes(id)) merged.push(id);
+      }
+    }
+
+    return merged;
+  } catch {
+    return [];
+  }
+}
+
+function persistFavoriteIdsCompat(ids: string[]) {
+  if (typeof window === "undefined") return;
+
+  try {
+    const unique = Array.from(new Set(ids.map((v) => String(v).trim()).filter(Boolean)));
+
+    for (const key of FAVORITES_COMPAT_KEYS) {
+      window.localStorage.setItem(key, JSON.stringify(unique));
+    }
+
+    window.dispatchEvent(
+      new CustomEvent("jusp:favorites-changed", {
+        detail: { ids: unique, ts: Date.now() },
+      })
+    );
+  } catch {}
+}
+
 function buildImageCandidates(p: Product, pageSlug?: string): string[] {
   const imgs = Array.isArray(p.images) ? p.images : [];
   const main = (typeof p.image === "string" ? p.image : "").trim();
@@ -425,6 +499,7 @@ export default function ProductPage() {
 
   const [scope, setScope] = useState<GenderScope>(initialScope);
   const [imgs, setImgs] = useState<string[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
 
   useEffect(() => {
     setScope(initialScope);
@@ -440,6 +515,33 @@ export default function ProductPage() {
   useEffect(() => {
     storeScope(scope);
   }, [scope]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setFavoriteIds(loadFavoriteIdsCompat());
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const syncFavorites = () => setFavoriteIds(loadFavoriteIdsCompat());
+
+    const onStorage = (e: StorageEvent) => {
+      if (!e.key || FAVORITES_COMPAT_KEYS.includes(e.key as (typeof FAVORITES_COMPAT_KEYS)[number])) {
+        syncFavorites();
+      }
+    };
+
+    const onFavoritesChanged = () => syncFavorites();
+
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("jusp:favorites-changed", onFavoritesChanged as EventListener);
+
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("jusp:favorites-changed", onFavoritesChanged as EventListener);
+    };
+  }, []);
 
   const title = useMemo(
     () => (product ? product.title || product.name || "Producto" : "Producto"),
@@ -734,10 +836,21 @@ export default function ProductPage() {
     });
   }, [maxQtyAllowed, selectionMissing]);
 
-  const isFavorite = product ? isFav(product.id) : false;
+  const favoriteAliases = useMemo(
+    () =>
+      uniqueStringsCaseInsensitive(
+        [product?.id, product?.slug, product?.product_code, slug]
+          .map((v) => String(v ?? "").trim())
+          .filter(Boolean)
+      ),
+    [product, slug]
+  );
+
+  const isFavorite = favoriteAliases.some((id) => favoriteIds.includes(id));
+  const localFavoriteCount = favoriteAliases.some((id) => favoriteIds.includes(id)) ? 1 : 0;
   const favoriteCount = product
-    ? Math.max(getFavCount(product.id), Number(product.favoritesCount || 0))
-    : 0;
+    ? Math.max(localFavoriteCount, getFavCount(product.id), Number(product.favoritesCount || 0))
+    : localFavoriteCount;
 
   async function onToggleFavorite() {
     if (!product) return;
@@ -746,6 +859,17 @@ export default function ProductPage() {
       ...(product as any),
       price: displayPrice,
     } as Product);
+
+    const aliases = favoriteAliases.length
+      ? favoriteAliases
+      : uniqueStringsCaseInsensitive([product.id, product.slug, product.product_code, slug].filter(Boolean) as string[]);
+
+    const nextIds = isFavorite
+      ? favoriteIds.filter((id) => !aliases.includes(id))
+      : uniqueStringsCaseInsensitive([...favoriteIds, ...aliases]);
+
+    setFavoriteIds(nextIds);
+    persistFavoriteIdsCompat(nextIds);
 
     const nextIsFavorite = !isFavorite;
     setToast(nextIsFavorite ? "Añadido a favoritos" : "Eliminado de favoritos");
