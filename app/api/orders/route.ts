@@ -71,6 +71,56 @@ function sanitizeOrderItems(items: any[]) {
     .filter((item) => item.id && item.qty > 0);
 }
 
+export async function GET(req: NextRequest) {
+  const gate = await requireSession(req);
+  if (!gate.ok) return gate.res;
+
+  try {
+    const payload = gate.payload;
+    const userId = pickUserId(payload);
+    const emailSession = pickEmail(payload);
+    const supabase = supabaseAdmin();
+
+    let query = supabase
+      .from("orders")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (userId) {
+      query = query.eq("user_id", userId);
+    } else if (emailSession) {
+      query = query.eq("customer_email", emailSession);
+    } else {
+      return NextResponse.json(
+        { ok: false, error: "No user identity in session" },
+        { status: 401, headers: { "Cache-Control": "no-store" } }
+      );
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      return NextResponse.json(
+        { ok: false, error: error.message },
+        { status: 500, headers: { "Cache-Control": "no-store" } }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        ok: true,
+        orders: Array.isArray(data) ? data : [],
+      },
+      { status: 200, headers: { "Cache-Control": "no-store" } }
+    );
+  } catch (e: any) {
+    return NextResponse.json(
+      { ok: false, error: e?.message || "Server error" },
+      { status: 500, headers: { "Cache-Control": "no-store" } }
+    );
+  }
+}
+
 export async function POST(req: NextRequest) {
   const gate = await requireSession(req);
   if (!gate.ok) return gate.res;
@@ -93,10 +143,6 @@ export async function POST(req: NextRequest) {
 
     const supabase = supabaseAdmin();
 
-    // -------------------------------------
-    // VERIFICAR SI LA ORDEN YA EXISTE
-    // -------------------------------------
-
     const existing = await supabase
       .from("orders")
       .select("*")
@@ -110,11 +156,9 @@ export async function POST(req: NextRequest) {
           order: existing.data,
           reused: true,
         },
-        { status: 200 }
+        { status: 200, headers: { "Cache-Control": "no-store" } }
       );
     }
-
-    // -------------------------------------
 
     const rawItems = Array.isArray(body.items) ? body.items : [];
     const items = sanitizeOrderItems(rawItems);
@@ -213,7 +257,6 @@ export async function POST(req: NextRequest) {
       },
       { status: 200, headers: { "Cache-Control": "no-store" } }
     );
-
   } catch (e: any) {
     return NextResponse.json(
       { ok: false, error: e?.message || "Server error" },
