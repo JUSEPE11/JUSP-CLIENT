@@ -57,6 +57,12 @@ function safeNum(v: unknown): number | null {
   return null;
 }
 
+function formatCOP(v: unknown): string {
+  const n = safeNum(v);
+  if (n == null) return "";
+  return `$${Math.round(n).toLocaleString("es-CO")}`;
+}
+
 function compactId(id: string): string {
   const s = String(id || "");
   if (s.length <= 14) return s;
@@ -1450,7 +1456,7 @@ export default function FavoritesPage() {
                   Explorar productos
                 </Link>
 
-                <Link className="btn ghost" href="/offers">
+                <Link className="btn ghost" href="/">
                   Ver ofertas
                 </Link>
               </div>
@@ -1490,7 +1496,51 @@ export default function FavoritesPage() {
                   className="card card-link premium-card"
                   style={{ animationDelay: `${Math.min(idx * 14, 140)}ms` }}
                 >
-                  <div className="img premium-img">
+                  <div className="img premium-img" style={{ position: "relative" }}>
+                    <button
+                      type="button"
+                      aria-label="Eliminar de favoritos"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        removeOne(p);
+                      }}
+                      style={{
+                        position: "absolute",
+                        right: 10,
+                        bottom: 10,
+                        width: 40,
+                        height: 40,
+                        border: "none",
+                        borderRadius: 999,
+                        background: "rgba(94, 94, 98, 0.92)",
+                        display: "grid",
+                        placeItems: "center",
+                        cursor: "pointer",
+                        zIndex: 3,
+                        boxShadow: "0 8px 18px rgba(0,0,0,0.18)",
+                      }}
+                    >
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M9 3H15L16 5H21V7H3V5H8L9 3Z"
+                          fill="white"
+                        />
+                        <path
+                          d="M6 8H18L17 20C16.95 20.57 16.48 21 15.91 21H8.09C7.52 21 7.05 20.57 7 20L6 8Z"
+                          fill="white"
+                        />
+                        <path d="M10 11V17" stroke="#5E5E62" strokeWidth="1.6" strokeLinecap="round" />
+                        <path d="M14 11V17" stroke="#5E5E62" strokeWidth="1.6" strokeLinecap="round" />
+                      </svg>
+                    </button>
                     <FavoriteCardImage item={p} title={title} />
 
                     <div className="topline">
@@ -1502,6 +1552,10 @@ export default function FavoritesPage() {
                   <div className="body premium-body">
                     <div className="t">{title}</div>
 
+                    {p.price != null ? (
+                      <div className="price">{formatCOP(p.price)}</div>
+                    ) : null}
+
                     <div className="chips">
                       {chipsLocal.length ? (
                         chipsLocal.slice(0, 2).map((c) => (
@@ -1512,20 +1566,6 @@ export default function FavoritesPage() {
                       ) : (
                         <span className="chip soft static">Guardado</span>
                       )}
-                    </div>
-
-                    <div className="quick-row">
-                      <button
-                        type="button"
-                        className="quick-action danger"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          removeOne(p);
-                        }}
-                      >
-                        Quitar
-                      </button>
                     </div>
                   </div>
                 </Link>

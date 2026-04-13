@@ -527,17 +527,35 @@ function HomePageContent() {
     };
   }, []);
 
-  const toggleFavorite = (productId: string, productName?: string) => {
+  const toggleFavorite = (product: TopItem) => {
+    const productId = String(product?.id ?? "").trim();
+    if (!productId) return;
+
     setFavoriteIds((prev) => {
       const exists = prev.includes(productId);
       const next = exists ? prev.filter((id) => id !== productId) : [...prev, productId];
 
-      persistFavoriteIds(next);
+      const currentItems = readFavoriteItems().filter((item) => item.id !== productId);
+
+      if (!exists) {
+        currentItems.push({
+          id: productId,
+          title: product.name,
+          name: product.name,
+          price: product.price ?? null,
+          image: product.imgBase ?? null,
+          img: product.imgBase ?? null,
+          href: product.href ?? `/product/${encodeURIComponent(productId)}`,
+          brand: product.brand ?? null,
+        });
+      }
+
+      persistFavoriteItems(currentItems);
 
       setFavoriteToast(
         exists
-          ? `${productName ?? "Producto"} eliminado de favoritos`
-          : `${productName ?? "Producto"} guardado en favoritos`
+          ? `${product.name ?? "Producto"} eliminado de favoritos`
+          : `${product.name ?? "Producto"} guardado en favoritos`
       );
 
       return next;
@@ -600,9 +618,37 @@ function HomePageContent() {
     return safe ? safe : null;
   };
 
-  const loadFavoriteIds = (): string[] => {
+  const normalizeFavoriteEntry = (value: any) => {
+    const id = normalizeFavoriteId(value);
+    if (!id) return null;
+
+    if (typeof value === "string" || typeof value === "number") {
+      return {
+        id,
+        title: id,
+        name: id,
+        price: null,
+        image: null,
+        img: null,
+        href: `/product/${encodeURIComponent(id)}`,
+      };
+    }
+
+    return {
+      id,
+      title: String(value?.title ?? value?.name ?? id).trim(),
+      name: String(value?.name ?? value?.title ?? id).trim(),
+      price: value?.price ?? value?.amount ?? value?.sale_price ?? null,
+      image: String(value?.image ?? value?.img ?? value?.thumbnail ?? "").trim() || null,
+      img: String(value?.img ?? value?.image ?? value?.thumbnail ?? "").trim() || null,
+      href: String(value?.href ?? value?.url ?? value?.link ?? `/product/${encodeURIComponent(id)}`).trim(),
+      brand: String(value?.brand ?? "").trim() || null,
+    };
+  };
+
+  const readFavoriteItems = () => {
     try {
-      const merged: string[] = [];
+      const merged: any[] = [];
 
       for (const key of FAVORITES_COMPAT_KEYS) {
         const raw = window.localStorage.getItem(key);
@@ -624,8 +670,23 @@ function HomePageContent() {
           : [];
 
         for (const entry of source) {
-          const id = normalizeFavoriteId(entry);
-          if (id && !merged.includes(id)) merged.push(id);
+          const normalized = normalizeFavoriteEntry(entry);
+          if (!normalized) continue;
+
+          const existingIdx = merged.findIndex((x) => x.id === normalized.id);
+          if (existingIdx === -1) {
+            merged.push(normalized);
+            continue;
+          }
+
+          merged[existingIdx] = {
+            ...merged[existingIdx],
+            ...normalized,
+            price: normalized.price ?? merged[existingIdx].price ?? null,
+            image: normalized.image ?? merged[existingIdx].image ?? null,
+            img: normalized.img ?? merged[existingIdx].img ?? null,
+            href: normalized.href ?? merged[existingIdx].href ?? null,
+          };
         }
       }
 
@@ -635,9 +696,21 @@ function HomePageContent() {
     }
   };
 
-  const persistFavoriteIds = (ids: string[]) => {
+  const loadFavoriteIds = (): string[] => {
     try {
-      const unique = Array.from(new Set(ids.map((v) => String(v).trim()).filter(Boolean)));
+      return readFavoriteItems()
+        .map((item) => normalizeFavoriteId(item))
+        .filter((id): id is string => Boolean(id));
+    } catch {
+      return [];
+    }
+  };
+
+  const persistFavoriteItems = (items: any[]) => {
+    try {
+      const unique = items.filter(
+        (item, index, arr) => item?.id && arr.findIndex((x) => x.id === item.id) === index
+      );
 
       for (const key of FAVORITES_COMPAT_KEYS) {
         window.localStorage.setItem(key, JSON.stringify(unique));
@@ -645,7 +718,7 @@ function HomePageContent() {
 
       window.dispatchEvent(
         new CustomEvent("jusp:favorites-changed", {
-          detail: { ids: unique, ts: Date.now() },
+          detail: { items: unique, ids: unique.map((item) => item.id), ts: Date.now() },
         })
       );
     } catch {}
@@ -2028,7 +2101,7 @@ function HomePageContent() {
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        toggleFavorite(String(p.id), p.name);
+                        toggleFavorite(p);
                       }}
                       style={{
                         position: "absolute",
@@ -2269,7 +2342,7 @@ function HomePageContent() {
                         e.currentTarget.style.boxShadow = "0 20px 48px rgba(0,0,0,0.12)";
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = "translateY(0px) scale";
+                        e.currentTarget.style.transform = "translateY(0px) scale(1)";
                         e.currentTarget.style.boxShadow = "0 12px 30px rgba(0,0,0,0.08)";
                       }}
                     >
