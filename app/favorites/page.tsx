@@ -1545,7 +1545,7 @@ export default function FavoritesPage() {
 
                     <div className="topline">
                       <span className="tag soft">Favorito</span>
-                      <span className="tag mono">{compactId(p.id)}</span>
+                      
                     </div>
                   </div>
 
@@ -1557,8 +1557,10 @@ export default function FavoritesPage() {
                     ) : null}
 
                     <div className="chips">
-                      {chipsLocal.length ? (
-                        chipsLocal.slice(0, 2).map((c) => (
+                      {p.brand ? (
+                        <span className="chip static">{p.brand}</span>
+                      ) : chipsLocal.length ? (
+                        chipsLocal.slice(0, 1).map((c) => (
                           <span key={c} className="chip static">
                             {c}
                           </span>
