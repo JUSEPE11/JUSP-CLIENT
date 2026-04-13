@@ -56,6 +56,16 @@ type SessionIdentity = {
   email: string | null;
 };
 
+type AccessTokenPayload = {
+  sub?: string | null;
+  userId?: string | null;
+  id?: string | null;
+  email?: string | null;
+  user?: {
+    email?: string | null;
+  } | null;
+};
+
 type ProductReviewPurchase = {
   orderId: string | null;
   orderCode: string | null;
@@ -158,6 +168,31 @@ function safeMeta(value: unknown): ReviewLogMeta {
   return value as ReviewLogMeta;
 }
 
+function safeAccessTokenPayload(value: unknown): AccessTokenPayload {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  const record = value as Record<string, unknown>;
+  const userValue = record.user;
+  const user =
+    userValue && typeof userValue === "object" && !Array.isArray(userValue)
+      ? (userValue as Record<string, unknown>)
+      : null;
+
+  return {
+    sub: typeof record.sub === "string" ? record.sub : null,
+    userId: typeof record.userId === "string" ? record.userId : null,
+    id: typeof record.id === "string" ? record.id : null,
+    email: typeof record.email === "string" ? record.email : null,
+    user: user
+      ? {
+          email: typeof user.email === "string" ? user.email : null,
+        }
+      : null,
+  };
+}
+
 function toReviewRating(value: unknown): ReviewRating | null {
   const n = Number(value);
   if (!Number.isInteger(n) || n < 1 || n > 5) return null;
@@ -230,7 +265,7 @@ async function getSessionIdentity(req: NextRequest): Promise<SessionIdentity | n
   if (!accessToken) return null;
 
   try {
-    const payload = await verifyAccessToken(accessToken);
+    const payload = safeAccessTokenPayload(await verifyAccessToken(accessToken));
     return {
       userId: normalizeText(payload?.sub || payload?.userId || payload?.id) || null,
       email: normalizeEmail(payload?.email || payload?.user?.email) || null,
