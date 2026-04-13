@@ -43,9 +43,9 @@ type Product = {
   bestSeller?: boolean;
   stockHint?: number;
   variants?: ProductVariant[];
+  favoritesCount?: number;
+  isFavorite?: boolean;
 };
-
-const FAVORITES_KEY = "jusp:favorites";
 
 function moneyCOP(n: number) {
   return Math.round(n).toLocaleString("es-CO");
@@ -111,32 +111,6 @@ function loadImage(src: string): Promise<boolean> {
     img.onerror = () => resolve(false);
     img.src = src;
   });
-}
-
-function getFavoriteId(product?: Product, pageSlug?: string) {
-  return String(
-    product?.id || product?.slug || product?.product_code || pageSlug || ""
-  )
-    .trim()
-    .toLowerCase();
-}
-
-function readFavoriteIds(): string[] {
-  try {
-    const raw = window.localStorage.getItem(FAVORITES_KEY);
-    const parsed = JSON.parse(raw || "[]");
-    return Array.isArray(parsed)
-      ? uniqueStringsCaseInsensitive(parsed.map((x) => String(x || "").trim()).filter(Boolean))
-      : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeFavoriteIds(ids: string[]) {
-  try {
-    window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(uniqueStringsCaseInsensitive(ids)));
-  } catch {}
 }
 
 type GenderScope = "men" | "women" | "kids";
@@ -386,7 +360,17 @@ export default function ProductPage() {
 
   const [product, setProduct] = useState<Product | undefined>(undefined);
   const [loadingProduct, setLoadingProduct] = useState(true);
-  const [isFavorite, setIsFavorite] = useState(false);
+
+  const {
+    state,
+    addToCart,
+    openCart,
+    isFav,
+    toggleFav,
+    getFavCount,
+    setFavCount,
+    hydrateFavCountsFromProducts,
+  } = useStore();
 
   useEffect(() => {
     let cancelled = false;
@@ -500,19 +484,10 @@ export default function ProductPage() {
   }, [imageCandidates]);
 
   useEffect(() => {
-    if (!product) {
-      setIsFavorite(false);
-      return;
-    }
-
-    const id = getFavoriteId(product, slug);
-    if (!id) {
-      setIsFavorite(false);
-      return;
-    }
-
-    setIsFavorite(readFavoriteIds().includes(id));
-  }, [product, slug]);
+    if (!product) return;
+    hydrateFavCountsFromProducts([product]);
+    setFavCount(product.id, Number(product.favoritesCount || 0));
+  }, [product, hydrateFavCountsFromProducts, setFavCount]);
 
   const sizingMode = useMemo<SizingMode>(() => {
     if (!product) return "shoe";
@@ -709,8 +684,6 @@ export default function ProductPage() {
     return null;
   }, [selectedColor, selectedVariant, colors]);
 
-  const { state, addToCart, openCart } = useStore();
-
   const qtyAlreadyInCart = useMemo(() => {
     const cart = Array.isArray(state?.cart) ? state.cart : [];
     const selectedId = normalizeCompareValue(product?.id);
@@ -761,20 +734,21 @@ export default function ProductPage() {
     });
   }, [maxQtyAllowed, selectionMissing]);
 
-  function toggleFavorite() {
+  const isFavorite = product ? isFav(product.id) : false;
+  const favoriteCount = product
+    ? Math.max(getFavCount(product.id), Number(product.favoritesCount || 0))
+    : 0;
+
+  async function onToggleFavorite() {
     if (!product) return;
 
-    const id = getFavoriteId(product, slug);
-    if (!id) return;
+    await toggleFav(product.id, {
+      ...(product as any),
+      price: displayPrice,
+    } as Product);
 
-    const current = readFavoriteIds();
-    const exists = current.includes(id);
-    const next = exists ? current.filter((x) => x !== id) : [...current, id];
-
-    writeFavoriteIds(next);
-    setIsFavorite(!exists);
-    setToast(exists ? "Eliminado de favoritos" : "Añadido a favoritos");
-
+    const nextIsFavorite = !isFavorite;
+    setToast(nextIsFavorite ? "Añadido a favoritos" : "Eliminado de favoritos");
     window.setTimeout(() => setToast(null), 1600);
   }
 
@@ -872,7 +846,7 @@ export default function ProductPage() {
                   <button
                     type="button"
                     className={`favBtn ${isFavorite ? "on" : ""}`}
-                    onClick={toggleFavorite}
+                    onClick={onToggleFavorite}
                     aria-label={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
                     aria-pressed={isFavorite}
                     title={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
@@ -880,6 +854,7 @@ export default function ProductPage() {
                     <svg viewBox="0 0 24 24" aria-hidden="true" className="favIcon">
                       <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                     </svg>
+                    <span className="favCount">{favoriteCount}</span>
                   </button>
 
                   {imgs[activeImg] ? <img src={imgs[activeImg]} alt={title} /> : <div className="ph" />}
@@ -1276,16 +1251,18 @@ export default function ProductPage() {
           top: 14px;
           right: 14px;
           z-index: 4;
-          width: 54px;
-          height: 54px;
+          min-height: 54px;
+          padding: 0 14px;
           border-radius: 999px;
           border: 1px solid rgba(0, 0, 0, 0.08);
           background: rgba(255, 255, 255, 0.92);
           backdrop-filter: blur(14px);
           -webkit-backdrop-filter: blur(14px);
           box-shadow: 0 18px 44px rgba(0, 0, 0, 0.12);
-          display: grid;
-          place-items: center;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
           cursor: pointer;
           transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease, border-color 140ms ease;
         }
@@ -1310,11 +1287,19 @@ export default function ProductPage() {
           stroke: rgba(0, 0, 0, 0.82);
           stroke-width: 2;
           transition: fill 140ms ease, stroke 140ms ease, transform 140ms ease;
+          flex: 0 0 auto;
         }
         .favBtn.on .favIcon {
           fill: #ff4d6d;
           stroke: #ff4d6d;
           transform: scale(1.06);
+        }
+        .favCount {
+          min-width: 10px;
+          font-size: 13px;
+          font-weight: 950;
+          line-height: 1;
+          color: rgba(0, 0, 0, 0.86);
         }
 
         .imgGlow {
@@ -1914,8 +1899,8 @@ export default function ProductPage() {
             grid-template-columns: 1fr;
           }
           .favBtn {
-            width: 50px;
-            height: 50px;
+            min-height: 50px;
+            padding: 0 12px;
             top: 12px;
             right: 12px;
           }

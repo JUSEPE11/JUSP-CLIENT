@@ -40,7 +40,7 @@ export default function Page() {
               loop
               enableWheel
               label="JUSP"
-              tagline="Originales. Directo."
+              tagline="Originales."
             />
           </div>
 

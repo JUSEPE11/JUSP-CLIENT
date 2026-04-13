@@ -1,8 +1,8 @@
 {
   "version": 7,
-  "generatedAt": "2026-03-24T03:18:26.437Z",
+  "generatedAt": "2026-04-13T00:52:07.949Z",
   "excelPath": "C:\\JUSP\\jusp-app2\\data\\catalogo_jusp.xlsx",
-  "excelMtimeMs": 1774322301543.0298,
+  "excelMtimeMs": 1774660976718.5735,
   "products": [
     {
       "id": "short-nike-kids",
@@ -394,7 +394,7 @@
         "clothing"
       ],
       "isNew": true,
-      "stockHint": 1,
+      "stockHint": 0,
       "pickupToday": false,
       "expressDelivery": false,
       "variants": [
@@ -403,12 +403,12 @@
           "size": "7",
           "color": "beige",
           "price": 99990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 0,
+          "isAvailable": false
         }
       ],
-      "isActive": true,
-      "isSoldOut": false
+      "isActive": false,
+      "isSoldOut": true
     },
     {
       "id": "nike-sport-high",
@@ -1519,6 +1519,708 @@
           "size": "L",
           "color": "white",
           "price": 119990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "jordan-ac4142-010",
+      "slug": "jordan-ac4142-010",
+      "product_code": "jordan-ac4142-010",
+      "title": "Jordan Mangas de baloncesto UV",
+      "name": "Jordan Mangas de baloncesto UV",
+      "brand": "Jordan",
+      "price": 39990,
+      "currency": "COP",
+      "description": "Jordan Mangas de baloncesto UV. Producto disponible en JUSP.",
+      "image": "/products/jordan-ac4142-010/1.jpg",
+      "images": [
+        "/products/jordan-ac4142-010/1.jpg",
+        "/products/jordan-ac4142-010/2.jpg",
+        "/products/jordan-ac4142-010/3.jpg",
+        "/products/jordan-ac4142-010/4.jpg",
+        "/products/jordan-ac4142-010/5.jpg",
+        "/products/jordan-ac4142-010/6.jpg",
+        "/products/jordan-ac4142-010/7.jpg"
+      ],
+      "sizes": [
+        "S/M",
+        "L/XL"
+      ],
+      "colors": [
+        "black"
+      ],
+      "category": "accessories",
+      "gender": "men",
+      "productType": "accessory",
+      "kind": "general",
+      "collections": [
+        "accessories",
+        "basketball"
+      ],
+      "sport": [
+        "basketball"
+      ],
+      "tags": [
+        "nuevo",
+        "jordan",
+        "accessories",
+        "basketball"
+      ],
+      "isNew": true,
+      "stockHint": 2,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "jordan-ac4142-010-sm-black",
+          "size": "S/M",
+          "color": "black",
+          "price": 39990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "jordan-ac4142-010-lxl-black",
+          "size": "L/XL",
+          "color": "black",
+          "price": 39990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "jordan-ac4142-010 W",
+      "slug": "jordan-ac4142-010 W",
+      "product_code": "jordan-ac4142-010 W",
+      "title": "Jordan Mangas de baloncesto",
+      "name": "Jordan Mangas de baloncesto",
+      "brand": "Jordan",
+      "price": 39990,
+      "currency": "COP",
+      "description": "Jordan Mangas de baloncesto. Producto disponible en JUSP.",
+      "image": "/products/jordan-ac4142-010 W/1.jpg",
+      "images": [
+        "/products/jordan-ac4142-010 W/1.jpg",
+        "/products/jordan-ac4142-010 W/2.jpg",
+        "/products/jordan-ac4142-010 W/3.jpg"
+      ],
+      "sizes": [
+        "L/XL"
+      ],
+      "colors": [
+        "white"
+      ],
+      "category": "accessories",
+      "gender": "men",
+      "productType": "accessory",
+      "kind": "general",
+      "collections": [
+        "accessories",
+        "basketball"
+      ],
+      "sport": [
+        "basketball"
+      ],
+      "tags": [
+        "nuevo",
+        "jordan",
+        "accessories",
+        "basketball"
+      ],
+      "isNew": true,
+      "stockHint": 1,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "jordan-ac4142-010 W-lxl-white",
+          "size": "L/XL",
+          "color": "white",
+          "price": 39990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "lacoste-rk0527",
+      "slug": "lacoste-rk0527",
+      "product_code": "lacoste-rk0527",
+      "title": "Gorra de béisbol unisex Lacoste de otoño con visera plana",
+      "name": "Gorra de béisbol unisex Lacoste de otoño con visera plana",
+      "brand": "Lacoste",
+      "price": 140990,
+      "currency": "COP",
+      "description": "Gorra de béisbol unisex Lacoste de otoño con visera plana. Producto disponible en JUSP.",
+      "image": "/products/lacoste-rk0527/1.jpeg",
+      "images": [
+        "/products/lacoste-rk0527/1.jpeg",
+        "/products/lacoste-rk0527/2.jpeg",
+        "/products/lacoste-rk0527/3.jpeg",
+        "/products/lacoste-rk0527/4.jpeg",
+        "/products/lacoste-rk0527/5.jpeg"
+      ],
+      "sizes": [
+        "M(56-58cm)",
+        "L(58-60cm)"
+      ],
+      "colors": [
+        "beige"
+      ],
+      "category": "accessories",
+      "gender": "unisex",
+      "productType": "accessory",
+      "kind": "gorras",
+      "collections": [
+        "accessories"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "lacoste",
+        "gorras",
+        "accessories"
+      ],
+      "isNew": true,
+      "stockHint": 2,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "lacoste-rk0527-m56-58cm-beige",
+          "size": "M(56-58cm)",
+          "color": "beige",
+          "price": 140990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "lacoste-rk0527-l58-60cm-beige",
+          "size": "L(58-60cm)",
+          "color": "beige",
+          "price": 145990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "nike-ii0682-121",
+      "slug": "nike-ii0682-121",
+      "product_code": "nike-ii0682-121",
+      "title": "Nike Sportswear Polera para hombre",
+      "name": "Nike Sportswear Polera para hombre",
+      "brand": "Nike",
+      "price": 199990,
+      "currency": "COP",
+      "description": "Nike Sportswear Polera para hombre. Producto disponible en JUSP.",
+      "image": "/products/nike-ii0682-121/1.jpg",
+      "images": [
+        "/products/nike-ii0682-121/1.jpg",
+        "/products/nike-ii0682-121/2.jpg",
+        "/products/nike-ii0682-121/3.jpg",
+        "/products/nike-ii0682-121/4.jpg",
+        "/products/nike-ii0682-121/5.jpg"
+      ],
+      "sizes": [
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "colors": [
+        "white"
+      ],
+      "category": "men",
+      "gender": "men",
+      "productType": "clothing",
+      "kind": "general",
+      "collections": [
+        "clothing",
+        "lifestyle"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "clothing",
+        "lifestyle"
+      ],
+      "isNew": true,
+      "stockHint": 5,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "nike-ii0682-121-s-white",
+          "size": "S",
+          "color": "white",
+          "price": 199990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-ii0682-121-m-white",
+          "size": "M",
+          "color": "white",
+          "price": 199990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-ii0682-121-l-white",
+          "size": "L",
+          "color": "white",
+          "price": 199990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-ii0682-121-xl-white",
+          "size": "XL",
+          "color": "white",
+          "price": 199990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-ii0682-121-xxl-white",
+          "size": "XXL",
+          "color": "white",
+          "price": 199990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "nike-if0787-010",
+      "slug": "nike-if0787-010",
+      "product_code": "nike-if0787-010",
+      "title": "NIKE AS M J NC GOAT SS CREW",
+      "name": "NIKE AS M J NC GOAT SS CREW",
+      "brand": "Jordan",
+      "price": 155990,
+      "currency": "COP",
+      "description": "NIKE AS M J NC GOAT SS CREW. Producto disponible en JUSP.",
+      "image": "/products/nike-if0787-010/1.jpg",
+      "images": [
+        "/products/nike-if0787-010/1.jpg",
+        "/products/nike-if0787-010/2.jpg",
+        "/products/nike-if0787-010/3.jpg",
+        "/products/nike-if0787-010/4.jpg",
+        "/products/nike-if0787-010/5.jpg"
+      ],
+      "sizes": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
+      "colors": [
+        "black"
+      ],
+      "category": "men",
+      "gender": "men",
+      "productType": "clothing",
+      "kind": "general",
+      "collections": [
+        "clothing"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "jordan",
+        "clothing"
+      ],
+      "isNew": true,
+      "stockHint": 4,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "nike-if0787-010-s-black",
+          "size": "S",
+          "color": "black",
+          "price": 155990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-if0787-010-m-black",
+          "size": "M",
+          "color": "black",
+          "price": 155990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-if0787-010-l-black",
+          "size": "L",
+          "color": "black",
+          "price": 155990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-if0787-010-xl-black",
+          "size": "XL",
+          "color": "black",
+          "price": 155990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "nike-hv0885-133",
+      "slug": "nike-hv0885-133",
+      "product_code": "nike-hv0885-133",
+      "title": "Nike Life Men's Heavyweight Polo",
+      "name": "Nike Life Men's Heavyweight Polo",
+      "brand": "Nike",
+      "price": 269990,
+      "currency": "COP",
+      "description": "Nike Life Men's Heavyweight Polo. Producto disponible en JUSP.",
+      "image": "/products/nike-hv0885-133/1.jpg",
+      "images": [
+        "/products/nike-hv0885-133/1.jpg",
+        "/products/nike-hv0885-133/2.jpg",
+        "/products/nike-hv0885-133/3.jpg",
+        "/products/nike-hv0885-133/4.jpg",
+        "/products/nike-hv0885-133/5.jpg",
+        "/products/nike-hv0885-133/6.jpg",
+        "/products/nike-hv0885-133/7.jpg",
+        "/products/nike-hv0885-133/8.jpg",
+        "/products/nike-hv0885-133/9.jpg"
+      ],
+      "sizes": [
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "colors": [
+        "khaki"
+      ],
+      "category": "men",
+      "gender": "men",
+      "productType": "clothing",
+      "kind": "general",
+      "collections": [
+        "clothing"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "clothing"
+      ],
+      "isNew": true,
+      "stockHint": 5,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "nike-hv0885-133-s-khaki",
+          "size": "S",
+          "color": "khaki",
+          "price": 269990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-hv0885-133-m-khaki",
+          "size": "M",
+          "color": "khaki",
+          "price": 269990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-hv0885-133-l-khaki",
+          "size": "L",
+          "color": "khaki",
+          "price": 269990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-hv0885-133-xl-khaki",
+          "size": "XL",
+          "color": "khaki",
+          "price": 269990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-hv0885-133-xxl-khaki",
+          "size": "XXL",
+          "color": "khaki",
+          "price": 269990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "nike-if5172-100",
+      "slug": "nike-if5172-100",
+      "product_code": "nike-if5172-100",
+      "title": "Nike Kobe Dri-Fit T-Shirt 'All-Star",
+      "name": "Nike Kobe Dri-Fit T-Shirt 'All-Star",
+      "brand": "Nike",
+      "price": 199990,
+      "currency": "COP",
+      "description": "Nike Kobe Dri-Fit T-Shirt 'All-Star. Producto disponible en JUSP.",
+      "image": "/products/nike-if5172-100/1.jpg",
+      "images": [
+        "/products/nike-if5172-100/1.jpg",
+        "/products/nike-if5172-100/2.jpg",
+        "/products/nike-if5172-100/3.jpg",
+        "/products/nike-if5172-100/4.jpg",
+        "/products/nike-if5172-100/5.jpg",
+        "/products/nike-if5172-100/6.jpg"
+      ],
+      "sizes": [
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "colors": [
+        "white"
+      ],
+      "category": "men",
+      "gender": "men",
+      "productType": "clothing",
+      "kind": "tshirts",
+      "collections": [
+        "clothing",
+        "gym",
+        "training"
+      ],
+      "sport": [
+        "training"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "tshirts",
+        "clothing",
+        "gym",
+        "training",
+        "dri-fit"
+      ],
+      "isNew": true,
+      "stockHint": 4,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "nike-if5172-100-m-white",
+          "size": "M",
+          "color": "white",
+          "price": 199990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-if5172-100-l-white",
+          "size": "L",
+          "color": "white",
+          "price": 199990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-if5172-100-xl-white",
+          "size": "XL",
+          "color": "white",
+          "price": 199990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-if5172-100-xxl-white",
+          "size": "XXL",
+          "color": "white",
+          "price": 199990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "jordan-fn5841-010",
+      "slug": "jordan-fn5841-010",
+      "product_code": "jordan-fn5841-010",
+      "title": "Nike As M J Df Sprt Woven Pant",
+      "name": "Nike As M J Df Sprt Woven Pant",
+      "brand": "Jordan",
+      "price": 194990,
+      "currency": "COP",
+      "description": "Nike As M J Df Sprt Woven Pant. Producto disponible en JUSP.",
+      "image": "/products/jordan-fn5841-010/1.jpg",
+      "images": [
+        "/products/jordan-fn5841-010/1.jpg",
+        "/products/jordan-fn5841-010/2.jpg",
+        "/products/jordan-fn5841-010/3.jpg",
+        "/products/jordan-fn5841-010/4.jpg",
+        "/products/jordan-fn5841-010/5.jpg",
+        "/products/jordan-fn5841-010/6.jpg",
+        "/products/jordan-fn5841-010/7.jpg"
+      ],
+      "sizes": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
+      "colors": [
+        "black"
+      ],
+      "category": "men",
+      "gender": "men",
+      "productType": "clothing",
+      "kind": "general",
+      "collections": [
+        "clothing"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "jordan",
+        "clothing"
+      ],
+      "isNew": true,
+      "stockHint": 4,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "jordan-fn5841-010-s-black",
+          "size": "S",
+          "color": "black",
+          "price": 194990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "jordan-fn5841-010-m-black",
+          "size": "M",
+          "color": "black",
+          "price": 194990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "jordan-fn5841-010-l-black",
+          "size": "L",
+          "color": "black",
+          "price": 194990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "jordan-fn5841-010-xl-black",
+          "size": "XL",
+          "color": "black",
+          "price": 194990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false
+    },
+    {
+      "id": "nike-dx6822-494",
+      "slug": "nike-dx6822-494",
+      "product_code": "nike-dx6822-494",
+      "title": "Nike Swoosh Medium Support Women's Padded Sports Bra",
+      "name": "Nike Swoosh Medium Support Women's Padded Sports Bra",
+      "brand": "Nike",
+      "price": 202990,
+      "currency": "COP",
+      "description": "Nike Swoosh Medium Support Women's Padded Sports Bra. Producto disponible en JUSP.",
+      "image": "/products/nike-dx6822-494/1.jpg",
+      "images": [
+        "/products/nike-dx6822-494/1.jpg",
+        "/products/nike-dx6822-494/2.jpg",
+        "/products/nike-dx6822-494/3.jpg",
+        "/products/nike-dx6822-494/4.jpg",
+        "/products/nike-dx6822-494/5.jpg"
+      ],
+      "sizes": [
+        "S"
+      ],
+      "colors": [
+        "blue"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "sports-bra",
+      "collections": [
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "sports-bra",
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "isNew": true,
+      "stockHint": 1,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "nike-dx6822-494-s-blue",
+          "size": "S",
+          "color": "blue",
+          "price": 202990,
           "stock": 1,
           "isAvailable": true
         }

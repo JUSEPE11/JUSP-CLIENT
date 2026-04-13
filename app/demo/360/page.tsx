@@ -29,7 +29,7 @@ export default function Demo360Page() {
         loop
         enableWheel
         label="JUSP"
-        tagline="Originales. Directo."
+        tagline="Originales."
       />
     </main>
   );

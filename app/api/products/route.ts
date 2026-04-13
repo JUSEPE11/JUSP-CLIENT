@@ -1,8 +1,10 @@
-import { NextResponse } from "next/server";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import fs from "fs";
 import * as XLSX from "xlsx";
 import { getActiveReservationSummary } from "@/lib/stockExcel";
+import { getFavoritesCountMap } from "@/lib/favoritesRepo";
 
 export const runtime = "nodejs";
 
@@ -46,6 +48,8 @@ type Product = {
   variants: Variant[];
   isActive: boolean;
   isSoldOut: boolean;
+  favoritesCount?: number;
+  isFavorite?: boolean;
 };
 
 type CatalogCacheFile = {
@@ -526,6 +530,8 @@ function loadExcelProducts(): Product[] {
         variants: [],
         isActive: true,
         isSoldOut: false,
+        favoritesCount: 0,
+        isFavorite: false,
       });
     }
 
@@ -580,6 +586,8 @@ function loadExcelProducts(): Product[] {
         stock: toSafeNumber(variant.stock, 0),
         isAvailable: toSafeNumber(variant.stock, 0) > 0,
       })),
+      favoritesCount: product.favoritesCount ?? 0,
+      isFavorite: product.isFavorite ?? false,
     };
   });
 }
@@ -622,7 +630,11 @@ function getProductsFast(): Product[] {
 
   if (!excelPath) {
     const cache = readCatalogCache();
-    return cache?.products ?? [];
+    return (cache?.products ?? []).map((product) => ({
+      ...product,
+      favoritesCount: product.favoritesCount ?? 0,
+      isFavorite: product.isFavorite ?? false,
+    }));
   }
 
   const excelMtimeMs = getExcelMtimeMs(excelPath);
@@ -637,7 +649,11 @@ function getProductsFast(): Product[] {
     cache.products.length > 0;
 
   if (cacheIsFresh) {
-    return cache.products;
+    return cache.products.map((product) => ({
+      ...product,
+      favoritesCount: product.favoritesCount ?? 0,
+      isFavorite: product.isFavorite ?? false,
+    }));
   }
 
   const excelProducts = loadExcelProducts();
@@ -653,13 +669,37 @@ function getProductsFast(): Product[] {
     return excelProducts;
   }
 
-  return cache?.products ?? [];
+  return (cache?.products ?? []).map((product) => ({
+    ...product,
+    favoritesCount: product.favoritesCount ?? 0,
+    isFavorite: product.isFavorite ?? false,
+  }));
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const sessionId = String(req.nextUrl.searchParams.get("session_id") || "").trim();
   const products = getProductsFast();
 
-  return NextResponse.json(products, {
+  let countMap: Record<string, number> = {};
+
+  try {
+    countMap = await getFavoritesCountMap();
+  } catch {
+    countMap = {};
+  }
+
+  const enriched = products.map((product) => {
+    const productId = String(product.id || "").trim();
+    const favoritesCount = countMap[productId] || 0;
+
+    return {
+      ...product,
+      favoritesCount,
+      isFavorite: sessionId ? false : false,
+    };
+  });
+
+  return NextResponse.json(enriched, {
     headers: {
       "Cache-Control": "no-store, max-age=0",
     },

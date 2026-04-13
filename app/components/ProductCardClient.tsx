@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import type { Product } from "../../lib/products";
 import { useStore } from "./store";
@@ -138,13 +139,33 @@ export default function ProductCardClient({
   variant?: "grid" | "compact";
   isBestSeller?: boolean;
 }) {
-  const { isFav, toggleFav, addToCart, openCart } = useStore();
+  const {
+    isFav,
+    toggleFav,
+    addToCart,
+    openCart,
+    getFavCount,
+    setFavCount,
+    hydrateFavCountsFromProducts,
+  } = useStore();
 
   const fav = isFav(product.id);
   const img = product.images?.[0];
   const { isNew, discountPct } = deriveBadges(product);
   const cardHeight = variant === "compact" ? 220 : 300;
   const resolvedPrice = resolveProductPrice(product);
+  const fallbackCount = Number(product.favoritesCount || 0);
+  const favoriteCount = getFavCount(product.id) || fallbackCount;
+
+  useEffect(() => {
+    if (typeof product.favoritesCount === "number") {
+      setFavCount(product.id, product.favoritesCount);
+    }
+  }, [product.id, product.favoritesCount, setFavCount]);
+
+  useEffect(() => {
+    hydrateFavCountsFromProducts([product]);
+  }, [product, hydrateFavCountsFromProducts]);
 
   return (
     <article className="jusp-card jusp-hover" style={{ overflow: "hidden", position: "relative" }}>
@@ -156,7 +177,17 @@ export default function ProductCardClient({
 
       <button
         className="jusp-iconbtn"
-        style={{ position: "absolute", top: 12, right: 12, zIndex: 3 }}
+        style={{
+          position: "absolute",
+          top: 12,
+          right: 12,
+          zIndex: 3,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          minWidth: "auto",
+          paddingInline: 10,
+        }}
         onClick={() =>
           toggleFav(product.id, {
             ...(product as any),
@@ -167,7 +198,17 @@ export default function ProductCardClient({
         title="Favorito"
         type="button"
       >
-        {fav ? "❤" : "♡"}
+        <span aria-hidden="true">{fav ? "❤" : "♡"}</span>
+        <span
+          style={{
+            fontSize: 12,
+            fontWeight: 900,
+            lineHeight: 1,
+            minWidth: 10,
+          }}
+        >
+          {favoriteCount}
+        </span>
       </button>
 
       <Link href={`/product/${product.id}`} style={{ display: "block" }}>
@@ -185,7 +226,7 @@ export default function ProductCardClient({
           {img ? (
             <img
               src={img}
-              alt={product.name}
+              alt={product.name || product.title}
               className="jusp-img-zoom"
               style={{
                 width: "100%",
@@ -210,7 +251,7 @@ export default function ProductCardClient({
               lineHeight: 1.25,
             }}
           >
-            {product.name}
+            {product.name || product.title}
           </h3>
 
           <div style={{ fontSize: 15, fontWeight: 900 }}>

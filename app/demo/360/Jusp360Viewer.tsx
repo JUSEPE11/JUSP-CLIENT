@@ -64,7 +64,7 @@ export default function Jusp360Viewer({
   loop = true,
   showHint = true,
   brandLabel = "JUSP",
-  brandTagline = "Originales. Directo.",
+  brandTagline = "Originales.",
   enableWheel = true,
   fit = "contain",
   objectPosition = "50% 50%",

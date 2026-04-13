@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { create } from "zustand";
 import type { Product } from "../../lib/products";
+import { getSessionId } from "../../lib/favoritesRepo";
 
 type CartItem = {
   id: string;
@@ -28,6 +29,7 @@ type FavoriteStored = string | FavoriteItem;
 type State = {
   cart: CartItem[];
   favorites: FavoriteStored[];
+  favoriteCounts: Record<string, number>;
   ui: {
     panel: "none" | "cart" | "favorites";
   };
@@ -45,7 +47,10 @@ type StoreShape = {
   cartCount: number;
   cartTotal: number;
   isFav: (id: string) => boolean;
-  toggleFav: (id: string, product?: Product) => void;
+  getFavCount: (id: string) => number;
+  setFavCount: (id: string, count: number) => void;
+  hydrateFavCountsFromProducts: (products: Product[]) => void;
+  toggleFav: (id: string, product?: Product) => Promise<void>;
   openCart: () => void;
   openFavs: () => void;
   closePanel: () => void;
@@ -62,6 +67,7 @@ const FAVORITES_LEGACY_KEY = "jusp_favorites";
 const initialState: State = {
   cart: [],
   favorites: [],
+  favoriteCounts: {},
   ui: { panel: "none" },
 };
 
@@ -360,6 +366,23 @@ function normalizeMaxStock(value: unknown): number | null {
   return Math.floor(n);
 }
 
+async function syncFavoriteToApi(productId: string, active: boolean) {
+  const sessionId = getSessionId();
+
+  await fetch("/api/favorites", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    cache: "no-store",
+    body: JSON.stringify({
+      productId,
+      sessionId,
+      active,
+    }),
+  });
+}
+
 export const useStore = create<StoreShape>((set, get) => ({
   state: initialState,
   cartCount: 0,
@@ -367,14 +390,82 @@ export const useStore = create<StoreShape>((set, get) => ({
 
   isFav: (id) => get().state.favorites.some((fav) => favoriteIdOf(fav) === id),
 
-  toggleFav: (id, product) => {
+  getFavCount: (id) => get().state.favoriteCounts[id] || 0,
+
+  setFavCount: (id, count) => {
+    const s = get().state;
+    set({
+      state: {
+        ...s,
+        favoriteCounts: {
+          ...s.favoriteCounts,
+          [id]: Math.max(0, Number(count) || 0),
+        },
+      },
+    });
+  },
+
+  hydrateFavCountsFromProducts: (products) => {
+    const s = get().state;
+    const nextCounts = { ...s.favoriteCounts };
+
+    for (const product of products || []) {
+      const id = String(product?.id || "").trim();
+      if (!id) continue;
+
+      const count = Number(product?.favoritesCount || 0);
+      nextCounts[id] = Number.isFinite(count) && count > 0 ? count : 0;
+    }
+
+    set({
+      state: {
+        ...s,
+        favoriteCounts: nextCounts,
+      },
+    });
+  },
+
+  toggleFav: async (id, product) => {
     const s = get().state;
     const exists = s.favorites.some((fav) => favoriteIdOf(fav) === id);
+    const currentCount = s.favoriteCounts[id] || 0;
+
     const favorites = exists
       ? s.favorites.filter((fav) => favoriteIdOf(fav) !== id)
       : [...s.favorites.filter((fav) => favoriteIdOf(fav) !== id), buildFavorite(id, product)];
 
-    set({ state: { ...s, favorites } });
+    const nextCount = exists ? Math.max(0, currentCount - 1) : currentCount + 1;
+
+    set({
+      state: {
+        ...s,
+        favorites,
+        favoriteCounts: {
+          ...s.favoriteCounts,
+          [id]: nextCount,
+        },
+      },
+    });
+
+    try {
+      await syncFavoriteToApi(id, !exists);
+    } catch {
+      const rollbackState = get().state;
+      const rollbackFavorites = exists
+        ? [...rollbackState.favorites.filter((fav) => favoriteIdOf(fav) !== id), buildFavorite(id, product)]
+        : rollbackState.favorites.filter((fav) => favoriteIdOf(fav) !== id);
+
+      set({
+        state: {
+          ...rollbackState,
+          favorites: rollbackFavorites,
+          favoriteCounts: {
+            ...rollbackState.favoriteCounts,
+            [id]: currentCount,
+          },
+        },
+      });
+    }
   },
 
   openCart: () => {
@@ -483,6 +574,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     if (data && typeof data === "object") {
       const cart = Array.isArray((data as any).cart) ? (data as any).cart : [];
       const favoritesFromStore = Array.isArray((data as any).favorites) ? (data as any).favorites : [];
+      const favoriteCounts =
+        (data as any)?.favoriteCounts && typeof (data as any).favoriteCounts === "object"
+          ? (data as any).favoriteCounts
+          : {};
       const favorites = mergeFavoritesWithLegacy(favoritesFromStore, legacyFavorites);
 
       const uiPanel =
@@ -491,7 +586,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           : "none";
 
       useStore.setState({
-        state: { cart, favorites, ui: { panel: uiPanel } },
+        state: { cart, favorites, favoriteCounts, ui: { panel: uiPanel } },
         cartCount: calcCount(cart),
         cartTotal: calcTotal(cart),
       });
@@ -503,7 +598,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const favoritesOnly = normalizeFavoritesArray(legacyFavorites);
 
     useStore.setState({
-      state: { cart: [], favorites: favoritesOnly, ui: { panel: "none" } },
+      state: { cart: [], favorites: favoritesOnly, favoriteCounts: {}, ui: { panel: "none" } },
       cartCount: 0,
       cartTotal: 0,
     });
@@ -519,6 +614,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           JSON.stringify({
             cart: snap.state.cart,
             favorites: snap.state.favorites,
+            favoriteCounts: snap.state.favoriteCounts,
             ui: snap.state.ui,
           })
         );

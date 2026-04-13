@@ -412,7 +412,7 @@ function SizeGuidePageInner() {
               textTransform: "uppercase",
             }}
           >
-            JUSP • ORIGINALES. DIRECTO.
+            JUSP • ORIGINALES.
           </div>
         </div>
       </section>

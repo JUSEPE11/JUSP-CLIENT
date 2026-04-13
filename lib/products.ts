@@ -47,6 +47,9 @@ export type Product = {
   expressDelivery?: boolean;
 
   variants?: ProductVariant[];
+
+  favoritesCount?: number;
+  isFavorite?: boolean;
 };
 
 type CachePayload = {
@@ -439,6 +442,8 @@ function buildProductsFromExcel(): Product[] {
           price,
           pickupToday,
           expressDelivery,
+          favoritesCount: 0,
+          isFavorite: false,
         });
       }
 
@@ -464,6 +469,8 @@ function buildProductsFromExcel(): Product[] {
     return Array.from(map.values()).map((product) => ({
       ...product,
       price: derivePriceFromVariants(product.variants),
+      favoritesCount: product.favoritesCount ?? 0,
+      isFavorite: product.isFavorite ?? false,
     }));
   } catch {
     return [];
@@ -525,7 +532,11 @@ function getProductsFast(): Product[] {
   const cached = readCache(cachePath);
 
   if (cached && cached.excelMtimeMs >= excelMtimeMs && cached.products.length) {
-    return cached.products;
+    return cached.products.map((product) => ({
+      ...product,
+      favoritesCount: product.favoritesCount ?? 0,
+      isFavorite: product.isFavorite ?? false,
+    }));
   }
 
   const fresh = buildProductsFromExcel();
@@ -536,7 +547,11 @@ function getProductsFast(): Product[] {
   }
 
   if (cached?.products?.length) {
-    return cached.products;
+    return cached.products.map((product) => ({
+      ...product,
+      favoritesCount: product.favoritesCount ?? 0,
+      isFavorite: product.isFavorite ?? false,
+    }));
   }
 
   return [];

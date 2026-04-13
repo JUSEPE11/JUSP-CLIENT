@@ -43,7 +43,7 @@ export default function Sprite360Viewer({
   loop = true,
   enableWheel = true,
   label = "JUSP",
-  tagline = "Originales. Directo.",
+  tagline = "Originales.",
 }: Sprite360ViewerProps) {
   const total = Math.max(1, frames);
 

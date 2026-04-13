@@ -58,7 +58,7 @@ export default function Jusp360Viewer({
   decode = "async",
   showHint = true,
   brandLabel = "JUSP",
-  brandTagline = "Originales. Directo.",
+  brandTagline = "Originales.",
 }: Jusp360ViewerProps) {
   const safeFrames = Array.isArray(frames) ? frames.filter(Boolean) : [];
   const safeTotal = safeFrames.length;
