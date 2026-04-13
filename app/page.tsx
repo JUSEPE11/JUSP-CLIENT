@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { type Product } from "@/lib/products";
 
 function useIsMobile(breakpoint: number = 768) {
@@ -189,6 +190,29 @@ function minPriceFromProduct(p: any): number | null {
   if (Number.isFinite(base) && base > 0) return base;
 
   return null;
+}
+
+type HomeProductFilter = "all" | "men" | "women" | "accessories" | "kids";
+
+function normalizeHomeFilterParam(v: unknown): HomeProductFilter | null {
+  const s = String(v ?? "").trim().toLowerCase();
+  if (!s) return null;
+
+  if (["all", "todo", "todos"].includes(s)) return "all";
+  if (["men", "man", "hombre", "male", "masculino", "unisex"].includes(s)) return "men";
+  if (["women", "woman", "mujer", "female", "femenino"].includes(s)) return "women";
+  if (["kids", "kid", "children", "child", "niños", "ninos", "niñas", "ninas", "junior", "boys", "girls", "infantil"].includes(s)) return "kids";
+  if (["accessories", "accessory", "accesorios", "accesorio"].includes(s)) return "accessories";
+
+  return null;
+}
+
+function homeFilterLabel(filter: HomeProductFilter) {
+  if (filter === "men") return "Hombre";
+  if (filter === "women") return "Mujer";
+  if (filter === "kids") return "Niños";
+  if (filter === "accessories") return "Accesorios";
+  return "Te podría gustar";
 }
 
 function matchesHomeProductFilter(item: TopItem, filter: "all" | "men" | "women" | "accessories" | "kids") {
@@ -416,6 +440,7 @@ type UserSession = {
 type SearchItem = { id: string; name: string; href: string; img: string; brand?: string };
 
 export default function Page() {
+  const searchParams = useSearchParams();
   const [catalogProducts, setCatalogProducts] = useState<Product[]>([]);
 
   useEffect(() => {
@@ -445,11 +470,25 @@ export default function Page() {
 
   const ALL_PRODUCTS = useMemo(() => mapProductsToTopItems(catalogProducts), [catalogProducts]);
 
-  const [homeProductFilter, setHomeProductFilter] = useState<"all" | "men" | "women" | "accessories" | "kids">("all");
+  const urlContextFilter = useMemo<HomeProductFilter>(() => {
+    return (
+      normalizeHomeFilterParam(
+        searchParams.get("g") ?? searchParams.get("gender") ?? searchParams.get("segment")
+      ) ?? "all"
+    );
+  }, [searchParams]);
+
+  const [homeProductFilter, setHomeProductFilter] = useState<HomeProductFilter>("all");
 
   const isMobile = useIsMobile();
   const reduceMotion = usePrefersReducedMotion();
   useIsCoarsePointer();
+
+  useEffect(() => {
+    if (urlContextFilter !== "all") {
+      setHomeProductFilter(urlContextFilter);
+    }
+  }, [urlContextFilter]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -463,22 +502,44 @@ export default function Page() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    try {
-      const raw = window.localStorage.getItem(FAVORITES_KEY);
-      const parsed = raw ? JSON.parse(raw) : [];
-      setFavoriteIds(Array.isArray(parsed) ? parsed.map((v) => String(v)) : []);
-    } catch {
-      setFavoriteIds([]);
-    }
+    setFavoriteIds(loadFavoriteIds());
   }, []);
 
-  const toggleFavorite = (productId: string) => {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const syncFavorites = () => setFavoriteIds(loadFavoriteIds());
+
+    const onStorage = (e: StorageEvent) => {
+      if (!e.key || FAVORITES_COMPAT_KEYS.includes(e.key as (typeof FAVORITES_COMPAT_KEYS)[number])) {
+        syncFavorites();
+      }
+    };
+
+    const onFavoritesChanged = () => syncFavorites();
+
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("jusp:favorites-changed", onFavoritesChanged as EventListener);
+
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("jusp:favorites-changed", onFavoritesChanged as EventListener);
+    };
+  }, []);
+
+  const toggleFavorite = (productId: string, productName?: string) => {
     setFavoriteIds((prev) => {
       const exists = prev.includes(productId);
       const next = exists ? prev.filter((id) => id !== productId) : [...prev, productId];
-      try {
-        window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
-      } catch {}
+
+      persistFavoriteIds(next);
+
+      setFavoriteToast(
+        exists
+          ? `${productName ?? "Producto"} eliminado de favoritos`
+          : `${productName ?? "Producto"} guardado en favoritos`
+      );
+
       return next;
     });
   };
@@ -520,7 +581,78 @@ export default function Page() {
   const SEARCH_RECENTS_KEY = "jusp_home_search_recents_v1";
   const USER_KEY = "jusp_user_v1";
   const FAVORITES_KEY = "jusp_home_favorites_v1";
+  const FAVORITES_COMPAT_KEYS = [
+    "jusp_home_favorites_v1",
+    "jusp_favorites_v1",
+    "jusp_favorites",
+    "favorites",
+  ] as const;
+
+  const normalizeFavoriteId = (value: any): string | null => {
+    const candidate =
+      typeof value === "string" || typeof value === "number"
+        ? String(value)
+        : typeof value === "object" && value
+        ? String(value.id ?? value.productId ?? value.slug ?? "").trim()
+        : "";
+
+    const safe = String(candidate || "").trim();
+    return safe ? safe : null;
+  };
+
+  const loadFavoriteIds = (): string[] => {
+    try {
+      const merged: string[] = [];
+
+      for (const key of FAVORITES_COMPAT_KEYS) {
+        const raw = window.localStorage.getItem(key);
+        if (!raw) continue;
+
+        let parsed: any = null;
+        try {
+          parsed = JSON.parse(raw);
+        } catch {
+          parsed = raw;
+        }
+
+        const source = Array.isArray(parsed)
+          ? parsed
+          : parsed && Array.isArray(parsed.items)
+          ? parsed.items
+          : parsed && Array.isArray(parsed.favorites)
+          ? parsed.favorites
+          : [];
+
+        for (const entry of source) {
+          const id = normalizeFavoriteId(entry);
+          if (id && !merged.includes(id)) merged.push(id);
+        }
+      }
+
+      return merged;
+    } catch {
+      return [];
+    }
+  };
+
+  const persistFavoriteIds = (ids: string[]) => {
+    try {
+      const unique = Array.from(new Set(ids.map((v) => String(v).trim()).filter(Boolean)));
+
+      for (const key of FAVORITES_COMPAT_KEYS) {
+        window.localStorage.setItem(key, JSON.stringify(unique));
+      }
+
+      window.dispatchEvent(
+        new CustomEvent("jusp:favorites-changed", {
+          detail: { ids: unique, ts: Date.now() },
+        })
+      );
+    } catch {}
+  };
+
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const [favoriteToast, setFavoriteToast] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [q, setQ] = useState("");
   const [searchRecents, setSearchRecents] = useState<string[]>([]);
@@ -549,6 +681,13 @@ export default function Page() {
   const [nlStatus, setNlStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
   const [nlMsg, setNlMsg] = useState<string>("");
   const [nlSubscribed, setNlSubscribed] = useState(false);
+
+  useEffect(() => {
+    if (!favoriteToast) return;
+    const t = window.setTimeout(() => setFavoriteToast(null), 1800);
+    return () => window.clearTimeout(t);
+  }, [favoriteToast]);
+
 
   function isValidEmail(v: string) {
     const s = String(v || "").trim();
@@ -1201,6 +1340,13 @@ export default function Page() {
 
   const activeCollection = colCards[colActive] ?? colCards[0] ?? collectionCards[0];
 
+  const filteredProducts = useMemo(
+    () => ALL_PRODUCTS.filter((p) => matchesHomeProductFilter(p, homeProductFilter)),
+    [ALL_PRODUCTS, homeProductFilter]
+  );
+
+  const contextHeadline = "Te podría gustar";
+
   return (
     <main style={{ overflowX: "hidden", background: "#fff", color: "#000" }}>
       <style>{`
@@ -1208,7 +1354,7 @@ export default function Page() {
           --jusp-ease: cubic-bezier(.2,.9,.2,1);
         }
         .jusp-card {
-          transform: translateZ(0);
+          transform: translateZ;
           transition: transform 280ms var(--jusp-ease), box-shadow 280ms var(--jusp-ease), filter 280ms var(--jusp-ease);
           will-change: transform;
         }
@@ -1245,6 +1391,29 @@ export default function Page() {
           .jusp-card, .jusp-btn { transition: none !important; animation: none !important; }
         }
       `}</style>
+
+
+      {favoriteToast ? (
+        <div
+          aria-live="polite"
+          style={{
+            position: "fixed",
+            right: 16,
+            bottom: 18,
+            zIndex: 95,
+            padding: "12px 14px",
+            borderRadius: 16,
+            background: "rgba(0,0,0,0.92)",
+            color: "#fff",
+            fontSize: 13,
+            fontWeight: 900,
+            boxShadow: "0 20px 50px rgba(0,0,0,0.22)",
+            backdropFilter: "blur(12px)",
+          }}
+        >
+          {favoriteToast}
+        </div>
+      ) : null}
 
       {nlOpen ? (
         <div
@@ -1786,7 +1955,11 @@ export default function Page() {
 
       <section style={{ padding: "26px 0 44px", borderTop: "1px solid rgba(0,0,0,0.06)" }}>
         <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px" }}>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <div>
+            <div style={{ marginTop: 6, fontSize: 28, fontWeight: 1000, letterSpacing: -0.4 }}>{contextHeadline}</div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
             {[
               { key: "all" as const, label: "Te podría gustar" },
               { key: "men" as const, label: "Hombre" },
@@ -1821,15 +1994,19 @@ export default function Page() {
               marginTop: 16,
               display: "grid",
               gap: 14,
+              opacity: 1,
+              transform: "translateY(0px)",
+              transition: "opacity 220ms ease, transform 220ms ease",
             }}
           >
-            {ALL_PRODUCTS.filter((p) => matchesHomeProductFilter(p, homeProductFilter)).map((p) => {
+            {filteredProducts.map((p) => {
               const isFavorite = favoriteIds.includes(String(p.id));
 
               return (
                 <a
                   key={p.id}
                   href={p.href}
+                  className="jusp-card"
                   style={{
                     display: "block",
                     textDecoration: "none",
@@ -1842,6 +2019,8 @@ export default function Page() {
                   }}
                 >
                   <div style={{ position: "relative", background: "#f7f7f7" }}>
+                    {/* badges eliminados por pedido del usuario */}
+
                     <button
                       type="button"
                       aria-label={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
@@ -1849,7 +2028,7 @@ export default function Page() {
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        toggleFavorite(String(p.id));
+                        toggleFavorite(String(p.id), p.name);
                       }}
                       style={{
                         position: "absolute",
@@ -1901,6 +2080,23 @@ export default function Page() {
               );
             })}
           </div>
+
+          {!filteredProducts.length ? (
+            <div
+              style={{
+                marginTop: 14,
+                borderRadius: 20,
+                border: "1px solid rgba(0,0,0,0.08)",
+                background: "#fff",
+                padding: 18,
+                boxShadow: "0 14px 40px rgba(0,0,0,0.06)",
+                fontSize: 14,
+                fontWeight: 900,
+              }}
+            >
+              No encontramos productos para este contexto todavía.
+            </div>
+          ) : null}
 
           <style>{`
             .__jusp_all_products_grid {
@@ -2032,7 +2228,7 @@ export default function Page() {
               <div style={{ maxWidth: 1180, margin: "0 auto", padding: "14px 14px 30px" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                   <div style={{ fontSize: 13, fontWeight: 1000, opacity: 0.72 }}>
-                    {q.trim() ? "Resultados" : searchRecents.length ? "Recientes" : "Sugerencias"}
+                    {q.trim() ? "" : searchRecents.length ? "Recientes" : "Sugerencias"}
                   </div>
                   <div style={{ fontSize: 12, opacity: 0.65 }}>
                     Tip: <span style={{ fontWeight: 1000 }}>ESC</span> para cerrar
@@ -2073,7 +2269,7 @@ export default function Page() {
                         e.currentTarget.style.boxShadow = "0 20px 48px rgba(0,0,0,0.12)";
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = "translateY(0px) scale(1)";
+                        e.currentTarget.style.transform = "translateY(0px) scale";
                         e.currentTarget.style.boxShadow = "0 12px 30px rgba(0,0,0,0.08)";
                       }}
                     >
@@ -2334,7 +2530,7 @@ export default function Page() {
                     <div style={{ marginTop: 14, display: "flex", gap: 10, justifyContent: "flex-end" }}>
                       <button
                         type="button"
-                        onClick={() => setOnboardingStep(2)}
+                        onClick={() => setOnboardingStep(1)}
                         style={{
                           height: 44,
                           padding: "0 16px",
