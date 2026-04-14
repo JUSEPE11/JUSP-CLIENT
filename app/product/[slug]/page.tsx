@@ -52,6 +52,25 @@ function moneyCOP(n: number) {
   return Math.round(n).toLocaleString("es-CO");
 }
 
+function formatEstimateDate(date: Date) {
+  return date.toLocaleDateString("es-CO", {
+    day: "numeric",
+    month: "long",
+  });
+}
+
+function getDeliveryEstimate() {
+  const now = new Date();
+
+  const min = new Date(now);
+  min.setDate(min.getDate() + 15);
+
+  const max = new Date(now);
+  max.setDate(max.getDate() + 20);
+
+  return `${formatEstimateDate(min)} - ${formatEstimateDate(max)}`;
+}
+
 function uniqueStringsCaseInsensitive(arr: string[]) {
   const seen = new Set<string>();
   const out: string[] = [];
@@ -70,12 +89,326 @@ function uniqueStringsCaseInsensitive(arr: string[]) {
   return out;
 }
 
+function getTouchDistance(
+  touchA: { clientX: number; clientY: number },
+  touchB: { clientX: number; clientY: number }
+) {
+  const dx = touchA.clientX - touchB.clientX;
+  const dy = touchA.clientY - touchB.clientY;
+  return Math.hypot(dx, dy);
+}
+
+function clampNumber(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
 const FAVORITES_COMPAT_KEYS = [
   "jusp_home_favorites_v1",
   "jusp_favorites_v1",
   "jusp_favorites",
   "favorites",
 ] as const;
+
+const PRODUCT_TASTE_HISTORY_KEY = "jusp_pdp_taste_history_v1";
+const ONBOARDING_STORAGE_KEY = "jusp_onboarding_v2";
+
+type SessionUser = {
+  id?: string;
+  email?: string;
+  profile?: {
+    segment?: string;
+    interests?: string[];
+    brands?: string[];
+  } | null;
+};
+
+type TasteHistoryEntry = {
+  key: string;
+  id: string;
+  slug?: string;
+  productCode?: string;
+  title: string;
+  category?: string;
+  brand?: string;
+  gender?: string;
+  productType?: string;
+  kind?: string;
+  sport?: string[];
+  models?: string[];
+  tags?: string[];
+  viewedAt: number;
+  views: number;
+};
+
+type TasteHistoryStore = Record<string, TasteHistoryEntry[]>;
+
+type TasteProfile = {
+  segment: GenderScope | null;
+  interests: string[];
+  brands: string[];
+};
+
+type RecommendedProduct = {
+  product: Product;
+  reason: string;
+  score: number;
+};
+
+function safeParseJson<T>(value: string | null): T | null {
+  try {
+    if (!value) return null;
+    return JSON.parse(value) as T;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeSignalValue(value: unknown): string {
+  const safe = String(value ?? "").trim().toLowerCase();
+  if (!safe || safe === "undefined" || safe === "null") return "";
+  return safe;
+}
+
+function normalizeSignalList(value: unknown): string[] {
+  const source = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+    ? value
+        .split(/[|,/]/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+
+  return uniqueStringsCaseInsensitive(source.map((item) => String(item ?? "").trim()).filter(Boolean)).map((item) =>
+    item.toLowerCase()
+  );
+}
+
+function productAliases(product: Partial<Product> | { id?: string; slug?: string; productCode?: string } | null | undefined): string[] {
+  return uniqueStringsCaseInsensitive(
+    [product?.id, product?.slug, (product as any)?.product_code, product?.productCode]
+      .map((value) => String(value ?? "").trim())
+      .filter(Boolean)
+  );
+}
+
+function buildTasteScopeKey(user: SessionUser | null): string {
+  const userId = String(user?.id ?? "").trim();
+  if (userId) return `uid:${userId}`;
+
+  const email = String(user?.email ?? "").trim().toLowerCase();
+  if (email) return `email:${email}`;
+
+  return "guest";
+}
+
+function readTasteHistoryStore(): TasteHistoryStore {
+  if (typeof window === "undefined") return {};
+  return safeParseJson<TasteHistoryStore>(window.localStorage.getItem(PRODUCT_TASTE_HISTORY_KEY)) ?? {};
+}
+
+function loadTasteHistory(scopeKey: string): TasteHistoryEntry[] {
+  if (typeof window === "undefined") return [];
+  const store = readTasteHistoryStore();
+  const list = Array.isArray(store[scopeKey]) ? store[scopeKey] : [];
+  return list.slice(0, 24);
+}
+
+function loadOnboardingTasteProfile(): TasteProfile {
+  if (typeof window === "undefined") {
+    return { segment: null, interests: [], brands: [] };
+  }
+
+  const payload = safeParseJson<any>(window.localStorage.getItem(ONBOARDING_STORAGE_KEY));
+
+  return {
+    segment: normalizeGenderScope(payload?.segment),
+    interests: normalizeSignalList(payload?.interests),
+    brands: normalizeSignalList(payload?.brands),
+  };
+}
+
+function buildTasteHistoryEntry(product: Product): TasteHistoryEntry {
+  const key = productAliases(product)[0] || String(product.id || "").trim();
+
+  return {
+    key,
+    id: String(product.id || "").trim(),
+    slug: String(product.slug || "").trim() || undefined,
+    productCode: String(product.product_code || "").trim() || undefined,
+    title: String(product.title || product.name || "Producto").trim(),
+    category: normalizeSignalValue(product.category) || undefined,
+    brand: normalizeSignalValue(product.brand) || undefined,
+    gender: normalizeSignalValue(product.gender) || undefined,
+    productType: normalizeSignalValue(product.productType) || undefined,
+    kind: normalizeSignalValue(product.kind) || undefined,
+    sport: normalizeSignalList(product.sport),
+    models: normalizeSignalList(product.models),
+    tags: normalizeSignalList(product.tags),
+    viewedAt: Date.now(),
+    views: 1,
+  };
+}
+
+function upsertTasteHistory(scopeKey: string, product: Product): TasteHistoryEntry[] {
+  if (typeof window === "undefined") return [];
+
+  const store = readTasteHistoryStore();
+  const previous = Array.isArray(store[scopeKey]) ? store[scopeKey] : [];
+  const nextEntry = buildTasteHistoryEntry(product);
+  const nextKey = nextEntry.key;
+
+  const existingIndex = previous.findIndex((entry) => entry.key === nextKey);
+  const merged = [...previous];
+
+  if (existingIndex >= 0) {
+    const existing = merged[existingIndex];
+    merged[existingIndex] = {
+      ...existing,
+      ...nextEntry,
+      views: Math.min(12, Number(existing.views || 0) + 1),
+      viewedAt: Date.now(),
+    };
+  } else {
+    merged.unshift(nextEntry);
+  }
+
+  const ordered = merged
+    .filter((entry) => String(entry.key || "").trim())
+    .sort((a, b) => Number(b.viewedAt || 0) - Number(a.viewedAt || 0))
+    .slice(0, 24);
+
+  store[scopeKey] = ordered;
+
+  try {
+    window.localStorage.setItem(PRODUCT_TASTE_HISTORY_KEY, JSON.stringify(store));
+  } catch {}
+
+  return ordered;
+}
+
+function extractProductSignals(product: Partial<Product> | TasteHistoryEntry | null | undefined) {
+  const category = normalizeSignalValue((product as any)?.category);
+  const brand = normalizeSignalValue((product as any)?.brand);
+  const gender = normalizeSignalValue((product as any)?.gender);
+  const productType = normalizeSignalValue((product as any)?.productType);
+  const kind = normalizeSignalValue((product as any)?.kind);
+  const sport = normalizeSignalList((product as any)?.sport);
+  const models = normalizeSignalList((product as any)?.models);
+  const tags = normalizeSignalList((product as any)?.tags);
+
+  const tokens = uniqueStringsCaseInsensitive(
+    [...sport, ...models, ...tags, category, brand, gender, productType, kind].filter(Boolean)
+  ).map((item) => item.toLowerCase());
+
+  return {
+    category,
+    brand,
+    gender,
+    productType,
+    kind,
+    tokens,
+  };
+}
+
+function countSharedSignals(a: string[], b: string[]) {
+  if (!a.length || !b.length) return 0;
+  const base = new Set(a);
+  let total = 0;
+
+  for (const value of b) {
+    if (base.has(value)) total += 1;
+  }
+
+  return total;
+}
+
+function formatReasonLabel(value: string) {
+  const safe = String(value || "").trim();
+  if (!safe) return "";
+  return safe.charAt(0).toUpperCase() + safe.slice(1);
+}
+
+function scoreRecommendation(
+  candidate: Product,
+  currentProduct: Product,
+  historyEntries: TasteHistoryEntry[],
+  favoriteProducts: Product[],
+  profile: TasteProfile
+): RecommendedProduct {
+  const currentSignals = extractProductSignals(currentProduct);
+  const candidateSignals = extractProductSignals(candidate);
+  const profileInterests = profile.interests;
+  const profileBrands = profile.brands;
+
+  let score = 0;
+
+  if (candidateSignals.category && candidateSignals.category === currentSignals.category) score += 28;
+  if (candidateSignals.brand && candidateSignals.brand === currentSignals.brand) score += 24;
+  if (candidateSignals.productType && candidateSignals.productType === currentSignals.productType) score += 14;
+  if (candidateSignals.gender && candidateSignals.gender === currentSignals.gender) score += 10;
+  if (candidateSignals.kind && candidateSignals.kind === currentSignals.kind) score += 10;
+
+  score += countSharedSignals(candidateSignals.tokens, currentSignals.tokens) * 6;
+
+  favoriteProducts.slice(0, 6).forEach((favoriteProduct, index) => {
+    const favoriteSignals = extractProductSignals(favoriteProduct);
+    const weight = Math.max(3, 8 - index);
+
+    if (candidateSignals.brand && candidateSignals.brand === favoriteSignals.brand) score += 6 * weight;
+    if (candidateSignals.category && candidateSignals.category === favoriteSignals.category) score += 5 * weight;
+    if (candidateSignals.productType && candidateSignals.productType === favoriteSignals.productType)
+      score += 4 * weight;
+    score += countSharedSignals(candidateSignals.tokens, favoriteSignals.tokens) * Math.max(2, weight - 2);
+  });
+
+  historyEntries.slice(0, 8).forEach((entry, index) => {
+    const entrySignals = extractProductSignals(entry);
+    const baseWeight = Math.max(2, 9 - index);
+    const viewWeight = Math.min(4, Number(entry.views || 1));
+
+    if (candidateSignals.brand && candidateSignals.brand === entrySignals.brand) score += 4 * baseWeight + viewWeight;
+    if (candidateSignals.category && candidateSignals.category === entrySignals.category)
+      score += 5 * baseWeight + viewWeight;
+    if (candidateSignals.productType && candidateSignals.productType === entrySignals.productType)
+      score += 3 * baseWeight;
+    if (candidateSignals.gender && candidateSignals.gender === entrySignals.gender) score += 2 * baseWeight;
+    score += countSharedSignals(candidateSignals.tokens, entrySignals.tokens) * Math.max(2, baseWeight - 2);
+  });
+
+  if (profile.segment && candidateSignals.gender && candidateSignals.gender === profile.segment) score += 16;
+  if (candidateSignals.brand && profileBrands.includes(candidateSignals.brand)) score += 24;
+  score += countSharedSignals(candidateSignals.tokens, profileInterests) * 9;
+
+  if (candidate.bestSeller) score += 4;
+  if (candidate.isFeatured) score += 3;
+  if (candidate.isNew) score += 2;
+
+  let reason = "Selección curada por JUSP";
+
+  if (candidateSignals.brand && profileBrands.includes(candidateSignals.brand)) {
+    reason = `Porque te gusta ${formatReasonLabel(candidateSignals.brand)}`;
+  } else {
+    const matchedInterest = profileInterests.find((interest) => candidateSignals.tokens.includes(interest));
+    if (matchedInterest) {
+      reason = `Va con tu interés en ${formatReasonLabel(matchedInterest)}`;
+    } else if (candidateSignals.brand && favoriteProducts.some((favorite) => extractProductSignals(favorite).brand === candidateSignals.brand)) {
+      reason = `Se parece a lo que guardas de ${formatReasonLabel(candidateSignals.brand)}`;
+    } else if (
+      candidateSignals.category &&
+      historyEntries.some((entry) => extractProductSignals(entry).category === candidateSignals.category)
+    ) {
+      reason = `Basado en lo que miras de ${formatReasonLabel(candidateSignals.category)}`;
+    } else if (
+      (candidateSignals.brand && candidateSignals.brand === currentSignals.brand) ||
+      (candidateSignals.category && candidateSignals.category === currentSignals.category)
+    ) {
+      reason = "Similar a este producto";
+    }
+  }
+
+  return { product: candidate, reason, score };
+}
 
 function normalizeFavoriteId(value: any): string | null {
   const candidate =
@@ -434,7 +767,16 @@ export default function ProductPage() {
   const slug = decodeURIComponent(String(params?.slug || "")).trim().toLowerCase();
 
   const [product, setProduct] = useState<Product | undefined>(undefined);
+  const [catalogProducts, setCatalogProducts] = useState<Product[]>([]);
   const [loadingProduct, setLoadingProduct] = useState(true);
+  const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
+  const [tasteHistory, setTasteHistory] = useState<TasteHistoryEntry[]>([]);
+  const [onboardingTaste, setOnboardingTaste] = useState<TasteProfile>({
+    segment: null,
+    interests: [],
+    brands: [],
+  });
 
   const {
     state,
@@ -468,10 +810,12 @@ export default function ProductPage() {
         }) as Product | undefined;
 
         if (!cancelled) {
+          setCatalogProducts(list);
           setProduct(found);
         }
       } catch {
         if (!cancelled) {
+          setCatalogProducts([]);
           setProduct(undefined);
         }
       } finally {
@@ -488,6 +832,39 @@ export default function ProductPage() {
     };
   }, [slug]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSessionUser() {
+      try {
+        const res = await fetch("/api/auth/me", {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        const json = await res.json().catch(() => null);
+
+        if (!cancelled) {
+          setSessionUser(res.ok ? ((json?.user ?? null) as SessionUser | null) : null);
+        }
+      } catch {
+        if (!cancelled) {
+          setSessionUser(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setSessionChecked(true);
+        }
+      }
+    }
+
+    loadSessionUser();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const initialScope = useMemo<GenderScope>(() => {
     const fromProduct = normalizeGenderScope(product?.gender);
     if (fromProduct) return fromProduct;
@@ -501,6 +878,7 @@ export default function ProductPage() {
   const [scope, setScope] = useState<GenderScope>(initialScope);
   const [imgs, setImgs] = useState<string[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const tasteScopeKey = useMemo(() => buildTasteScopeKey(sessionUser), [sessionUser]);
 
   useEffect(() => {
     setScope(initialScope);
@@ -521,6 +899,13 @@ export default function ProductPage() {
     if (typeof window === "undefined") return;
     setFavoriteIds(loadFavoriteIdsCompat());
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !sessionChecked) return;
+
+    setTasteHistory(loadTasteHistory(tasteScopeKey));
+    setOnboardingTaste(loadOnboardingTasteProfile());
+  }, [sessionChecked, tasteScopeKey]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -592,6 +977,11 @@ export default function ProductPage() {
     setFavCount(product.id, Number(product.favoritesCount || 0));
   }, [product, hydrateFavCountsFromProducts, setFavCount]);
 
+  useEffect(() => {
+    if (!product || !sessionChecked || typeof window === "undefined") return;
+    setTasteHistory(upsertTasteHistory(tasteScopeKey, product));
+  }, [product?.id, product?.slug, sessionChecked, tasteScopeKey]);
+
   const sizingMode = useMemo<SizingMode>(() => {
     if (!product) return "shoe";
     return inferSizingMode(product, variants);
@@ -633,8 +1023,25 @@ export default function ProductPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [activeImg, setActiveImg] = useState<number>(0);
   const [attemptedBuy, setAttemptedBuy] = useState(false);
+  const [imageZoom, setImageZoom] = useState({
+    active: false,
+    left: 0,
+    top: 0,
+    focusSize: 132,
+    paneWidth: 320,
+    paneHeight: 520,
+    paneImageLeft: 0,
+    paneImageTop: 0,
+    paneImageWidth: 260,
+    paneImageHeight: 320,
+  });
+  const [mobileImageZoom, setMobileImageZoom] = useState({ scale: 1, originX: 50, originY: 50, pinching: false });
+  const activeImageRef = useRef<HTMLImageElement | null>(null);
+  const infoCardRef = useRef<HTMLDivElement | null>(null);
   const touchStartXRef = useRef<number | null>(null);
   const touchStartYRef = useRef<number | null>(null);
+  const pinchStartDistanceRef = useRef<number | null>(null);
+  const pinchStartScaleRef = useRef<number>(1);
 
   function goToPrevImage() {
     if (imgs.length <= 1) return;
@@ -647,13 +1054,78 @@ export default function ProductPage() {
   }
 
   function onImageTouchStart(e: React.TouchEvent<HTMLDivElement>) {
+    setImageZoom((prev) => (prev.active ? { ...prev, active: false } : prev));
+
+    if (e.touches.length >= 2) {
+      const [touchA, touchB] = Array.from(e.touches);
+      const rect = e.currentTarget.getBoundingClientRect();
+      const centerX = ((touchA.clientX + touchB.clientX) / 2 - rect.left) / rect.width;
+      const centerY = ((touchA.clientY + touchB.clientY) / 2 - rect.top) / rect.height;
+
+      pinchStartDistanceRef.current = getTouchDistance(touchA, touchB);
+      pinchStartScaleRef.current = mobileImageZoom.scale;
+      touchStartXRef.current = null;
+      touchStartYRef.current = null;
+
+      setMobileImageZoom((prev) => ({
+        ...prev,
+        originX: Math.min(Math.max(centerX * 100, 0), 100),
+        originY: Math.min(Math.max(centerY * 100, 0), 100),
+        pinching: true,
+      }));
+      return;
+    }
+
+    if (mobileImageZoom.scale > 1.02) {
+      touchStartXRef.current = null;
+      touchStartYRef.current = null;
+      return;
+    }
+
     const touch = e.touches?.[0];
     if (!touch) return;
     touchStartXRef.current = touch.clientX;
     touchStartYRef.current = touch.clientY;
   }
 
+  function onImageTouchMove(e: React.TouchEvent<HTMLDivElement>) {
+    if (e.touches.length < 2 || pinchStartDistanceRef.current == null) return;
+
+    const [touchA, touchB] = Array.from(e.touches);
+    const nextDistance = getTouchDistance(touchA, touchB);
+    const rect = e.currentTarget.getBoundingClientRect();
+    const centerX = ((touchA.clientX + touchB.clientX) / 2 - rect.left) / rect.width;
+    const centerY = ((touchA.clientY + touchB.clientY) / 2 - rect.top) / rect.height;
+    const nextScale = Math.min(
+      4,
+      Math.max(1, pinchStartScaleRef.current * (nextDistance / pinchStartDistanceRef.current))
+    );
+
+    e.preventDefault();
+    setMobileImageZoom({
+      scale: nextScale,
+      originX: Math.min(Math.max(centerX * 100, 0), 100),
+      originY: Math.min(Math.max(centerY * 100, 0), 100),
+      pinching: true,
+    });
+  }
+
   function onImageTouchEnd(e: React.TouchEvent<HTMLDivElement>) {
+    if (pinchStartDistanceRef.current != null) {
+      if (e.touches.length >= 2) return;
+
+      pinchStartDistanceRef.current = null;
+      pinchStartScaleRef.current = mobileImageZoom.scale;
+      setMobileImageZoom((prev) => ({
+        ...prev,
+        scale: prev.scale < 1.05 ? 1 : prev.scale,
+        pinching: false,
+      }));
+      touchStartXRef.current = null;
+      touchStartYRef.current = null;
+      return;
+    }
+
     const startX = touchStartXRef.current;
     const startY = touchStartYRef.current;
     const touch = e.changedTouches?.[0];
@@ -661,6 +1133,7 @@ export default function ProductPage() {
     touchStartXRef.current = null;
     touchStartYRef.current = null;
 
+    if (mobileImageZoom.scale > 1.02) return;
     if (!touch || startX == null || startY == null || imgs.length <= 1) return;
 
     const dx = touch.clientX - startX;
@@ -709,6 +1182,78 @@ export default function ProductPage() {
 
     setActiveImg((prev) => (prev >= imgs.length ? 0 : prev));
   }, [imgs]);
+
+  useEffect(() => {
+    setImageZoom((prev) => (prev.active ? { ...prev, active: false } : prev));
+    setMobileImageZoom((prev) => (prev.scale > 1 ? { ...prev, scale: 1, pinching: false } : prev));
+    pinchStartDistanceRef.current = null;
+  }, [activeImg]);
+
+  function onImageMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    const currentImage = imgs[activeImg];
+    if (!currentImage) return;
+    if (typeof window === "undefined" || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+
+    const framePadding = 12;
+    const frameWidth = Math.max(1, rect.width - framePadding * 2);
+    const frameHeight = Math.max(1, rect.height - framePadding * 2);
+    const naturalWidth = activeImageRef.current?.naturalWidth || frameWidth;
+    const naturalHeight = activeImageRef.current?.naturalHeight || frameHeight;
+    const imageAspect = naturalWidth / naturalHeight || 1;
+    const frameAspect = frameWidth / frameHeight;
+
+    let renderedWidth = frameWidth;
+    let renderedHeight = frameHeight;
+    let offsetX = framePadding;
+    let offsetY = framePadding;
+
+    if (imageAspect > frameAspect) {
+      renderedWidth = frameWidth;
+      renderedHeight = renderedWidth / imageAspect;
+      offsetY = framePadding + (frameHeight - renderedHeight) / 2;
+    } else {
+      renderedHeight = frameHeight;
+      renderedWidth = renderedHeight * imageAspect;
+      offsetX = framePadding + (frameWidth - renderedWidth) / 2;
+    }
+
+    const focusSize = Math.min(150, Math.max(108, Math.min(renderedWidth, renderedHeight) * 0.22));
+    const lensRadius = focusSize / 2;
+    const rawX = e.clientX - rect.left;
+    const rawY = e.clientY - rect.top;
+    const left = clampNumber(rawX, offsetX + lensRadius, offsetX + renderedWidth - lensRadius);
+    const top = clampNumber(rawY, offsetY + lensRadius, offsetY + renderedHeight - lensRadius);
+    const localX = clampNumber(rawX - offsetX, 0, renderedWidth);
+    const localY = clampNumber(rawY - offsetY, 0, renderedHeight);
+    const cardRect = infoCardRef.current?.getBoundingClientRect();
+    const paneWidth = Math.max(280, (cardRect?.width ?? 348) - 28);
+    const paneHeight = Math.max(360, (cardRect?.height ?? 560) - 28);
+    const zoomScale = Math.max(paneWidth / focusSize, paneHeight / focusSize);
+    const paneImageWidth = renderedWidth * zoomScale;
+    const paneImageHeight = renderedHeight * zoomScale;
+    const paneImageLeft = clampNumber(paneWidth / 2 - localX * zoomScale, paneWidth - paneImageWidth, 0);
+    const paneImageTop = clampNumber(paneHeight / 2 - localY * zoomScale, paneHeight - paneImageHeight, 0);
+
+    setImageZoom({
+      active: true,
+      left,
+      top,
+      focusSize,
+      paneWidth,
+      paneHeight,
+      paneImageLeft,
+      paneImageTop,
+      paneImageWidth,
+      paneImageHeight,
+    });
+  }
+
+  function onImageMouseLeave() {
+    setImageZoom((prev) => (prev.active ? { ...prev, active: false } : prev));
+  }
 
   const hasRealVariants = useMemo(() => variants.length > 0, [variants]);
 
@@ -760,6 +1305,39 @@ export default function ProductPage() {
     if (currentStock > 0 && currentStock <= 8) return "Stock limitado";
     return "Disponible";
   }, [currentStock, isSoldOut]);
+
+  const deliveryEstimate = useMemo(() => getDeliveryEstimate(), []);
+
+  const trustHighlights = [
+    {
+      key: "auth",
+      title: "Autenticidad protegida",
+      description:
+        "Te devolvemos cuatro veces el precio si es falso.\nSi un cliente recibe un producto que no es auténtico, JUSP pagará 4 veces el valor real del producto como compensación.",
+      tone: "gold",
+    },
+    {
+      key: "refund",
+      title: "Compra protegida",
+      description:
+        "Políticas de devolución.\nReembolso instantáneo.\nSi tu pedido cumple las condiciones, procesamos tu dinero de forma rápida y clara.",
+      tone: "mint",
+    },
+    {
+      key: "support",
+      title: "Soporte real",
+      description:
+        "Te respondemos antes, durante y después.\nAcompañamiento real en todo el proceso de compra.",
+      tone: "lavender",
+    },
+  ] as const;
+
+  const [activeTrustKey, setActiveTrustKey] = useState<"auth" | "refund" | "support" | null>(null);
+
+  const activeTrust = useMemo(
+    () => trustHighlights.find((item) => item.key === activeTrustKey) ?? null,
+    [activeTrustKey, trustHighlights]
+  );
 
   const selectionMissing = useMemo(() => {
     if (!hasRealVariants) return false;
@@ -852,6 +1430,59 @@ export default function ProductPage() {
   const favoriteCount = product
     ? Math.max(localFavoriteCount, getFavCount(product.id), Number(product.favoritesCount || 0))
     : localFavoriteCount;
+
+  const effectiveTasteProfile = useMemo<TasteProfile>(() => {
+    const profile = sessionUser?.profile ?? null;
+
+    return {
+      segment: normalizeGenderScope(profile?.segment) || onboardingTaste.segment,
+      interests: uniqueStringsCaseInsensitive([
+        ...normalizeSignalList(profile?.interests),
+        ...onboardingTaste.interests,
+      ]).map((item) => item.toLowerCase()),
+      brands: uniqueStringsCaseInsensitive([
+        ...normalizeSignalList(profile?.brands),
+        ...onboardingTaste.brands,
+      ]).map((item) => item.toLowerCase()),
+    };
+  }, [sessionUser, onboardingTaste]);
+
+  const favoriteProducts = useMemo(() => {
+    if (!catalogProducts.length || !favoriteIds.length) return [];
+
+    return catalogProducts.filter((candidate) =>
+      productAliases(candidate).some((alias) => favoriteIds.includes(alias))
+    );
+  }, [catalogProducts, favoriteIds]);
+
+  const recommendedProducts = useMemo<RecommendedProduct[]>(() => {
+    if (!product || !catalogProducts.length) return [];
+
+    const blockedAliases = new Set(productAliases(product));
+    const scored = catalogProducts
+      .filter((candidate) => {
+        const aliases = productAliases(candidate);
+        if (!aliases.length) return false;
+        return !aliases.some((alias) => blockedAliases.has(alias));
+      })
+      .map((candidate) => scoreRecommendation(candidate, product, tasteHistory, favoriteProducts, effectiveTasteProfile))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 8);
+
+    return scored;
+  }, [catalogProducts, effectiveTasteProfile, favoriteProducts, product, tasteHistory]);
+
+  const recommendationSummary = useMemo(() => {
+    if (effectiveTasteProfile.interests.length || effectiveTasteProfile.brands.length) {
+      return "Selección afinada por la tienda según tu perfil, lo que guardas y lo que vienes mirando.";
+    }
+
+    if (tasteHistory.length > 1 || favoriteProducts.length > 0) {
+      return "Productos elegidos según lo que te gusta dentro de JUSP y su relación con esta ficha.";
+    }
+
+    return "Una selección JUSP basada en este producto para seguir descubriendo piezas que encajan contigo.";
+  }, [effectiveTasteProfile, favoriteProducts.length, tasteHistory.length]);
 
   async function onToggleFavorite() {
     if (!product) return;
@@ -967,7 +1598,15 @@ export default function ProductPage() {
                   </div>
                 ) : null}
 
-                <div className="imgBox" onTouchStart={onImageTouchStart} onTouchEnd={onImageTouchEnd}>
+                <div
+                  className={`imgBox ${imgs[activeImg] ? "zoomReady" : ""}`}
+                  onTouchStart={onImageTouchStart}
+                  onTouchMove={onImageTouchMove}
+                  onTouchEnd={onImageTouchEnd}
+                  onMouseMove={onImageMouseMove}
+                  onMouseEnter={onImageMouseMove}
+                  onMouseLeave={onImageMouseLeave}
+                >
                   <button
                     type="button"
                     className={`favBtn ${isFavorite ? "on" : ""}`}
@@ -982,7 +1621,35 @@ export default function ProductPage() {
                     <span className="favCount">{favoriteCount}</span>
                   </button>
 
-                  {imgs[activeImg] ? <img src={imgs[activeImg]} alt={title} /> : <div className="ph" />}
+                  {imgs[activeImg] ? (
+                    <img
+                      ref={activeImageRef}
+                      src={imgs[activeImg]}
+                      alt={title}
+                      style={{
+                        transform: `translateZ(0) scale(${mobileImageZoom.scale})`,
+                        transformOrigin: `${mobileImageZoom.originX}% ${mobileImageZoom.originY}%`,
+                        transition: mobileImageZoom.pinching ? "none" : "transform 180ms ease",
+                      }}
+                    />
+                  ) : (
+                    <div className="ph" />
+                  )}
+
+                  {imgs[activeImg] ? (
+                    <>
+                      <div
+                        className={`imgZoomFocus ${imageZoom.active ? "on" : ""}`}
+                        aria-hidden="true"
+                        style={{
+                          left: `${imageZoom.left}px`,
+                          top: `${imageZoom.top}px`,
+                          width: `${imageZoom.focusSize}px`,
+                          height: `${imageZoom.focusSize}px`,
+                        }}
+                      />
+                    </>
+                  ) : null}
 
                   <div className="imgBadge">
                     <span className="b1">JUSP</span>
@@ -1001,14 +1668,25 @@ export default function ProductPage() {
           </section>
 
           <section className="info">
-            <div className="card">
+            <div ref={infoCardRef} className="card">
+              {imgs[activeImg] ? (
+                <div className={`cardZoomViewer ${imageZoom.active ? "on" : ""}`} aria-hidden="true">
+                  <img
+                    src={imgs[activeImg]}
+                    alt=""
+                    className="cardZoomViewerImg"
+                    style={{
+                      left: `${imageZoom.paneImageLeft}px`,
+                      top: `${imageZoom.paneImageTop}px`,
+                      width: `${imageZoom.paneImageWidth}px`,
+                      height: `${imageZoom.paneImageHeight}px`,
+                    }}
+                  />
+                </div>
+              ) : null}
+
               <div className="head">
                 <div className="title">{title}</div>
-                <div className="sub">
-                  <span className="chip">Originales</span>
-                  <span className="chip">Cross-border</span>
-                  <span className="chip">Soporte</span>
-                </div>
               </div>
 
               <div className="priceBox">
@@ -1022,13 +1700,13 @@ export default function ProductPage() {
                     <div className="range">
                       Rango: <b>${moneyCOP(fromPrice)}</b> – <b>${moneyCOP(toPrice)}</b> (según talla)
                     </div>
-                  ) : (
-                    <div className="range">Precio según talla y disponibilidad</div>
-                  )}
+                  ) : null}
 
-                  <div className="coupon">
-                    Descuento <span className="pillGold">-{discountPct || 0}%</span>
-                  </div>
+                  {discountPct > 0 ? (
+                    <div className="coupon">
+                      Descuento <span className="pillGold">-{discountPct}%</span>
+                    </div>
+                  ) : null}
 
                   {priceBefore ? (
                     <div className="before">
@@ -1047,6 +1725,70 @@ export default function ProductPage() {
                   {stockMessage}
                 </div>
               ) : null}
+
+              <section
+                className="trustSection inCard"
+                aria-label="Confianza del producto"
+                onMouseLeave={() => setActiveTrustKey(null)}
+              >
+                <div className="shipTrustRow">
+                  <div className="deliveryPanel">
+                    <div className="deliveryTop">
+                      <span className="deliveryEmoji" aria-hidden="true">
+                        🚚
+                      </span>
+                      <div className="deliveryDate">{deliveryEstimate}</div>
+                    </div>
+                  </div>
+
+                  <div className="trustRail" aria-label="Pilares de confianza">
+                    {trustHighlights.map((item) => (
+                      <button
+                        key={item.key}
+                        type="button"
+                        className={`trustLogoBtn ${item.tone} ${activeTrustKey === item.key ? "active" : ""}`}
+                        onMouseEnter={() => setActiveTrustKey(item.key)}
+                        aria-label={item.title}
+                        title={item.title}
+                      >
+                        <span className="trustIcon" aria-hidden="true">
+                          {item.key === "auth" ? (
+                            <svg viewBox="0 0 24 24" className="trustSvg">
+                              <path
+                                d="M12 2.75 5 5.5v5.13c0 4.2 2.7 8.11 7 9.62 4.3-1.5 7-5.42 7-9.62V5.5l-7-2.75Zm0 5.25a2 2 0 0 1 2 2v1h.5A1.5 1.5 0 0 1 16 12.5v3A1.5 1.5 0 0 1 14.5 17h-5A1.5 1.5 0 0 1 8 15.5v-3A1.5 1.5 0 0 1 9.5 11H10v-1a2 2 0 0 1 2-2Zm0 1.5a.5.5 0 0 0-.5.5v1h1v-1a.5.5 0 0 0-.5-.5Z"
+                                fill="currentColor"
+                              />
+                            </svg>
+                          ) : item.key === "refund" ? (
+                            <svg viewBox="0 0 24 24" className="trustSvg">
+                              <path
+                                d="M12 3a8.99 8.99 0 0 1 7.8 4.5H22l-3.5 3.5L15 7.5h2.26A7 7 0 1 0 19 12h2a9 9 0 1 1-9-9Zm-1.5 5h3a1.5 1.5 0 0 1 0 3h-3a.5.5 0 0 0 0 1h4v2h-2v1h-2v-1H8v-2h3.5a.5.5 0 0 0 0-1h-3a1.5 1.5 0 0 1 0-3h3V7h2v1Z"
+                                fill="currentColor"
+                              />
+                            </svg>
+                          ) : (
+                            <svg viewBox="0 0 24 24" className="trustSvg">
+                              <path
+                                d="M12 4c4.97 0 9 3.36 9 7.5S16.97 19 12 19c-1.17 0-2.3-.19-3.34-.54L4 20l1.28-3.18C3.84 15.48 3 13.56 3 11.5 3 7.36 7.03 4 12 4Zm-3.5 6a1.5 1.5 0 1 0 0 3h7a1.5 1.5 0 1 0 0-3h-7Z"
+                                fill="currentColor"
+                              />
+                            </svg>
+                          )}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {activeTrust ? (
+                  <article className={`trustDetail ${activeTrust.tone}`} aria-live="polite">
+                    <div className="trustDetailTop">
+                      <div className="trustCardTitle">{activeTrust.title}</div>
+                    </div>
+                    <p className="trustCardText">{activeTrust.description}</p>
+                  </article>
+                ) : null}
+              </section>
 
               {colors.length ? (
                 <div className="blk">
@@ -1142,10 +1884,6 @@ export default function ProductPage() {
                 </button>
               </div>
 
-              <div className="footNote">
-                <span className="dot" aria-hidden="true" />
-                <span>Entrega internacional gestionada por JUSP.</span>
-              </div>
             </div>
           </section>
         </div>
@@ -1156,6 +1894,82 @@ export default function ProductPage() {
             productSlug={product.slug || slug}
             productTitle={title}
           />
+        ) : null}
+
+        {recommendedProducts.length ? (
+          <section className="recoSection" aria-labelledby="storeRecoTitle">
+            <div className="recoHead">
+              <div className="recoHeadCopy">
+                <div className="recoEyebrow">JUSP para ti</div>
+                <h2 id="storeRecoTitle" className="recoTitle">
+                  Lo recomendado por la tienda
+                </h2>
+                <p className="recoSub">{recommendationSummary}</p>
+              </div>
+
+              <div className="recoStat">
+                {sessionUser?.email ? "Afinado con tu actividad" : "Basado en tus gustos recientes"}
+              </div>
+            </div>
+
+            <div className="recoGrid">
+              {recommendedProducts.map(({ product: reco, reason, score }, index) => {
+                const recoKey = productAliases(reco)[0] || `${reco.id}-${index}`;
+                const recoHrefSlug = String(reco.slug || reco.id || "").trim();
+                const recoHref = recoHrefSlug ? `/product/${encodeURIComponent(recoHrefSlug)}` : "/products";
+                const recoImage = buildImageCandidates(reco, reco.slug || reco.id)[0] || "";
+                const recoPrice = minVariantPrice(reco);
+                const recoDiscount = Math.max(0, Number(reco.discountPercent || 0));
+                const recoMeta = uniqueStringsCaseInsensitive(
+                  [
+                    reco.brand,
+                    reco.category,
+                    reco.gender === "women"
+                      ? "Mujer"
+                      : reco.gender === "men"
+                      ? "Hombre"
+                      : reco.gender === "kids"
+                      ? "Niños"
+                      : "",
+                  ].filter(Boolean) as string[]
+                ).join(" · ");
+                const recoLiked = productAliases(reco).some((alias) => favoriteIds.includes(alias));
+
+                return (
+                  <Link key={recoKey} href={recoHref} className="recoCard">
+                    <div className="recoMedia">
+                      {recoImage ? (
+                        <img src={recoImage} alt={reco.title || reco.name || "Producto recomendado"} />
+                      ) : (
+                        <div className="recoPlaceholder">JUSP</div>
+                      )}
+
+                      <div className="recoBadgeRow">
+                        <span className="recoBadge">{recoLiked ? "Te gusta" : "Recomendado"}</span>
+                        {reco.bestSeller ? <span className="recoBadge dark">Top tienda</span> : null}
+                      </div>
+                    </div>
+
+                    <div className="recoBody">
+                      <div className="recoReason">{reason}</div>
+                      <h3 className="recoCardTitle">{reco.title || reco.name || "Producto"}</h3>
+                      {recoMeta ? <div className="recoMeta">{recoMeta}</div> : null}
+
+                      <div className="recoFoot">
+                        <div className="recoPrice">${moneyCOP(recoPrice)}</div>
+                        <div className="recoFootMeta">
+                          {recoDiscount > 0 ? <span className="recoMiniPill">-{recoDiscount}%</span> : null}
+                          <span className="recoMatch">
+                            {Math.max(72, Math.min(98, Math.round(72 + score / 6)))}% afinidad
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
         ) : null}
       </div>
 
@@ -1378,6 +2192,66 @@ export default function ProductPage() {
           -webkit-user-select: none;
           transform: translateZ(0);
         }
+        .imgBox.zoomReady img {
+          cursor: zoom-in;
+        }
+        .imgZoomFocus {
+          position: absolute;
+          z-index: 3;
+          border-radius: 18px;
+          border: 1px solid rgba(255, 255, 255, 0.96);
+          background: rgba(255, 255, 255, 0.22);
+          box-shadow:
+            0 18px 40px rgba(0, 0, 0, 0.16),
+            inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+          transform: translate(-50%, -50%) scale(0.92);
+          opacity: 0;
+          transition: opacity 140ms ease, transform 140ms ease;
+          pointer-events: none;
+          backdrop-filter: blur(2px);
+          -webkit-backdrop-filter: blur(2px);
+        }
+        .imgZoomFocus.on {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1);
+        }
+        .cardZoomViewer {
+          position: absolute;
+          inset: 14px;
+          z-index: 7;
+          border-radius: 22px;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          box-shadow: 0 28px 80px rgba(0, 0, 0, 0.16);
+          opacity: 0;
+          transform: translateY(8px) scale(0.985);
+          transition: opacity 140ms ease, transform 140ms ease;
+          pointer-events: none;
+          background:
+            radial-gradient(520px 220px at 20% 10%, rgba(255, 255, 255, 0.72), transparent 55%),
+            rgba(255, 255, 255, 0.98);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          overflow: hidden;
+        }
+        .cardZoomViewerImg {
+          position: absolute;
+          display: block;
+          max-width: none;
+          user-select: none;
+          -webkit-user-select: none;
+          pointer-events: none;
+        }
+        .cardZoomViewer::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.9);
+        }
+        .cardZoomViewer.on {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
 
         .favBtn {
           position: absolute;
@@ -1552,47 +2426,65 @@ export default function ProductPage() {
           position: relative;
           margin-top: 12px;
           display: grid;
-          gap: 10px;
-          padding: 12px 12px;
-          border: 1px solid rgba(0, 0, 0, 0.08);
-          background: rgba(255, 255, 255, 0.8);
-          border-radius: 18px;
+          gap: 12px;
+          padding: 16px 16px 14px;
+          border: 1px solid rgba(212, 175, 55, 0.18);
+          background:
+            radial-gradient(240px 140px at 0% 0%, rgba(212, 175, 55, 0.14), transparent 72%),
+            linear-gradient(180deg, rgba(255, 251, 240, 0.96), rgba(255, 255, 255, 0.98));
+          border-radius: 22px;
+          box-shadow: 0 18px 46px rgba(0, 0, 0, 0.07);
+          overflow: hidden;
         }
 
         .priceNow {
           display: flex;
           align-items: baseline;
-          gap: 6px;
+          gap: 8px;
         }
         .cur {
           font-weight: 950;
           color: var(--jusp-gold-strong);
-          font-size: 16px;
+          font-size: 22px;
+          line-height: 1;
         }
         .num {
           font-weight: 950;
-          color: var(--jusp-gold-strong);
-          font-size: 30px;
-          letter-spacing: -0.02em;
+          color: rgba(0, 0, 0, 0.92);
+          font-size: clamp(38px, 5vw, 48px);
+          line-height: 0.94;
+          letter-spacing: -0.045em;
+          text-shadow: 0 10px 22px rgba(212, 175, 55, 0.1);
         }
 
         .priceMeta {
-          display: grid;
-          gap: 6px;
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 10px;
         }
         .range {
+          flex: 1 1 100%;
           font-weight: 900;
-          color: var(--ink2);
+          color: rgba(0, 0, 0, 0.56);
           font-size: 12px;
+          line-height: 1.45;
         }
         .coupon {
-          font-weight: 900;
-          color: var(--ink2);
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-weight: 950;
+          color: rgba(0, 0, 0, 0.72);
           font-size: 12px;
+          padding: 8px 12px;
+          border-radius: 999px;
+          border: 1px solid rgba(212, 175, 55, 0.18);
+          background: linear-gradient(180deg, rgba(255, 249, 227, 0.98), rgba(255, 255, 255, 0.96));
         }
         .pillGold {
           display: inline-block;
-          margin-left: 8px;
+          margin-left: 0;
           font-weight: 950;
           color: rgba(0, 0, 0, 0.9);
           background: linear-gradient(90deg, var(--jusp-gold), var(--jusp-gold-2));
@@ -1601,14 +2493,21 @@ export default function ProductPage() {
           box-shadow: 0 14px 34px rgba(212, 175, 55, 0.18);
         }
         .before {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
           font-weight: 900;
-          color: var(--ink3);
+          color: rgba(0, 0, 0, 0.58);
           font-size: 12px;
+          padding: 8px 12px;
+          border-radius: 999px;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          background: rgba(255, 255, 255, 0.84);
         }
         .strike {
           text-decoration: line-through;
           color: rgba(0, 0, 0, 0.45);
-          margin-left: 6px;
+          margin-left: 0;
           font-weight: 900;
         }
 
@@ -1644,6 +2543,43 @@ export default function ProductPage() {
           border-color: rgba(255, 40, 0, 0.22);
           background: rgba(255, 40, 0, 0.05);
           color: rgba(170, 20, 0, 0.95);
+        }
+
+        .deliveryPanel {
+          position: relative;
+          margin-top: 12px;
+          display: grid;
+          gap: 10px;
+          padding: 14px;
+          border-radius: 18px;
+          border: 1px solid rgba(212, 175, 55, 0.2);
+          background:
+            radial-gradient(260px 140px at 0% 0%, rgba(212, 175, 55, 0.12), transparent 70%),
+            linear-gradient(180deg, rgba(255, 250, 235, 0.94), rgba(255, 255, 255, 0.96));
+          box-shadow: 0 16px 40px rgba(0, 0, 0, 0.06);
+        }
+        .deliveryTop {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .deliveryEmoji {
+          width: 42px;
+          height: 42px;
+          border-radius: 14px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 22px;
+          background: linear-gradient(135deg, rgba(245, 196, 0, 0.3), rgba(212, 175, 55, 0.14));
+          box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.18);
+          flex: 0 0 auto;
+        }
+        .deliveryDate {
+          font-size: 18px;
+          font-weight: 950;
+          letter-spacing: -0.02em;
+          color: rgba(0, 0, 0, 0.9);
         }
 
         .blk {
@@ -1866,23 +2802,377 @@ export default function ProductPage() {
           filter: none;
         }
 
-        .footNote {
+        .trustSection {
+          margin-top: 22px;
+          padding-top: 18px;
+          border-top: 1px solid rgba(0, 0, 0, 0.06);
+        }
+        .trustHead {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 14px;
+          flex-wrap: wrap;
+        }
+        .trustEyebrow {
+          font-size: 12px;
+          font-weight: 1000;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: rgba(0, 0, 0, 0.58);
+        }
+        .trustTitle {
+          margin: 8px 0 0;
+          font-size: 32px;
+          line-height: 1.05;
+          letter-spacing: -0.03em;
+          color: #111;
+          font-weight: 1000;
+        }
+        .trustLead {
+          margin: 8px 0 0;
+          font-size: 15px;
+          line-height: 1.6;
+          color: rgba(0, 0, 0, 0.62);
+          font-weight: 850;
+        }
+        .trustSection.inCard {
+          margin-top: 14px;
+          padding-top: 0;
+        }
+        .trustSection.inCard .trustTitle {
+          font-size: 22px;
+        }
+        .trustSection.inCard .trustLead {
+          font-size: 13px;
+        }
+        .shipTrustRow {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          align-items: center;
+          gap: 12px;
+        }
+        .shipTrustRow .deliveryPanel {
+          margin-top: 0;
+        }
+        .trustRail {
+          margin-top: 0;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: nowrap;
+        }
+        .trustLogoBtn {
+          border: 0;
+          padding: 0;
+          background: transparent;
+          cursor: pointer;
+          border-radius: 20px;
+          transition:
+            transform 0.18s ease,
+            filter 0.18s ease;
+        }
+        .trustLogoBtn:hover,
+        .trustLogoBtn:focus-visible {
+          transform: translateY(-2px);
+        }
+        .trustLogoBtn:focus-visible {
+          outline: 2px solid rgba(0, 0, 0, 0.14);
+          outline-offset: 4px;
+        }
+        .trustLogoBtn .trustIcon {
+          width: 54px;
+          height: 54px;
+          border-radius: 18px;
+          transition:
+            transform 0.18s ease,
+            box-shadow 0.18s ease,
+            background 0.18s ease,
+            color 0.18s ease;
+        }
+        .trustLogoBtn.gold .trustIcon {
+          background:
+            radial-gradient(120px 90px at 20% 20%, rgba(245, 196, 0, 0.22), transparent 70%),
+            rgba(255, 255, 255, 0.96);
+        }
+        .trustLogoBtn.mint .trustIcon {
+          background:
+            radial-gradient(120px 90px at 20% 20%, rgba(21, 128, 61, 0.16), transparent 70%),
+            rgba(255, 255, 255, 0.96);
+        }
+        .trustLogoBtn.lavender .trustIcon {
+          background:
+            radial-gradient(120px 90px at 20% 20%, rgba(130, 120, 255, 0.16), transparent 70%),
+            rgba(255, 255, 255, 0.96);
+        }
+        .trustLogoBtn.active .trustIcon,
+        .trustLogoBtn:hover .trustIcon,
+        .trustLogoBtn:focus-visible .trustIcon {
+          transform: translateY(-1px) scale(1.03);
+          box-shadow:
+            0 16px 34px rgba(0, 0, 0, 0.1),
+            inset 0 0 0 1px rgba(0, 0, 0, 0.09);
+        }
+        .trustIcon {
+          width: 42px;
+          height: 42px;
+          border-radius: 14px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          color: rgba(0, 0, 0, 0.82);
+          background: rgba(255, 255, 255, 0.9);
+          box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+        }
+        .trustSvg {
+          width: 22px;
+          height: 22px;
+          display: block;
+        }
+        .trustDetail {
+          margin-top: 14px;
+          border-radius: 22px;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          background: rgba(255, 255, 255, 0.95);
+          padding: 18px;
+          box-shadow: 0 18px 50px rgba(0, 0, 0, 0.08);
+          min-height: 132px;
+        }
+        .trustDetail.gold {
+          background:
+            radial-gradient(220px 130px at 0% 0%, rgba(245, 196, 0, 0.12), transparent 70%),
+            rgba(255, 255, 255, 0.96);
+        }
+        .trustDetail.mint {
+          background:
+            radial-gradient(220px 130px at 0% 0%, rgba(21, 128, 61, 0.1), transparent 70%),
+            rgba(255, 255, 255, 0.96);
+        }
+        .trustDetail.lavender {
+          background:
+            radial-gradient(220px 130px at 0% 0%, rgba(130, 120, 255, 0.1), transparent 70%),
+            rgba(255, 255, 255, 0.96);
+        }
+        .trustDetailTop {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .trustCardTitle {
+          margin-top: 0;
+          font-size: 16px;
+          font-weight: 950;
+          color: #111;
+          letter-spacing: -0.02em;
+        }
+        .trustCardText {
+          margin: 8px 0 0;
+          font-size: 14px;
+          line-height: 1.65;
+          color: rgba(0, 0, 0, 0.66);
+          font-weight: 850;
+          white-space: pre-line;
+        }
+
+        .recoSection {
+          margin-top: 34px;
+          padding: 26px;
+          border-radius: 28px;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          background:
+            radial-gradient(620px 220px at 0% 0%, rgba(212, 175, 55, 0.12), transparent 62%),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.94));
+          box-shadow: 0 24px 80px rgba(0, 0, 0, 0.08);
+        }
+        .recoHead {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 18px;
+          margin-bottom: 22px;
+        }
+        .recoHeadCopy {
+          display: grid;
+          gap: 8px;
+        }
+        .recoEyebrow {
+          font-size: 12px;
+          font-weight: 950;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          color: rgba(0, 0, 0, 0.48);
+        }
+        .recoTitle {
+          margin: 0;
+          font-size: clamp(28px, 3vw, 40px);
+          line-height: 0.98;
+          letter-spacing: -0.04em;
+          font-weight: 1000;
+          color: rgba(0, 0, 0, 0.94);
+        }
+        .recoSub {
+          margin: 0;
+          max-width: 720px;
+          font-size: 15px;
+          line-height: 1.6;
+          font-weight: 850;
+          color: rgba(0, 0, 0, 0.62);
+        }
+        .recoStat {
+          flex: 0 0 auto;
+          border-radius: 999px;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          background: rgba(255, 255, 255, 0.88);
+          padding: 12px 16px;
+          font-size: 13px;
+          font-weight: 950;
+          color: rgba(0, 0, 0, 0.68);
+          box-shadow: 0 14px 34px rgba(0, 0, 0, 0.06);
+        }
+        .recoGrid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 16px;
+        }
+        .recoCard {
+          display: grid;
+          grid-template-rows: auto 1fr;
+          text-decoration: none;
+          color: inherit;
+          border-radius: 24px;
+          overflow: hidden;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          background: rgba(255, 255, 255, 0.96);
+          box-shadow: 0 20px 54px rgba(0, 0, 0, 0.08);
+          transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+        }
+        .recoCard:hover {
+          transform: translateY(-3px);
+          border-color: rgba(212, 175, 55, 0.32);
+          box-shadow: 0 28px 66px rgba(0, 0, 0, 0.12);
+        }
+        .recoMedia {
           position: relative;
-          margin-top: 12px;
+          aspect-ratio: 0.92;
+          overflow: hidden;
+          background:
+            radial-gradient(320px 160px at 20% 0%, rgba(212, 175, 55, 0.18), transparent 60%),
+            linear-gradient(180deg, rgba(249, 249, 249, 0.98), rgba(240, 240, 240, 0.94));
+        }
+        .recoMedia img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+        .recoPlaceholder {
+          width: 100%;
+          height: 100%;
+          display: grid;
+          place-items: center;
+          font-size: 28px;
+          font-weight: 1000;
+          letter-spacing: 0.12em;
+          color: rgba(0, 0, 0, 0.28);
+        }
+        .recoBadgeRow {
+          position: absolute;
+          left: 14px;
+          right: 14px;
+          bottom: 14px;
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .recoBadge {
+          display: inline-flex;
+          align-items: center;
+          min-height: 32px;
+          border-radius: 999px;
+          padding: 0 12px;
+          font-size: 12px;
+          font-weight: 950;
+          color: rgba(0, 0, 0, 0.76);
+          background: rgba(255, 255, 255, 0.92);
+          border: 1px solid rgba(255, 255, 255, 0.96);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+        }
+        .recoBadge.dark {
+          color: rgba(255, 255, 255, 0.96);
+          background: rgba(0, 0, 0, 0.82);
+          border-color: rgba(255, 255, 255, 0.16);
+        }
+        .recoBody {
+          display: grid;
+          align-content: start;
+          gap: 10px;
+          padding: 16px 16px 18px;
+        }
+        .recoReason {
+          font-size: 11px;
+          font-weight: 950;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: rgba(0, 0, 0, 0.42);
+        }
+        .recoCardTitle {
+          margin: 0;
+          font-size: 20px;
+          line-height: 1.15;
+          letter-spacing: -0.03em;
+          font-weight: 1000;
+          color: rgba(0, 0, 0, 0.92);
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        .recoMeta {
+          font-size: 13px;
+          font-weight: 850;
+          color: rgba(0, 0, 0, 0.52);
+        }
+        .recoFoot {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-top: 4px;
+        }
+        .recoPrice {
+          font-size: 24px;
+          line-height: 1;
+          font-weight: 1000;
+          letter-spacing: -0.04em;
+          color: rgba(0, 0, 0, 0.96);
+        }
+        .recoFootMeta {
           display: flex;
           align-items: center;
           gap: 8px;
-          font-weight: 900;
-          font-size: 12px;
-          color: rgba(0, 0, 0, 0.6);
-          padding-top: 10px;
-          border-top: 1px solid rgba(0, 0, 0, 0.08);
+          flex-wrap: wrap;
+          justify-content: flex-end;
         }
-        .dot {
-          width: 7px;
-          height: 7px;
+        .recoMiniPill,
+        .recoMatch {
+          display: inline-flex;
+          align-items: center;
+          min-height: 28px;
           border-radius: 999px;
-          background: rgba(212, 175, 55, 0.9);
+          padding: 0 10px;
+          font-size: 11px;
+          font-weight: 950;
+        }
+        .recoMiniPill {
+          color: rgba(0, 0, 0, 0.84);
+          background: rgba(212, 175, 55, 0.18);
+          border: 1px solid rgba(212, 175, 55, 0.22);
+        }
+        .recoMatch {
+          color: rgba(0, 0, 0, 0.6);
+          background: rgba(0, 0, 0, 0.05);
+          border: 1px solid rgba(0, 0, 0, 0.08);
         }
 
         .toast {
@@ -2019,11 +3309,43 @@ export default function ProductPage() {
           .imgBox {
             min-height: 440px;
           }
+          .recoGrid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
+        @media (hover: none), (pointer: coarse) {
+          .cardZoomViewer {
+            display: none;
+          }
+          .imgBox.zoomReady img {
+            cursor: default;
+          }
         }
 
         @media (max-width: 720px) {
           .mobileBar {
             display: flex;
+          }
+          .recoSection {
+            margin-top: 26px;
+            padding: 20px;
+          }
+          .recoHead {
+            align-items: stretch;
+            flex-direction: column;
+          }
+          .recoStat {
+            align-self: flex-start;
+          }
+          .recoGrid {
+            grid-template-columns: 1fr;
+          }
+          .recoCardTitle {
+            font-size: 18px;
+          }
+          .recoPrice {
+            font-size: 22px;
           }
           .gridOps {
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2036,6 +3358,36 @@ export default function ProductPage() {
             padding: 0 12px;
             top: 12px;
             right: 12px;
+          }
+          .deliveryTop,
+          .trustHead {
+            align-items: flex-start;
+          }
+          .trustTitle {
+            font-size: 26px;
+          }
+          .shipTrustRow {
+            grid-template-columns: 1fr;
+            align-items: stretch;
+          }
+          .trustRail {
+            gap: 10px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+          }
+          .trustRail::-webkit-scrollbar {
+            display: none;
+          }
+          .trustLogoBtn .trustIcon {
+            width: 50px;
+            height: 50px;
+          }
+          .trustDetail {
+            min-height: 148px;
+            padding: 16px;
           }
         }
 

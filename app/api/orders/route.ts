@@ -61,6 +61,8 @@ function sanitizeOrderItems(items: any[]) {
     .map((item) => ({
       id: String(item?.id || item?.product_id || "").trim(),
       product_id: String(item?.product_id || item?.id || "").trim() || null,
+      slug: String(item?.slug || item?.product_slug || "").trim() || null,
+      product_slug: String(item?.product_slug || item?.slug || "").trim() || null,
       name: String(item?.name || "").trim() || null,
       qty: toSafeQty(item?.qty),
       price: Number.isFinite(Number(item?.price)) ? Number(item?.price) : 0,

@@ -14,6 +14,8 @@ export type OrderStatus =
 export type OrderItem = {
   id?: string | null;
   product_id?: string | null;
+  slug?: string | null;
+  product_slug?: string | null;
   name?: string | null;
   qty?: number | null;
   price?: number | null;

@@ -3,8 +3,9 @@ import {
   ProductReviewError,
   createProductReview,
   getProductReviewViewer,
-  listProductReviews,
+  listStoredProductReviews,
   summarizeProductReviews,
+  toPublicProductReview,
 } from "@/lib/productReviews";
 
 export const runtime = "nodejs";
@@ -42,9 +43,10 @@ export async function GET(req: NextRequest) {
       return noStoreJson({ ok: false, error: "Falta productId." }, 400);
     }
 
-    const reviews = await listProductReviews(productKeys);
-    const summary = summarizeProductReviews(reviews);
-    const viewer = await getProductReviewViewer(req, productKeys, reviews);
+    const storedReviews = await listStoredProductReviews(productKeys);
+    const summary = summarizeProductReviews(storedReviews);
+    const viewer = await getProductReviewViewer(req, productKeys, storedReviews);
+    const reviews = storedReviews.map(toPublicProductReview);
 
     return noStoreJson({
       ok: true,
@@ -87,8 +89,8 @@ export async function POST(req: NextRequest) {
       comment,
     });
 
-    const reviews = await listProductReviews([productId, productSlug].filter(Boolean));
-    const summary = summarizeProductReviews(reviews);
+    const storedReviews = await listStoredProductReviews([productId, productSlug].filter(Boolean));
+    const summary = summarizeProductReviews(storedReviews);
 
     return noStoreJson({
       ok: true,

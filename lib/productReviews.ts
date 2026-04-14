@@ -13,12 +13,15 @@ type ReviewRating = 1 | 2 | 3 | 4 | 5;
 
 type ReviewLogMeta = {
   kind?: string;
-  product_id?: string;
+  product_key?: string | null;
+  product_id?: string | null;
   product_slug?: string | null;
   product_title?: string | null;
   rating?: number;
   comment?: string;
   author_name?: string | null;
+  user_id?: string | null;
+  reviewer_key?: string | null;
   verified_purchase?: boolean;
   order_code?: string | null;
   purchase_status?: string | null;
@@ -26,16 +29,38 @@ type ReviewLogMeta = {
 };
 
 type ReviewLogRow = {
-  id?: string | null;
+  id?: string | number | null;
   created_at?: string | null;
   user_email?: string | null;
   order_id?: string | null;
   meta?: ReviewLogMeta | null;
 };
 
+type ProductReviewRow = {
+  id?: string | number | null;
+  created_at?: string | null;
+  product_key?: string | null;
+  product_id?: string | null;
+  product_slug?: string | null;
+  product_title?: string | null;
+  rating?: number | null;
+  comment?: string | null;
+  author_name?: string | null;
+  user_id?: string | null;
+  user_email?: string | null;
+  reviewer_key?: string | null;
+  verified_purchase?: boolean | null;
+  order_id?: string | null;
+  order_code?: string | null;
+  purchase_status?: string | null;
+  purchased_at?: string | null;
+};
+
 type ReviewOrderItem = {
   id?: string | null;
   product_id?: string | null;
+  slug?: string | null;
+  product_slug?: string | null;
   name?: string | null;
 };
 
@@ -90,7 +115,6 @@ export type ProductReview = {
   rating: ReviewRating;
   comment: string;
   authorName: string;
-  userEmail: string | null;
   createdAt: string | null;
   verifiedPurchase: boolean;
   orderCode: string | null;
@@ -106,6 +130,23 @@ export type ProductReviewViewer = Omit<
   ProductReviewViewerInternal,
   "identity" | "purchase"
 >;
+
+type StoredProductReview = ProductReview & {
+  userId: string | null;
+  userEmail: string | null;
+  reviewerKey: string | null;
+  productKey: string;
+  orderId: string | null;
+};
+
+type DbErrorLike = {
+  code?: string | null;
+  message?: string | null;
+  details?: string | null;
+  hint?: string | null;
+};
+
+let productReviewsTableAvailable: boolean | null = null;
 
 export class ProductReviewError extends Error {
   status: number;
@@ -152,10 +193,29 @@ function normalizeKey(value: unknown): string {
   return normalizeText(value).toLowerCase();
 }
 
+function buildProductKey(...values: unknown[]) {
+  for (const value of values) {
+    const key = normalizeKey(value);
+    if (key) return key;
+  }
+
+  return "";
+}
+
+function buildReviewerKey(userId: unknown, email: unknown) {
+  const safeUserId = normalizeText(userId);
+  if (safeUserId) return `uid:${safeUserId}`;
+
+  const safeEmail = normalizeEmail(email);
+  if (safeEmail) return `email:${safeEmail}`;
+
+  return "";
+}
+
 function buildProductKeySet(productKeys: string[]) {
   return new Set(
     productKeys
-      .map((value) => normalizeKey(value))
+      .map((value) => buildProductKey(value))
       .filter(Boolean)
   );
 }
@@ -232,6 +292,8 @@ function extractOrderItems(order: ReviewOrderRow) {
 function orderContainsProduct(order: ReviewOrderRow, productKeySet: Set<string>) {
   return extractOrderItems(order).some((item) => {
     const candidates = [
+      normalizeKey(item?.slug),
+      normalizeKey(item?.product_slug),
       normalizeKey(item?.id),
       normalizeKey(item?.product_id),
       normalizeKey(item?.name),
@@ -241,22 +303,73 @@ function orderContainsProduct(order: ReviewOrderRow, productKeySet: Set<string>)
   });
 }
 
-function mapReviewRow(row: ReviewLogRow): ProductReview | null {
+function mapProductReviewRow(row: ProductReviewRow): StoredProductReview | null {
+  const rating = toReviewRating(row.rating);
+  const comment = normalizeText(row.comment);
+  const productKey = buildProductKey(row.product_key, row.product_slug, row.product_id);
+
+  if (!rating || !comment || !productKey) return null;
+
+  const userEmail = normalizeEmail(row.user_email) || null;
+  const userId = normalizeText(row.user_id) || null;
+
+  return {
+    id:
+      normalizeText(row.id) ||
+      `${productKey}-${normalizeText(row.order_code || row.order_id)}-${normalizeText(row.created_at)}`,
+    rating,
+    comment,
+    authorName: maskReviewerName(normalizeText(row.author_name) || null, userEmail),
+    createdAt: normalizeText(row.created_at) || null,
+    verifiedPurchase: row.verified_purchase !== false,
+    orderCode: normalizeText(row.order_code || row.order_id) || null,
+    userId,
+    userEmail,
+    reviewerKey: normalizeText(row.reviewer_key) || buildReviewerKey(userId, userEmail) || null,
+    productKey,
+    orderId: normalizeText(row.order_id) || null,
+  };
+}
+
+function mapLegacyReviewRow(row: ReviewLogRow): StoredProductReview | null {
   const meta = safeMeta(row.meta);
   const rating = toReviewRating(meta.rating);
   const comment = normalizeText(meta.comment);
+  const productKey = buildProductKey(meta.product_key, meta.product_slug, meta.product_id);
 
-  if (!rating || !comment) return null;
+  if (!rating || !comment || !productKey) return null;
+
+  const userEmail = normalizeEmail(row.user_email) || null;
+  const userId = normalizeText(meta.user_id) || null;
 
   return {
-    id: normalizeText(row.id) || `${normalizeText(row.order_id)}-${normalizeText(row.created_at)}`,
+    id:
+      normalizeText(row.id) ||
+      `${productKey}-${normalizeText(meta.order_code || row.order_id)}-${normalizeText(row.created_at)}`,
     rating,
     comment,
-    authorName: maskReviewerName(meta.author_name ?? null, row.user_email ?? null),
-    userEmail: normalizeEmail(row.user_email) || null,
+    authorName: maskReviewerName(meta.author_name ?? null, userEmail),
     createdAt: normalizeText(row.created_at) || null,
-    verifiedPurchase: Boolean(meta.verified_purchase),
+    verifiedPurchase: meta.verified_purchase !== false,
     orderCode: normalizeText(meta.order_code || row.order_id) || null,
+    userId,
+    userEmail,
+    reviewerKey:
+      normalizeText(meta.reviewer_key) || buildReviewerKey(userId, userEmail) || null,
+    productKey,
+    orderId: normalizeText(row.order_id) || null,
+  };
+}
+
+export function toPublicProductReview(review: StoredProductReview): ProductReview {
+  return {
+    id: review.id,
+    rating: review.rating,
+    comment: review.comment,
+    authorName: review.authorName,
+    createdAt: review.createdAt,
+    verifiedPurchase: review.verifiedPurchase,
+    orderCode: review.orderCode,
   };
 }
 
@@ -275,9 +388,78 @@ async function getSessionIdentity(req: NextRequest): Promise<SessionIdentity | n
   }
 }
 
-export async function listProductReviews(productKeys: string[]) {
+function isMissingProductReviewsTableError(error: DbErrorLike | null | undefined) {
+  const text = [
+    normalizeText(error?.code),
+    normalizeText(error?.message),
+    normalizeText(error?.details),
+    normalizeText(error?.hint),
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  return (
+    text.includes("product_reviews") &&
+    (
+      text.includes("does not exist") ||
+      text.includes("relation") ||
+      text.includes("could not find the table") ||
+      text.includes("42p01") ||
+      text.includes("pgrst205")
+    )
+  );
+}
+
+function isDuplicateProductReviewError(error: DbErrorLike | null | undefined) {
+  const text = [
+    normalizeText(error?.code),
+    normalizeText(error?.message),
+    normalizeText(error?.details),
+    normalizeText(error?.hint),
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  return (
+    text.includes("product_reviews_one_per_reviewer_product_idx") ||
+    text.includes("product_reviews_unique_reviewer_product") ||
+    (
+      text.includes("duplicate key value violates unique constraint") &&
+      text.includes("product_reviews")
+    )
+  );
+}
+
+async function hasProductReviewsTable() {
+  if (productReviewsTableAvailable !== null) {
+    return productReviewsTableAvailable;
+  }
+
+  const db = getReviewDbClient();
+  const { error } = await db
+    .from("product_reviews")
+    .select("id", { head: true, count: "exact" })
+    .limit(1);
+
+  if (error) {
+    if (isMissingProductReviewsTableError(error)) {
+      productReviewsTableAvailable = false;
+      return false;
+    }
+
+    throw new ProductReviewError(
+      500,
+      error.message || "No se pudo verificar la tabla de reseñas."
+    );
+  }
+
+  productReviewsTableAvailable = true;
+  return true;
+}
+
+async function listLegacyStoredProductReviews(productKeys: string[]) {
   const productKeySet = buildProductKeySet(productKeys);
-  if (!productKeySet.size) return [] as ProductReview[];
+  if (!productKeySet.size) return [] as StoredProductReview[];
 
   const db = getReviewDbClient();
   const { data, error } = await db
@@ -294,20 +476,53 @@ export async function listProductReviews(productKeys: string[]) {
   const rows = Array.isArray(data) ? (data as ReviewLogRow[]) : [];
 
   return rows
-    .filter((row) => {
-      const meta = safeMeta(row.meta);
-      const reviewProductKeys = [
-        normalizeKey(meta.product_id),
-        normalizeKey(meta.product_slug),
-      ].filter(Boolean);
-
-      return reviewProductKeys.some((key) => productKeySet.has(key));
-    })
-    .map(mapReviewRow)
-    .filter((review): review is ProductReview => Boolean(review));
+    .map(mapLegacyReviewRow)
+    .filter((review): review is StoredProductReview => Boolean(review))
+    .filter((review) => productKeySet.has(review.productKey));
 }
 
-export function summarizeProductReviews(reviews: ProductReview[]): ProductReviewSummary {
+export async function listStoredProductReviews(productKeys: string[]) {
+  const productKeySet = buildProductKeySet(productKeys);
+  if (!productKeySet.size) return [] as StoredProductReview[];
+
+  if (!(await hasProductReviewsTable())) {
+    return listLegacyStoredProductReviews(productKeys);
+  }
+
+  const db = getReviewDbClient();
+  const { data, error } = await db
+    .from("product_reviews")
+    .select(
+      "id, created_at, product_key, product_id, product_slug, product_title, rating, comment, author_name, user_id, user_email, reviewer_key, verified_purchase, order_id, order_code, purchase_status, purchased_at"
+    )
+    .in("product_key", Array.from(productKeySet))
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  if (error) {
+    if (isMissingProductReviewsTableError(error)) {
+      productReviewsTableAvailable = false;
+      return listLegacyStoredProductReviews(productKeys);
+    }
+
+    throw new ProductReviewError(500, error.message || "No se pudieron cargar las reseñas.");
+  }
+
+  const rows = Array.isArray(data) ? (data as ProductReviewRow[]) : [];
+
+  return rows
+    .map(mapProductReviewRow)
+    .filter((review): review is StoredProductReview => Boolean(review));
+}
+
+export async function listProductReviews(productKeys: string[]) {
+  const reviews = await listStoredProductReviews(productKeys);
+  return reviews.map(toPublicProductReview);
+}
+
+export function summarizeProductReviews(
+  reviews: readonly Pick<ProductReview, "rating">[]
+): ProductReviewSummary {
   const distribution: Record<ReviewRating, number> = {
     1: 0,
     2: 0,
@@ -338,10 +553,68 @@ export function summarizeProductReviews(reviews: ProductReview[]): ProductReview
   };
 }
 
+async function fetchOrdersByField(
+  field: "user_id" | "customer_email",
+  value: string
+) {
+  const db = getReviewDbClient();
+  const { data, error } = await db
+    .from("orders")
+    .select("id, order_code, status, paid_at, created_at, customer_name, customer_email, user_id, items")
+    .eq(field, value)
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (error) {
+    throw new ProductReviewError(500, error.message || "No se pudo verificar la compra.");
+  }
+
+  return Array.isArray(data) ? (data as ReviewOrderRow[]) : [];
+}
+
+async function listCandidateOrders(identity: SessionIdentity) {
+  const tasks: Array<Promise<ReviewOrderRow[]>> = [];
+  const safeUserId = normalizeText(identity.userId);
+  const safeEmail = normalizeEmail(identity.email);
+
+  if (safeUserId) {
+    tasks.push(fetchOrdersByField("user_id", safeUserId));
+  }
+
+  if (safeEmail) {
+    tasks.push(fetchOrdersByField("customer_email", safeEmail));
+  }
+
+  if (!tasks.length) {
+    return [] as ReviewOrderRow[];
+  }
+
+  const groups = await Promise.all(tasks);
+  const merged = new Map<string, ReviewOrderRow>();
+
+  for (const rows of groups) {
+    for (const row of rows) {
+      const key =
+        normalizeText(row.id) ||
+        normalizeText(row.order_code) ||
+        `${normalizeEmail(row.customer_email)}-${normalizeText(row.created_at)}`;
+
+      if (!key || merged.has(key)) continue;
+      merged.set(key, row);
+    }
+  }
+
+  return Array.from(merged.values()).sort((a, b) => {
+    const aTime = new Date(a.created_at || 0).getTime();
+    const bTime = new Date(b.created_at || 0).getTime();
+    return bTime - aTime;
+  });
+}
+
 async function resolveReviewViewerInternal(
   req: NextRequest,
   productKeys: string[],
-  reviews: ProductReview[]
+  reviews: StoredProductReview[]
 ): Promise<ProductReviewViewerInternal> {
   const identity = await getSessionIdentity(req);
 
@@ -359,8 +632,16 @@ async function resolveReviewViewerInternal(
   }
 
   const viewerEmail = normalizeEmail(identity.email);
+  const reviewerKey = buildReviewerKey(identity.userId, viewerEmail);
 
-  if (viewerEmail && reviews.some((review) => normalizeEmail(review.userEmail) === viewerEmail)) {
+  if (
+    reviews.some((review) => {
+      if (reviewerKey && review.reviewerKey === reviewerKey) return true;
+      if (identity.userId && normalizeText(review.userId) === normalizeText(identity.userId)) return true;
+      if (viewerEmail && normalizeEmail(review.userEmail) === viewerEmail) return true;
+      return false;
+    })
+  ) {
     return {
       loggedIn: true,
       canReview: false,
@@ -373,27 +654,8 @@ async function resolveReviewViewerInternal(
     };
   }
 
-  const db = getReviewDbClient();
-  let query = db
-    .from("orders")
-    .select("id, order_code, status, paid_at, created_at, customer_name, customer_email, user_id, items")
-    .order("created_at", { ascending: false })
-    .limit(100);
-
-  if (identity.userId) {
-    query = query.eq("user_id", identity.userId);
-  } else if (viewerEmail) {
-    query = query.eq("customer_email", viewerEmail);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    throw new ProductReviewError(500, error.message || "No se pudo verificar la compra.");
-  }
-
   const productKeySet = buildProductKeySet(productKeys);
-  const orders = Array.isArray(data) ? (data as ReviewOrderRow[]) : [];
+  const orders = await listCandidateOrders(identity);
 
   const qualifyingOrder =
     orders.find(
@@ -441,7 +703,7 @@ async function resolveReviewViewerInternal(
 export async function getProductReviewViewer(
   req: NextRequest,
   productKeys: string[],
-  reviews: ProductReview[]
+  reviews: StoredProductReview[]
 ): Promise<ProductReviewViewer> {
   const internal = await resolveReviewViewerInternal(req, productKeys, reviews);
 
@@ -453,6 +715,111 @@ export async function getProductReviewViewer(
     reason: internal.reason,
     reviewerName: internal.reviewerName,
   };
+}
+
+async function insertDedicatedProductReview(
+  review: StoredProductReview,
+  productId: string,
+  productSlug: string,
+  productTitle: string,
+  purchase: ProductReviewPurchase
+) {
+  const db = getReviewDbClient();
+  const insertPayload = {
+    product_key: review.productKey,
+    product_id: productId,
+    product_slug: productSlug || null,
+    product_title: productTitle || null,
+    rating: review.rating,
+    comment: review.comment,
+    author_name: review.authorName,
+    user_id: review.userId,
+    user_email: review.userEmail,
+    reviewer_key: review.reviewerKey,
+    verified_purchase: true,
+    order_id: review.orderId,
+    order_code: purchase.orderCode,
+    purchase_status: purchase.status,
+    purchased_at: purchase.purchasedAt,
+  };
+
+  const { data, error } = await db
+    .from("product_reviews")
+    .insert(insertPayload)
+    .select(
+      "id, created_at, product_key, product_id, product_slug, product_title, rating, comment, author_name, user_id, user_email, reviewer_key, verified_purchase, order_id, order_code, purchase_status, purchased_at"
+    )
+    .single();
+
+  if (error) {
+    if (isMissingProductReviewsTableError(error)) {
+      productReviewsTableAvailable = false;
+      return null;
+    }
+
+    if (isDuplicateProductReviewError(error)) {
+      throw new ProductReviewError(409, "Ya dejaste una reseña para este producto.");
+    }
+
+    throw new ProductReviewError(500, error.message || "No se pudo guardar la reseña.");
+  }
+
+  const stored = mapProductReviewRow(data as ProductReviewRow);
+  if (!stored) {
+    throw new ProductReviewError(500, "La reseña se guardó pero no se pudo leer.");
+  }
+
+  return stored;
+}
+
+async function insertLegacyProductReview(
+  review: StoredProductReview,
+  productId: string,
+  productSlug: string,
+  productTitle: string,
+  purchase: ProductReviewPurchase
+) {
+  const db = getReviewDbClient();
+  const insertPayload = {
+    level: "info",
+    scope: "product_review",
+    message: "Cliente dejó una reseña de producto",
+    user_email: review.userEmail,
+    order_id: purchase.orderCode || purchase.orderId,
+    meta: {
+      kind: "product_review",
+      product_key: review.productKey,
+      product_id: productId,
+      product_slug: productSlug || null,
+      product_title: productTitle || null,
+      rating: review.rating,
+      comment: review.comment,
+      author_name: review.authorName,
+      user_id: review.userId,
+      reviewer_key: review.reviewerKey,
+      verified_purchase: true,
+      order_code: purchase.orderCode,
+      purchase_status: purchase.status,
+      purchased_at: purchase.purchasedAt,
+    },
+  };
+
+  const { data, error } = await db
+    .from("logs")
+    .insert(insertPayload)
+    .select("id, created_at, user_email, order_id, meta")
+    .single();
+
+  if (error) {
+    throw new ProductReviewError(500, error.message || "No se pudo guardar la reseña.");
+  }
+
+  const stored = mapLegacyReviewRow(data as ReviewLogRow);
+  if (!stored) {
+    throw new ProductReviewError(500, "La reseña se guardó pero no se pudo leer.");
+  }
+
+  return stored;
 }
 
 export async function createProductReview(params: {
@@ -468,9 +835,14 @@ export async function createProductReview(params: {
   const productTitle = normalizeText(params.productTitle);
   const comment = normalizeText(params.comment);
   const rating = toReviewRating(params.rating);
+  const productKey = buildProductKey(productSlug, productId);
 
   if (!productId) {
     throw new ProductReviewError(400, "Falta el producto de la reseña.");
+  }
+
+  if (!productKey) {
+    throw new ProductReviewError(400, "No se pudo resolver el producto de la reseña.");
   }
 
   if (!rating) {
@@ -486,7 +858,7 @@ export async function createProductReview(params: {
   }
 
   const productKeys = [productId, productSlug].filter(Boolean);
-  const reviews = await listProductReviews(productKeys);
+  const reviews = await listStoredProductReviews(productKeys);
   const viewer = await resolveReviewViewerInternal(params.req, productKeys, reviews);
 
   if (!viewer.loggedIn || !viewer.identity) {
@@ -507,43 +879,48 @@ export async function createProductReview(params: {
     );
   }
 
-  const db = getReviewDbClient();
-  const insertPayload = {
-    level: "info",
-    scope: "product_review",
-    message: "Cliente dejó una reseña de producto",
-    user_email: viewer.identity.email,
-    order_id: viewer.purchase.orderCode || viewer.purchase.orderId,
-    meta: {
-      kind: "product_review",
-      product_id: productId,
-      product_slug: productSlug || null,
-      product_title: productTitle || null,
-      rating,
-      comment,
-      author_name: viewer.reviewerName,
-      verified_purchase: true,
-      order_code: viewer.purchase.orderCode,
-      purchase_status: viewer.purchase.status,
-      purchased_at: viewer.purchase.purchasedAt,
-    },
+  const reviewerKey = buildReviewerKey(viewer.identity.userId, viewer.identity.email);
+
+  if (!reviewerKey) {
+    throw new ProductReviewError(401, "No se pudo validar tu identidad para comentar.");
+  }
+
+  const draftReview: StoredProductReview = {
+    id: "",
+    rating,
+    comment,
+    authorName: viewer.reviewerName || "Cliente verificado",
+    createdAt: null,
+    verifiedPurchase: true,
+    orderCode: viewer.purchase.orderCode || viewer.purchase.orderId,
+    userId: viewer.identity.userId,
+    userEmail: normalizeEmail(viewer.identity.email) || null,
+    reviewerKey,
+    productKey,
+    orderId: viewer.purchase.orderId,
   };
 
-  const { data, error } = await db
-    .from("logs")
-    .insert(insertPayload)
-    .select("id, created_at, user_email, order_id, meta")
-    .single();
+  let storedReview: StoredProductReview | null = null;
 
-  if (error) {
-    throw new ProductReviewError(500, error.message || "No se pudo guardar la reseña.");
+  if (await hasProductReviewsTable()) {
+    storedReview = await insertDedicatedProductReview(
+      draftReview,
+      productId,
+      productSlug,
+      productTitle,
+      viewer.purchase
+    );
   }
 
-  const review = mapReviewRow(data as ReviewLogRow);
-
-  if (!review) {
-    throw new ProductReviewError(500, "La reseña se guardó pero no se pudo leer.");
+  if (!storedReview) {
+    storedReview = await insertLegacyProductReview(
+      draftReview,
+      productId,
+      productSlug,
+      productTitle,
+      viewer.purchase
+    );
   }
 
-  return review;
+  return toPublicProductReview(storedReview);
 }

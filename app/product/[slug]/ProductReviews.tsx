@@ -51,6 +51,16 @@ type ReviewSubmitResponse =
       error: string;
     };
 
+type ReviewFilter = "all" | "5" | "4";
+
+type ViewerState = {
+  badge: string;
+  badgeTone: "loading" | "ready" | "locked" | "done";
+  title: string;
+  text: string;
+  helper: string | null;
+};
+
 function formatReviewDate(value: string | null) {
   if (!value) return "Fecha reciente";
 
@@ -89,6 +99,56 @@ function emptySummary(): ProductReviewSummary {
   };
 }
 
+function resolveViewerState(viewer: ProductReviewViewer | null): ViewerState {
+  if (!viewer) {
+    return {
+      badge: "Validando acceso",
+      badgeTone: "loading",
+      title: "Estamos comprobando tu cuenta",
+      text: "Verificamos tu sesión y tus compras para decidir si puedes comentar este producto.",
+      helper: null,
+    };
+  }
+
+  if (viewer.canReview) {
+    return {
+      badge: "Compra verificada",
+      badgeTone: "ready",
+      title: "Ya puedes compartir tu experiencia",
+      text: "Tu compra fue confirmada. Cuéntales a otros clientes cómo te quedó, qué tal la calidad y cómo llegó.",
+      helper: "Tu comentario se publicará como reseña verificada.",
+    };
+  }
+
+  if (viewer.alreadyReviewed) {
+    return {
+      badge: "Reseña publicada",
+      badgeTone: "done",
+      title: "Tu reseña ya quedó registrada",
+      text: "Tu comentario ya aparece en este producto y sigue ayudando a otros compradores.",
+      helper: viewer.reason,
+    };
+  }
+
+  if (!viewer.loggedIn) {
+    return {
+      badge: "Sesión requerida",
+      badgeTone: "locked",
+      title: "Entra con tu cuenta para revisar acceso",
+      text: "Si compraste este producto con tu cuenta, al iniciar sesión podremos habilitar estrellas y comentario.",
+      helper: "Solo publicamos reseñas de clientes con compra confirmada.",
+    };
+  }
+
+  return {
+    badge: "Compra requerida",
+    badgeTone: "locked",
+    title: "Las reseñas están reservadas para compradores",
+    text: "Cuando tu cuenta tenga una compra confirmada de este producto, aquí se abrirá el formulario para comentar.",
+    helper: viewer.reason,
+  };
+}
+
 export default function ProductReviews({
   productId,
   productSlug,
@@ -108,6 +168,8 @@ export default function ProductReviews({
   const [successMessage, setSuccessMessage] = useState("");
   const [draftRating, setDraftRating] = useState<1 | 2 | 3 | 4 | 5>(5);
   const [draftComment, setDraftComment] = useState("");
+  const [showAllReviews, setShowAllReviews] = useState(false);
+  const [reviewFilter, setReviewFilter] = useState<ReviewFilter>("all");
 
   useEffect(() => {
     let cancelled = false;
@@ -161,10 +223,78 @@ export default function ProductReviews({
     };
   }, [productId, productSlug]);
 
+  useEffect(() => {
+    if (!showAllReviews) return;
+
+    const previousOverflow = document.body.style.overflow;
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setShowAllReviews(false);
+      }
+    }
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [showAllReviews]);
+
   const reviewCountLabel = useMemo(() => {
     if (summary.totalReviews === 1) return "1 reseña verificada";
     return `${summary.totalReviews} reseñas verificadas`;
   }, [summary.totalReviews]);
+
+  const viewerState = useMemo(() => resolveViewerState(viewer), [viewer]);
+
+  const latestReview = reviews[0] ?? null;
+  const hasMoreReviews = reviews.length > 1;
+  const canOpenReviewsPanel = !loading;
+  const fiveStarCount = summary.distribution[5] || 0;
+  const fourOrLessCount = Math.max(0, summary.totalReviews - fiveStarCount);
+
+  const filteredReviews = useMemo(() => {
+    if (reviewFilter === "5") {
+      return reviews.filter((review) => review.rating === 5);
+    }
+
+    if (reviewFilter === "4") {
+      return reviews.filter((review) => review.rating <= 4);
+    }
+
+    return reviews;
+  }, [reviewFilter, reviews]);
+
+  const accessCardTitle = loading
+    ? "Estamos preparando las reseñas"
+    : viewer?.canReview
+      ? "Comparte cómo te fue"
+      : viewer?.alreadyReviewed
+        ? "Tu reseña ya está publicada"
+        : "Acceso a reseñas verificadas";
+
+  const accessCardHint = loading
+    ? "Comprobamos tu sesión y la compra asociada a este producto."
+    : viewer?.canReview
+      ? "Tu compra ya fue validada. Cuéntales a otros clientes cómo te quedó y cómo llegó."
+      : viewer?.alreadyReviewed
+        ? "Tu comentario ya aparece en este producto y sigue ayudando a otros compradores."
+        : viewerState.text;
+
+  const latestReviewTitle =
+    summary.totalReviews > 1
+      ? "Reseña más reciente"
+      : summary.totalReviews === 1
+        ? "Reseña verificada"
+        : "Aún sin reseñas";
+
+  const isLoginRequiredState = Boolean(viewer && !viewer.loggedIn);
+  const isPurchaseRequiredState = Boolean(
+    viewer && viewer.loggedIn && !viewer.canReview && !viewer.alreadyReviewed
+  );
 
   const canSubmit =
     Boolean(viewer?.canReview) &&
@@ -209,7 +339,10 @@ export default function ProductReviews({
         throw new Error(message);
       }
 
-      setReviews((current) => [data.review, ...current]);
+      setReviews((current) => [
+        data.review,
+        ...current.filter((review) => review.id !== data.review.id),
+      ]);
       setSummary(data.summary);
       setViewer((current) =>
         current
@@ -224,6 +357,8 @@ export default function ProductReviews({
       );
       setDraftComment("");
       setDraftRating(5);
+      setReviewFilter("all");
+      setShowAllReviews(false);
       setSuccessMessage("Tu comentario fue publicado con compra verificada.");
     } catch (submitReviewError) {
       setSubmitError(
@@ -290,13 +425,13 @@ export default function ProductReviews({
           <div className="formCard">
             <div className="formTop">
               <div>
-                <div className="formTitle">Deja tu experiencia</div>
-                <div className="formHint">
-                  {viewer?.purchaseVerified
-                    ? "Compra verificada encontrada para este producto."
-                    : "Necesitas una compra confirmada para comentar."}
-                </div>
+                <div className="panelEyebrow">Tu acceso a reseñas</div>
+                <div className="formTitle">{accessCardTitle}</div>
+                <div className="formHint">{accessCardHint}</div>
               </div>
+              <span className={`statusPill ${loading ? "loading" : viewerState.badgeTone}`}>
+                {loading ? "Validando acceso" : viewerState.badge}
+              </span>
             </div>
 
             {loading ? (
@@ -305,6 +440,11 @@ export default function ProductReviews({
               <div className="stateBox error">{error}</div>
             ) : viewer?.canReview ? (
               <form onSubmit={onSubmitReview} className="reviewForm">
+                <div className="inlineInfo">
+                  <span className="miniBadge">Compra confirmada</span>
+                  <span>Tu comentario aparecerá con sello de reseña verificada.</span>
+                </div>
+
                 <div className="field">
                   <div className="fieldLabel">Tu calificación</div>
                   <div className="starPicker" role="radiogroup" aria-label="Califica este producto">
@@ -347,65 +487,209 @@ export default function ProductReviews({
                 </button>
               </form>
             ) : (
-              <div className="lockedBox">
-                <div className="lockedTitle">
-                  {viewer?.alreadyReviewed ? "Gracias por tu reseña" : "Reseñas con compra verificada"}
-                </div>
-                <div className="lockedText">
-                  {viewer?.reason ||
-                    "Solo los clientes con compra confirmada pueden dejar estrellas y comentarios."}
-                </div>
-
-                {!viewer?.loggedIn ? (
-                  <Link href="/login" className="loginLink">
-                    Inicia sesión
-                  </Link>
-                ) : null}
+              <div
+                className={`lockedBox ${viewer?.alreadyReviewed ? "successTone" : ""} ${
+                  isLoginRequiredState ? "compact" : ""
+                }`}
+              >
+                {isLoginRequiredState ? (
+                  <>
+                    <div className="miniBadge login">Acceso seguro</div>
+                    <div className="lockedText">
+                      Inicia sesión para revisar si tu cuenta tiene una compra confirmada de este
+                      producto.
+                    </div>
+                    <div className="helperText">
+                      Solo habilitamos estrellas y comentarios cuando encontramos una compra
+                      válida en tu historial.
+                    </div>
+                    <Link href="/login" className="loginLink">
+                      Iniciar sesión
+                    </Link>
+                  </>
+                ) : isPurchaseRequiredState ? (
+                  <>
+                    <div className="lockedTitle">Compra requerida para comentar</div>
+                    <div className="lockedText">
+                      Esta sección se activa automáticamente cuando tu cuenta tenga una compra
+                      confirmada de este producto.
+                    </div>
+                    {viewerState.helper ? <div className="helperText">{viewerState.helper}</div> : null}
+                  </>
+                ) : (
+                  <>
+                    <div className="lockedTitle">{viewerState.title}</div>
+                    <div className="lockedText">{viewerState.text}</div>
+                    {viewerState.helper ? <div className="helperText">{viewerState.helper}</div> : null}
+                  </>
+                )}
               </div>
             )}
           </div>
 
           <div className="listCard">
             <div className="listTop">
-              <div className="formTitle">Lo que dicen los clientes</div>
-              <div className="listHint">{reviewCountLabel}</div>
+              <div>
+                <div className="panelEyebrow">Lo que dicen los clientes</div>
+                <div className="formTitle">{latestReviewTitle}</div>
+              </div>
+              <div className="listActions">
+                <div className="listHint">{reviewCountLabel}</div>
+                {canOpenReviewsPanel ? (
+                  <button
+                    type="button"
+                    className="ghostBtn"
+                    onClick={() => {
+                      setReviewFilter("all");
+                      setShowAllReviews(true);
+                    }}
+                  >
+                    Ver todas las reseñas
+                  </button>
+                ) : null}
+              </div>
             </div>
 
             {loading ? (
               <div className="stateBox">Cargando comentarios...</div>
             ) : reviews.length ? (
-              <div className="reviewList">
-                {reviews.map((review) => (
-                  <article key={review.id} className="reviewItem">
+              <div className="latestWrap">
+                {latestReview ? (
+                  <article className="reviewItem feature">
                     <div className="reviewItemTop">
                       <div>
-                        <div className="reviewAuthor">{review.authorName}</div>
+                        <div className="reviewAuthor">{latestReview.authorName}</div>
                         <div className="reviewMeta">
-                          <span className="stars compact">{renderStars(review.rating)}</span>
-                          <span>{formatReviewDate(review.createdAt)}</span>
+                          <span className="stars compact">{renderStars(latestReview.rating)}</span>
+                          <span>{formatReviewDate(latestReview.createdAt)}</span>
                         </div>
                       </div>
 
-                      {review.verifiedPurchase ? (
+                      {latestReview.verifiedPurchase ? (
                         <span className="verifiedBadge">Compra verificada</span>
                       ) : null}
                     </div>
 
-                    <p className="reviewComment">{review.comment}</p>
+                    <p className="reviewComment preview">{latestReview.comment}</p>
                   </article>
-                ))}
+                ) : null}
+
+                {hasMoreReviews ? (
+                  <div className="moreRow">
+                    <div>
+                      <div className="moreTitle">Hay más experiencias verificadas</div>
+                      <div className="moreHint">
+                        Mostramos primero la reseña más reciente para mantener esta página ligera.
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             ) : (
               <div className="emptyBox">
-                <div className="lockedTitle">Aun no hay comentarios</div>
+                <div className="lockedTitle">Aún no hay comentarios</div>
                 <div className="lockedText">
-                  Cuando los primeros clientes dejen su experiencia, apareceran aqui.
+                  Cuando los primeros clientes dejen su experiencia, aparecerán aquí.
                 </div>
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {showAllReviews ? (
+        <div
+          className="overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="reviews-overlay-title"
+          onClick={() => setShowAllReviews(false)}
+        >
+          <div className="overlayPanel" onClick={(event) => event.stopPropagation()}>
+            <div className="overlayHead">
+              <div>
+                <div className="panelEyebrow">Clientes verificados</div>
+                <div id="reviews-overlay-title" className="formTitle">
+                  Reseñas de usuarios · {summary.totalReviews}
+                </div>
+                <div className="formHint">
+                  Explora todas las experiencias verificadas de este producto.
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="closeBtn"
+                onClick={() => setShowAllReviews(false)}
+                aria-label="Cerrar reseñas"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="overlayToolbar">
+              <div className="filterTabs" role="tablist" aria-label="Filtrar reseñas">
+                <button
+                  type="button"
+                  className={`filterTab ${reviewFilter === "all" ? "active" : ""}`}
+                  onClick={() => setReviewFilter("all")}
+                >
+                  Todas {summary.totalReviews}
+                </button>
+                <button
+                  type="button"
+                  className={`filterTab ${reviewFilter === "5" ? "active" : ""}`}
+                  onClick={() => setReviewFilter("5")}
+                >
+                  5 estrellas {fiveStarCount}
+                </button>
+                <button
+                  type="button"
+                  className={`filterTab ${reviewFilter === "4" ? "active" : ""}`}
+                  onClick={() => setReviewFilter("4")}
+                >
+                  4 o menos {fourOrLessCount}
+                </button>
+              </div>
+
+              <div className="overlayHint">Mostrando reseñas reales con compra verificada.</div>
+            </div>
+
+            <div className="overlayBody">
+              {filteredReviews.length ? (
+                <div className="reviewList">
+                  {filteredReviews.map((review) => (
+                    <article key={review.id} className="reviewItem modal">
+                      <div className="reviewItemTop">
+                        <div>
+                          <div className="reviewAuthor">{review.authorName}</div>
+                          <div className="reviewMeta">
+                            <span className="stars compact">{renderStars(review.rating)}</span>
+                            <span>{formatReviewDate(review.createdAt)}</span>
+                          </div>
+                        </div>
+
+                        {review.verifiedPurchase ? (
+                          <span className="verifiedBadge">Compra verificada</span>
+                        ) : null}
+                      </div>
+
+                      <p className="reviewComment">{review.comment}</p>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="emptyBox">
+                  <div className="lockedTitle">No hay reseñas para este filtro</div>
+                  <div className="lockedText">
+                    Prueba otra vista para revisar el resto de experiencias verificadas.
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <style jsx>{`
         .reviewsSection {
@@ -426,6 +710,15 @@ export default function ProductReviews({
           font-weight: 950;
           letter-spacing: 0.12em;
           color: rgba(0, 0, 0, 0.55);
+        }
+
+        .panelEyebrow {
+          margin-bottom: 8px;
+          font-size: 11px;
+          font-weight: 950;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: rgba(0, 0, 0, 0.42);
         }
 
         .title {
@@ -509,11 +802,17 @@ export default function ProductReviews({
           font-size: 14px;
         }
 
-        .scoreLabel,
-        .listHint,
-        .formHint {
+        .scoreLabel {
           color: rgba(0, 0, 0, 0.62);
           font-size: 13px;
+          font-weight: 850;
+        }
+
+        .formHint,
+        .listHint {
+          color: rgba(0, 0, 0, 0.62);
+          font-size: 13px;
+          line-height: 1.6;
           font-weight: 850;
         }
 
@@ -581,6 +880,12 @@ export default function ProductReviews({
           flex-wrap: wrap;
         }
 
+        .listActions {
+          display: grid;
+          justify-items: end;
+          gap: 10px;
+        }
+
         .formTitle {
           font-size: 20px;
           line-height: 1.1;
@@ -589,10 +894,75 @@ export default function ProductReviews({
           letter-spacing: -0.02em;
         }
 
+        .statusPill {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 38px;
+          padding: 0 14px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 950;
+          white-space: nowrap;
+        }
+
+        .statusPill.loading,
+        .statusPill.locked {
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          background: rgba(0, 0, 0, 0.04);
+          color: rgba(0, 0, 0, 0.72);
+        }
+
+        .statusPill.ready {
+          border: 1px solid rgba(212, 175, 55, 0.28);
+          background: rgba(212, 175, 55, 0.12);
+          color: rgba(0, 0, 0, 0.82);
+        }
+
+        .statusPill.done {
+          border: 1px solid rgba(21, 128, 61, 0.2);
+          background: rgba(21, 128, 61, 0.08);
+          color: rgba(21, 128, 61, 0.94);
+        }
+
         .reviewForm {
           margin-top: 14px;
           display: grid;
           gap: 14px;
+        }
+
+        .inlineInfo {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          padding: 12px 14px;
+          border-radius: 18px;
+          border: 1px solid rgba(212, 175, 55, 0.24);
+          background: linear-gradient(180deg, rgba(255, 250, 232, 0.96), rgba(255, 255, 255, 0.96));
+          color: rgba(0, 0, 0, 0.72);
+          font-size: 13px;
+          font-weight: 850;
+        }
+
+        .miniBadge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 30px;
+          padding: 0 10px;
+          border-radius: 999px;
+          background: rgba(0, 0, 0, 0.9);
+          color: rgba(255, 255, 255, 0.96);
+          font-size: 11px;
+          font-weight: 950;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+
+        .miniBadge.login {
+          background: rgba(0, 0, 0, 0.08);
+          color: rgba(0, 0, 0, 0.74);
         }
 
         .field {
@@ -684,10 +1054,60 @@ export default function ProductReviews({
           transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
         }
 
+        .loginLink {
+          width: fit-content;
+          align-self: start;
+        }
+
         .submitBtn:hover,
         .loginLink:hover {
           transform: translateY(-1px);
           box-shadow: 0 22px 54px rgba(0, 0, 0, 0.2);
+        }
+
+        .viewAllBtn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 48px;
+          padding: 0 18px;
+          border-radius: 16px;
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          background: rgba(255, 255, 255, 0.92);
+          color: rgba(0, 0, 0, 0.86);
+          font-size: 14px;
+          font-weight: 950;
+          cursor: pointer;
+          box-shadow: 0 14px 34px rgba(0, 0, 0, 0.08);
+          transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+        }
+
+        .ghostBtn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 42px;
+          padding: 0 16px;
+          border-radius: 14px;
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          background: rgba(255, 255, 255, 0.88);
+          color: rgba(0, 0, 0, 0.86);
+          font-size: 13px;
+          font-weight: 950;
+          cursor: pointer;
+          transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+        }
+
+        .ghostBtn:hover {
+          transform: translateY(-1px);
+          border-color: rgba(212, 175, 55, 0.4);
+          box-shadow: 0 14px 34px rgba(0, 0, 0, 0.08);
+        }
+
+        .viewAllBtn:hover {
+          transform: translateY(-1px);
+          border-color: rgba(212, 175, 55, 0.4);
+          box-shadow: 0 18px 40px rgba(0, 0, 0, 0.12);
         }
 
         .submitBtn:disabled {
@@ -721,6 +1141,18 @@ export default function ProductReviews({
           color: rgba(21, 128, 61, 0.92);
         }
 
+        .lockedBox.successTone {
+          border-color: rgba(21, 128, 61, 0.16);
+          background: rgba(21, 128, 61, 0.05);
+        }
+
+        .lockedBox.compact {
+          align-content: start;
+          gap: 12px;
+          padding: 18px;
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(245, 245, 245, 0.96));
+        }
+
         .lockedTitle {
           color: #111;
           font-size: 16px;
@@ -734,10 +1166,44 @@ export default function ProductReviews({
           font-weight: 850;
         }
 
+        .helperText {
+          color: rgba(0, 0, 0, 0.5);
+          font-size: 12px;
+          line-height: 1.6;
+          font-weight: 850;
+        }
+
+        .latestWrap,
         .reviewList {
           margin-top: 14px;
           display: grid;
           gap: 12px;
+        }
+
+        .moreRow {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 14px;
+          flex-wrap: wrap;
+          padding: 16px 18px;
+          border-radius: 20px;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 244, 235, 0.96));
+        }
+
+        .moreTitle {
+          color: #111;
+          font-size: 15px;
+          font-weight: 950;
+        }
+
+        .moreHint {
+          margin-top: 4px;
+          color: rgba(0, 0, 0, 0.58);
+          font-size: 13px;
+          line-height: 1.6;
+          font-weight: 850;
         }
 
         .reviewItem {
@@ -747,6 +1213,17 @@ export default function ProductReviews({
           padding: 14px;
           display: grid;
           gap: 10px;
+        }
+
+        .reviewItem.feature {
+          padding: 18px;
+          border-radius: 22px;
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 245, 236, 0.96));
+          box-shadow: 0 18px 44px rgba(0, 0, 0, 0.08);
+        }
+
+        .reviewItem.modal {
+          padding: 18px;
         }
 
         .reviewItemTop {
@@ -782,6 +1259,13 @@ export default function ProductReviews({
           font-weight: 850;
         }
 
+        .reviewComment.preview {
+          display: -webkit-box;
+          overflow: hidden;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 5;
+        }
+
         .verifiedBadge {
           display: inline-flex;
           align-items: center;
@@ -797,6 +1281,99 @@ export default function ProductReviews({
           white-space: nowrap;
         }
 
+        .overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 1200;
+          display: flex;
+          justify-content: center;
+          align-items: stretch;
+          padding: 24px;
+          background: rgba(17, 17, 17, 0.32);
+          backdrop-filter: blur(12px);
+        }
+
+        .overlayPanel {
+          width: min(1120px, 100%);
+          margin: auto;
+          border-radius: 32px;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          background: rgba(255, 255, 255, 0.96);
+          box-shadow: 0 28px 90px rgba(0, 0, 0, 0.18);
+          padding: 22px;
+          display: grid;
+          gap: 18px;
+        }
+
+        .overlayHead,
+        .overlayToolbar {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 16px;
+          flex-wrap: wrap;
+        }
+
+        .overlayHint {
+          color: rgba(0, 0, 0, 0.58);
+          font-size: 13px;
+          line-height: 1.6;
+          font-weight: 850;
+        }
+
+        .overlayBody {
+          max-height: min(68vh, 760px);
+          overflow: auto;
+          padding-right: 6px;
+        }
+
+        .filterTabs {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .filterTab,
+        .closeBtn {
+          border-radius: 16px;
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          background: rgba(255, 255, 255, 0.92);
+          color: rgba(0, 0, 0, 0.78);
+          font-weight: 950;
+        }
+
+        .filterTab {
+          min-height: 44px;
+          padding: 0 16px;
+          font-size: 13px;
+          cursor: pointer;
+          transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+        }
+
+        .filterTab:hover,
+        .closeBtn:hover {
+          transform: translateY(-1px);
+          border-color: rgba(212, 175, 55, 0.42);
+          box-shadow: 0 14px 34px rgba(0, 0, 0, 0.08);
+        }
+
+        .filterTab.active {
+          background: rgba(255, 248, 220, 0.96);
+          border-color: rgba(212, 175, 55, 0.32);
+          color: rgba(0, 0, 0, 0.88);
+        }
+
+        .closeBtn {
+          width: 48px;
+          height: 48px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          font-size: 28px;
+          line-height: 1;
+        }
+
         @media (max-width: 980px) {
           .reviewsGrid {
             grid-template-columns: 1fr;
@@ -805,6 +1382,14 @@ export default function ProductReviews({
           .summaryCard {
             position: relative;
             top: auto;
+          }
+
+          .overlay {
+            padding: 16px;
+          }
+
+          .overlayPanel {
+            padding: 18px;
           }
         }
 
@@ -820,6 +1405,31 @@ export default function ProductReviews({
 
           .distRow {
             grid-template-columns: 32px minmax(0, 1fr) 24px;
+          }
+
+          .moreRow,
+          .overlayToolbar,
+          .listActions {
+            align-items: stretch;
+          }
+
+          .viewAllBtn,
+          .filterTab,
+          .ghostBtn {
+            width: 100%;
+          }
+
+          .overlay {
+            padding: 10px;
+          }
+
+          .overlayPanel {
+            border-radius: 24px;
+            padding: 16px;
+          }
+
+          .overlayBody {
+            max-height: calc(100vh - 220px);
           }
         }
       `}</style>
