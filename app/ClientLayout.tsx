@@ -420,7 +420,8 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
               </div>
 
               <div className="dockRight">
-                <div className="socials" aria-label="Redes sociales JUSP">
+                {isMounted ? (
+  <div className="socials" aria-label="Redes sociales JUSP">
                   <a
                     href={INSTAGRAM_HREF}
                     target="_blank"
@@ -452,7 +453,8 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
                       />
                     </svg>
                   </a>
-                </div>
+                  </div>
+) : null}
 
                 <button type="button" className="megaToggle" onClick={onToggleMega} aria-expanded={megaOpen}>
                   {megaOpen ? "Ocultar" : "Mostrar"} ▾
