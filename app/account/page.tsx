@@ -408,6 +408,46 @@ export default async function AccountPage() {
                   Editar perfil
                 </Link>
 
+                <Link
+                  href="/mis-facturas"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: 50,
+                    borderRadius: 999,
+                    padding: "0 20px",
+                    border: "1px solid rgba(255,255,255,0.14)",
+                    background: "rgba(255,255,255,0.06)",
+                    color: "#fff",
+                    textDecoration: "none",
+                    fontSize: 14,
+                    fontWeight: 950,
+                  }}
+                >
+                  Mis facturas
+                </Link>
+
+                <Link
+                  href="/mis-cupones"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: 50,
+                    borderRadius: 999,
+                    padding: "0 20px",
+                    border: "1px solid rgba(255,255,255,0.14)",
+                    background: "rgba(255,255,255,0.06)",
+                    color: "#fff",
+                    textDecoration: "none",
+                    fontSize: 14,
+                    fontWeight: 950,
+                  }}
+                >
+                  Mis cupones
+                </Link>
+
                 <form action={logoutAction} style={{ margin: 0 }}>
                   <button
                     type="submit"

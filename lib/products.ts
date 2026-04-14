@@ -150,6 +150,33 @@ function uniqCaseInsensitive(values: string[]): string[] {
   return out;
 }
 
+function normalizeHeaderKey(value: unknown): string {
+  return String(value ?? "")
+    .replace(/^\uFEFF/, "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+}
+
+function getRowValue(
+  row: Record<string, unknown>,
+  possibleKeys: string[],
+  fallback: unknown = ""
+): unknown {
+  const normalizedMap = new Map<string, unknown>();
+
+  for (const [key, value] of Object.entries(row)) {
+    normalizedMap.set(normalizeHeaderKey(key), value);
+  }
+
+  for (const key of possibleKeys) {
+    const hit = normalizedMap.get(normalizeHeaderKey(key));
+    if (hit !== undefined) return hit;
+  }
+
+  return fallback;
+}
+
 function getDataDir(): string | null {
   const path = getPath();
   if (!path) return null;
@@ -381,36 +408,33 @@ function buildProductsFromExcel(): Product[] {
     if (!firstSheetName) return [];
 
     const sheet = workbook.Sheets[firstSheetName];
-    const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" }) as Array<{
-      product_slug?: string;
-      title?: string;
-      brand?: string;
-      size?: string;
-      color?: string;
-      price?: number | string;
-      stock?: number | string;
-      gender?: string;
-      category?: string;
-      pickup_today?: string | number | boolean;
-      express_delivery?: string | number | boolean;
-    }>;
+    const rows = XLSX.utils.sheet_to_json(sheet, {
+      defval: "",
+      raw: false,
+    }) as Record<string, unknown>[];
 
     if (!rows.length) return [];
 
     const map = new Map<string, Product>();
 
     for (const row of rows) {
-      const slug = String(row.product_slug || "").trim();
-      const title = String(row.title || "").trim();
-      const brand = String(row.brand || "JUSP").trim();
-      const size = String(row.size || "").trim();
-      const color = normalizeColor(row.color);
-      const price = toSafeNumber(row.price, 0);
-      const stock = toSafeNumber(row.stock, 0);
-      const excelGender = normalizeExcelGender(row.gender);
-      const excelCategory = normalizeExcelCategory(row.category);
-      const pickupToday = toSafeBoolean(row.pickup_today);
-      const expressDelivery = toSafeBoolean(row.express_delivery);
+      const slug = String(getRowValue(row, ["product_slug", "slug", "productslug"], "")).trim();
+      const title = String(getRowValue(row, ["title", "titulo", "name", "nombre"], "")).trim();
+      const brand = String(getRowValue(row, ["brand", "marca"], "JUSP")).trim();
+      const size = String(getRowValue(row, ["size", "talla"], "")).trim();
+      const color = normalizeColor(getRowValue(row, ["color", "colour"], ""));
+      const price = toSafeNumber(getRowValue(row, ["price", "precio"], 0), 0);
+      const stock = toSafeNumber(getRowValue(row, ["stock", "inventario"], 0), 0);
+      const excelGender = normalizeExcelGender(getRowValue(row, ["gender", "genero", "género"], ""));
+      const excelCategory = normalizeExcelCategory(getRowValue(row, ["category", "categoria", "categoría"], ""));
+      const pickupToday = toSafeBoolean(getRowValue(row, ["pickup_today", "pickup", "retiro_hoy"], ""));
+      const expressDelivery = toSafeBoolean(
+        getRowValue(row, ["express_delivery", "express", "envio_express"], "")
+      );
+      const discountPercent = toSafeNumber(
+        getRowValue(row, ["discount_percent", "discount", "descuento", "porcentaje_descuento"], 0),
+        0
+      );
 
       if (!slug || !title || price <= 0) continue;
 
@@ -433,6 +457,7 @@ function buildProductsFromExcel(): Product[] {
           sport: ["lifestyle"],
           tags: ["nuevo"],
           isNew: true,
+          discountPercent: discountPercent > 0 ? discountPercent : undefined,
           stockHint: 0,
           image: images[0],
           images,
@@ -464,6 +489,9 @@ function buildProductsFromExcel(): Product[] {
 
       product.pickupToday = Boolean(product.pickupToday || pickupToday);
       product.expressDelivery = Boolean(product.expressDelivery || expressDelivery);
+      if (!product.discountPercent && discountPercent > 0) {
+        product.discountPercent = discountPercent;
+      }
     }
 
     return Array.from(map.values()).map((product) => ({

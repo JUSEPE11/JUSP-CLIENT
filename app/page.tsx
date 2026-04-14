@@ -152,6 +152,7 @@ type TopItem = {
   brand?: string;
   price?: string;
   gender?: "men" | "women" | "kids";
+  expressDelivery?: boolean;
   searchBlob?: string;
 };
 
@@ -410,6 +411,7 @@ function mapProductsToTopItems(input: Product[]): TopItem[] {
       brand,
       price,
       gender,
+      expressDelivery: Boolean(p?.expressDelivery || p?.pickupToday),
       searchBlob,
     } as TopItem;
   });
@@ -1306,14 +1308,30 @@ function HomePageContent() {
 
   const curatedSlides = useMemo(
     () =>
-      Array.from({ length: 15 }, (_, i) => {
-        const n = String(i + 1).padStart(2, "0");
+      [
+        { id: "st01", brand: "Jordan" },
+        { id: "st02", brand: "ASICS" },
+        { id: "st03", brand: "Nike" },
+        { id: "st04", brand: "Armani Exchange" },
+        { id: "st05", brand: "Converse" },
+        { id: "st06", brand: "Tommy Hilfiger" },
+        { id: "st07", brand: "Lacoste" },
+        { id: "st08", brand: "Adidas" },
+        { id: "st09", brand: "Calvin Klein" },
+        { id: "st10", brand: "Puma" },
+        { id: "st11", brand: "Reebok" },
+        { id: "st12", brand: "New Balance" },
+        { id: "st13", brand: "Vans" },
+        { id: "st14", brand: "Ralph Lauren" },
+        { id: "st15", brand: "Nautica" },
+      ].map((item, index) => {
+        const n = String(index + 1).padStart(2, "0");
         return {
-          id: `st${n}`,
-          href: "/products?tag=curated",
+          id: item.id,
+          href: `/products?brand=${encodeURIComponent(item.brand)}`,
           imgBase: `/home/stories/story-${n}.jpg`,
-          alt: `JUSP Story ${n}`,
-          label: `Story ${i + 1}`,
+          alt: `${item.brand} en JUSP`,
+          label: item.brand,
         };
       }),
     []
@@ -1488,7 +1506,7 @@ function HomePageContent() {
         </div>
       ) : null}
 
-      {nlOpen ? (
+      {nlOpen && false ? (
         <div
           role="dialog"
           aria-modal="true"
@@ -2012,7 +2030,7 @@ function HomePageContent() {
                         position: "relative",
                       }}
                     >
-                      <SmartImg
+                  <SmartImg
                         baseSrc={it.imgBase}
                         alt={it.name}
                         loading={idx <= 1 ? "eager" : "lazy"}
@@ -2030,6 +2048,31 @@ function HomePageContent() {
                           padding: isMobile ? "14px" : "24px",
                         }}
                       />
+                      {it.expressDelivery ? (
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: 14,
+                            left: 14,
+                            zIndex: 3,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 8,
+                            padding: "10px 14px",
+                            borderRadius: 999,
+                            background: "rgba(17,17,17,0.92)",
+                            color: "#fff",
+                            fontSize: 12,
+                            fontWeight: 1000,
+                            letterSpacing: "0.08em",
+                            textTransform: "uppercase",
+                            boxShadow: "0 12px 30px rgba(0,0,0,0.18)",
+                          }}
+                        >
+                          <span aria-hidden="true">⚡</span>
+                          Entrega flash
+                        </div>
+                      ) : null}
                       <div
                         style={{
                           position: "absolute",
@@ -2138,7 +2181,31 @@ function HomePageContent() {
                   }}
                 >
                   <div style={{ position: "relative", background: "#f7f7f7" }}>
-                    {/* badges eliminados por pedido del usuario */}
+                    {p.expressDelivery ? (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: 10,
+                          left: 10,
+                          zIndex: 3,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "8px 10px",
+                          borderRadius: 999,
+                          background: "rgba(17,17,17,0.92)",
+                          color: "#fff",
+                          fontSize: 11,
+                          fontWeight: 1000,
+                          letterSpacing: "0.08em",
+                          textTransform: "uppercase",
+                          boxShadow: "0 10px 24px rgba(0,0,0,0.16)",
+                        }}
+                      >
+                        <span aria-hidden="true">⚡</span>
+                        Flash
+                      </div>
+                    ) : null}
 
                     <button
                       type="button"

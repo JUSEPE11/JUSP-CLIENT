@@ -21,12 +21,10 @@ export async function POST(req: Request) {
     const email = String(body?.email || "").trim().toLowerCase();
 
     if (!isEmailLike(email)) {
-      return NextResponse.json({ ok: false, error: "Email inválido." }, { status: 400 });
+      return NextResponse.json({ ok: false, error: "Email invalido." }, { status: 400 });
     }
 
     const source = body?.source ? String(body.source).slice(0, 80) : null;
-
-    // UTM opcionales
     const utm_source = body?.utm_source ? String(body.utm_source).slice(0, 120) : null;
     const utm_medium = body?.utm_medium ? String(body.utm_medium).slice(0, 120) : null;
     const utm_campaign = body?.utm_campaign ? String(body.utm_campaign).slice(0, 120) : null;

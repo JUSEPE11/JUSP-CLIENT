@@ -42,6 +42,7 @@ type Product = {
   sport: string[];
   tags: string[];
   isNew: boolean;
+  discountPercent?: number;
   stockHint: number;
   pickupToday?: boolean;
   expressDelivery?: boolean;
@@ -482,6 +483,10 @@ function loadExcelProducts(): Product[] {
     const excelCategory = normalizeExcelCategory(getRowValue(rawRow, ["category", "categoria", "categoría"], ""));
     const pickupToday = toSafeBoolean(getRowValue(rawRow, ["pickup_today", "pickup", "retiro_hoy"], ""));
     const expressDelivery = toSafeBoolean(getRowValue(rawRow, ["express_delivery", "express", "envio_express"], ""));
+    const discountPercent = toSafeNumber(
+      getRowValue(rawRow, ["discount_percent", "discount", "descuento", "porcentaje_descuento"], 0),
+      0
+    );
 
     if (!slug || !title || price <= 0) continue;
 
@@ -524,6 +529,7 @@ function loadExcelProducts(): Product[] {
         sport,
         tags,
         isNew: true,
+        discountPercent: discountPercent > 0 ? discountPercent : undefined,
         stockHint: 0,
         pickupToday,
         expressDelivery,
@@ -563,6 +569,9 @@ function loadExcelProducts(): Product[] {
     product.stockHint = product.variants.reduce((acc, variant) => acc + toSafeNumber(variant.stock, 0), 0);
     product.pickupToday = Boolean(product.pickupToday || pickupToday);
     product.expressDelivery = Boolean(product.expressDelivery || expressDelivery);
+    if (!product.discountPercent && discountPercent > 0) {
+      product.discountPercent = discountPercent;
+    }
 
     if (price < product.price) product.price = price;
   }

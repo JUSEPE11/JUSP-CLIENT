@@ -561,8 +561,7 @@ export default function Header() {
     cancelHoverClose();
     closeTimerRef.current = window.setTimeout(() => {
       setActive(null);
-      setAccountOpen(false);
-    }, 140);
+    }, 260);
   };
 
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -996,7 +995,13 @@ export default function Header() {
 
         <nav className="jusp-nav" aria-label="Main" onMouseEnter={cancelHoverClose} onMouseLeave={scheduleHoverClose}>
           {menus.map((m) => (
-            <div key={m.key} className="jusp-nav-item" onMouseEnter={() => setActive(m.key)}>
+            <div
+              key={m.key}
+              className="jusp-nav-item"
+              onMouseEnter={() => setActive(m.key)}
+              onFocus={() => setActive(m.key)}
+              onMouseDown={cancelHoverClose}
+            >
               <Link href={m.href} className={m.highlight ? "jusp-nav-link jusp-nav-sale" : "jusp-nav-link"}>
                 {m.label}
               </Link>
@@ -1129,6 +1134,12 @@ export default function Header() {
                         <Link className="jusp-account-link" href="/orders" onClick={() => setAccountOpen(false)}>
                           Mis pedidos
                         </Link>
+                        <Link className="jusp-account-link" href="/mis-facturas" onClick={() => setAccountOpen(false)}>
+                          Mis facturas
+                        </Link>
+                        <Link className="jusp-account-link" href="/mis-cupones" onClick={() => setAccountOpen(false)}>
+                          Mis cupones
+                        </Link>
                         <Link className="jusp-account-link" href="/favorites" onClick={() => setAccountOpen(false)}>
                           Favoritos
                         </Link>
@@ -1193,7 +1204,12 @@ export default function Header() {
           <div className="jusp-mega-inner">
             <div className="jusp-mega-top">
               <div className="jusp-mega-title">{activeMenu.label}</div>
-              <Link className="jusp-mega-viewall" href={activeMenu.href} onClick={() => setActive(null)}>
+              <Link
+                className="jusp-mega-viewall"
+                href={activeMenu.href}
+                onMouseDown={cancelHoverClose}
+                onClick={() => setActive(null)}
+              >
                 Ver todo
               </Link>
             </div>
@@ -1207,7 +1223,13 @@ export default function Header() {
                   <div className="jusp-mega-col-title">{col.title}</div>
                   <div className="jusp-mega-links">
                     {col.items.map((it) => (
-                      <Link key={it.href} href={it.href} className="jusp-mega-link" onClick={() => setActive(null)}>
+                      <Link
+                        key={it.href}
+                        href={it.href}
+                        className="jusp-mega-link"
+                        onMouseDown={cancelHoverClose}
+                        onClick={() => setActive(null)}
+                      >
                         {it.label}
                       </Link>
                     ))}
@@ -1412,6 +1434,18 @@ export default function Header() {
             </div>
 
             <div className="jusp-mdrawer-actions">
+              {!sessionLoading && isAuthed ? (
+                <Link href="/mis-facturas" onClick={() => setMobileOpen(false)}>
+                  Mis facturas
+                </Link>
+              ) : null}
+
+              {!sessionLoading && isAuthed ? (
+                <Link href="/mis-cupones" onClick={() => setMobileOpen(false)}>
+                  Mis cupones
+                </Link>
+              ) : null}
+
               {!sessionLoading && isAuthed ? (
                 <Link href="/favorites" onClick={() => setMobileOpen(false)}>
                   Favoritos

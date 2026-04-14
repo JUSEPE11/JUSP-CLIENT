@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { dbGetOrderByCode, dbInsertLog, dbUpsertOrder } from "@/lib/ordersRepo";
 import {
   consumeExcelReservationAndDecrement,
@@ -25,6 +26,72 @@ type WompiTransaction = {
     name?: string | null;
   } | null;
 };
+
+function getSupabaseAdmin() {
+  const url =
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    process.env.SUPABASE_URL ||
+    "";
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+
+  if (!url || !key) {
+    throw new Error("Missing Supabase env vars");
+  }
+
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+async function syncDashboardPaymentData(params: {
+  reference: string;
+  transactionId: string;
+  eventName: string;
+  wompiStatus: string;
+  tx: WompiTransaction;
+  orderId: string | null;
+}) {
+  const { reference, transactionId, eventName, wompiStatus, tx, orderId } = params;
+  const supabase = getSupabaseAdmin();
+  const amountInCents = Number(tx.amount_in_cents || 0);
+  const amountCop = Math.round(amountInCents / 100);
+  const normalizedStatus = wompiStatus.toLowerCase();
+  const eventAt = new Date().toISOString();
+
+  const paymentPayload = {
+    order_id: orderId,
+    provider: "wompi",
+    amount_cop: amountCop,
+    currency: tx.currency || "COP",
+    status: normalizedStatus,
+    provider_ref: transactionId,
+  };
+
+  const { data: existingPayment } = await supabase
+    .from("payments")
+    .select("id")
+    .eq("provider_ref", transactionId)
+    .maybeSingle();
+
+  if (existingPayment?.id) {
+    await supabase.from("payments").update(paymentPayload).eq("id", existingPayment.id);
+  } else {
+    await supabase.from("payments").insert(paymentPayload);
+  }
+
+  await supabase.from("payment_events").insert({
+    provider: "wompi",
+    provider_event_id: `${eventName || "transaction.updated"}:${transactionId}:${wompiStatus}`,
+    event_type: eventName || "transaction.updated",
+    transaction_id: transactionId,
+    reference,
+    status: normalizedStatus,
+    amount_in_cents: amountInCents,
+    currency: tx.currency || "COP",
+    event_at: eventAt,
+    created_at: eventAt,
+  });
+}
 
 function getTransactionId(body: any): string {
   return String(
@@ -220,6 +287,29 @@ export async function POST(req: Request) {
       payment_id: transactionId,
       paid_at: wompiStatus === "APPROVED" ? new Date().toISOString() : null,
     });
+
+    try {
+      await syncDashboardPaymentData({
+        reference,
+        transactionId,
+        eventName,
+        wompiStatus,
+        tx,
+        orderId: String(existingOrder?.id || "").trim() || null,
+      });
+    } catch (syncError: any) {
+      await dbInsertLog({
+        level: "warn",
+        scope: "wompi.webhook",
+        message: "No se pudo sincronizar payments/payment_events para dashboard",
+        order_id: reference,
+        meta: {
+          transactionId,
+          wompiStatus,
+          error: syncError?.message || null,
+        },
+      });
+    }
 
     await dbInsertLog({
       level: wompiStatus === "APPROVED" ? "info" : "warn",

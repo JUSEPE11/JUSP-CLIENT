@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
 import Header from "./components/Header";
+import NewsletterGate from "./components/NewsletterGate";
 import { useStore } from "./components/store";
 
 function moneyCOP(n: number) {
@@ -369,6 +370,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   return (
     <>
       {!hideHeader && <Header />}
+      <NewsletterGate />
 
       {!hideHeader ? (
         <button type="button" className="bag" aria-label="Abrir carrito" onClick={() => openCart()} title="Carrito">
