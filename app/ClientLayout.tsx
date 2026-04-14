@@ -69,6 +69,8 @@ function currentYear() {
 const LS_MEGA_OPEN = "jusp.mega.open.v3";
 const WHATSAPP_NUMBER = "573146377698";
 const WHATSAPP_TEXT = "Hola, quiero ayuda con JUSP.";
+const INSTAGRAM_HREF = "https://www.instagram.com/jusp.co";
+const TIKTOK_HREF = "https://www.tiktok.com/@jusp.co";
 
 function safeGetLS(key: string) {
   try {
@@ -418,6 +420,40 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
               </div>
 
               <div className="dockRight">
+                <div className="socials" aria-label="Redes sociales JUSP">
+                  <a
+                    href={INSTAGRAM_HREF}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="socialLink"
+                    aria-label="Instagram de JUSP"
+                    title="Instagram"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        fill="currentColor"
+                        d="M7.75 2h8.5A5.75 5.75 0 0 1 22 7.75v8.5A5.75 5.75 0 0 1 16.25 22h-8.5A5.75 5.75 0 0 1 2 16.25v-8.5A5.75 5.75 0 0 1 7.75 2Zm0 1.8A3.95 3.95 0 0 0 3.8 7.75v8.5a3.95 3.95 0 0 0 3.95 3.95h8.5a3.95 3.95 0 0 0 3.95-3.95v-8.5a3.95 3.95 0 0 0-3.95-3.95h-8.5Zm8.95 1.55a1.15 1.15 0 1 1 0 2.3 1.15 1.15 0 0 1 0-2.3ZM12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 1.8A3.2 3.2 0 1 0 12 15.2 3.2 3.2 0 0 0 12 8.8Z"
+                      />
+                    </svg>
+                  </a>
+
+                  <a
+                    href={TIKTOK_HREF}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="socialLink"
+                    aria-label="TikTok de JUSP"
+                    title="TikTok"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        fill="currentColor"
+                        d="M14.95 2c.22 1.85 1.3 3.5 2.9 4.45A6.4 6.4 0 0 0 21 7.3v2.94a9.15 9.15 0 0 1-4.3-1.08v6.08A6.25 6.25 0 1 1 10.45 9c.46 0 .9.04 1.33.14v3.02a3.32 3.32 0 0 0-1.33-.28 3.35 3.35 0 1 0 3.35 3.36V2h1.15Z"
+                      />
+                    </svg>
+                  </a>
+                </div>
+
                 <button type="button" className="megaToggle" onClick={onToggleMega} aria-expanded={megaOpen}>
                   {megaOpen ? "Ocultar" : "Mostrar"} ▾
                 </button>
@@ -462,8 +498,8 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
                   <div className="megaLegalMeta">
                     <span className="chip">JUSP S.A.S.</span>
                     <span className="chip">NIT 902044152</span>
-                    <a className="chip chipLink" href="mailto:DIRECTOR@JUSPCO.COM">
-                      DIRECTOR@JUSPCO.COM
+                    <a className="chip chipLink" href="mailto:CONTACTO@JUSPCO.COM">
+                      CONTACTO@JUSPCO.COM
                     </a>
                   </div>
 
@@ -823,6 +859,38 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
         }
         .megaToggle:active {
           transform: scale(0.99);
+        }
+
+        .socials {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .socialLink {
+          width: 36px;
+          height: 36px;
+          border-radius: 999px;
+          display: grid;
+          place-items: center;
+          color: rgba(0, 0, 0, 0.58);
+          text-decoration: none;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          background: rgba(255, 255, 255, 0.72);
+          transition: transform 140ms ease, color 140ms ease, border-color 140ms ease, background 140ms ease;
+        }
+        .socialLink:hover {
+          color: #111;
+          border-color: rgba(0, 0, 0, 0.16);
+          background: rgba(0, 0, 0, 0.03);
+          transform: translateY(-1px);
+        }
+        .socialLink:active {
+          transform: scale(0.98);
+        }
+        .socialLink :global(svg) {
+          width: 18px;
+          height: 18px;
+          display: block;
         }
 
         .megaGrid {
