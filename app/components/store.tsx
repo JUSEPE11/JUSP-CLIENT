@@ -11,8 +11,11 @@ type CartItem = {
   name: string;
   price: number;
   image?: string;
+  slug?: string | null;
   color?: string | null;
   size?: string | null;
+  expressDelivery?: boolean;
+  pickupToday?: boolean;
 };
 
 type FavoriteItem = {
@@ -499,8 +502,11 @@ export const useStore = create<StoreShape>((set, get) => ({
       name: normalizeTitleFromProduct(product, product.id),
       price: resolvedPrice,
       image: normalizeImageFromProduct(product) ?? undefined,
+      slug: typeof (product as any)?.slug === "string" ? String((product as any).slug).trim() || null : null,
       color,
       size,
+      expressDelivery: Boolean((product as any)?.expressDelivery),
+      pickupToday: Boolean((product as any)?.pickupToday),
     };
 
     const k = keyOf(newItem);

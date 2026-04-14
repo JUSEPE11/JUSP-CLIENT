@@ -29,22 +29,22 @@ function formatDateTime(date: Date) {
   });
 }
 
-function getDeliveryEstimate() {
+function getDeliveryEstimate(expressEligibleOnly = false) {
   const now = new Date();
 
   const min = new Date(now);
-  min.setDate(min.getDate() + 15);
+  min.setDate(min.getDate() + (expressEligibleOnly ? 8 : 15));
 
   const max = new Date(now);
-  max.setDate(max.getDate() + 20);
+  max.setDate(max.getDate() + (expressEligibleOnly ? 10 : 20));
 
   return `${formatDate(min)} - ${formatDate(max)}`;
 }
 
 const SHIPPING_KEY = "jusp_checkout_shipping_v1";
+const SAVED_ADDRESSES_KEY = "jusp_checkout_saved_addresses_v1";
 const SHIPPING_PRICE = 99990;
 const HALF_SHIPPING_MIN_ITEMS = 3;
-const FREE_SHIPPING_MIN_ITEMS = 6;
 const CREATE_ORDER_ENDPOINT = "/api/orders";
 const DEFAULT_CARRIER_CODE = "COORDINADORA";
 const DEFAULT_CARRIER_LABEL = "Coordinadora";
@@ -53,35 +53,35 @@ const COLOMBIA_DEPARTMENTS = [
   "Amazonas",
   "Antioquia",
   "Arauca",
-  "Atlántico",
-  "Bogotá D.C.",
-  "Bolívar",
-  "Boyacá",
+  "Atlantico",
+  "Bogota D.C.",
+  "Bolivar",
+  "Boyaca",
   "Caldas",
-  "Caquetá",
+  "Caqueta",
   "Casanare",
   "Cauca",
   "Cesar",
-  "Chocó",
-  "Córdoba",
+  "Choco",
+  "Cordoba",
   "Cundinamarca",
-  "Guainía",
+  "Guainia",
   "Guaviare",
   "Huila",
   "La Guajira",
   "Magdalena",
   "Meta",
-  "Nariño",
+  "Narino",
   "Norte de Santander",
   "Putumayo",
-  "Quindío",
+  "Quindio",
   "Risaralda",
-  "San Andrés y Providencia",
+  "San Andres y Providencia",
   "Santander",
   "Sucre",
   "Tolima",
   "Valle del Cauca",
-  "Vaupés",
+  "Vaupes",
   "Vichada",
 ] as const;
 
@@ -91,73 +91,73 @@ const COLOMBIA_MUNICIPALITIES_BY_DEPARTMENT: Record<
   (typeof COLOMBIA_DEPARTMENTS)[number],
   string[]
 > = {
-  Amazonas: ["Leticia", "Puerto Nariño"],
+  Amazonas: ["Leticia", "Puerto Narino"],
   Antioquia: [
-    "Medellín",
+    "Medellin",
     "Bello",
-    "Itagüí",
+    "Itagui",
     "Envigado",
     "Sabaneta",
     "Rionegro",
-    "Apartadó",
+    "Apartado",
     "Turbo",
     "Santa Fe de Antioquia",
     "La Ceja",
     "Copacabana",
   ],
   Arauca: ["Arauca", "Arauquita", "Saravena", "Tame"],
-  Atlántico: ["Barranquilla", "Soledad", "Malambo", "Puerto Colombia", "Sabanalarga", "Baranoa"],
-  "Bogotá D.C.": ["Bogotá"],
-  Bolívar: ["Cartagena", "Magangué", "Turbaco", "Arjona", "El Carmen de Bolívar", "Mompós"],
-  Boyacá: ["Tunja", "Duitama", "Sogamoso", "Chiquinquirá", "Paipa", "Villa de Leyva"],
-  Caldas: ["Manizales", "La Dorada", "Chinchiná", "Villamaría", "Riosucio"],
-  Caquetá: ["Florencia", "San Vicente del Caguán", "Puerto Rico", "El Doncello"],
+  Atlantico: ["Barranquilla", "Soledad", "Malambo", "Puerto Colombia", "Sabanalarga", "Baranoa"],
+  "Bogota D.C.": ["Bogota"],
+  Bolivar: ["Cartagena", "Magangue", "Turbaco", "Arjona", "El Carmen de Bolivar", "Mompos"],
+  Boyaca: ["Tunja", "Duitama", "Sogamoso", "Chiquinquira", "Paipa", "Villa de Leyva"],
+  Caldas: ["Manizales", "La Dorada", "Chinchina", "Villamaria", "Riosucio"],
+  Caqueta: ["Florencia", "San Vicente del Caguan", "Puerto Rico", "El Doncello"],
   Casanare: ["Yopal", "Aguazul", "Villanueva", "Paz de Ariporo", "Tauramena"],
-  Cauca: ["Popayán", "Santander de Quilichao", "Puerto Tejada", "Patía", "Piendamó"],
-  Cesar: ["Valledupar", "Aguachica", "Bosconia", "La Jagua de Ibirico", "Curumaní"],
-  Chocó: ["Quibdó", "Istmina", "Tadó", "Condoto", "Riosucio"],
-  Córdoba: ["Montería", "Cereté", "Lorica", "Sahagún", "Montelíbano", "Planeta Rica"],
+  Cauca: ["Popayan", "Santander de Quilichao", "Puerto Tejada", "Patia", "Piendamo"],
+  Cesar: ["Valledupar", "Aguachica", "Bosconia", "La Jagua de Ibirico", "Curumani"],
+  Choco: ["Quibdo", "Istmina", "Tado", "Condoto", "Riosucio"],
+  Cordoba: ["Monteria", "Cerete", "Lorica", "Sahagun", "Montelibano", "Planeta Rica"],
   Cundinamarca: [
     "Soacha",
-    "Chía",
-    "Zipaquirá",
-    "Facatativá",
+    "Chia",
+    "Zipaquira",
+    "Facatativa",
     "Girardot",
     "Mosquera",
     "Funza",
     "Madrid",
-    "Cajicá",
-    "Fusagasugá",
+    "Cajica",
+    "Fusagasuga",
   ],
-  Guainía: ["Inírida"],
-  Guaviare: ["San José del Guaviare", "Calamar", "El Retorno"],
-  Huila: ["Neiva", "Pitalito", "Garzón", "La Plata", "Campoalegre"],
+  Guainia: ["Inirida"],
+  Guaviare: ["San Jose del Guaviare", "Calamar", "El Retorno"],
+  Huila: ["Neiva", "Pitalito", "Garzon", "La Plata", "Campoalegre"],
   "La Guajira": ["Riohacha", "Maicao", "Uribia", "Fonseca", "San Juan del Cesar"],
-  Magdalena: ["Santa Marta", "Ciénaga", "Fundación", "Plato", "Aracataca"],
-  Meta: ["Villavicencio", "Acacías", "Granada", "Puerto López", "Restrepo"],
-  Nariño: ["Pasto", "Tumaco", "Ipiales", "Túquerres", "La Unión"],
-  "Norte de Santander": ["Cúcuta", "Ocaña", "Pamplona", "Villa del Rosario", "Los Patios"],
-  Putumayo: ["Mocoa", "Puerto Asís", "Sibundoy", "Orito", "Villagarzón"],
-  Quindío: ["Armenia", "Calarcá", "La Tebaida", "Montenegro", "Quimbaya"],
-  Risaralda: ["Pereira", "Dosquebradas", "Santa Rosa de Cabal", "La Virginia", "Belén de Umbría"],
-  "San Andrés y Providencia": ["San Andrés", "Providencia"],
-  Santander: ["Bucaramanga", "Floridablanca", "Girón", "Piedecuesta", "Barrancabermeja", "San Gil"],
-  Sucre: ["Sincelejo", "Corozal", "Sampués", "Tolú", "San Marcos"],
-  Tolima: ["Ibagué", "Espinal", "Melgar", "Honda", "Líbano"],
+  Magdalena: ["Santa Marta", "Cienaga", "Fundacion", "Plato", "Aracataca"],
+  Meta: ["Villavicencio", "Acacias", "Granada", "Puerto Lopez", "Restrepo"],
+  Narino: ["Pasto", "Tumaco", "Ipiales", "Tuquerres", "La Union"],
+  "Norte de Santander": ["Cucuta", "Ocana", "Pamplona", "Villa del Rosario", "Los Patios"],
+  Putumayo: ["Mocoa", "Puerto Asis", "Sibundoy", "Orito", "Villagarzon"],
+  Quindio: ["Armenia", "Calarca", "La Tebaida", "Montenegro", "Quimbaya"],
+  Risaralda: ["Pereira", "Dosquebradas", "Santa Rosa de Cabal", "La Virginia", "Belen de Umbria"],
+  "San Andres y Providencia": ["San Andres", "Providencia"],
+  Santander: ["Bucaramanga", "Floridablanca", "Giron", "Piedecuesta", "Barrancabermeja", "San Gil"],
+  Sucre: ["Sincelejo", "Corozal", "Sampues", "Tolu", "San Marcos"],
+  Tolima: ["Ibague", "Espinal", "Melgar", "Honda", "Libano"],
   "Valle del Cauca": [
     "Cali",
     "Palmira",
     "Buenaventura",
-    "Tuluá",
+    "Tulua",
     "Buga",
     "Cartago",
-    "Jamundí",
+    "Jamundi",
     "Yumbo",
     "Florida",
     "Candelaria",
   ],
-  Vaupés: ["Mitú"],
-  Vichada: ["Puerto Carreño"],
+  Vaupes: ["Mitu"],
+  Vichada: ["Puerto Carreno"],
 };
 
 function safeParse(raw: string | null) {
@@ -199,6 +199,13 @@ type Shipping = {
   notes: string;
 };
 
+type SavedAddress = Shipping & {
+  id: string;
+  label: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 function emptyShipping(): Shipping {
   return {
     fullName: "",
@@ -213,6 +220,101 @@ function emptyShipping(): Shipping {
   };
 }
 
+function normalizeShippingForSave(ship: Shipping): Shipping {
+  return {
+    fullName: String(ship.fullName || "").trim(),
+    email: String(ship.email || "").trim().toLowerCase(),
+    documentType: ship.documentType,
+    documentNumber: String(ship.documentNumber || "").trim(),
+    phone: String(ship.phone || "").trim(),
+    municipality: String(ship.municipality || "").trim(),
+    region: String(ship.region || "").trim(),
+    addressLine1: String(ship.addressLine1 || "").trim(),
+    notes: String(ship.notes || "").trim(),
+  };
+}
+
+function addressFingerprint(ship: Shipping) {
+  const safe = normalizeShippingForSave(ship);
+  return [
+    safe.fullName,
+    safe.phone,
+    safe.region,
+    safe.municipality,
+    safe.addressLine1,
+  ]
+    .map((value) => value.toLowerCase())
+    .join("|");
+}
+
+function buildAddressLabel(ship: Shipping) {
+  const safe = normalizeShippingForSave(ship);
+  const city = [safe.municipality, safe.region].filter(Boolean).join(", ");
+  return [safe.fullName || "Direccion guardada", city].filter(Boolean).join(" - ");
+}
+
+function loadSavedAddresses(): SavedAddress[] {
+  if (typeof window === "undefined") return [];
+  const raw = safeParse(localStorage.getItem(SAVED_ADDRESSES_KEY));
+  if (!Array.isArray(raw)) return [];
+
+  const out: SavedAddress[] = [];
+
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object") continue;
+    const shipping = normalizeShippingForSave(entry as Shipping);
+    if (!shipping.addressLine1 || !shipping.region || !shipping.municipality) continue;
+
+    out.push({
+      id: String((entry as any).id || `${Date.now()}-${out.length}`).trim(),
+      label: String((entry as any).label || buildAddressLabel(shipping)).trim(),
+      createdAt: String((entry as any).createdAt || new Date().toISOString()).trim(),
+      updatedAt: String((entry as any).updatedAt || new Date().toISOString()).trim(),
+      ...shipping,
+    });
+  }
+
+  return out.slice(0, 6);
+}
+
+function persistSavedAddresses(addresses: SavedAddress[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(SAVED_ADDRESSES_KEY, JSON.stringify(addresses.slice(0, 6)));
+  } catch {}
+}
+
+function upsertSavedAddress(addresses: SavedAddress[], ship: Shipping): SavedAddress[] {
+  const safe = normalizeShippingForSave(ship);
+  if (!safe.addressLine1 || !safe.region || !safe.municipality || !safe.fullName) return addresses;
+
+  const fingerprint = addressFingerprint(safe);
+  const idx = addresses.findIndex((entry) => addressFingerprint(entry) === fingerprint);
+  const now = new Date().toISOString();
+
+  if (idx >= 0) {
+    const next = [...addresses];
+    next[idx] = {
+      ...next[idx],
+      ...safe,
+      label: buildAddressLabel(safe),
+      updatedAt: now,
+    };
+    return next.sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt))).slice(0, 6);
+  }
+
+  return [
+    {
+      id: `addr_${Date.now()}`,
+      label: buildAddressLabel(safe),
+      createdAt: now,
+      updatedAt: now,
+      ...safe,
+    },
+    ...addresses,
+  ].slice(0, 6);
+}
+
 export default function CheckoutPage() {
   const { state, cartTotal, cartCount } = useStore();
 
@@ -223,10 +325,15 @@ export default function CheckoutPage() {
   const [reservedUntil, setReservedUntil] = useState<string | null>(null);
 
   const [ship, setShip] = useState<Shipping>(emptyShipping());
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
 
   const items = state.cart;
   const canContinue = cartCount > 0;
-  const deliveryEstimate = useMemo(() => getDeliveryEstimate(), []);
+  const expressEligibleOnly = useMemo(() => {
+    if (!items.length) return false;
+    return items.every((item: any) => Boolean(item?.expressDelivery || item?.pickupToday));
+  }, [items]);
+  const deliveryEstimate = useMemo(() => getDeliveryEstimate(expressEligibleOnly), [expressEligibleOnly]);
 
   const selectedMunicipalities = useMemo(() => {
     if (!ship.region) return [];
@@ -238,7 +345,7 @@ export default function CheckoutPage() {
   const summary = useMemo(() => {
     let shipping = SHIPPING_PRICE;
 
-    if (cartCount >= FREE_SHIPPING_MIN_ITEMS) {
+    if (expressEligibleOnly) {
       shipping = 0;
     } else if (cartCount >= HALF_SHIPPING_MIN_ITEMS) {
       shipping = Math.round(SHIPPING_PRICE * 0.5);
@@ -249,13 +356,13 @@ export default function CheckoutPage() {
       shipping,
       total: cartTotal + shipping,
     };
-  }, [cartTotal, cartCount]);
+  }, [cartTotal, cartCount, expressEligibleOnly]);
 
   const shippingLabel = useMemo(() => {
-    if (summary.shipping === 0) return "Envío gratis";
-    if (cartCount >= HALF_SHIPPING_MIN_ITEMS) return `Envío 50% OFF · $${moneyCOP(summary.shipping)}`;
+    if (expressEligibleOnly) return "Envio gratis express";
+    if (cartCount >= HALF_SHIPPING_MIN_ITEMS) return `Envio 50% OFF - $${moneyCOP(summary.shipping)}`;
     return `$${moneyCOP(summary.shipping)}`;
-  }, [summary.shipping, cartCount]);
+  }, [summary.shipping, cartCount, expressEligibleOnly]);
 
   const orderRef = useMemo(() => `JUSP-${Date.now()}`, []);
 
@@ -268,6 +375,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     const prev = safeParse(localStorage.getItem(SHIPPING_KEY));
+    setSavedAddresses(loadSavedAddresses());
     if (prev && typeof prev === "object") {
       const nextRegion = String((prev as any).region || "");
       const nextMunicipality = String(
@@ -305,6 +413,23 @@ export default function CheckoutPage() {
         addressLine1: String((prev as any).addressLine1 || ""),
         notes: String((prev as any).notes || ""),
       });
+
+      const mergedSaved = upsertSavedAddress(loadSavedAddresses(), {
+        fullName: String((prev as any).fullName || ""),
+        email: String((prev as any).email || ""),
+        documentType: nextDocumentType,
+        documentNumber: sanitizeDocumentNumber(
+          String((prev as any).documentNumber || ""),
+          nextDocumentType
+        ),
+        phone: onlyDigits(String((prev as any).phone || "")),
+        municipality: municipalityIsValid ? nextMunicipality : "",
+        region: regionIsValid ? nextRegion : "",
+        addressLine1: String((prev as any).addressLine1 || ""),
+        notes: String((prev as any).notes || ""),
+      });
+      setSavedAddresses(mergedSaved);
+      persistSavedAddresses(mergedSaved);
     }
   }, []);
 
@@ -344,6 +469,32 @@ export default function CheckoutPage() {
       localStorage.setItem(SHIPPING_KEY, JSON.stringify(ship));
     } catch {}
   }, [ship]);
+
+  function applySavedAddress(address: SavedAddress) {
+    setShip({
+      fullName: address.fullName,
+      email: address.email,
+      documentType: address.documentType,
+      documentNumber: address.documentNumber,
+      phone: address.phone,
+      municipality: address.municipality,
+      region: address.region,
+      addressLine1: address.addressLine1,
+      notes: address.notes,
+    });
+  }
+
+  function rememberCurrentAddress() {
+    const next = upsertSavedAddress(savedAddresses, ship);
+    setSavedAddresses(next);
+    persistSavedAddresses(next);
+  }
+
+  function removeSavedAddress(id: string) {
+    const next = savedAddresses.filter((entry) => entry.id !== id);
+    setSavedAddresses(next);
+    persistSavedAddresses(next);
+  }
 
   const documentNumberValid = useMemo(
     () => hasAtLeastFiveDigits(ship.documentNumber),
@@ -385,6 +536,7 @@ export default function CheckoutPage() {
 
   function handleContinueToPayment() {
     if (!shipOk) return;
+    rememberCurrentAddress();
 
     if (authLoading) return;
 
@@ -406,11 +558,13 @@ export default function CheckoutPage() {
 
     if (!shipOk) {
       alert(
-        "Completa los datos obligatorios antes de pagar. El número de documento y el celular deben tener mínimo 5 números. En pasaporte se permiten letras y números."
+        "Completa los datos obligatorios antes de pagar. El numero de documento y el celular deben tener minimo 5 numeros. En pasaporte se permiten letras y numeros."
       );
       setStep("envio");
       return;
     }
+
+    rememberCurrentAddress();
 
     setBusy(true);
     try {
@@ -430,6 +584,7 @@ export default function CheckoutPage() {
         shipping: {
           carrier: DEFAULT_CARRIER_CODE,
           carrierLabel: DEFAULT_CARRIER_LABEL,
+          mode: expressEligibleOnly ? "express_flash" : "standard",
           fullName: ship.fullName.trim(),
           email: ship.email.trim(),
           documentType: ship.documentType,
@@ -445,12 +600,16 @@ export default function CheckoutPage() {
         items: items.map((it) => ({
           id: it.id,
           product_id: it.id,
+          slug: (it as any).slug ?? null,
+          product_slug: (it as any).slug ?? null,
           name: it.name,
           qty: it.qty,
           price: it.price,
           image: it.image ?? null,
           size: it.size ?? null,
           color: it.color ?? null,
+          expressDelivery: Boolean((it as any).expressDelivery),
+          pickupToday: Boolean((it as any).pickupToday),
         })),
         totals: {
           subtotal: summary.subtotal,
@@ -514,15 +673,15 @@ export default function CheckoutPage() {
             <div>
               <div className="brand">JUSP</div>
               <h1 className="h1">Checkout</h1>
-              <p className="sub">Resumen del pedido y datos de envío.</p>
+              <p className="sub">Resumen del pedido y datos de envio.</p>
             </div>
             <Link className="back" href="/products">
-              ← Volver a productos
+              Volver a productos
             </Link>
           </div>
 
           <div className="empty">
-            <div className="eT">Tu carrito está vacío</div>
+            <div className="eT">Tu carrito esta vacio</div>
             <div className="eS">Agrega productos para continuar al checkout.</div>
             <Link className="go" href="/products">
               Ir a productos
@@ -542,22 +701,22 @@ export default function CheckoutPage() {
           <div>
             <div className="brand">JUSP</div>
             <h1 className="h1">Checkout</h1>
-            <p className="sub">Resumen del pedido y datos de envío.</p>
+            <p className="sub">Resumen del pedido y datos de envio.</p>
           </div>
           <Link className="back" href="/products">
-            ← Volver a productos
+            Volver a productos
           </Link>
         </div>
 
         <div className="steps">
           <button className={`st ${step === "envio" ? "on" : ""}`} type="button" onClick={() => setStep("envio")}>
-            1. Envío
+            1. Envio
           </button>
           <button
             className={`st ${step === "pago" ? "on" : ""}`}
             type="button"
             onClick={handleContinueToPayment}
-            title={!isAuthed && !authLoading ? "Debes iniciar sesión para entrar a pago" : ""}
+            title={!isAuthed && !authLoading ? "Debes iniciar sesion para entrar a pago" : ""}
           >
             2. Pago
           </button>
@@ -567,8 +726,43 @@ export default function CheckoutPage() {
           <section className="left">
             {step === "envio" ? (
               <div className="card">
-                <div className="cT">Datos de envío</div>
+                <div className="cT">Datos de envio</div>
                 <div className="cS">Esto es obligatorio para continuar al pago.</div>
+
+                {savedAddresses.length ? (
+                  <div className="savedAddresses">
+                    <div className="savedHead">
+                      <div className="savedTitle">Direcciones guardadas</div>
+                      <div className="savedSub">Usa una direccion anterior sin volver a llenar todo.</div>
+                    </div>
+
+                    <div className="savedGrid">
+                      {savedAddresses.map((address) => {
+                        const active = addressFingerprint(address) === addressFingerprint(ship);
+                        return (
+                          <div key={address.id} className={`savedCard ${active ? "on" : ""}`}>
+                            <button type="button" className="savedUse" onClick={() => applySavedAddress(address)}>
+                              <div className="savedLabel">{address.label}</div>
+                              <div className="savedText">{address.addressLine1}</div>
+                              <div className="savedText">
+                                {[address.municipality, address.region].filter(Boolean).join(" - ")}
+                              </div>
+                            </button>
+
+                            <button
+                              type="button"
+                              className="savedRemove"
+                              onClick={() => removeSavedAddress(address.id)}
+                              aria-label="Eliminar direccion guardada"
+                            >
+                              X
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
 
                 <div className="form">
                   <label className="f">
@@ -581,7 +775,7 @@ export default function CheckoutPage() {
                   </label>
 
                   <label className="f">
-                    <span>Correo electrónico *</span>
+                    <span>Correo electronico *</span>
                     <input
                       value={ship.email}
                       onChange={(e) => setShip((s) => ({ ...s, email: e.target.value }))}
@@ -608,16 +802,16 @@ export default function CheckoutPage() {
                           }))
                         }
                       >
-                        <option value="">Selecciona una opción</option>
-                        <option value="CC">Cédula de ciudadanía</option>
-                        <option value="CE">Cédula de extranjería</option>
+                        <option value="">Selecciona una opcion</option>
+                        <option value="CC">Cedula de ciudadania</option>
+                        <option value="CE">Cedula de extranjeria</option>
                         <option value="NIT">NIT</option>
                         <option value="PAS">Pasaporte</option>
                       </select>
                     </label>
 
                     <label className="f">
-                      <span>Número de documento *</span>
+                      <span>Numero de documento *</span>
                       <input
                         value={ship.documentNumber}
                         onChange={(e) =>
@@ -633,15 +827,15 @@ export default function CheckoutPage() {
                       {ship.documentNumber.trim().length > 0 && !documentNumberValid && (
                         <small className="err">
                           {ship.documentType === "PAS"
-                            ? "Debe contener mínimo 5 números. En pasaporte se permiten letras y números."
-                            : "Debe tener mínimo 5 números."}
+                            ? "Debe contener minimo 5 numeros. En pasaporte se permiten letras y numeros."
+                            : "Debe tener minimo 5 numeros."}
                         </small>
                       )}
                     </label>
                   </div>
 
                   <label className="f">
-                    <span>Teléfono *</span>
+                    <span>Telefono *</span>
                     <input
                       value={ship.phone}
                       onChange={(e) =>
@@ -655,7 +849,7 @@ export default function CheckoutPage() {
                       autoComplete="tel"
                     />
                     {ship.phone.trim().length > 0 && !phoneValid && (
-                      <small className="err">Debe tener mínimo 5 números.</small>
+                      <small className="err">Debe tener minimo 5 numeros.</small>
                     )}
                   </label>
 
@@ -730,11 +924,11 @@ export default function CheckoutPage() {
                   ) : null}
 
                   <label className="f">
-                    <span>Dirección *</span>
+                    <span>Direccion *</span>
                     <input
                       value={ship.addressLine1}
                       onChange={(e) => setShip((s) => ({ ...s, addressLine1: e.target.value }))}
-                      placeholder="Calle / Carrera, número, barrio…"
+                      placeholder="Calle / Carrera, numero, barrio"
                     />
                   </label>
 
@@ -743,13 +937,13 @@ export default function CheckoutPage() {
                     <textarea
                       value={ship.notes}
                       onChange={(e) => setShip((s) => ({ ...s, notes: e.target.value }))}
-                      placeholder="Apto / torre / instrucciones de entrega…"
+                      placeholder="Apto / torre / instrucciones de entrega"
                     />
                   </label>
                 </div>
 
                 {!authLoading && !isAuthed && (
-                  <div className="authNote">Debes iniciar sesión antes de pasar a pago.</div>
+                  <div className="authNote">Debes iniciar sesion antes de pasar a pago.</div>
                 )}
 
                 <button
@@ -759,13 +953,13 @@ export default function CheckoutPage() {
                   disabled={!canContinue || !shipOk || authLoading}
                   title={
                     !shipOk
-                      ? "Completa el envío. Documento y celular deben tener mínimo 5 números. En pasaporte se permiten letras."
+                      ? "Completa el envio. Documento y celular deben tener minimo 5 numeros. En pasaporte se permiten letras."
                       : authLoading
-                        ? "Validando sesión..."
+                        ? "Validando sesion..."
                         : ""
                   }
                 >
-                  {authLoading ? "Validando sesión…" : !isAuthed ? "Iniciar sesión para pagar" : "Continuar a pago"}
+                  {authLoading ? "Validando sesion..." : !isAuthed ? "Iniciar sesion para pagar" : "Continuar a pago"}
                 </button>
               </div>
             ) : (
@@ -773,21 +967,21 @@ export default function CheckoutPage() {
                 <div className="cT">Pago Wompi</div>
                 <div className="cS">
                   Te llevamos a Wompi para completar el pago. La orden queda registrada como pendiente y solo se marca
-                  pagada cuando Wompi confirme la aprobación.
+                  pagada cuando Wompi confirme la aprobacion.
                 </div>
 
                 {reservedUntilLabel ? (
                   <div className="reserveBox">
                     <div className="reserveTitle">Stock reservado temporalmente</div>
                     <div className="reserveText">
-                      Tu carrito quedó reservado hasta <b>{reservedUntilLabel}</b>.
+                      Tu carrito quedo reservado hasta <b>{reservedUntilLabel}</b>.
                     </div>
                   </div>
                 ) : null}
 
                 <div className="payBox">
                   <div className="pRow">
-                    <span>Método</span>
+                    <span>Metodo</span>
                     <b>Wompi Checkout (redirect)</b>
                   </div>
                   <div className="pRow">
@@ -797,7 +991,7 @@ export default function CheckoutPage() {
                 </div>
 
                 {!authLoading && !isAuthed && (
-                  <div className="authWarn">Debes iniciar sesión para continuar con el pago.</div>
+                  <div className="authWarn">Debes iniciar sesion para continuar con el pago.</div>
                 )}
 
                 <button
@@ -807,21 +1001,21 @@ export default function CheckoutPage() {
                   onClick={payWithWompiRedirect}
                 >
                   {authLoading
-                    ? "Validando sesión…"
+                    ? "Validando sesion..."
                     : !isAuthed
-                      ? "Iniciar sesión para pagar"
+                      ? "Iniciar sesion para pagar"
                       : busy
-                        ? "Abriendo Wompi…"
+                        ? "Abriendo Wompi..."
                         : "Pagar ahora"}
                 </button>
 
                 {!authLoading && !isAuthed ? (
                   <button className="ghost" type="button" onClick={goToLogin} disabled={busy}>
-                    Ir a iniciar sesión
+                    Ir a iniciar sesion
                   </button>
                 ) : (
                   <button className="ghost" type="button" onClick={() => setStep("envio")} disabled={busy}>
-                    Volver a envío
+                    Volver a envio
                   </button>
                 )}
               </div>
@@ -838,7 +1032,7 @@ export default function CheckoutPage() {
                     <div className="itL">
                       <div className="itN">{it.name}</div>
                       <div className="itS">
-                        x{it.qty} {it.size ? `· Talla ${it.size}` : ""} {it.color ? `· ${it.color}` : ""}
+                        x{it.qty} {it.size ? `- Talla ${it.size}` : ""} {it.color ? `- ${it.color}` : ""}
                       </div>
                     </div>
                     <div className="itP">${moneyCOP(it.price * it.qty)}</div>
@@ -852,7 +1046,7 @@ export default function CheckoutPage() {
                   <b>${moneyCOP(summary.subtotal)}</b>
                 </div>
                 <div className="r">
-                  <span>Envío</span>
+                  <span>Envio</span>
                   <b>{shippingLabel}</b>
                 </div>
                 <div className="r tot">
@@ -862,7 +1056,10 @@ export default function CheckoutPage() {
 
                 <div className="delivery">
                   <span>Entrega estimada</span>
-                  <b>{deliveryEstimate}</b>
+                  <b>
+                    {deliveryEstimate}
+                    {expressEligibleOnly ? <small>Producto flash / express: entrega estimada de 8 dias a 10 dias</small> : null}
+                  </b>
                 </div>
 
                 {reservedUntilLabel ? (
@@ -974,6 +1171,77 @@ const baseCss = `
     color: rgba(0,0,0,0.62);
     font-size: 13px;
     line-height: 1.35;
+  }
+
+  .savedAddresses{
+    margin-top: 16px;
+    display: grid;
+    gap: 10px;
+  }
+  .savedHead{
+    display: grid;
+    gap: 4px;
+  }
+  .savedTitle{
+    font-size: 13px;
+    font-weight: 950;
+    color:#111;
+  }
+  .savedSub{
+    font-size: 12px;
+    font-weight: 900;
+    color: rgba(0,0,0,0.56);
+  }
+  .savedGrid{
+    display:grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .savedCard{
+    position: relative;
+    border-radius: 16px;
+    border: 1px solid rgba(0,0,0,0.1);
+    background: rgba(255,255,255,0.94);
+    overflow: hidden;
+  }
+  .savedCard.on{
+    border-color: rgba(212,175,55,0.44);
+    box-shadow: 0 0 0 3px rgba(212,175,55,0.12);
+  }
+  .savedUse{
+    width: 100%;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    padding: 14px 42px 14px 14px;
+    cursor: pointer;
+    display:grid;
+    gap: 4px;
+  }
+  .savedLabel{
+    font-size: 13px;
+    font-weight: 950;
+    color:#111;
+  }
+  .savedText{
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 1.35;
+    color: rgba(0,0,0,0.58);
+  }
+  .savedRemove{
+    position:absolute;
+    top: 8px;
+    right: 8px;
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    border: 1px solid rgba(0,0,0,0.08);
+    background:#fff;
+    color: rgba(0,0,0,0.56);
+    font-size: 16px;
+    font-weight: 900;
+    cursor: pointer;
   }
 
   .form{ margin-top: 14px; display: grid; gap: 10px; }
@@ -1132,6 +1400,13 @@ const baseCss = `
     font-weight: 950;
     text-align: right;
   }
+  .delivery small{
+    display:block;
+    margin-top: 4px;
+    font-size: 11px;
+    font-weight: 900;
+    color: rgba(0,0,0,0.52);
+  }
 
   .holdInfo{
     display:flex;
@@ -1205,5 +1480,7 @@ const baseCss = `
       text-align: left;
     }
     .cityMegaGrid{ grid-template-columns: 1fr; }
+    .savedGrid{ grid-template-columns: 1fr; }
   }
 `;
+

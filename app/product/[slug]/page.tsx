@@ -102,6 +102,20 @@ function clampNumber(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
+function clampImagePan(scale: number, translateX: number, translateY: number, width: number, height: number) {
+  if (scale <= 1 || !width || !height) {
+    return { translateX: 0, translateY: 0 };
+  }
+
+  const maxX = ((scale - 1) * width) / 2;
+  const maxY = ((scale - 1) * height) / 2;
+
+  return {
+    translateX: clampNumber(translateX, -maxX, maxX),
+    translateY: clampNumber(translateY, -maxY, maxY),
+  };
+}
+
 const FAVORITES_COMPAT_KEYS = [
   "jusp_home_favorites_v1",
   "jusp_favorites_v1",
@@ -389,7 +403,7 @@ function scoreRecommendation(
   let reason = "Selección curada por JUSP";
 
   if (candidateSignals.brand && profileBrands.includes(candidateSignals.brand)) {
-    reason = `Porque te gusta ${formatReasonLabel(candidateSignals.brand)}`;
+    reason = "Recomendado para ti";
   } else {
     const matchedInterest = profileInterests.find((interest) => candidateSignals.tokens.includes(interest));
     if (matchedInterest) {
@@ -1037,13 +1051,21 @@ export default function ProductPage() {
     paneImageWidth: 260,
     paneImageHeight: 320,
   });
-  const [mobileImageZoom, setMobileImageZoom] = useState({ scale: 1, originX: 50, originY: 50, pinching: false });
+  const [mobileImageZoom, setMobileImageZoom] = useState({
+    scale: 1,
+    translateX: 0,
+    translateY: 0,
+    pinching: false,
+  });
   const activeImageRef = useRef<HTMLImageElement | null>(null);
   const infoCardRef = useRef<HTMLDivElement | null>(null);
   const touchStartXRef = useRef<number | null>(null);
   const touchStartYRef = useRef<number | null>(null);
   const pinchStartDistanceRef = useRef<number | null>(null);
   const pinchStartScaleRef = useRef<number>(1);
+  const pinchStartTranslateRef = useRef({ x: 0, y: 0 });
+  const panStartRef = useRef<{ x: number; y: number; translateX: number; translateY: number } | null>(null);
+  const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
 
   function goToPrevImage() {
     if (imgs.length <= 1) return;
@@ -1060,25 +1082,33 @@ export default function ProductPage() {
 
     if (e.touches.length >= 2) {
       const [touchA, touchB] = Array.from(e.touches);
-      const rect = e.currentTarget.getBoundingClientRect();
-      const centerX = ((touchA.clientX + touchB.clientX) / 2 - rect.left) / rect.width;
-      const centerY = ((touchA.clientY + touchB.clientY) / 2 - rect.top) / rect.height;
 
       pinchStartDistanceRef.current = getTouchDistance(touchA, touchB);
       pinchStartScaleRef.current = mobileImageZoom.scale;
+      pinchStartTranslateRef.current = {
+        x: mobileImageZoom.translateX,
+        y: mobileImageZoom.translateY,
+      };
+      panStartRef.current = null;
       touchStartXRef.current = null;
       touchStartYRef.current = null;
 
       setMobileImageZoom((prev) => ({
         ...prev,
-        originX: Math.min(Math.max(centerX * 100, 0), 100),
-        originY: Math.min(Math.max(centerY * 100, 0), 100),
         pinching: true,
       }));
       return;
     }
 
     if (mobileImageZoom.scale > 1.02) {
+      const touch = e.touches?.[0];
+      if (!touch) return;
+      panStartRef.current = {
+        x: touch.clientX,
+        y: touch.clientY,
+        translateX: mobileImageZoom.translateX,
+        translateY: mobileImageZoom.translateY,
+      };
       touchStartXRef.current = null;
       touchStartYRef.current = null;
       return;
@@ -1086,30 +1116,54 @@ export default function ProductPage() {
 
     const touch = e.touches?.[0];
     if (!touch) return;
+    panStartRef.current = null;
     touchStartXRef.current = touch.clientX;
     touchStartYRef.current = touch.clientY;
   }
 
   function onImageTouchMove(e: React.TouchEvent<HTMLDivElement>) {
-    if (e.touches.length < 2 || pinchStartDistanceRef.current == null) return;
-
-    const [touchA, touchB] = Array.from(e.touches);
-    const nextDistance = getTouchDistance(touchA, touchB);
     const rect = e.currentTarget.getBoundingClientRect();
-    const centerX = ((touchA.clientX + touchB.clientX) / 2 - rect.left) / rect.width;
-    const centerY = ((touchA.clientY + touchB.clientY) / 2 - rect.top) / rect.height;
-    const nextScale = Math.min(
-      4,
-      Math.max(1, pinchStartScaleRef.current * (nextDistance / pinchStartDistanceRef.current))
-    );
+    if (!rect.width || !rect.height) return;
+
+    if (e.touches.length >= 2 && pinchStartDistanceRef.current != null) {
+      const [touchA, touchB] = Array.from(e.touches);
+      const nextDistance = getTouchDistance(touchA, touchB);
+      const nextScale = Math.min(
+        4,
+        Math.max(1, pinchStartScaleRef.current * (nextDistance / pinchStartDistanceRef.current))
+      );
+      const clampedPan = clampImagePan(
+        nextScale,
+        pinchStartTranslateRef.current.x,
+        pinchStartTranslateRef.current.y,
+        rect.width,
+        rect.height
+      );
+
+      e.preventDefault();
+      setMobileImageZoom({
+        scale: nextScale,
+        translateX: clampedPan.translateX,
+        translateY: clampedPan.translateY,
+        pinching: true,
+      });
+      return;
+    }
+
+    if (e.touches.length !== 1 || !panStartRef.current || mobileImageZoom.scale <= 1.02) return;
+
+    const touch = e.touches[0];
+    const nextTranslateX = panStartRef.current.translateX + (touch.clientX - panStartRef.current.x);
+    const nextTranslateY = panStartRef.current.translateY + (touch.clientY - panStartRef.current.y);
+    const clampedPan = clampImagePan(mobileImageZoom.scale, nextTranslateX, nextTranslateY, rect.width, rect.height);
 
     e.preventDefault();
-    setMobileImageZoom({
-      scale: nextScale,
-      originX: Math.min(Math.max(centerX * 100, 0), 100),
-      originY: Math.min(Math.max(centerY * 100, 0), 100),
-      pinching: true,
-    });
+    setMobileImageZoom((prev) => ({
+      ...prev,
+      translateX: clampedPan.translateX,
+      translateY: clampedPan.translateY,
+      pinching: false,
+    }));
   }
 
   function onImageTouchEnd(e: React.TouchEvent<HTMLDivElement>) {
@@ -1118,11 +1172,18 @@ export default function ProductPage() {
 
       pinchStartDistanceRef.current = null;
       pinchStartScaleRef.current = mobileImageZoom.scale;
+      pinchStartTranslateRef.current = {
+        x: mobileImageZoom.translateX,
+        y: mobileImageZoom.translateY,
+      };
       setMobileImageZoom((prev) => ({
         ...prev,
         scale: prev.scale < 1.05 ? 1 : prev.scale,
+        translateX: prev.scale < 1.05 ? 0 : prev.translateX,
+        translateY: prev.scale < 1.05 ? 0 : prev.translateY,
         pinching: false,
       }));
+      panStartRef.current = null;
       touchStartXRef.current = null;
       touchStartYRef.current = null;
       return;
@@ -1135,8 +1196,49 @@ export default function ProductPage() {
     touchStartXRef.current = null;
     touchStartYRef.current = null;
 
-    if (mobileImageZoom.scale > 1.02) return;
-    if (!touch || startX == null || startY == null || imgs.length <= 1) return;
+    if (!touch) return;
+
+    const now = Date.now();
+    const lastTap = lastTapRef.current;
+    const rect = e.currentTarget.getBoundingClientRect();
+
+    if (
+      lastTap &&
+      now - lastTap.time < 280 &&
+      Math.abs(lastTap.x - touch.clientX) < 24 &&
+      Math.abs(lastTap.y - touch.clientY) < 24
+    ) {
+      if (mobileImageZoom.scale > 1.02) {
+        setMobileImageZoom({ scale: 1, translateX: 0, translateY: 0, pinching: false });
+      } else if (rect.width && rect.height) {
+        const tapX = touch.clientX - rect.left;
+        const tapY = touch.clientY - rect.top;
+        const nextScale = 2.4;
+        const desiredTranslateX = (rect.width / 2 - tapX) * (nextScale - 1);
+        const desiredTranslateY = (rect.height / 2 - tapY) * (nextScale - 1);
+        const clampedPan = clampImagePan(nextScale, desiredTranslateX, desiredTranslateY, rect.width, rect.height);
+
+        setMobileImageZoom({
+          scale: nextScale,
+          translateX: clampedPan.translateX,
+          translateY: clampedPan.translateY,
+          pinching: false,
+        });
+      }
+
+      lastTapRef.current = null;
+      panStartRef.current = null;
+      return;
+    }
+
+    lastTapRef.current = { time: now, x: touch.clientX, y: touch.clientY };
+
+    if (mobileImageZoom.scale > 1.02) {
+      panStartRef.current = null;
+      return;
+    }
+
+    if (startX == null || startY == null || imgs.length <= 1) return;
 
     const dx = touch.clientX - startX;
     const dy = touch.clientY - startY;
@@ -1187,8 +1289,13 @@ export default function ProductPage() {
 
   useEffect(() => {
     setImageZoom((prev) => (prev.active ? { ...prev, active: false } : prev));
-    setMobileImageZoom((prev) => (prev.scale > 1 ? { ...prev, scale: 1, pinching: false } : prev));
+    setMobileImageZoom((prev) =>
+      prev.scale > 1 || prev.translateX !== 0 || prev.translateY !== 0
+        ? { ...prev, scale: 1, translateX: 0, translateY: 0, pinching: false }
+        : prev
+    );
     pinchStartDistanceRef.current = null;
+    panStartRef.current = null;
   }, [activeImg]);
 
   function onImageMouseMove(e: React.MouseEvent<HTMLDivElement>) {
@@ -1617,8 +1724,8 @@ export default function ProductPage() {
                       src={imgs[activeImg]}
                       alt={title}
                       style={{
-                        transform: `translateZ(0) scale(${mobileImageZoom.scale})`,
-                        transformOrigin: `${mobileImageZoom.originX}% ${mobileImageZoom.originY}%`,
+                        transform: `translate3d(${mobileImageZoom.translateX}px, ${mobileImageZoom.translateY}px, 0) scale(${mobileImageZoom.scale})`,
+                        transformOrigin: "center center",
                         transition: mobileImageZoom.pinching ? "none" : "transform 180ms ease",
                       }}
                     />
@@ -1895,7 +2002,7 @@ export default function ProductPage() {
             </div>
 
             <div className="recoGrid">
-              {recommendedProducts.map(({ product: reco, reason, score }, index) => {
+              {recommendedProducts.map(({ product: reco }, index) => {
                 const recoKey = productAliases(reco)[0] || `${reco.id}-${index}`;
                 const recoHrefSlug = String(reco.slug || reco.id || "").trim();
                 const recoHref = recoHrefSlug ? `/product/${encodeURIComponent(recoHrefSlug)}` : "/products";
@@ -1933,18 +2040,16 @@ export default function ProductPage() {
                     </div>
 
                     <div className="recoBody">
-                      <div className="recoReason">{reason}</div>
                       <h3 className="recoCardTitle">{reco.title || reco.name || "Producto"}</h3>
                       {recoMeta ? <div className="recoMeta">{recoMeta}</div> : null}
 
                       <div className="recoFoot">
                         <div className="recoPrice">${moneyCOP(recoPrice)}</div>
-                        <div className="recoFootMeta">
-                          {recoDiscount > 0 ? <span className="recoMiniPill">-{recoDiscount}%</span> : null}
-                          <span className="recoMatch">
-                            {Math.max(72, Math.min(98, Math.round(72 + score / 6)))}% afinidad
-                          </span>
-                        </div>
+                        {recoDiscount > 0 ? (
+                          <div className="recoFootMeta">
+                            <span className="recoMiniPill">-{recoDiscount}%</span>
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   </Link>

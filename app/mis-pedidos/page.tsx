@@ -6,7 +6,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 type OrderItem = {
   id: string;
+  slug?: string | null;
+  product_slug?: string | null;
   title: string;
+  name?: string | null;
   brand?: string | null;
   price: number;
   image?: string | null;
@@ -30,6 +33,7 @@ type OrderRow = {
   created_at: string;
   status?: string | null;
   payment_status?: string | null;
+  customer_email?: string | null;
   payment_intent_id?: string | null;
   tracking_code?: string | null;
   carrier?: string | null;
@@ -37,6 +41,41 @@ type OrderRow = {
   shipping_address?: ShippingAddress | null;
   paid_at?: string | null;
 };
+
+type ReviewPromptState = {
+  dismissed: string[];
+  submitted: string[];
+};
+
+const REVIEW_PROMPT_KEY = "jusp_order_review_prompt_v1";
+
+function normalizeReviewState(input: unknown): ReviewPromptState {
+  const source = input && typeof input === "object" ? (input as any) : {};
+  const dismissed = Array.isArray(source.dismissed) ? source.dismissed.filter((v: unknown) => typeof v === "string") : [];
+  const submitted = Array.isArray(source.submitted) ? source.submitted.filter((v: unknown) => typeof v === "string") : [];
+  return { dismissed, submitted };
+}
+
+function loadReviewPromptState(): ReviewPromptState {
+  if (typeof window === "undefined") return { dismissed: [], submitted: [] };
+  try {
+    return normalizeReviewState(JSON.parse(localStorage.getItem(REVIEW_PROMPT_KEY) || "{}"));
+  } catch {
+    return { dismissed: [], submitted: [] };
+  }
+}
+
+function saveReviewPromptState(state: ReviewPromptState) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(REVIEW_PROMPT_KEY, JSON.stringify(state));
+  } catch {}
+}
+
+function reviewItemKey(orderId: string, item: OrderItem) {
+  const raw = String(item.slug || item.product_slug || item.id || item.title || item.name || "").trim();
+  return `${orderId}:${raw.toLowerCase()}`;
+}
 
 type ApiOk = { ok: true; orders: OrderRow[] };
 type ApiErr = { ok: false; error?: string };
@@ -271,11 +310,19 @@ function MisPedidosContent() {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [q, setQ] = useState("");
   const [toast, setToast] = useState<string | null>(null);
+  const [reviewState, setReviewState] = useState<ReviewPromptState>({ dismissed: [], submitted: [] });
+  const [reviewOrderId, setReviewOrderId] = useState<string | null>(null);
+  const [reviewItemToken, setReviewItemToken] = useState<string>("");
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewBusy, setReviewBusy] = useState(false);
+  const [reviewErr, setReviewErr] = useState<string | null>(null);
 
   const mounted = useRef(true);
   const toastTimer = useRef<any>(null);
   const redirectedRef = useRef(false);
   const [entered, setEntered] = useState(false);
+  const reviewBootedRef = useRef(false);
 
   const highlight = useMemo(() => {
     return String(searchParams.get("highlight") || "")
@@ -294,6 +341,10 @@ function MisPedidosContent() {
   useEffect(() => {
     const t = setTimeout(() => setEntered(true), 10);
     return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    setReviewState(loadReviewPromptState());
   }, []);
 
   function showToast(msg: string) {
@@ -407,6 +458,140 @@ function MisPedidosContent() {
 
     return list;
   }, [orders, filter, q]);
+
+  const reviewOrder = useMemo(
+    () => orders.find((order) => String(order.id) === String(reviewOrderId || "")) || null,
+    [orders, reviewOrderId]
+  );
+
+  const reviewItems = useMemo(() => {
+    const items = Array.isArray(reviewOrder?.items) ? reviewOrder.items : [];
+    return items.filter((item) => String(item?.id || item?.slug || item?.product_slug || item?.title || item?.name || "").trim());
+  }, [reviewOrder]);
+
+  const selectedReviewItem = useMemo(() => {
+    if (!reviewOrder || !reviewItems.length) return null;
+    return reviewItems.find((item) => reviewItemKey(reviewOrder.id, item) === reviewItemToken) || reviewItems[0] || null;
+  }, [reviewItems, reviewItemToken, reviewOrder]);
+
+  function openReview(order: OrderRow, preferredItem?: OrderItem | null) {
+    const items = Array.isArray(order.items) ? order.items : [];
+    const item = preferredItem || items[0] || null;
+    if (!item) return;
+
+    setReviewOrderId(order.id);
+    setReviewItemToken(reviewItemKey(order.id, item));
+    setReviewRating(5);
+    setReviewComment("");
+    setReviewErr(null);
+  }
+
+  function closeReview(markDismissed = false) {
+    if (markDismissed && reviewOrder && selectedReviewItem) {
+      const token = reviewItemKey(reviewOrder.id, selectedReviewItem);
+      const next = {
+        ...reviewState,
+        dismissed: Array.from(new Set([...reviewState.dismissed, token])),
+      };
+      setReviewState(next);
+      saveReviewPromptState(next);
+    }
+
+    setReviewOrderId(null);
+    setReviewItemToken("");
+    setReviewComment("");
+    setReviewErr(null);
+    setReviewBusy(false);
+  }
+
+  useEffect(() => {
+    if (loading || reviewBootedRef.current) return;
+    if (!orders.length) return;
+
+    const delivered = orders.find((order) => {
+      if (String(order.status || "").toLowerCase() !== "delivered") return false;
+      const items = Array.isArray(order.items) ? order.items : [];
+      return items.some((item) => {
+        const token = reviewItemKey(order.id, item);
+        return !reviewState.dismissed.includes(token) && !reviewState.submitted.includes(token);
+      });
+    });
+
+    if (!delivered) {
+      reviewBootedRef.current = true;
+      return;
+    }
+
+    const firstPendingItem = (delivered.items || []).find((item) => {
+      const token = reviewItemKey(delivered.id, item);
+      return !reviewState.dismissed.includes(token) && !reviewState.submitted.includes(token);
+    });
+
+    if (firstPendingItem) {
+      reviewBootedRef.current = true;
+      openReview(delivered, firstPendingItem);
+    }
+  }, [loading, orders, reviewState]);
+
+  async function submitDeliveredReview() {
+    if (!reviewOrder || !selectedReviewItem) return;
+    if (reviewComment.trim().length < 12) {
+      setReviewErr("Cuéntanos un poco más sobre tu experiencia. Mínimo 12 caracteres.");
+      return;
+    }
+
+    const productId = String(selectedReviewItem.id || "").trim();
+    const productSlug = String(selectedReviewItem.slug || selectedReviewItem.product_slug || "").trim();
+    const productTitle = String(selectedReviewItem.title || selectedReviewItem.name || "Producto").trim();
+
+    setReviewBusy(true);
+    setReviewErr(null);
+
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          productId,
+          productSlug,
+          productTitle,
+          rating: reviewRating,
+          comment: reviewComment.trim(),
+        }),
+      });
+
+      const json = await res.json().catch(() => null);
+
+      if (!res.ok || !json?.ok) {
+        setReviewErr(json?.error || "No se pudo guardar tu reseña.");
+        return;
+      }
+
+      await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          type: "product",
+          rating: reviewRating,
+          email: reviewOrder.customer_email || "",
+          message: `Pedido ${reviewOrder.order_code || reviewOrder.id} · ${productTitle}\n\n${reviewComment.trim()}`,
+        }),
+      }).catch(() => null);
+
+      const token = reviewItemKey(reviewOrder.id, selectedReviewItem);
+      const next = {
+        dismissed: reviewState.dismissed.filter((entry) => entry !== token),
+        submitted: Array.from(new Set([...reviewState.submitted, token])),
+      };
+      setReviewState(next);
+      saveReviewPromptState(next);
+      showToast("Reseña enviada correctamente.");
+      closeReview(false);
+    } finally {
+      setReviewBusy(false);
+    }
+  }
 
   return (
     <main className={`mp-root ${entered ? "entered" : ""}`}>
@@ -717,6 +902,16 @@ function MisPedidosContent() {
                       </div>
 
                       <div className="cta">
+                        {String(o.status || "").toLowerCase() === "delivered" && items.length ? (
+                          <button
+                            className="btn small"
+                            type="button"
+                            onClick={() => openReview(o, items[0])}
+                          >
+                            Calificar compra
+                          </button>
+                        ) : null}
+
                         <button
                           className="btn small ghost"
                           type="button"
@@ -749,6 +944,77 @@ function MisPedidosContent() {
             })}
           </div>
         )}
+
+        {reviewOrder && selectedReviewItem ? (
+          <div className="reviewOverlay" role="presentation" onClick={() => closeReview(true)}>
+            <div className="reviewModal" role="dialog" aria-modal="true" aria-labelledby="reviewTitle" onClick={(e) => e.stopPropagation()}>
+              <div className="reviewTop">
+                <div>
+                  <div className="reviewKicker">Pedido entregado</div>
+                  <h2 id="reviewTitle" className="reviewTitle">Califica tu compra</h2>
+                  <p className="reviewSub">Tu reseña ayuda a mejorar la experiencia y también aparece en el producto que elijas.</p>
+                </div>
+
+                <button className="reviewClose" type="button" onClick={() => closeReview(true)} aria-label="Cerrar">
+                  ×
+                </button>
+              </div>
+
+              {reviewItems.length > 1 ? (
+                <div className="reviewProducts">
+                  {reviewItems.map((item) => {
+                    const token = reviewOrder ? reviewItemKey(reviewOrder.id, item) : "";
+                    const active = token === reviewItemToken;
+                    return (
+                      <button
+                        key={token}
+                        type="button"
+                        className={`reviewProductChip ${active ? "on" : ""}`}
+                        onClick={() => setReviewItemToken(token)}
+                      >
+                        {item.title || item.name || "Producto"}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+
+              <div className="reviewItemName">{selectedReviewItem.title || selectedReviewItem.name || "Producto"}</div>
+
+              <div className="reviewStars" role="radiogroup" aria-label="Calificación">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    className={`reviewStar ${reviewRating >= star ? "on" : ""}`}
+                    onClick={() => setReviewRating(star)}
+                    aria-label={`${star} estrellas`}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                className="reviewTextarea"
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                placeholder="Cuéntanos cómo te fue con la compra y con el producto..."
+              />
+
+              {reviewErr ? <div className="reviewErr">{reviewErr}</div> : null}
+
+              <div className="reviewActions">
+                <button className="btn small ghost" type="button" onClick={() => closeReview(true)} disabled={reviewBusy}>
+                  Ahora no
+                </button>
+                <button className="btn small" type="button" onClick={submitDeliveredReview} disabled={reviewBusy}>
+                  {reviewBusy ? "Enviando..." : "Enviar reseña"}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {toast ? <div className="toast">{toast}</div> : null}
       </div>
@@ -1295,6 +1561,138 @@ function MisPedidosContent() {
         }
         .btn-ico {
           display: inline-flex;
+        }
+
+        .reviewOverlay {
+          position: fixed;
+          inset: 0;
+          z-index: 2600;
+          background: rgba(0, 0, 0, 0.48);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          display: grid;
+          place-items: center;
+          padding: 18px;
+        }
+        .reviewModal {
+          width: min(640px, calc(100vw - 24px));
+          border-radius: 26px;
+          background: rgba(255, 255, 255, 0.97);
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          box-shadow: 0 28px 90px rgba(0, 0, 0, 0.24);
+          padding: 22px;
+          display: grid;
+          gap: 16px;
+        }
+        .reviewTop {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          align-items: flex-start;
+        }
+        .reviewKicker {
+          font-size: 11px;
+          font-weight: 950;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: rgba(0, 0, 0, 0.46);
+        }
+        .reviewTitle {
+          margin: 8px 0 0;
+          font-size: 30px;
+          line-height: 1;
+          letter-spacing: -0.04em;
+          font-weight: 1000;
+          color: #111;
+        }
+        .reviewSub {
+          margin: 8px 0 0;
+          font-size: 14px;
+          line-height: 1.6;
+          font-weight: 850;
+          color: rgba(0, 0, 0, 0.62);
+        }
+        .reviewClose {
+          width: 40px;
+          height: 40px;
+          border-radius: 999px;
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          background: rgba(0, 0, 0, 0.03);
+          color: rgba(0, 0, 0, 0.62);
+          font-size: 22px;
+          font-weight: 900;
+          cursor: pointer;
+          flex: 0 0 auto;
+        }
+        .reviewProducts {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .reviewProductChip {
+          border-radius: 999px;
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          background: rgba(255, 255, 255, 0.96);
+          padding: 10px 12px;
+          font-size: 12px;
+          font-weight: 950;
+          color: rgba(0, 0, 0, 0.72);
+          cursor: pointer;
+        }
+        .reviewProductChip.on {
+          background: rgba(255, 214, 0, 0.55);
+          border-color: rgba(255, 214, 0, 0.8);
+          color: #111;
+        }
+        .reviewItemName {
+          font-size: 16px;
+          font-weight: 950;
+          color: #111;
+        }
+        .reviewStars {
+          display: flex;
+          gap: 8px;
+        }
+        .reviewStar {
+          border: 0;
+          background: transparent;
+          font-size: 36px;
+          line-height: 1;
+          color: rgba(0, 0, 0, 0.16);
+          cursor: pointer;
+          padding: 0;
+        }
+        .reviewStar.on {
+          color: rgba(255, 187, 0, 1);
+        }
+        .reviewTextarea {
+          width: 100%;
+          min-height: 140px;
+          resize: vertical;
+          border-radius: 18px;
+          border: 1px solid rgba(0, 0, 0, 0.12);
+          background: rgba(255, 255, 255, 0.98);
+          padding: 14px 16px;
+          font-size: 14px;
+          font-weight: 850;
+          line-height: 1.55;
+          color: #111;
+          outline: none;
+        }
+        .reviewErr {
+          border-radius: 16px;
+          padding: 12px 14px;
+          background: rgba(239, 68, 68, 0.08);
+          border: 1px solid rgba(239, 68, 68, 0.2);
+          color: rgba(127, 29, 29, 0.94);
+          font-size: 13px;
+          font-weight: 900;
+        }
+        .reviewActions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+          flex-wrap: wrap;
         }
 
         .alert {
