@@ -185,8 +185,10 @@ function normalizeSignalList(value: unknown): string[] {
 }
 
 function productAliases(product: Partial<Product> | { id?: string; slug?: string; productCode?: string } | null | undefined): string[] {
+  const item = product as any;
+
   return uniqueStringsCaseInsensitive(
-    [product?.id, product?.slug, (product as any)?.product_code, product?.productCode]
+    [item?.id, item?.slug, item?.product_code, item?.productCode]
       .map((value) => String(value ?? "").trim())
       .filter(Boolean)
   );
@@ -1472,18 +1474,6 @@ export default function ProductPage() {
     return scored;
   }, [catalogProducts, effectiveTasteProfile, favoriteProducts, product, tasteHistory]);
 
-  const recommendationSummary = useMemo(() => {
-    if (effectiveTasteProfile.interests.length || effectiveTasteProfile.brands.length) {
-      return "Selección afinada por la tienda según tu perfil, lo que guardas y lo que vienes mirando.";
-    }
-
-    if (tasteHistory.length > 1 || favoriteProducts.length > 0) {
-      return "Productos elegidos según lo que te gusta dentro de JUSP y su relación con esta ficha.";
-    }
-
-    return "Una selección JUSP basada en este producto para seguir descubriendo piezas que encajan contigo.";
-  }, [effectiveTasteProfile, favoriteProducts.length, tasteHistory.length]);
-
   async function onToggleFavorite() {
     if (!product) return;
 
@@ -1899,17 +1889,9 @@ export default function ProductPage() {
         {recommendedProducts.length ? (
           <section className="recoSection" aria-labelledby="storeRecoTitle">
             <div className="recoHead">
-              <div className="recoHeadCopy">
-                <div className="recoEyebrow">JUSP para ti</div>
-                <h2 id="storeRecoTitle" className="recoTitle">
-                  Lo recomendado por la tienda
-                </h2>
-                <p className="recoSub">{recommendationSummary}</p>
-              </div>
-
-              <div className="recoStat">
-                {sessionUser?.email ? "Afinado con tu actividad" : "Basado en tus gustos recientes"}
-              </div>
+              <h2 id="storeRecoTitle" className="recoTitle">
+                Lo recomendado por la tienda
+              </h2>
             </div>
 
             <div className="recoGrid">
