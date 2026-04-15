@@ -50,7 +50,7 @@ const points = [
   },
   {
     t: "Mejora continua (sin humo)",
-    d: 'No prometemos “cero impacto”. Prometemos medir, mejorar y decir la verdad.',
+    d: "No prometemos “cero impacto”. Prometemos medir, mejorar y decir la verdad.",
   },
 ];
 
@@ -101,12 +101,12 @@ function ToneBadge({
           color: "rgba(255,245,210,0.92)",
         }
       : tone === "blue"
-        ? {
-            borderColor: "rgba(147,197,253,0.22)",
-            background: "rgba(59,130,246,0.10)",
-            color: "rgba(219,234,254,0.92)",
-          }
-        : {};
+      ? {
+          borderColor: "rgba(147,197,253,0.22)",
+          background: "rgba(59,130,246,0.10)",
+          color: "rgba(219,234,254,0.92)",
+        }
+      : {};
 
   return <span style={{ ...base, ...toneStyle }}>{children}</span>;
 }

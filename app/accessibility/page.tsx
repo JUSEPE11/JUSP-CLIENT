@@ -111,7 +111,6 @@ function Badge({ label }: { label: string }) {
 export default function AccessibilityPage() {
   return (
     <main style={S.main}>
-      {/* Fondo help-like premium */}
       <div aria-hidden style={S.bgWrap}>
         <div style={S.bgBase} />
         <div style={S.bgGoldRadialTop} />
@@ -123,7 +122,6 @@ export default function AccessibilityPage() {
       </div>
 
       <div style={S.container}>
-        {/* Top micro-nav */}
         <div style={S.topbar}>
           <div style={S.badge}>
             <span style={S.dot} />
@@ -134,7 +132,7 @@ export default function AccessibilityPage() {
             <Link href="/help" style={S.linkButton}>
               Volver
             </Link>
-            <Link href="/pqr" style={S.linkButton}>
+            <Link href="/help/pqr" style={S.linkButton}>
               PQR →
             </Link>
             <Link href="/products" style={S.linkButtonSolidWhite}>
@@ -143,7 +141,6 @@ export default function AccessibilityPage() {
           </div>
         </div>
 
-        {/* HERO */}
         <section style={S.hero}>
           <div style={S.heroTopBadges}>
             <ToneBadge tone="gold">Usabilidad</ToneBadge>
@@ -177,7 +174,6 @@ export default function AccessibilityPage() {
           </p>
         </section>
 
-        {/* PANEL */}
         <section style={S.panel}>
           <div style={S.panelHeader}>
             <div>
@@ -209,7 +205,6 @@ export default function AccessibilityPage() {
               ))}
             </div>
 
-            {/* Checklist */}
             <div style={S.listCard}>
               <div style={S.listTop}>
                 <div style={S.listTitle}>Checklist de mejoras</div>
@@ -226,7 +221,6 @@ export default function AccessibilityPage() {
               </div>
             </div>
 
-            {/* FAQ */}
             <div style={S.faqCard}>
               <div style={S.faqTop}>
                 <div style={S.faqTitle}>Preguntas rápidas</div>
@@ -246,7 +240,7 @@ export default function AccessibilityPage() {
                 <Link href="/help" style={S.linkButtonSolid}>
                   Ayuda →
                 </Link>
-                <Link href="/pqr" style={S.linkButton}>
+                <Link href="/help/pqr" style={S.linkButton}>
                   PQR / Reclamos →
                 </Link>
                 <Link href="/products" style={S.linkButtonSolidWhite}>

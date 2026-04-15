@@ -1,8 +1,8 @@
 {
   "version": 7,
-  "generatedAt": "2026-04-14T23:05:27.286Z",
+  "generatedAt": "2026-04-15T07:04:51.019Z",
   "excelPath": "C:\\JUSP\\jusp-app2\\data\\catalogo_jusp.xlsx",
-  "excelMtimeMs": 1776207922333.85,
+  "excelMtimeMs": 1776236655396.8643,
   "products": [
     {
       "id": "short-nike-kids",
@@ -202,7 +202,7 @@
         "club"
       ],
       "isNew": true,
-      "stockHint": 5,
+      "stockHint": 3,
       "pickupToday": false,
       "expressDelivery": false,
       "variants": [
@@ -211,7 +211,7 @@
           "size": "S/M",
           "color": "beige",
           "price": 75990,
-          "stock": 2,
+          "stock": 1,
           "isAvailable": true
         },
         {
@@ -219,7 +219,7 @@
           "size": "M/L",
           "color": "beige",
           "price": 79990,
-          "stock": 2,
+          "stock": 1,
           "isAvailable": true
         },
         {

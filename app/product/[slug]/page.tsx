@@ -1429,7 +1429,7 @@ export default function ProductPage() {
       key: "refund",
       title: "Compra protegida",
       description:
-        "Políticas de devolución.\nReembolso instantáneo.\nSi tu pedido cumple las condiciones, procesamos tu dinero de forma rápida y clara.",
+        "Políticas de devolución.\nReembolso instantáneo.\n ✔ Producto original verificado.\n ✔ Pago seguro.\n ✔ Envío asegurado",
       tone: "mint",
     },
     {
@@ -1503,7 +1503,7 @@ export default function ProductPage() {
     if (selectionMissing) return null;
     if (isSoldOut) return "Agotado";
     if (maxQtyAllowed <= 0) return "Ya tienes el máximo disponible en el carrito";
-    if (maxQtyAllowed === 1) return "Solo queda 1 disponible";
+    if (maxQtyAllowed === 1) return "¿Tienes dudas? Escríbenos y te respondemos en minutos";
     return `Disponibles: ${maxQtyAllowed}`;
   }, [selectionMissing, isSoldOut, maxQtyAllowed]);
 

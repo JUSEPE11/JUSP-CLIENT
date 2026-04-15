@@ -1807,7 +1807,7 @@ function HomePageContent() {
               {
                 k: "refund",
                 t: "Compra protegida",
-                d: "Políticas de devolución.\nReembolso instantáneo.\nSi tu pedido cumple las condiciones, procesamos tu dinero de forma rápida y clara.",
+                d: "Políticas de devolución.\nReembolso instantáneo.\n ✔ Producto original verificado.\n ✔ Pago seguro.\n ✔ Envío asegurado ",
                 i: "💸",
               },
               {
