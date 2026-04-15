@@ -315,6 +315,30 @@ function upsertSavedAddress(addresses: SavedAddress[], ship: Shipping): SavedAdd
   ].slice(0, 6);
 }
 
+function mergeSavedAddresses(primary: SavedAddress[], secondary: SavedAddress[]) {
+  const merged = [...primary, ...secondary];
+  const byFingerprint = new Map<string, SavedAddress>();
+
+  for (const entry of merged) {
+    const fingerprint = addressFingerprint(entry);
+    const current = byFingerprint.get(fingerprint);
+    if (!current) {
+      byFingerprint.set(fingerprint, entry);
+      continue;
+    }
+
+    const currentStamp = String(current.updatedAt || current.createdAt || "");
+    const nextStamp = String(entry.updatedAt || entry.createdAt || "");
+    if (nextStamp.localeCompare(currentStamp) > 0) {
+      byFingerprint.set(fingerprint, entry);
+    }
+  }
+
+  return Array.from(byFingerprint.values())
+    .sort((a, b) => String(b.updatedAt || b.createdAt || "").localeCompare(String(a.updatedAt || a.createdAt || "")))
+    .slice(0, 6);
+}
+
 export default function CheckoutPage() {
   const { state, cartTotal, cartCount } = useStore();
 
@@ -445,9 +469,36 @@ export default function CheckoutPage() {
           headers: { "cache-control": "no-store" },
         });
 
+        const json = await res.json().catch(() => null);
+
         if (!active) return;
 
         setIsAuthed(res.ok);
+        if (res.ok && json?.user?.email) {
+          setShip((current) => ({
+            ...current,
+            email: current.email || String(json.user.email || "").trim().toLowerCase(),
+          }));
+        }
+
+        if (res.ok) {
+          const addressesRes = await fetch("/api/account/addresses", {
+            method: "GET",
+            credentials: "include",
+            cache: "no-store",
+            headers: { "cache-control": "no-store" },
+          }).catch(() => null);
+
+          if (addressesRes?.ok) {
+            const addressesJson = await addressesRes.json().catch(() => null);
+            const serverAddresses = Array.isArray(addressesJson?.addresses)
+              ? (addressesJson.addresses as SavedAddress[])
+              : [];
+            const merged = mergeSavedAddresses(serverAddresses, loadSavedAddresses());
+            setSavedAddresses(merged);
+            persistSavedAddresses(merged);
+          }
+        }
       } catch {
         if (!active) return;
         setIsAuthed(false);
@@ -484,16 +535,32 @@ export default function CheckoutPage() {
     });
   }
 
-  function rememberCurrentAddress() {
+  async function rememberCurrentAddress() {
     const next = upsertSavedAddress(savedAddresses, ship);
     setSavedAddresses(next);
     persistSavedAddresses(next);
+
+    if (!isAuthed) return;
+
+    await fetch("/api/account/addresses", {
+      method: "POST",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(ship),
+    }).catch(() => null);
   }
 
   function removeSavedAddress(id: string) {
     const next = savedAddresses.filter((entry) => entry.id !== id);
     setSavedAddresses(next);
     persistSavedAddresses(next);
+
+    if (isAuthed) {
+      void fetch(`/api/account/addresses?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        credentials: "include",
+      }).catch(() => null);
+    }
   }
 
   const documentNumberValid = useMemo(
@@ -536,7 +603,7 @@ export default function CheckoutPage() {
 
   function handleContinueToPayment() {
     if (!shipOk) return;
-    rememberCurrentAddress();
+    void rememberCurrentAddress();
 
     if (authLoading) return;
 
@@ -564,7 +631,7 @@ export default function CheckoutPage() {
       return;
     }
 
-    rememberCurrentAddress();
+    await rememberCurrentAddress();
 
     setBusy(true);
     try {

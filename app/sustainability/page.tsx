@@ -50,7 +50,7 @@ const points = [
   },
   {
     t: "Mejora continua (sin humo)",
-    d: "No prometemos “cero impacto”. Prometemos medir, mejorar y decir la verdad.",
+    d: 'No prometemos “cero impacto”. Prometemos medir, mejorar y decir la verdad.',
   },
 ];
 
@@ -101,12 +101,12 @@ function ToneBadge({
           color: "rgba(255,245,210,0.92)",
         }
       : tone === "blue"
-      ? {
-          borderColor: "rgba(147,197,253,0.22)",
-          background: "rgba(59,130,246,0.10)",
-          color: "rgba(219,234,254,0.92)",
-        }
-      : {};
+        ? {
+            borderColor: "rgba(147,197,253,0.22)",
+            background: "rgba(59,130,246,0.10)",
+            color: "rgba(219,234,254,0.92)",
+          }
+        : {};
 
   return <span style={{ ...base, ...toneStyle }}>{children}</span>;
 }
@@ -305,8 +305,7 @@ export default function SustainabilityPage() {
 const S: Record<string, React.CSSProperties> = {
   main: {
     position: "relative",
-    minHeight: "100dvh",
-    overflow: "hidden",
+    overflowX: "hidden",
     color: "#fff",
     backgroundColor: "#0b0b0f",
     fontFamily:
@@ -314,7 +313,7 @@ const S: Record<string, React.CSSProperties> = {
   },
 
   // Background
-  bgWrap: { position: "fixed", inset: 0, zIndex: -1, pointerEvents: "none" },
+  bgWrap: { position: "absolute", inset: 0, zIndex: 0, pointerEvents: "none" },
   bgBase: { position: "absolute", inset: 0, background: "#0b0b0f" },
   bgGoldRadialTop: {
     position: "absolute",
@@ -365,6 +364,8 @@ const S: Record<string, React.CSSProperties> = {
   },
 
   container: {
+    position: "relative",
+    zIndex: 1,
     width: "min(1120px, calc(100% - 48px))",
     margin: "0 auto",
     padding: "56px 0 86px",

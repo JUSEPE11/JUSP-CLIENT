@@ -314,6 +314,7 @@ function MisPedidosContent() {
   const [reviewOrderId, setReviewOrderId] = useState<string | null>(null);
   const [reviewItemToken, setReviewItemToken] = useState<string>("");
   const [reviewRating, setReviewRating] = useState(5);
+  const [experienceRating, setExperienceRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [reviewBusy, setReviewBusy] = useState(false);
   const [reviewErr, setReviewErr] = useState<string | null>(null);
@@ -482,6 +483,7 @@ function MisPedidosContent() {
     setReviewOrderId(order.id);
     setReviewItemToken(reviewItemKey(order.id, item));
     setReviewRating(5);
+    setExperienceRating(5);
     setReviewComment("");
     setReviewErr(null);
   }
@@ -499,6 +501,7 @@ function MisPedidosContent() {
 
     setReviewOrderId(null);
     setReviewItemToken("");
+    setExperienceRating(5);
     setReviewComment("");
     setReviewErr(null);
     setReviewBusy(false);
@@ -572,10 +575,22 @@ function MisPedidosContent() {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          type: "product",
-          rating: reviewRating,
+          type: "experience",
+          rating: experienceRating,
           email: reviewOrder.customer_email || "",
-          message: `Pedido ${reviewOrder.order_code || reviewOrder.id} · ${productTitle}\n\n${reviewComment.trim()}`,
+          message:
+            `Pedido ${reviewOrder.order_code || reviewOrder.id} · ${productTitle}\n` +
+            `Experiencia de compra: ${experienceRating}/5\n` +
+            `Calificación del producto: ${reviewRating}/5\n\n` +
+            `${reviewComment.trim()}`,
+          meta: {
+            order_id: reviewOrder.id,
+            order_code: reviewOrder.order_code || null,
+            product_id: productId || null,
+            product_slug: productSlug || null,
+            product_title: productTitle,
+            product_rating: reviewRating,
+          },
         }),
       }).catch(() => null);
 
@@ -952,7 +967,9 @@ function MisPedidosContent() {
                 <div>
                   <div className="reviewKicker">Pedido entregado</div>
                   <h2 id="reviewTitle" className="reviewTitle">Califica tu compra</h2>
-                  <p className="reviewSub">Tu reseña ayuda a mejorar la experiencia y también aparece en el producto que elijas.</p>
+                  <p className="reviewSub">
+                    Valora la experiencia de compra y el producto recibido. La reseña del producto también aparecerá en su ficha.
+                  </p>
                 </div>
 
                 <button className="reviewClose" type="button" onClick={() => closeReview(true)} aria-label="Cerrar">
@@ -981,7 +998,23 @@ function MisPedidosContent() {
 
               <div className="reviewItemName">{selectedReviewItem.title || selectedReviewItem.name || "Producto"}</div>
 
-              <div className="reviewStars" role="radiogroup" aria-label="Calificación">
+              <div className="reviewLabel">Experiencia de compra</div>
+              <div className="reviewStars" role="radiogroup" aria-label="Calificación de la experiencia de compra">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={`experience-${star}`}
+                    type="button"
+                    className={`reviewStar ${experienceRating >= star ? "on" : ""}`}
+                    onClick={() => setExperienceRating(star)}
+                    aria-label={`${star} estrellas para la experiencia`}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
+
+              <div className="reviewLabel">Producto recibido</div>
+              <div className="reviewStars" role="radiogroup" aria-label="Calificación del producto">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     key={star}
@@ -1648,6 +1681,13 @@ function MisPedidosContent() {
           font-size: 16px;
           font-weight: 950;
           color: #111;
+        }
+        .reviewLabel {
+          font-size: 12px;
+          font-weight: 900;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: rgba(0, 0, 0, 0.58);
         }
         .reviewStars {
           display: flex;

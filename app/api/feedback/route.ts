@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
-type FeedbackType = "bug" | "idea" | "product" | "support";
+type FeedbackType = "bug" | "idea" | "product" | "support" | "experience";
 type Rating = 1 | 2 | 3 | 4 | 5;
 
 function isValidType(value: unknown): value is FeedbackType {
-  return value === "bug" || value === "idea" || value === "product" || value === "support";
+  return value === "bug" || value === "idea" || value === "product" || value === "support" || value === "experience";
 }
 
 function isValidRating(value: unknown): value is Rating {
@@ -20,6 +21,7 @@ function getTypeLabel(type: FeedbackType) {
   if (type === "bug") return "Bug";
   if (type === "idea") return "Idea";
   if (type === "product") return "Producto";
+  if (type === "experience") return "Experiencia";
   return "Soporte";
 }
 
@@ -41,6 +43,10 @@ export async function POST(req: NextRequest) {
       body && typeof body.message === "string" ? body.message.trim() : "";
     const email =
       body && typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    const meta =
+      body && typeof body.meta === "object" && body.meta && !Array.isArray(body.meta)
+        ? body.meta
+        : null;
 
     if (!isValidType(type)) {
       return NextResponse.json(
@@ -140,6 +146,25 @@ export async function POST(req: NextRequest) {
     if (!resendRes.ok) {
       const txt = await resendRes.text().catch(() => "");
       throw new Error(`Resend failed: ${resendRes.status} ${txt}`);
+    }
+
+    try {
+      const db = supabaseAdmin();
+      await db.from("logs").insert({
+        level: "info",
+        scope: type === "experience" ? "purchase_feedback" : "feedback",
+        message: `${typeLabel} ${rating}/5`,
+        user_email: email || null,
+        meta: {
+          type,
+          rating,
+          rating_label: ratingLabel,
+          message,
+          ...(meta || {}),
+        },
+      });
+    } catch {
+      // No bloqueamos el flujo principal si falla el registro interno.
     }
 
     return NextResponse.json(

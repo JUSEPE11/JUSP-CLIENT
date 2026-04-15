@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { COOKIE_AT, verifyAccessToken } from "@/lib/auth";
+import { rememberShippingAddressForIdentity } from "@/lib/addressBook";
 import { checkExcelStock } from "@/lib/stockExcel";
 
 export const runtime = "nodejs";
@@ -251,6 +252,24 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
+
+    await rememberShippingAddressForIdentity(
+      {
+        userId: userId || null,
+        email: (customer.email || emailSession || "").trim().toLowerCase() || null,
+      },
+      {
+        fullName: customer.fullName || null,
+        email: customer.email || emailSession || null,
+        documentType: customer.documentType || null,
+        documentNumber: customer.documentNumber || null,
+        phone: customer.phone || null,
+        municipality: shipping.municipality || shipping.city || null,
+        region: shipping.region || null,
+        addressLine1: shipping.addressLine1 || null,
+        notes: shipping.notes || null,
+      }
+    );
 
     return NextResponse.json(
       {
