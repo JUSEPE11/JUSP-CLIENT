@@ -1,9 +1,124 @@
 {
-  "version": 7,
-  "generatedAt": "2026-04-15T07:04:51.019Z",
+  "version": 8,
+  "generatedAt": "2026-04-15T20:07:08.012Z",
   "excelPath": "C:\\JUSP\\jusp-app2\\data\\catalogo_jusp.xlsx",
-  "excelMtimeMs": 1776236655396.8643,
+  "excelMtimeMs": 1776283622376.9236,
   "products": [
+    {
+      "id": "nike-hf5407-010",
+      "slug": "nike-hf5407-010",
+      "product_code": "nike-hf5407-010",
+      "title": "Women's Medium-Support Padded Sports Bra Tank Top",
+      "name": "Women's Medium-Support Padded Sports Bra Tank Top",
+      "brand": "Nike",
+      "price": 135990,
+      "currency": "COP",
+      "description": "Women's Medium-Support Padded Sports Bra Tank Top. Producto disponible en JUSP.",
+      "image": "/products/nike-hf5407-010/03.jpeg",
+      "images": [
+        "/products/nike-hf5407-010/03.jpeg",
+        "/products/nike-hf5407-010/04.jpeg",
+        "/products/nike-hf5407-010/05.jpeg",
+        "/products/nike-hf5407-010/06.jpeg",
+        "/products/nike-hf5407-010/07.jpeg",
+        "/products/nike-hf5407-010/08.jpeg",
+        "/products/nike-hf5407-010/09.jpeg",
+        "/products/nike-hf5407-010/10.jpeg"
+      ],
+      "videos": [
+        "/products/nike-hf5407-010/01.mp4",
+        "/products/nike-hf5407-010/02.mp4"
+      ],
+      "media": [
+        {
+          "type": "video",
+          "src": "/products/nike-hf5407-010/01.mp4"
+        },
+        {
+          "type": "video",
+          "src": "/products/nike-hf5407-010/02.mp4"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hf5407-010/03.jpeg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hf5407-010/04.jpeg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hf5407-010/05.jpeg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hf5407-010/06.jpeg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hf5407-010/07.jpeg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hf5407-010/08.jpeg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hf5407-010/09.jpeg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hf5407-010/10.jpeg"
+        }
+      ],
+      "parameters": [],
+      "sizes": [
+        "XL"
+      ],
+      "colors": [
+        "black"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "sports-bra",
+      "collections": [
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "sports-bra",
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "isNew": true,
+      "stockHint": 1,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "nike-hf5407-010-xl-black",
+          "size": "XL",
+          "color": "black",
+          "price": 135990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false,
+      "favoritesCount": 0,
+      "isFavorite": false
+    },
     {
       "id": "short-nike-kids",
       "slug": "short-nike-kids",
@@ -26,6 +141,66 @@
         "/products/short-nike-kids/8.jpg",
         "/products/short-nike-kids/9.jpg",
         "/products/short-nike-kids/10.jpg"
+      ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/short-nike-kids/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/short-nike-kids/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/short-nike-kids/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/short-nike-kids/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/short-nike-kids/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/short-nike-kids/6.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/short-nike-kids/7.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/short-nike-kids/8.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/short-nike-kids/9.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/short-nike-kids/10.jpg"
+        }
+      ],
+      "parameters": [
+        {
+          "label": "Transpirante",
+          "value": "Nike",
+          "order": 0
+        },
+        {
+          "label": "Material",
+          "value": "Textil y sintetico",
+          "order": 2
+        },
+        {
+          "label": "Uso recomendado",
+          "value": "Lifestyle y entrenamiento",
+          "order": 3
+        }
       ],
       "sizes": [
         "XS (135)",
@@ -98,6 +273,30 @@
         "/products/nike-bra-dri-fit/4.jpg",
         "/products/nike-bra-dri-fit/5.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-bra-dri-fit/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-bra-dri-fit/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-bra-dri-fit/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-bra-dri-fit/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-bra-dri-fit/5.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "S",
         "M"
@@ -174,6 +373,34 @@
         "/products/jordan-club-cap/5.jpg",
         "/products/jordan-club-cap/6.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/jordan-club-cap/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-club-cap/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-club-cap/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-club-cap/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-club-cap/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-club-cap/6.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "S/M",
         "M/L",
@@ -255,6 +482,34 @@
         "/products/nike-sports-pants-womens-purple/5.jpg",
         "/products/nike-sports-pants-womens-purple/6.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-sports-pants-womens-purple/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-sports-pants-womens-purple/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-sports-pants-womens-purple/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-sports-pants-womens-purple/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-sports-pants-womens-purple/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-sports-pants-womens-purple/6.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "M"
       ],
@@ -315,6 +570,30 @@
         "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/4.jpg",
         "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/5.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/5.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "M"
       ],
@@ -363,67 +642,6 @@
       "isFavorite": false
     },
     {
-      "id": "nike-dunk-low-retro",
-      "slug": "nike-dunk-low-retro",
-      "product_code": "nike-dunk-low-retro",
-      "title": "Nike low",
-      "name": "Nike low",
-      "brand": "Nike",
-      "price": 99990,
-      "currency": "COP",
-      "description": "Nike low. Producto disponible en JUSP.",
-      "image": "/products/nike-dunk-low-retro/1.jpg",
-      "images": [
-        "/products/nike-dunk-low-retro/1.jpg",
-        "/products/nike-dunk-low-retro/2.jpg",
-        "/products/nike-dunk-low-retro/3.jpg",
-        "/products/nike-dunk-low-retro/4.jpg",
-        "/products/nike-dunk-low-retro/5.jpg",
-        "/products/nike-dunk-low-retro/6.jpg",
-        "/products/nike-dunk-low-retro/7.jpg",
-        "/products/nike-dunk-low-retro/8.jpg"
-      ],
-      "sizes": [
-        "7"
-      ],
-      "colors": [
-        "beige"
-      ],
-      "category": "men",
-      "gender": "men",
-      "productType": "clothing",
-      "kind": "general",
-      "collections": [
-        "clothing"
-      ],
-      "sport": [
-        "lifestyle"
-      ],
-      "tags": [
-        "nuevo",
-        "nike",
-        "clothing"
-      ],
-      "isNew": true,
-      "stockHint": 0,
-      "pickupToday": false,
-      "expressDelivery": false,
-      "variants": [
-        {
-          "key": "nike-dunk-low-retro-7-beige",
-          "size": "7",
-          "color": "beige",
-          "price": 99990,
-          "stock": 0,
-          "isAvailable": false
-        }
-      ],
-      "isActive": false,
-      "isSoldOut": true,
-      "favoritesCount": 0,
-      "isFavorite": false
-    },
-    {
       "id": "nike-sport-high",
       "slug": "nike-sport-high",
       "product_code": "nike-sport-high",
@@ -440,6 +658,26 @@
         "/products/nike-sport-high/3.jpg",
         "/products/nike-sport-high/4.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-sport-high/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-sport-high/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-sport-high/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-sport-high/4.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "L"
       ],
@@ -507,6 +745,34 @@
         "/products/nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap/5.jpg",
         "/products/nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap/6.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap/6.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "S/M",
         "M/L",
@@ -590,6 +856,34 @@
         "/products/nike-sportswear/5.jpg",
         "/products/nike-sportswear/6.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-sportswear/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-sportswear/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-sportswear/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-sportswear/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-sportswear/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-sportswear/6.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "XS",
         "S",
@@ -693,6 +987,50 @@
         "/products/nike-dri-fit-pro-cropped-printed-women/9.jpg",
         "/products/nike-dri-fit-pro-cropped-printed-women/10.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-dri-fit-pro-cropped-printed-women/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dri-fit-pro-cropped-printed-women/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dri-fit-pro-cropped-printed-women/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dri-fit-pro-cropped-printed-women/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dri-fit-pro-cropped-printed-women/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dri-fit-pro-cropped-printed-women/6.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dri-fit-pro-cropped-printed-women/7.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dri-fit-pro-cropped-printed-women/8.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dri-fit-pro-cropped-printed-women/9.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dri-fit-pro-cropped-printed-women/10.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "S",
         "M",
@@ -784,6 +1122,26 @@
         "/products/puma-622575-01/3.jpg",
         "/products/puma-622575-01/4.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/puma-622575-01/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/puma-622575-01/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/puma-622575-01/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/puma-622575-01/4.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "S",
         "M"
@@ -857,6 +1215,50 @@
         "/products/jordan-cw2427-360/9.jpg",
         "/products/jordan-cw2427-360/10.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/jordan-cw2427-360/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-cw2427-360/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-cw2427-360/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-cw2427-360/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-cw2427-360/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-cw2427-360/6.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-cw2427-360/7.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-cw2427-360/8.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-cw2427-360/9.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-cw2427-360/10.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "M"
       ],
@@ -919,6 +1321,46 @@
         "/products/nike-hq5684-345/8.jpg",
         "/products/nike-hq5684-345/9.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-hq5684-345/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hq5684-345/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hq5684-345/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hq5684-345/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hq5684-345/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hq5684-345/6.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hq5684-345/7.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hq5684-345/8.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hq5684-345/9.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "S",
         "L",
@@ -1001,6 +1443,34 @@
         "/products/nike-im9607-010/5.jpg",
         "/products/nike-im9607-010/6.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-im9607-010/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-im9607-010/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-im9607-010/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-im9607-010/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-im9607-010/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-im9607-010/6.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "M/L",
         "L/XL"
@@ -1070,6 +1540,34 @@
         "/products/lacoste-rk5398/5.jpg",
         "/products/lacoste-rk5398/6.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/lacoste-rk5398/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/lacoste-rk5398/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/lacoste-rk5398/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/lacoste-rk5398/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/lacoste-rk5398/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/lacoste-rk5398/6.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "Ajustable"
       ],
@@ -1133,6 +1631,46 @@
         "/products/nike-iq4185-010/8.jpg",
         "/products/nike-iq4185-010/9.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-iq4185-010/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-iq4185-010/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-iq4185-010/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-iq4185-010/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-iq4185-010/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-iq4185-010/6.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-iq4185-010/7.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-iq4185-010/8.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-iq4185-010/9.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "Ajustable"
       ],
@@ -1192,6 +1730,30 @@
         "/products/nike-ih9258-010/4.jpg",
         "/products/nike-ih9258-010/5.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-ih9258-010/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-ih9258-010/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-ih9258-010/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-ih9258-010/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-ih9258-010/5.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "S/M",
         "M/L",
@@ -1273,6 +1835,34 @@
         "/products/nike-fb5061-010/5.jpg",
         "/products/nike-fb5061-010/6.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-fb5061-010/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fb5061-010/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fb5061-010/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fb5061-010/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fb5061-010/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fb5061-010/6.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "Unica"
       ],
@@ -1337,6 +1927,34 @@
         "/products/nike-if1805-010/5.jpg",
         "/products/nike-if1805-010/6.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-if1805-010/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-if1805-010/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-if1805-010/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-if1805-010/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-if1805-010/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-if1805-010/6.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "S",
         "M",
@@ -1431,6 +2049,30 @@
         "/products/jordan-jd2413048AD-001/4.jpg",
         "/products/jordan-jd2413048AD-001/5.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/jordan-jd2413048AD-001/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-jd2413048AD-001/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-jd2413048AD-001/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-jd2413048AD-001/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-jd2413048AD-001/5.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "S",
         "M",
@@ -1513,6 +2155,26 @@
         "/products/jordan-jd2413048AD-002/3.jpg",
         "/products/jordan-jd2413048AD-002/4.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/jordan-jd2413048AD-002/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-jd2413048AD-002/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-jd2413048AD-002/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-jd2413048AD-002/4.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "M",
         "L"
@@ -1589,6 +2251,38 @@
         "/products/jordan-ac4142-010/6.jpg",
         "/products/jordan-ac4142-010/7.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/jordan-ac4142-010/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-ac4142-010/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-ac4142-010/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-ac4142-010/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-ac4142-010/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-ac4142-010/6.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-ac4142-010/7.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "S/M",
         "L/XL"
@@ -1656,6 +2350,22 @@
         "/products/jordan-ac4142-010 W/2.jpg",
         "/products/jordan-ac4142-010 W/3.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/jordan-ac4142-010 W/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-ac4142-010 W/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-ac4142-010 W/3.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "L/XL"
       ],
@@ -1716,6 +2426,30 @@
         "/products/lacoste-rk0527/4.jpeg",
         "/products/lacoste-rk0527/5.jpeg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/lacoste-rk0527/1.jpeg"
+        },
+        {
+          "type": "image",
+          "src": "/products/lacoste-rk0527/2.jpeg"
+        },
+        {
+          "type": "image",
+          "src": "/products/lacoste-rk0527/3.jpeg"
+        },
+        {
+          "type": "image",
+          "src": "/products/lacoste-rk0527/4.jpeg"
+        },
+        {
+          "type": "image",
+          "src": "/products/lacoste-rk0527/5.jpeg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "M(56-58cm)",
         "L(58-60cm)"
@@ -1784,6 +2518,30 @@
         "/products/nike-ii0682-121/4.jpg",
         "/products/nike-ii0682-121/5.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-ii0682-121/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-ii0682-121/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-ii0682-121/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-ii0682-121/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-ii0682-121/5.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "S",
         "M",
@@ -1880,6 +2638,30 @@
         "/products/nike-if0787-010/4.jpg",
         "/products/nike-if0787-010/5.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-if0787-010/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-if0787-010/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-if0787-010/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-if0787-010/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-if0787-010/5.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "S",
         "M",
@@ -1969,6 +2751,46 @@
         "/products/nike-hv0885-133/8.jpg",
         "/products/nike-hv0885-133/9.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-hv0885-133/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hv0885-133/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hv0885-133/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hv0885-133/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hv0885-133/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hv0885-133/6.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hv0885-133/7.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hv0885-133/8.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hv0885-133/9.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "S",
         "M",
@@ -2064,6 +2886,34 @@
         "/products/nike-if5172-100/5.jpg",
         "/products/nike-if5172-100/6.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-if5172-100/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-if5172-100/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-if5172-100/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-if5172-100/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-if5172-100/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-if5172-100/6.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "M",
         "L",
@@ -2157,6 +3007,38 @@
         "/products/jordan-fn5841-010/6.jpg",
         "/products/jordan-fn5841-010/7.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/jordan-fn5841-010/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-fn5841-010/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-fn5841-010/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-fn5841-010/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-fn5841-010/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-fn5841-010/6.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-fn5841-010/7.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "S",
         "M",
@@ -2242,6 +3124,30 @@
         "/products/nike-dx6822-494/4.jpg",
         "/products/nike-dx6822-494/5.jpg"
       ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-dx6822-494/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dx6822-494/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dx6822-494/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dx6822-494/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dx6822-494/5.jpg"
+        }
+      ],
+      "parameters": [],
       "sizes": [
         "S"
       ],

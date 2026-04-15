@@ -15,6 +15,17 @@ type ProductVariant = {
   stock?: number;
 };
 
+type ProductMediaItem = {
+  type: "image" | "video";
+  src: string;
+};
+
+type ProductParameter = {
+  label: string;
+  value: string;
+  order?: number;
+};
+
 type Product = {
   id: string;
   slug?: string;
@@ -26,6 +37,9 @@ type Product = {
   description?: string;
   image?: string;
   images?: string[];
+  videos?: string[];
+  media?: ProductMediaItem[];
+  parameters?: ProductParameter[];
   colors?: string[];
   sizes?: string[];
   category?: string;
@@ -84,6 +98,25 @@ function uniqueStringsCaseInsensitive(arr: string[]) {
 
     seen.add(key);
     out.push(value);
+  }
+
+  return out;
+}
+
+function uniqueMediaItems(items: ProductMediaItem[]) {
+  const seen = new Set<string>();
+  const out: ProductMediaItem[] = [];
+
+  for (const item of items) {
+    const src = String(item?.src || "").trim();
+    if (!src) continue;
+    const key = `${String(item?.type || "image").trim().toLowerCase()}::${src.toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({
+      type: item.type === "video" ? "video" : "image",
+      src,
+    });
   }
 
   return out;
@@ -493,22 +526,35 @@ function persistFavoriteIdsCompat(ids: string[]) {
   } catch {}
 }
 
-function buildImageCandidates(p: Product, pageSlug?: string): string[] {
+function buildMediaCandidates(p: Product, pageSlug?: string): ProductMediaItem[] {
+  const media = Array.isArray(p.media) ? p.media : [];
   const imgs = Array.isArray(p.images) ? p.images : [];
+  const videos = Array.isArray(p.videos) ? p.videos : [];
   const main = (typeof p.image === "string" ? p.image : "").trim();
 
-  const raw = [main, ...imgs].map((x) => String(x || "").trim()).filter(Boolean);
+  const rawMedia = [
+    ...media,
+    ...[main, ...imgs]
+      .map((src) => String(src || "").trim())
+      .filter(Boolean)
+      .map((src) => ({ type: "image" as const, src })),
+    ...videos
+      .map((src) => String(src || "").trim())
+      .filter(Boolean)
+      .map((src) => ({ type: "video" as const, src })),
+  ];
 
   const isAbs = (s: string) => /^https?:\/\//i.test(s);
-  const hasExt = (s: string) => /\.(png|jpe?g|webp|gif|avif)$/i.test(s);
+  const hasImageExt = (s: string) => /\.(png|jpe?g|webp|gif|avif)$/i.test(s);
+  const hasVideoExt = (s: string) => /\.(mp4|mov|webm|m4v)$/i.test(s);
 
-  const normalizeOne = (s: string) => {
-    const v = String(s || "").trim();
+  const normalizeOne = (item: ProductMediaItem) => {
+    const v = String(item?.src || "").trim();
     if (!v) return "";
     if (isAbs(v)) return v;
     if (v.startsWith("/")) return v;
     if (v.startsWith("products/")) return `/${v}`;
-    if (hasExt(v)) return `/products/${v}`;
+    if (hasImageExt(v) || hasVideoExt(v)) return `/products/${v}`;
     return "";
   };
 
@@ -522,10 +568,27 @@ function buildImageCandidates(p: Product, pageSlug?: string): string[] {
   ).map((x) => x.toLowerCase());
 
   const localCandidates = candidateSlugs.flatMap((s) =>
-    [1, 2, 3, 4, 5].map((i) => `/products/${s}/${i}.jpg`)
+    [
+      ...[1, 2, 3, 4, 5].map((i) => ({ type: "image" as const, src: `/products/${s}/${i}.jpg` })),
+      ...[1, 2, 3].map((i) => ({ type: "video" as const, src: `/products/${s}/${i}.mp4` })),
+    ]
   );
 
-  return uniqueStringsCaseInsensitive([...raw.map(normalizeOne).filter(Boolean), ...localCandidates]);
+  return uniqueMediaItems([
+    ...rawMedia
+      .map((item) => ({
+        type: (item.type === "video" ? "video" : "image") as "image" | "video",
+        src: normalizeOne(item),
+      }))
+      .filter((item) => item.src),
+    ...localCandidates,
+  ]);
+}
+
+function buildImageCandidates(p: Product, pageSlug?: string): string[] {
+  return buildMediaCandidates(p, pageSlug)
+    .filter((item) => item.type === "image")
+    .map((item) => item.src);
 }
 
 function loadImage(src: string): Promise<boolean> {
@@ -534,6 +597,24 @@ function loadImage(src: string): Promise<boolean> {
     img.onload = () => resolve(true);
     img.onerror = () => resolve(false);
     img.src = src;
+  });
+}
+
+function loadVideo(src: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    const done = (ok: boolean) => {
+      video.onloadeddata = null;
+      video.onerror = null;
+      resolve(ok);
+    };
+
+    video.preload = "metadata";
+    video.muted = true;
+    video.playsInline = true;
+    video.onloadeddata = () => done(true);
+    video.onerror = () => done(false);
+    video.src = src;
   });
 }
 
@@ -892,7 +973,7 @@ export default function ProductPage() {
   }, [gParam, product]);
 
   const [scope, setScope] = useState<GenderScope>(initialScope);
-  const [imgs, setImgs] = useState<string[]>([]);
+  const [mediaItems, setMediaItems] = useState<ProductMediaItem[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const tasteScopeKey = useMemo(() => buildTasteScopeKey(sessionUser), [sessionUser]);
 
@@ -950,8 +1031,8 @@ export default function ProductPage() {
     [product]
   );
 
-  const imageCandidates = useMemo(
-    () => (product ? buildImageCandidates(product, slug) : []),
+  const mediaCandidates = useMemo(
+    () => (product ? buildMediaCandidates(product, slug) : []),
     [product, slug]
   );
 
@@ -960,32 +1041,32 @@ export default function ProductPage() {
   useEffect(() => {
     let cancelled = false;
 
-    async function resolveImgs() {
-      if (!imageCandidates.length) {
-        if (!cancelled) setImgs([]);
+    async function resolveMedia() {
+      if (!mediaCandidates.length) {
+        if (!cancelled) setMediaItems([]);
         return;
       }
 
       const checks = await Promise.all(
-        imageCandidates.map(async (src) => ({
-          src,
-          ok: await loadImage(src),
+        mediaCandidates.map(async (item) => ({
+          item,
+          ok: item.type === "video" ? await loadVideo(item.src) : await loadImage(item.src),
         }))
       );
 
-      const valid = checks.filter((x) => x.ok).map((x) => x.src);
+      const valid = checks.filter((x) => x.ok).map((x) => x.item);
 
       if (!cancelled) {
-        setImgs(uniqueStringsCaseInsensitive(valid));
+        setMediaItems(uniqueMediaItems(valid));
       }
     }
 
-    resolveImgs();
+    resolveMedia();
 
     return () => {
       cancelled = true;
     };
-  }, [imageCandidates]);
+  }, [mediaCandidates]);
 
   useEffect(() => {
     if (!product) return;
@@ -1066,18 +1147,30 @@ export default function ProductPage() {
   const pinchStartTranslateRef = useRef({ x: 0, y: 0 });
   const panStartRef = useRef<{ x: number; y: number; translateX: number; translateY: number } | null>(null);
   const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
+  const currentMedia = mediaItems[activeImg] ?? null;
+  const currentImage = currentMedia?.type === "image" ? currentMedia.src : "";
+  const productParameters = useMemo(
+    () =>
+      Array.isArray(product?.parameters)
+        ? product.parameters.filter(
+            (item) => String(item?.label || "").trim() && String(item?.value || "").trim()
+          )
+        : [],
+    [product?.parameters]
+  );
 
   function goToPrevImage() {
-    if (imgs.length <= 1) return;
-    setActiveImg((prev) => (prev - 1 + imgs.length) % imgs.length);
+    if (mediaItems.length <= 1) return;
+    setActiveImg((prev) => (prev - 1 + mediaItems.length) % mediaItems.length);
   }
 
   function goToNextImage() {
-    if (imgs.length <= 1) return;
-    setActiveImg((prev) => (prev + 1) % imgs.length);
+    if (mediaItems.length <= 1) return;
+    setActiveImg((prev) => (prev + 1) % mediaItems.length);
   }
 
   function onImageTouchStart(e: React.TouchEvent<HTMLDivElement>) {
+    if (currentMedia?.type !== "image") return;
     setImageZoom((prev) => (prev.active ? { ...prev, active: false } : prev));
 
     if (e.touches.length >= 2) {
@@ -1122,6 +1215,7 @@ export default function ProductPage() {
   }
 
   function onImageTouchMove(e: React.TouchEvent<HTMLDivElement>) {
+    if (currentMedia?.type !== "image") return;
     const rect = e.currentTarget.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
 
@@ -1167,6 +1261,7 @@ export default function ProductPage() {
   }
 
   function onImageTouchEnd(e: React.TouchEvent<HTMLDivElement>) {
+    if (currentMedia?.type !== "image") return;
     if (pinchStartDistanceRef.current != null) {
       if (e.touches.length >= 2) return;
 
@@ -1238,7 +1333,7 @@ export default function ProductPage() {
       return;
     }
 
-    if (startX == null || startY == null || imgs.length <= 1) return;
+    if (startX == null || startY == null || mediaItems.length <= 1) return;
 
     const dx = touch.clientX - startX;
     const dy = touch.clientY - startY;
@@ -1279,13 +1374,13 @@ export default function ProductPage() {
   }, [slug, colors]);
 
   useEffect(() => {
-    if (!imgs.length) {
+    if (!mediaItems.length) {
       setActiveImg(0);
       return;
     }
 
-    setActiveImg((prev) => (prev >= imgs.length ? 0 : prev));
-  }, [imgs]);
+    setActiveImg((prev) => (prev >= mediaItems.length ? 0 : prev));
+  }, [mediaItems]);
 
   useEffect(() => {
     setImageZoom((prev) => (prev.active ? { ...prev, active: false } : prev));
@@ -1299,7 +1394,7 @@ export default function ProductPage() {
   }, [activeImg]);
 
   function onImageMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-    const currentImage = imgs[activeImg];
+    if (currentMedia?.type !== "image") return;
     if (!currentImage) return;
     if (typeof window === "undefined" || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
 
@@ -1679,24 +1774,31 @@ export default function ProductPage() {
           <section className="media">
             <div className="mediaCard">
               <div className="gallery">
-                {imgs.length > 1 ? (
+                {mediaItems.length > 1 ? (
                   <div className="thumbCol" aria-label="Miniaturas">
-                    {imgs.slice(0, 10).map((src, i) => (
+                    {mediaItems.slice(0, 10).map((item, i) => (
                       <button
-                        key={`${src}-${i}`}
+                        key={`${item.src}-${i}`}
                         type="button"
                         className={`thBtn ${activeImg === i ? "on" : ""}`}
                         onClick={() => setActiveImg(i)}
-                        aria-label={`Ver imagen ${i + 1}`}
+                        aria-label={item.type === "video" ? `Ver video ${i + 1}` : `Ver imagen ${i + 1}`}
                       >
-                        <img className="th" src={src} alt="" aria-hidden="true" />
+                        {item.type === "video" ? (
+                          <div className="thVideo" aria-hidden="true">
+                            <video className="th" src={item.src} muted playsInline preload="metadata" />
+                            <span className="thPlay" aria-hidden="true">▶</span>
+                          </div>
+                        ) : (
+                          <img className="th" src={item.src} alt="" aria-hidden="true" />
+                        )}
                       </button>
                     ))}
                   </div>
                 ) : null}
 
                 <div
-                  className={`imgBox ${imgs[activeImg] ? "zoomReady" : ""}`}
+                  className={`imgBox ${currentMedia?.type === "image" ? "zoomReady" : ""}`}
                   onTouchStart={onImageTouchStart}
                   onTouchMove={onImageTouchMove}
                   onTouchEnd={onImageTouchEnd}
@@ -1718,22 +1820,39 @@ export default function ProductPage() {
                     <span className="favCount">{favoriteCount}</span>
                   </button>
 
-                  {imgs[activeImg] ? (
-                    <img
-                      ref={activeImageRef}
-                      src={imgs[activeImg]}
-                      alt={title}
-                      style={{
-                        transform: `translate3d(${mobileImageZoom.translateX}px, ${mobileImageZoom.translateY}px, 0) scale(${mobileImageZoom.scale})`,
-                        transformOrigin: "center center",
-                        transition: mobileImageZoom.pinching ? "none" : "transform 180ms ease",
-                      }}
-                    />
+                  {currentMedia ? (
+                    currentMedia.type === "video" ? (
+                      <video
+                        key={currentMedia.src}
+                        className="productVideo"
+                        src={currentMedia.src}
+                        autoPlay
+                        muted
+                        loop
+                        controls
+                        playsInline
+                        preload="auto"
+                      />
+                    ) : (
+                      <img
+                        ref={activeImageRef}
+                        src={currentImage}
+                        alt={title}
+                        loading="eager"
+                        decoding="sync"
+                        fetchPriority="high"
+                        style={{
+                          transform: `translate3d(${mobileImageZoom.translateX}px, ${mobileImageZoom.translateY}px, 0) scale(${mobileImageZoom.scale})`,
+                          transformOrigin: "center center",
+                          transition: mobileImageZoom.pinching ? "none" : "transform 180ms ease",
+                        }}
+                      />
+                    )
                   ) : (
                     <div className="ph" />
                   )}
 
-                  {imgs[activeImg] ? (
+                  {currentMedia?.type === "image" ? (
                     <>
                       <div
                         className={`imgZoomFocus ${imageZoom.active ? "on" : ""}`}
@@ -1756,7 +1875,7 @@ export default function ProductPage() {
 
                   <div className="imgGlow" aria-hidden="true" />
 
-                  {imgs.length > 1 ? (
+                  {mediaItems.length > 1 ? (
                     <div className="swipeHint" aria-hidden="true"></div>
                   ) : null}
                 </div>
@@ -1766,10 +1885,10 @@ export default function ProductPage() {
 
           <section className="info">
             <div ref={infoCardRef} className="card">
-              {imgs[activeImg] ? (
+              {currentMedia?.type === "image" ? (
                 <div className={`cardZoomViewer ${imageZoom.active ? "on" : ""}`} aria-hidden="true">
                   <img
-                    src={imgs[activeImg]}
+                    src={currentImage}
                     alt=""
                     className="cardZoomViewerImg"
                     style={{
@@ -1984,6 +2103,91 @@ export default function ProductPage() {
             </div>
           </section>
         </div>
+
+        {productParameters.length ? (
+          <section
+            aria-labelledby="product-parameters-title"
+            style={{
+              marginTop: 28,
+              borderRadius: 28,
+              border: "1px solid rgba(0,0,0,0.08)",
+              background: "linear-gradient(180deg, #ffffff 0%, #faf7f1 100%)",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.06)",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                padding: "24px 24px 12px",
+                borderBottom: "1px solid rgba(0,0,0,0.06)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                flexWrap: "wrap",
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 1000,
+                    letterSpacing: "0.14em",
+                    textTransform: "uppercase",
+                    opacity: 0.6,
+                  }}
+                >
+                  Informacion del producto
+                </div>
+                <h2
+                  id="product-parameters-title"
+                  style={{ margin: "8px 0 0", fontSize: 28, lineHeight: 1.05, fontWeight: 1000 }}
+                >
+                  Parametro
+                </h2>
+              </div>
+
+              <div style={{ fontSize: 13, fontWeight: 800, opacity: 0.7 }}>
+                Datos cargados desde Excel para este producto
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                gap: 0,
+              }}
+            >
+              {productParameters.map((item, index) => (
+                <div
+                  key={`${item.label}-${index}`}
+                  style={{
+                    padding: "18px 24px",
+                    borderTop: index < 2 ? "none" : "1px solid rgba(0,0,0,0.06)",
+                    borderRight: "1px solid rgba(0,0,0,0.06)",
+                    background: index % 2 === 0 ? "rgba(255,255,255,0.72)" : "rgba(250,247,241,0.9)",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 900,
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      opacity: 0.56,
+                    }}
+                  >
+                    {item.label}
+                  </div>
+                  <div style={{ marginTop: 8, fontSize: 16, lineHeight: 1.55, fontWeight: 700 }}>
+                    {item.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         {product ? (
           <ProductReviews
@@ -2254,6 +2458,22 @@ export default function ProductPage() {
           display: block;
           background: linear-gradient(180deg, rgba(0, 0, 0, 0.03), rgba(0, 0, 0, 0.01));
         }
+        .thVideo {
+          position: relative;
+        }
+        .thPlay {
+          position: absolute;
+          right: 8px;
+          bottom: 8px;
+          padding: 4px 7px;
+          border-radius: 999px;
+          background: rgba(17, 17, 17, 0.88);
+          color: #fff;
+          font-size: 10px;
+          font-weight: 900;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
 
         .imgBox {
           position: relative;
@@ -2269,18 +2489,29 @@ export default function ProductPage() {
           touch-action: pan-y;
         }
 
-        .imgBox img {
-          width: 100%;
-          height: 100%;
+        .imgBox img,
+        .imgBox video {
+          width: auto;
+          height: auto;
+          max-width: 100%;
+          max-height: 100%;
           object-fit: contain;
-          padding: 12px;
+          padding: 10px;
           display: block;
           user-select: none;
           -webkit-user-select: none;
           transform: translateZ(0);
+          backface-visibility: hidden;
+          image-rendering: auto;
+          -webkit-backface-visibility: hidden;
         }
         .imgBox.zoomReady img {
           cursor: zoom-in;
+        }
+        .productVideo {
+          background: #000;
+          box-shadow: 0 18px 50px rgba(0, 0, 0, 0.18);
+          border-radius: 16px;
         }
         .imgZoomFocus {
           position: absolute;

@@ -441,6 +441,15 @@ type UserSession = {
 
 type SearchItem = { id: string; name: string; href: string; img: string; brand?: string };
 
+const HOME_SURVEY_STORAGE_KEY = "jusp_home_survey_v1";
+const HOME_SURVEY_OPTIONS = [
+  "Muy satisfecho",
+  "Bastante satisfecho",
+  "Generalmente satisfecho",
+  "No muy satisfecho",
+  "Muy insatisfecho",
+];
+
 function HomePageContent() {
   const searchParams = useSearchParams();
   const [catalogProducts, setCatalogProducts] = useState<Product[]>([]);
@@ -481,6 +490,7 @@ function HomePageContent() {
   }, [searchParams]);
 
   const [homeProductFilter, setHomeProductFilter] = useState<HomeProductFilter>("all");
+  const [surveyAnswered, setSurveyAnswered] = useState(false);
 
   const isMobile = useIsMobile();
   const reduceMotion = usePrefersReducedMotion();
@@ -505,6 +515,13 @@ function HomePageContent() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     setFavoriteIds(loadFavoriteIds());
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      setSurveyAnswered(Boolean(window.localStorage.getItem(HOME_SURVEY_STORAGE_KEY)));
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -1436,6 +1453,25 @@ function HomePageContent() {
     [ALL_PRODUCTS, homeProductFilter]
   );
 
+  const shouldShowSurvey = !surveyAnswered && filteredProducts.length >= 3;
+
+  const answerHomeSurvey = (answer: string) => {
+    if (typeof window === "undefined") return;
+
+    try {
+      window.localStorage.setItem(
+        HOME_SURVEY_STORAGE_KEY,
+        JSON.stringify({
+          answer,
+          answeredAt: Date.now(),
+          filter: homeProductFilter,
+        })
+      );
+    } catch {}
+
+    setSurveyAnswered(true);
+  };
+
   const contextHeadline = "Te podría gustar";
 
   return (
@@ -2030,7 +2066,7 @@ function HomePageContent() {
                         position: "relative",
                       }}
                     >
-                  <SmartImg
+                      <SmartImg
                         baseSrc={it.imgBase}
                         alt={it.name}
                         loading={idx <= 1 ? "eager" : "lazy"}
@@ -2161,108 +2197,194 @@ function HomePageContent() {
               transition: "opacity 220ms ease, transform 220ms ease",
             }}
           >
-            {filteredProducts.map((p) => {
+            {filteredProducts.map((p, index) => {
               const isFavorite = favoriteIds.includes(String(p.id));
 
               return (
-                <a
-                  key={p.id}
-                  href={p.href}
-                  className="jusp-card"
-                  style={{
-                    display: "block",
-                    textDecoration: "none",
-                    color: "inherit",
-                    borderRadius: 18,
-                    border: "1px solid rgba(0,0,0,0.08)",
-                    background: "white",
-                    overflow: "hidden",
-                    boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
-                  }}
-                >
-                  <div style={{ position: "relative", background: "#f7f7f7" }}>
-                    {p.expressDelivery ? (
+                <React.Fragment key={p.id}>
+                  {shouldShowSurvey && index === 2 ? (
+                    <section
+                      aria-label="Encuesta de satisfaccion"
+                      className="jusp-card"
+                      style={{
+                        borderRadius: 18,
+                        border: "1px solid rgba(0,0,0,0.08)",
+                        background: "#fffdf9",
+                        boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
+                        overflow: "hidden",
+                        display: "flex",
+                        flexDirection: "column",
+                      }}
+                    >
                       <div
+                        style={{
+                          padding: "14px 14px 12px",
+                          background: "linear-gradient(180deg, rgba(255,140,0,0.08) 0%, rgba(255,255,255,0) 100%)",
+                          borderBottom: "1px solid rgba(0,0,0,0.05)",
+                        }}
+                      >
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                          <div
+                            style={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: 999,
+                              background: "#ffe7cf",
+                              display: "grid",
+                              placeItems: "center",
+                              fontSize: 14,
+                              fontWeight: 1000,
+                              color: "#2b2118",
+                            }}
+                          >
+                            ?
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 11, fontWeight: 1000, letterSpacing: "0.08em", opacity: 0.62 }}>
+                              ENCUESTA JUSP
+                            </div>
+                            <div style={{ marginTop: 10, fontSize: 15, fontWeight: 1000, lineHeight: 1.12, display: "none" }}>
+                              ¿Que te parece esta seleccion?
+                            </div>
+                            <div style={{ marginTop: 6, fontSize: 11, lineHeight: 1.45, opacity: 0.68, display: "none" }}>
+                              Apenas la respondas, desaparece automaticamente de esta seccion.
+                            </div>
+                            <div style={{ marginTop: 10, fontSize: 15, fontWeight: 1000, lineHeight: 1.12 }}>
+                              Que te parece esta seleccion?
+                            </div>
+                            <div style={{ marginTop: 6, fontSize: 11, lineHeight: 1.45, opacity: 0.68 }}>
+                              Responde una vez y desaparece automaticamente.
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+                        {HOME_SURVEY_OPTIONS.map((option, optionIndex) => (
+                          <button
+                            key={option}
+                            type="button"
+                            onClick={() => answerHomeSurvey(option)}
+                            style={{
+                              width: "100%",
+                              borderRadius: 14,
+                              border: "1px solid rgba(0,0,0,0.08)",
+                              background: "#fff",
+                              padding: "10px 12px",
+                              textAlign: "center",
+                              fontWeight: 900,
+                              fontSize: 12,
+                              lineHeight: 1.2,
+                              cursor: "pointer",
+                              minHeight: 44,
+                              gridColumn: optionIndex === HOME_SURVEY_OPTIONS.length - 1 ? "1 / -1" : undefined,
+                            }}
+                          >
+                            {option}
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+                  ) : null}
+
+                  <a
+                    href={p.href}
+                    className="jusp-card"
+                    style={{
+                      display: "block",
+                      textDecoration: "none",
+                      color: "inherit",
+                      borderRadius: 18,
+                      border: "1px solid rgba(0,0,0,0.08)",
+                      background: "white",
+                      overflow: "hidden",
+                      boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
+                    }}
+                  >
+                    <div style={{ position: "relative", background: "#f7f7f7" }}>
+                      {p.expressDelivery ? (
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: 10,
+                            left: 10,
+                            zIndex: 3,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                            padding: "8px 10px",
+                            borderRadius: 999,
+                            background: "rgba(17,17,17,0.92)",
+                            color: "#fff",
+                            fontSize: 11,
+                            fontWeight: 1000,
+                            letterSpacing: "0.08em",
+                            textTransform: "uppercase",
+                            boxShadow: "0 10px 24px rgba(0,0,0,0.16)",
+                          }}
+                        >
+                          <span aria-hidden="true">⚡</span>
+                          Flash
+                        </div>
+                      ) : null}
+
+                      <button
+                        type="button"
+                        aria-label={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+                        aria-pressed={isFavorite}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          toggleFavorite(p);
+                        }}
                         style={{
                           position: "absolute",
                           top: 10,
-                          left: 10,
+                          right: 10,
                           zIndex: 3,
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 6,
-                          padding: "8px 10px",
+                          width: 40,
+                          height: 40,
                           borderRadius: 999,
-                          background: "rgba(17,17,17,0.92)",
-                          color: "#fff",
-                          fontSize: 11,
-                          fontWeight: 1000,
-                          letterSpacing: "0.08em",
-                          textTransform: "uppercase",
-                          boxShadow: "0 10px 24px rgba(0,0,0,0.16)",
+                          border: "1px solid rgba(0,0,0,0.08)",
+                          background: "rgba(255,255,255,0.96)",
+                          display: "grid",
+                          placeItems: "center",
+                          cursor: "pointer",
+                          boxShadow: "0 10px 24px rgba(0,0,0,0.10)",
+                          transform: isFavorite ? "scale(1.04)" : "scale(1)",
+                          transition: "transform 180ms ease, box-shadow 180ms ease, background 180ms ease",
+                          backdropFilter: "blur(10px)",
                         }}
                       >
-                        <span aria-hidden="true">⚡</span>
-                        Flash
+                        <span
+                          aria-hidden="true"
+                          style={{
+                            fontSize: 18,
+                            lineHeight: 1,
+                            color: isFavorite ? "#e11d48" : "rgba(0,0,0,0.80)",
+                            transition: "transform 180ms ease, color 180ms ease",
+                            transform: isFavorite ? "scale(1.08)" : "scale(1)",
+                          }}
+                        >
+                          {isFavorite ? "♥" : "♡"}
+                        </span>
+                      </button>
+
+                      <div className="__jusp_home_product_media" style={{ height: 220, position: "relative" }}>
+                        <SmartImg
+                          baseSrc={p.imgBase}
+                          alt={p.name}
+                          style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+                        />
                       </div>
-                    ) : null}
-
-                    <button
-                      type="button"
-                      aria-label={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-                      aria-pressed={isFavorite}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        toggleFavorite(p);
-                      }}
-                      style={{
-                        position: "absolute",
-                        top: 10,
-                        right: 10,
-                        zIndex: 3,
-                        width: 40,
-                        height: 40,
-                        borderRadius: 999,
-                        border: "1px solid rgba(0,0,0,0.08)",
-                        background: "rgba(255,255,255,0.96)",
-                        display: "grid",
-                        placeItems: "center",
-                        cursor: "pointer",
-                        boxShadow: "0 10px 24px rgba(0,0,0,0.10)",
-                        transform: isFavorite ? "scale(1.04)" : "scale(1)",
-                        transition: "transform 180ms ease, box-shadow 180ms ease, background 180ms ease",
-                        backdropFilter: "blur(10px)",
-                      }}
-                    >
-                      <span
-                        aria-hidden="true"
-                        style={{
-                          fontSize: 18,
-                          lineHeight: 1,
-                          color: isFavorite ? "#e11d48" : "rgba(0,0,0,0.80)",
-                          transition: "transform 180ms ease, color 180ms ease",
-                          transform: isFavorite ? "scale(1.08)" : "scale(1)",
-                        }}
-                      >
-                        {isFavorite ? "♥" : "♡"}
-                      </span>
-                    </button>
-
-                    <div className="__jusp_home_product_media" style={{ height: 220, position: "relative" }}>
-                      <SmartImg
-                        baseSrc={p.imgBase}
-                        alt={p.name}
-                        style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
-                      />
                     </div>
-                  </div>
 
-                  <div style={{ padding: 12 }}>
-                    <div style={{ fontWeight: 1000, fontSize: 14, lineHeight: 1.2 }}>{p.name}</div>
-                    <div style={{ marginTop: 6, fontSize: 12, opacity: 0.72 }}>{p.price ?? "Oferta"}</div>
-                  </div>
-                </a>
+                    <div style={{ padding: 12 }}>
+                      <div style={{ fontWeight: 1000, fontSize: 14, lineHeight: 1.2 }}>{p.name}</div>
+                      <div style={{ marginTop: 6, fontSize: 12, opacity: 0.72 }}>{p.price ?? "Oferta"}</div>
+                    </div>
+                  </a>
+                </React.Fragment>
               );
             })}
           </div>

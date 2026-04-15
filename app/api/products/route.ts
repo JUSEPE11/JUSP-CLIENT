@@ -20,6 +20,17 @@ type Variant = {
   isAvailable?: boolean;
 };
 
+type ProductMediaItem = {
+  type: "image" | "video";
+  src: string;
+};
+
+type ProductParameter = {
+  label: string;
+  value: string;
+  order?: number;
+};
+
 type Product = {
   id: string;
   slug: string;
@@ -32,6 +43,9 @@ type Product = {
   description?: string;
   image?: string;
   images: string[];
+  videos?: string[];
+  media?: ProductMediaItem[];
+  parameters?: ProductParameter[];
   sizes: string[];
   colors: string[];
   category?: string;
@@ -54,14 +68,14 @@ type Product = {
 };
 
 type CatalogCacheFile = {
-  version: 7;
+  version: 8;
   generatedAt: string;
   excelPath: string;
   excelMtimeMs: number;
   products: Product[];
 };
 
-const CACHE_VERSION = 7;
+const CACHE_VERSION = 8;
 
 function resolveExcelPath(): string | null {
   const dataDir = path.join(process.cwd(), "data");
@@ -77,6 +91,29 @@ function resolveExcelPath(): string | null {
   );
 
   return candidate ? path.join(dataDir, candidate) : null;
+}
+
+function resolveParametersExcelPath(): string | null {
+  const dataDir = path.join(process.cwd(), "data");
+  const candidates = [
+    path.join(dataDir, "product_parameters.xlsx"),
+    path.join(dataDir, "parametros_producto.xlsx"),
+  ];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+
+  if (!fs.existsSync(dataDir)) return null;
+
+  const files = fs.readdirSync(dataDir);
+  const dynamic = files.find(
+    (file) =>
+      /^product_parameters(\.[^.]+)?\.xlsx$/i.test(file) ||
+      /^parametros_producto(\.[^.]+)?\.xlsx$/i.test(file)
+  );
+
+  return dynamic ? path.join(dataDir, dynamic) : null;
 }
 
 function getCachePath(): string {
@@ -172,14 +209,14 @@ function getRowValue(row: Record<string, unknown>, possibleKeys: string[], fallb
   return fallback;
 }
 
-function listProductImages(slug: string): string[] {
+function listProductMedia(slug: string): ProductMediaItem[] {
   try {
     const dir = path.join(process.cwd(), "public", "products", slug);
     if (!fs.existsSync(dir)) return [];
 
     const files = fs
       .readdirSync(dir)
-      .filter((file) => /\.(jpg|jpeg|png|webp)$/i.test(file))
+      .filter((file) => /\.(jpg|jpeg|png|webp|mp4|mov|webm|m4v)$/i.test(file))
       .sort((a, b) => {
         const aNum = Number(a.split(".")[0]);
         const bNum = Number(b.split(".")[0]);
@@ -188,10 +225,61 @@ function listProductImages(slug: string): string[] {
         return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
       });
 
-    return files.map((file) => `/products/${slug}/${file}`);
+    return files.map((file) => ({
+      type: /\.(mp4|mov|webm|m4v)$/i.test(file) ? "video" : "image",
+      src: `/products/${slug}/${file}`,
+    }));
   } catch {
     return [];
   }
+}
+
+function loadProductParameters(): Map<string, ProductParameter[]> {
+  const filePath = resolveParametersExcelPath();
+  if (!filePath) return new Map();
+
+  const workbook = loadWorkbook(filePath);
+  if (!workbook) return new Map();
+
+  const preferredSheetName =
+    workbook.SheetNames.find((sheetName) =>
+      ["parametros", "Parametros", "parameters", "Parameters"].includes(sheetName)
+    ) ?? workbook.SheetNames[0];
+
+  if (!preferredSheetName) return new Map();
+
+  const sheet = workbook.Sheets[preferredSheetName];
+  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "", raw: false });
+  const map = new Map<string, ProductParameter[]>();
+
+  for (const row of rows) {
+    const slug = String(
+      getRowValue(row, ["product_slug", "slug", "product", "producto", "productslug"], "")
+    )
+      .trim()
+      .toLowerCase();
+    const label = String(getRowValue(row, ["label", "nombre", "campo", "parametro", "parámetro"], ""))
+      .trim();
+    const value = String(getRowValue(row, ["value", "valor", "detalle", "descripcion"], "")).trim();
+    const order = toSafeNumber(getRowValue(row, ["order", "orden", "display_order"], 0), 0);
+
+    if (!slug || !label || !value) continue;
+
+    const current = map.get(slug) ?? [];
+    current.push({ label, value, order });
+    map.set(slug, current);
+  }
+
+  for (const [slug, items] of map.entries()) {
+    map.set(
+      slug,
+      items
+        .slice()
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.label.localeCompare(b.label, "es"))
+    );
+  }
+
+  return map;
 }
 
 function inferCategoryFromTitle(title: string): string {
@@ -467,6 +555,7 @@ function loadExcelProducts(): Product[] {
 
   const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "", raw: false });
   const reservationSummary = getActiveReservationSummary();
+  const productParameters = loadProductParameters();
   const map = new Map<string, Product>();
 
   for (const rawRow of rows) {
@@ -491,7 +580,9 @@ function loadExcelProducts(): Product[] {
     if (!slug || !title || price <= 0) continue;
 
     if (!map.has(slug)) {
-      const images = listProductImages(slug);
+      const media = listProductMedia(slug);
+      const images = media.filter((item) => item.type === "image").map((item) => item.src);
+      const videos = media.filter((item) => item.type === "video").map((item) => item.src);
       const resolvedCategory = excelCategory || inferCategoryFromTitle(title);
       const productType = excelCategory
         ? inferProductTypeFromCategory(excelCategory, title)
@@ -519,6 +610,9 @@ function loadExcelProducts(): Product[] {
         description: `${title}. Producto disponible en JUSP.`,
         image: images[0],
         images,
+        videos,
+        media,
+        parameters: productParameters.get(slug.toLowerCase()) ?? [],
         sizes: [],
         colors: [],
         category: resolvedCategory,
@@ -576,29 +670,31 @@ function loadExcelProducts(): Product[] {
     if (price < product.price) product.price = price;
   }
 
-  return Array.from(map.values()).map((product) => {
-    const stockHint = product.variants.reduce((acc, variant) => acc + toSafeNumber(variant.stock, 0), 0);
-    const isSoldOut = stockHint <= 0;
+  return Array.from(map.values())
+    .map((product) => {
+      const stockHint = product.variants.reduce((acc, variant) => acc + toSafeNumber(variant.stock, 0), 0);
+      const isSoldOut = stockHint <= 0;
 
-    return {
-      ...product,
-      stockHint,
-      isSoldOut,
-      isActive: !isSoldOut,
-      sizes: uniqCaseInsensitive(product.sizes),
-      colors: uniqCaseInsensitive(product.colors),
-      collections: uniqCaseInsensitive(product.collections),
-      sport: uniqCaseInsensitive(product.sport),
-      tags: uniqCaseInsensitive(product.tags),
-      variants: product.variants.map((variant) => ({
-        ...variant,
-        stock: toSafeNumber(variant.stock, 0),
-        isAvailable: toSafeNumber(variant.stock, 0) > 0,
-      })),
-      favoritesCount: product.favoritesCount ?? 0,
-      isFavorite: product.isFavorite ?? false,
-    };
-  });
+      return {
+        ...product,
+        stockHint,
+        isSoldOut,
+        isActive: !isSoldOut,
+        sizes: uniqCaseInsensitive(product.sizes),
+        colors: uniqCaseInsensitive(product.colors),
+        collections: uniqCaseInsensitive(product.collections),
+        sport: uniqCaseInsensitive(product.sport),
+        tags: uniqCaseInsensitive(product.tags),
+        variants: product.variants.map((variant) => ({
+          ...variant,
+          stock: toSafeNumber(variant.stock, 0),
+          isAvailable: toSafeNumber(variant.stock, 0) > 0,
+        })),
+        favoritesCount: product.favoritesCount ?? 0,
+        isFavorite: product.isFavorite ?? false,
+      };
+    })
+    .filter((product) => Number(product.stockHint || 0) > 0);
 }
 
 function readCatalogCache(): CatalogCacheFile | null {

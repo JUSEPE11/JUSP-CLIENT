@@ -7,6 +7,17 @@ export type ProductVariant = {
   stock?: number;
 };
 
+export type ProductMediaItem = {
+  type: "image" | "video";
+  src: string;
+};
+
+export type ProductParameter = {
+  label: string;
+  value: string;
+  order?: number;
+};
+
 export type Product = {
   id: string;
   slug?: string;
@@ -22,6 +33,9 @@ export type Product = {
 
   image?: string;
   images?: string[];
+  videos?: string[];
+  media?: ProductMediaItem[];
+  parameters?: ProductParameter[];
 
   colors?: string[];
   sizes?: string[];
@@ -53,7 +67,7 @@ export type Product = {
 };
 
 type CachePayload = {
-  version: 2;
+  version: 3;
   generatedAt: string;
   excelPath: string | null;
   excelMtimeMs: number;
@@ -255,6 +269,40 @@ function resolveExcelPath(): string | null {
   }
 }
 
+function resolveParametersExcelPath(): string | null {
+  if (!isServer()) return null;
+
+  try {
+    const fs = getFs();
+    const path = getPath();
+    const dataDir = getDataDir();
+
+    if (!fs || !path || !dataDir) return null;
+
+    const candidates = [
+      path.join(dataDir, "product_parameters.xlsx"),
+      path.join(dataDir, "parametros_producto.xlsx"),
+    ];
+
+    for (const candidate of candidates) {
+      if (fs.existsSync(candidate)) return candidate;
+    }
+
+    if (!fs.existsSync(dataDir)) return null;
+
+    const files = fs.readdirSync(dataDir);
+    const dynamic = files.find(
+      (file: string) =>
+        /^product_parameters(\.[^.]+)?\.xlsx$/i.test(file) ||
+        /^parametros_producto(\.[^.]+)?\.xlsx$/i.test(file)
+    );
+
+    return dynamic ? path.join(dataDir, dynamic) : null;
+  } catch {
+    return null;
+  }
+}
+
 function safeStatMtimeMs(filePath: string | null): number {
   if (!isServer() || !filePath) return 0;
 
@@ -267,7 +315,7 @@ function safeStatMtimeMs(filePath: string | null): number {
   }
 }
 
-function listProductImages(slug: string): string[] {
+function listProductMedia(slug: string): ProductMediaItem[] {
   if (!isServer()) return [];
 
   try {
@@ -281,7 +329,7 @@ function listProductImages(slug: string): string[] {
 
     const files = fs
       .readdirSync(dir)
-      .filter((file: string) => /\.(jpg|jpeg|png|webp)$/i.test(file))
+      .filter((file: string) => /\.(jpg|jpeg|png|webp|mp4|mov|webm|m4v)$/i.test(file))
       .sort((a: string, b: string) => {
         const aNum = Number(a.split(".")[0]);
         const bNum = Number(b.split(".")[0]);
@@ -290,9 +338,71 @@ function listProductImages(slug: string): string[] {
         return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
       });
 
-    return files.map((file: string) => `/products/${slug}/${file}`);
+    return files.map((file: string) => ({
+      type: /\.(mp4|mov|webm|m4v)$/i.test(file) ? "video" : "image",
+      src: `/products/${slug}/${file}`,
+    }));
   } catch {
     return [];
+  }
+}
+
+function loadProductParameters(): Map<string, ProductParameter[]> {
+  if (!isServer()) return new Map();
+
+  try {
+    const fs = getFs();
+    const XLSX = getXlsx();
+    const filePath = resolveParametersExcelPath();
+
+    if (!fs || !XLSX || !filePath || !fs.existsSync(filePath)) return new Map();
+
+    const workbook = XLSX.readFile(filePath);
+    const firstSheetName =
+      workbook.SheetNames.find((sheetName: string) =>
+        ["parametros", "Parametros", "parameters", "Parameters"].includes(sheetName)
+      ) || workbook.SheetNames[0];
+
+    if (!firstSheetName) return new Map();
+
+    const sheet = workbook.Sheets[firstSheetName];
+    const rows = XLSX.utils.sheet_to_json(sheet, {
+      defval: "",
+      raw: false,
+    }) as Record<string, unknown>[];
+
+    const map = new Map<string, ProductParameter[]>();
+
+    for (const row of rows) {
+      const slug = String(
+        getRowValue(row, ["product_slug", "slug", "product", "producto", "productslug"], "")
+      )
+        .trim()
+        .toLowerCase();
+      const label = String(getRowValue(row, ["label", "nombre", "campo", "parametro", "parámetro"], ""))
+        .trim();
+      const value = String(getRowValue(row, ["value", "valor", "detalle", "descripcion"], "")).trim();
+      const order = toSafeNumber(getRowValue(row, ["order", "orden", "display_order"], 0), 0);
+
+      if (!slug || !label || !value) continue;
+
+      const current = map.get(slug) ?? [];
+      current.push({ label, value, order });
+      map.set(slug, current);
+    }
+
+    for (const [slug, items] of map.entries()) {
+      map.set(
+        slug,
+        items
+          .slice()
+          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.label.localeCompare(b.label, "es"))
+      );
+    }
+
+    return map;
+  } catch {
+    return new Map();
   }
 }
 
@@ -416,6 +526,7 @@ function buildProductsFromExcel(): Product[] {
     if (!rows.length) return [];
 
     const map = new Map<string, Product>();
+    const productParameters = loadProductParameters();
 
     for (const row of rows) {
       const slug = String(getRowValue(row, ["product_slug", "slug", "productslug"], "")).trim();
@@ -439,7 +550,9 @@ function buildProductsFromExcel(): Product[] {
       if (!slug || !title || price <= 0) continue;
 
       if (!map.has(slug)) {
-        const images = listProductImages(slug);
+        const media = listProductMedia(slug);
+        const images = media.filter((item) => item.type === "image").map((item) => item.src);
+        const videos = media.filter((item) => item.type === "video").map((item) => item.src);
 
         map.set(slug, {
           id: slug,
@@ -461,6 +574,9 @@ function buildProductsFromExcel(): Product[] {
           stockHint: 0,
           image: images[0],
           images,
+          videos,
+          media,
+          parameters: productParameters.get(slug.toLowerCase()) ?? [],
           variants: [],
           sizes: [],
           colors: [],
@@ -494,12 +610,14 @@ function buildProductsFromExcel(): Product[] {
       }
     }
 
-    return Array.from(map.values()).map((product) => ({
-      ...product,
-      price: derivePriceFromVariants(product.variants),
-      favoritesCount: product.favoritesCount ?? 0,
-      isFavorite: product.isFavorite ?? false,
-    }));
+    return Array.from(map.values())
+      .map((product) => ({
+        ...product,
+        price: derivePriceFromVariants(product.variants),
+        favoritesCount: product.favoritesCount ?? 0,
+        isFavorite: product.isFavorite ?? false,
+      }))
+      .filter((product) => Number(product.stockHint || 0) > 0);
   } catch {
     return [];
   }
@@ -517,7 +635,7 @@ function readCache(cachePath: string): CachePayload | null {
 
     const parsed = JSON.parse(raw) as CachePayload;
     if (!parsed || !Array.isArray(parsed.products)) return null;
-    if (parsed.version !== 2) return null;
+    if (parsed.version !== 3) return null;
 
     return parsed;
   } catch {
@@ -540,7 +658,7 @@ function writeCache(
     ensureDataDir();
 
     const payload: CachePayload = {
-      version: 2,
+      version: 3,
       generatedAt: new Date().toISOString(),
       excelPath,
       excelMtimeMs,
