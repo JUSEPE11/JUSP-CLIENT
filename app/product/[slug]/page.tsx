@@ -567,11 +567,31 @@ function buildMediaCandidates(p: Product, pageSlug?: string): ProductMediaItem[]
     ].filter(Boolean)
   ).map((x) => x.toLowerCase());
 
+  const candidateIndexes = Array.from({ length: 20 }, (_, index) => index + 1);
+  const imageExtensions = ["jpg", "jpeg", "JPG", "JPEG"] as const;
+  const videoExtensions = ["mp4", "MP4", "mov", "MOV", "webm", "WEBM", "m4v", "M4V"] as const;
+
   const localCandidates = candidateSlugs.flatMap((s) =>
-    [
-      ...[1, 2, 3, 4, 5].map((i) => ({ type: "image" as const, src: `/products/${s}/${i}.jpg` })),
-      ...[1, 2, 3].map((i) => ({ type: "video" as const, src: `/products/${s}/${i}.mp4` })),
-    ]
+    candidateIndexes.flatMap((index) => {
+      const plain = String(index);
+      const padded = String(index).padStart(2, "0");
+
+      const imageItems = [plain, padded].flatMap((base) =>
+        imageExtensions.map((ext) => ({
+          type: "image" as const,
+          src: `/products/${s}/${base}.${ext}`,
+        }))
+      );
+
+      const videoItems = [plain, padded].flatMap((base) =>
+        videoExtensions.map((ext) => ({
+          type: "video" as const,
+          src: `/products/${s}/${base}.${ext}`,
+        }))
+      );
+
+      return [...videoItems, ...imageItems];
+    })
   );
 
   return uniqueMediaItems([
@@ -1126,6 +1146,30 @@ export default function ProductPage() {
   const [qty, setQty] = useState<number>(1);
   const [toast, setToast] = useState<string | null>(null);
   const [activeImg, setActiveImg] = useState<number>(0);
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      const tag = (document.activeElement?.tagName || "").toLowerCase();
+      if (tag === "input" || tag === "textarea") return;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setActiveImg((prev) =>
+          mediaItems.length ? (prev + 1) % mediaItems.length : prev
+        );
+      }
+
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setActiveImg((prev) =>
+          mediaItems.length ? (prev - 1 + mediaItems.length) % mediaItems.length : prev
+        );
+      }
+    }
+
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [mediaItems.length]);
+
   const [attemptedBuy, setAttemptedBuy] = useState(false);
   const [imageZoom, setImageZoom] = useState({
     active: false,
