@@ -1069,6 +1069,13 @@ export default function ProductPage() {
   }, [mediaCandidates]);
 
   useEffect(() => {
+    return () => {
+      stopThumbColumnAutoScroll();
+      stopThumbColumnDrag();
+    };
+  }, []);
+
+  useEffect(() => {
     if (!product) return;
     hydrateFavCountsFromProducts([product]);
     setFavCount(product.id, Number(product.favoritesCount || 0));
@@ -1147,6 +1154,11 @@ export default function ProductPage() {
   const pinchStartTranslateRef = useRef({ x: 0, y: 0 });
   const panStartRef = useRef<{ x: number; y: number; translateX: number; translateY: number } | null>(null);
   const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
+  const thumbColRef = useRef<HTMLDivElement | null>(null);
+  const thumbAutoScrollFrameRef = useRef<number | null>(null);
+  const thumbAutoScrollVelocityRef = useRef<number>(0);
+  const thumbDragActiveRef = useRef(false);
+  const thumbDragLastYRef = useRef<number | null>(null);
   const currentMedia = mediaItems[activeImg] ?? null;
   const currentImage = currentMedia?.type === "image" ? currentMedia.src : "";
   const productParameters = useMemo(
@@ -1158,6 +1170,102 @@ export default function ProductPage() {
         : [],
     [product?.parameters]
   );
+
+  function stopThumbColumnAutoScroll() {
+    thumbAutoScrollVelocityRef.current = 0;
+
+    if (typeof window !== "undefined" && thumbAutoScrollFrameRef.current != null) {
+      window.cancelAnimationFrame(thumbAutoScrollFrameRef.current);
+      thumbAutoScrollFrameRef.current = null;
+    }
+  }
+
+  function runThumbColumnAutoScroll() {
+    const container = thumbColRef.current;
+
+    if (!container) {
+      stopThumbColumnAutoScroll();
+      return;
+    }
+
+    const velocity = thumbAutoScrollVelocityRef.current;
+    if (!velocity) {
+      thumbAutoScrollFrameRef.current = null;
+      return;
+    }
+
+    const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
+    const nextScrollTop = Math.min(maxScrollTop, Math.max(0, container.scrollTop + velocity));
+
+    container.scrollTop = nextScrollTop;
+
+    if (nextScrollTop >= maxScrollTop) {
+      stopThumbColumnAutoScroll();
+      return;
+    }
+
+    if (typeof window !== "undefined") {
+      thumbAutoScrollFrameRef.current = window.requestAnimationFrame(runThumbColumnAutoScroll);
+    }
+  }
+
+  function stopThumbColumnDrag() {
+    thumbDragActiveRef.current = false;
+    thumbDragLastYRef.current = null;
+  }
+
+  function onThumbColumnMouseDown(e: React.MouseEvent<HTMLDivElement>) {
+    if (typeof window === "undefined") return;
+    if (window.matchMedia("(max-width: 980px)").matches) return;
+    if (e.button !== 0 && e.button !== 2) return;
+
+    stopThumbColumnAutoScroll();
+    thumbDragActiveRef.current = true;
+    thumbDragLastYRef.current = e.clientY;
+    e.preventDefault();
+  }
+
+  function onThumbColumnMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    if (typeof window === "undefined") return;
+    if (window.matchMedia("(max-width: 980px)").matches) return;
+
+    const container = thumbColRef.current;
+    if (!container) return;
+
+    if (thumbDragActiveRef.current) {
+      const lastY = thumbDragLastYRef.current;
+      if (lastY != null) {
+        const deltaY = e.clientY - lastY;
+        container.scrollTop += deltaY;
+      }
+      thumbDragLastYRef.current = e.clientY;
+      e.preventDefault();
+      return;
+    }
+
+    const rect = container.getBoundingClientRect();
+    const localY = e.clientY - rect.top;
+    const bottomZone = Math.min(120, rect.height * 0.32);
+    const startZone = rect.height - bottomZone;
+
+    if (localY <= startZone) {
+      stopThumbColumnAutoScroll();
+      return;
+    }
+
+    const progress = Math.min(1, Math.max(0, (localY - startZone) / bottomZone));
+    thumbAutoScrollVelocityRef.current = 2 + progress * 12;
+
+    if (thumbAutoScrollFrameRef.current == null) {
+      thumbAutoScrollFrameRef.current = window.requestAnimationFrame(runThumbColumnAutoScroll);
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      stopThumbColumnAutoScroll();
+    };
+  }, []);
 
   function goToPrevImage() {
     if (mediaItems.length <= 1) return;
@@ -1775,8 +1883,20 @@ export default function ProductPage() {
             <div className="mediaCard">
               <div className="gallery">
                 {mediaItems.length > 1 ? (
-                  <div className="thumbCol" aria-label="Miniaturas">
-                    {mediaItems.slice(0, 10).map((item, i) => (
+                  <div
+                    ref={thumbColRef}
+                    className="thumbCol"
+                    aria-label="Miniaturas"
+                    onMouseDown={onThumbColumnMouseDown}
+                    onMouseMove={onThumbColumnMouseMove}
+                    onMouseUp={stopThumbColumnDrag}
+                    onMouseLeave={() => {
+                      stopThumbColumnDrag();
+                      stopThumbColumnAutoScroll();
+                    }}
+                    onContextMenu={(e) => e.preventDefault()}
+                  >
+                    {mediaItems.map((item, i) => (
                       <button
                         key={`${item.src}-${i}`}
                         type="button"
@@ -2431,32 +2551,81 @@ export default function ProductPage() {
           gap: 10px;
           position: sticky;
           top: calc(var(--jusp-header-h, 64px) + 16px);
+          max-height: calc((86px * 7) + (10px * 6) + 12px);
+          overflow-y: auto;
+          padding-right: 4px;
+          padding-bottom: 18px;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+          mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 88%, rgba(0,0,0,0.18) 100%);
+          -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 88%, rgba(0,0,0,0.18) 100%);
+          scroll-behavior: smooth;
+          cursor: ns-resize;
+          overscroll-behavior: contain;
+        }
+        .thumbCol::-webkit-scrollbar {
+          display: none;
+        }
+        .thumbCol:active {
+          cursor: grabbing;
         }
 
         .thBtn {
-          border: 1px solid var(--b);
-          background: #fff;
-          border-radius: 14px;
+          position: relative;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 248, 248, 0.96));
+          border-radius: 18px;
           padding: 6px;
           cursor: pointer;
-          transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+          overflow: hidden;
+          box-shadow: 0 14px 30px rgba(0, 0, 0, 0.06);
+          transition:
+            transform 180ms ease,
+            box-shadow 180ms ease,
+            border-color 180ms ease,
+            background 180ms ease,
+            filter 180ms ease;
+        }
+        .thBtn::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(180deg, rgba(255,255,255,0.34), rgba(255,255,255,0));
+          pointer-events: none;
+          opacity: 0.9;
         }
         .thBtn:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 14px 34px rgba(0, 0, 0, 0.07);
+          transform: translateY(-2px) scale(1.015);
+          border-color: rgba(212, 175, 55, 0.18);
+          box-shadow: 0 18px 38px rgba(0, 0, 0, 0.1);
+          filter: saturate(1.02);
         }
         .thBtn.on {
           border-color: var(--jusp-gold-mid);
-          box-shadow: 0 0 0 3px var(--jusp-gold-soft), 0 14px 34px rgba(0, 0, 0, 0.08);
+          background: linear-gradient(180deg, rgba(255, 251, 240, 1), rgba(255, 255, 255, 0.98));
+          box-shadow:
+            0 0 0 3px var(--jusp-gold-soft),
+            0 20px 40px rgba(0, 0, 0, 0.12),
+            inset 0 1px 0 rgba(255,255,255,0.9);
         }
 
         .th {
+          position: relative;
+          z-index: 1;
           width: 86px;
           height: 86px;
-          border-radius: 12px;
+          border-radius: 14px;
           object-fit: contain;
           display: block;
-          background: linear-gradient(180deg, rgba(0, 0, 0, 0.03), rgba(0, 0, 0, 0.01));
+          background: radial-gradient(circle at top, rgba(212, 175, 55, 0.08), rgba(0, 0, 0, 0.015));
+          transition: transform 180ms ease, filter 180ms ease;
+        }
+        .thBtn:hover .th {
+          transform: scale(1.035);
+          filter: contrast(1.02);
+        }
+        .thBtn.on .th {
+          transform: scale(1.04);
         }
         .thVideo {
           position: relative;
@@ -2465,6 +2634,7 @@ export default function ProductPage() {
           position: absolute;
           right: 8px;
           bottom: 8px;
+          z-index: 2;
           padding: 4px 7px;
           border-radius: 999px;
           background: rgba(17, 17, 17, 0.88);
@@ -2473,6 +2643,7 @@ export default function ProductPage() {
           font-weight: 900;
           letter-spacing: 0.04em;
           text-transform: uppercase;
+          box-shadow: 0 8px 18px rgba(0,0,0,0.2);
         }
 
         .imgBox {
@@ -3612,9 +3783,21 @@ export default function ProductPage() {
             position: relative;
             top: auto;
             display: flex;
-            overflow: auto;
+            overflow-x: auto;
+            overflow-y: hidden;
             -webkit-overflow-scrolling: touch;
             gap: 10px;
+            max-height: none;
+            padding-right: 0;
+            padding-bottom: 4px;
+            mask-image: none;
+            -webkit-mask-image: none;
+            scroll-snap-type: x proximity;
+            cursor: auto;
+          }
+          .thBtn {
+            flex: 0 0 auto;
+            scroll-snap-align: start;
           }
           .th {
             width: 78px;
