@@ -2891,6 +2891,7 @@ export default function ProductPage() {
           mix-blend-mode: multiply;
         }
         .swipeHint {
+          display: none !important;
           position: absolute;
           left: 50%;
           bottom: 16px;
