@@ -1218,8 +1218,6 @@ export default function ProductPage() {
   const pinchStartDistanceRef = useRef<number | null>(null);
   const pinchStartScaleRef = useRef<number>(1);
   const pinchStartTranslateRef = useRef({ x: 0, y: 0 });
-  const pinchStartMidpointRef = useRef({ x: 0, y: 0 });
-  const pinchStartContentPointRef = useRef({ x: 0, y: 0 });
   const panStartRef = useRef<{ x: number; y: number; translateX: number; translateY: number } | null>(null);
   const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
   const thumbColRef = useRef<HTMLDivElement | null>(null);
@@ -1229,6 +1227,20 @@ export default function ProductPage() {
   const thumbDragLastYRef = useRef<number | null>(null);
   const currentMedia = mediaItems[activeImg] ?? null;
   const currentImage = currentMedia?.type === "image" ? currentMedia.src : "";
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const imageSources = mediaItems
+      .filter((item) => item.type === "image" && item.src)
+      .map((item) => item.src);
+
+    imageSources.forEach((src) => {
+      const img = new Image();
+      img.src = src;
+    });
+  }, [mediaItems]);
+
   const productParameters = useMemo(
     () =>
       Array.isArray(product?.parameters)
@@ -1351,32 +1363,12 @@ export default function ProductPage() {
 
     if (e.touches.length >= 2) {
       const [touchA, touchB] = Array.from(e.touches);
-      const rect = e.currentTarget.getBoundingClientRect();
-      const midpointX = (touchA.clientX + touchB.clientX) / 2;
-      const midpointY = (touchA.clientY + touchB.clientY) / 2;
-      const originX = midpointX - rect.left - rect.width / 2;
-      const originY = midpointY - rect.top - rect.height / 2;
-      const safeScale = Math.max(1, mobileImageZoom.scale);
 
       pinchStartDistanceRef.current = getTouchDistance(touchA, touchB);
-      pinchStartScaleRef.current = safeScale;
+      pinchStartScaleRef.current = mobileImageZoom.scale;
       pinchStartTranslateRef.current = {
         x: mobileImageZoom.translateX,
         y: mobileImageZoom.translateY,
-      };
-      if (e.changedTouches?.[0]) {
-        pinchStartMidpointRef.current = {
-          x: e.changedTouches[0].clientX,
-          y: e.changedTouches[0].clientY,
-        };
-      }
-      pinchStartMidpointRef.current = {
-        x: midpointX,
-        y: midpointY,
-      };
-      pinchStartContentPointRef.current = {
-        x: (originX - mobileImageZoom.translateX) / safeScale,
-        y: (originY - mobileImageZoom.translateY) / safeScale,
       };
       panStartRef.current = null;
       touchStartXRef.current = null;
@@ -1422,13 +1414,13 @@ export default function ProductPage() {
         4,
         Math.max(1, pinchStartScaleRef.current * (nextDistance / pinchStartDistanceRef.current))
       );
-      const midpointX = (touchA.clientX + touchB.clientX) / 2;
-      const midpointY = (touchA.clientY + touchB.clientY) / 2;
-      const originX = midpointX - rect.left - rect.width / 2;
-      const originY = midpointY - rect.top - rect.height / 2;
-      const desiredTranslateX = originX - pinchStartContentPointRef.current.x * nextScale;
-      const desiredTranslateY = originY - pinchStartContentPointRef.current.y * nextScale;
-      const clampedPan = clampImagePan(nextScale, desiredTranslateX, desiredTranslateY, rect.width, rect.height);
+      const clampedPan = clampImagePan(
+        nextScale,
+        pinchStartTranslateRef.current.x,
+        pinchStartTranslateRef.current.y,
+        rect.width,
+        rect.height
+      );
 
       e.preventDefault();
       setMobileImageZoom({
@@ -1475,8 +1467,6 @@ export default function ProductPage() {
         pinching: false,
       }));
       panStartRef.current = null;
-      pinchStartMidpointRef.current = { x: 0, y: 0 };
-      pinchStartContentPointRef.current = { x: 0, y: 0 };
       touchStartXRef.current = null;
       touchStartYRef.current = null;
       return;
@@ -1588,8 +1578,6 @@ export default function ProductPage() {
         : prev
     );
     pinchStartDistanceRef.current = null;
-    pinchStartMidpointRef.current = { x: 0, y: 0 };
-    pinchStartContentPointRef.current = { x: 0, y: 0 };
     panStartRef.current = null;
   }, [activeImg]);
 
@@ -1994,6 +1982,11 @@ export default function ProductPage() {
                         type="button"
                         className={`thBtn ${activeImg === i ? "on" : ""}`}
                         onClick={() => setActiveImg(i)}
+                        onMouseEnter={() => {
+                          if (typeof window !== "undefined" && window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+                            setActiveImg(i);
+                          }
+                        }}
                         aria-label={item.type === "video" ? `Ver video ${i + 1}` : `Ver imagen ${i + 1}`}
                       >
                         {item.type === "video" ? (
@@ -2046,24 +2039,19 @@ export default function ProductPage() {
                         preload="auto"
                       />
                     ) : (
-                      <>
-                        <img
-                          key={currentImage}
-                          ref={activeImageRef}
-                          src={currentImage}
-                          alt={title}
-                          loading="eager"
-                          decoding="sync"
-                          fetchPriority="high"
-                          style={{
-                            transform: `translate3d(${mobileImageZoom.translateX}px, ${mobileImageZoom.translateY}px, 0) scale(${mobileImageZoom.scale})`,
-                            transformOrigin: "center center",
-                            transition: mobileImageZoom.pinching ? "none" : "transform 180ms ease",
-                          }}
-                        />
-
-                        
-                      </>
+                      <img
+                        ref={activeImageRef}
+                        src={currentImage}
+                        alt={title}
+                        loading="eager"
+                        decoding="sync"
+                        fetchPriority="high"
+                        style={{
+                          transform: `translate3d(${mobileImageZoom.translateX}px, ${mobileImageZoom.translateY}px, 0) scale(${mobileImageZoom.scale})`,
+                          transformOrigin: "center center",
+                          transition: mobileImageZoom.pinching ? "none" : "transform 180ms ease",
+                        }}
+                      />
                     )
                   ) : (
                     <div className="ph" />
@@ -2754,7 +2742,7 @@ export default function ProductPage() {
           display: grid;
           place-items: center;
           box-shadow: var(--shadow2);
-          touch-action: none;
+          touch-action: pan-y;
         }
 
         .imgBox img,
