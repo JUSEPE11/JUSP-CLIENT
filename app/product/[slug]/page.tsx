@@ -1994,7 +1994,6 @@ export default function ProductPage() {
                         type="button"
                         className={`thBtn ${activeImg === i ? "on" : ""}`}
                         onClick={() => setActiveImg(i)}
-                        onMouseEnter={() => setActiveImg(i)}
                         aria-label={item.type === "video" ? `Ver video ${i + 1}` : `Ver imagen ${i + 1}`}
                       >
                         {item.type === "video" ? (
@@ -2063,35 +2062,7 @@ export default function ProductPage() {
                           }}
                         />
 
-                        {mediaItems.length > 1 ? (
-                          <>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                goToPrevImage();
-                              }}
-                              className="absolute left-2 top-1/2 z-20 -translate-y-1/2 rounded-full bg-black/50 px-3 py-2 text-white"
-                              aria-label="Imagen anterior"
-                            >
-                              ←
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                goToNextImage();
-                              }}
-                              className="absolute right-2 top-1/2 z-20 -translate-y-1/2 rounded-full bg-black/50 px-3 py-2 text-white"
-                              aria-label="Imagen siguiente"
-                            >
-                              →
-                            </button>
-                          </>
-                        ) : null}
+                        
                       </>
                     )
                   ) : (
