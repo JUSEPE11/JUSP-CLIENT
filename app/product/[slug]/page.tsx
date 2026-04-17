@@ -131,6 +131,16 @@ function getTouchDistance(
   return Math.hypot(dx, dy);
 }
 
+function getTouchMidpoint(
+  touchA: { clientX: number; clientY: number },
+  touchB: { clientX: number; clientY: number }
+) {
+  return {
+    clientX: (touchA.clientX + touchB.clientX) / 2,
+    clientY: (touchA.clientY + touchB.clientY) / 2,
+  };
+}
+
 function clampNumber(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
@@ -1218,6 +1228,7 @@ export default function ProductPage() {
   const pinchStartDistanceRef = useRef<number | null>(null);
   const pinchStartScaleRef = useRef<number>(1);
   const pinchStartTranslateRef = useRef({ x: 0, y: 0 });
+  const pinchStartMidpointRef = useRef<{ x: number; y: number } | null>(null);
   const panStartRef = useRef<{ x: number; y: number; translateX: number; translateY: number } | null>(null);
   const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
   const thumbColRef = useRef<HTMLDivElement | null>(null);
@@ -1363,12 +1374,18 @@ export default function ProductPage() {
 
     if (e.touches.length >= 2) {
       const [touchA, touchB] = Array.from(e.touches);
+      const rect = e.currentTarget.getBoundingClientRect();
+      const midpoint = getTouchMidpoint(touchA, touchB);
 
       pinchStartDistanceRef.current = getTouchDistance(touchA, touchB);
       pinchStartScaleRef.current = mobileImageZoom.scale;
       pinchStartTranslateRef.current = {
         x: mobileImageZoom.translateX,
         y: mobileImageZoom.translateY,
+      };
+      pinchStartMidpointRef.current = {
+        x: midpoint.clientX - rect.left - rect.width / 2,
+        y: midpoint.clientY - rect.top - rect.height / 2,
       };
       panStartRef.current = null;
       touchStartXRef.current = null;
@@ -1409,18 +1426,27 @@ export default function ProductPage() {
 
     if (e.touches.length >= 2 && pinchStartDistanceRef.current != null) {
       const [touchA, touchB] = Array.from(e.touches);
+      const midpoint = getTouchMidpoint(touchA, touchB);
       const nextDistance = getTouchDistance(touchA, touchB);
       const nextScale = Math.min(
         4,
         Math.max(1, pinchStartScaleRef.current * (nextDistance / pinchStartDistanceRef.current))
       );
-      const clampedPan = clampImagePan(
-        nextScale,
-        pinchStartTranslateRef.current.x,
-        pinchStartTranslateRef.current.y,
-        rect.width,
-        rect.height
-      );
+
+      const startScale = Math.max(1, pinchStartScaleRef.current);
+      const startTranslate = pinchStartTranslateRef.current;
+      const startMidpoint = pinchStartMidpointRef.current ?? { x: 0, y: 0 };
+      const currentMidpoint = {
+        x: midpoint.clientX - rect.left - rect.width / 2,
+        y: midpoint.clientY - rect.top - rect.height / 2,
+      };
+
+      const anchoredTranslateX =
+        currentMidpoint.x - ((startMidpoint.x - startTranslate.x) / startScale) * nextScale;
+      const anchoredTranslateY =
+        currentMidpoint.y - ((startMidpoint.y - startTranslate.y) / startScale) * nextScale;
+
+      const clampedPan = clampImagePan(nextScale, anchoredTranslateX, anchoredTranslateY, rect.width, rect.height);
 
       e.preventDefault();
       setMobileImageZoom({
@@ -1467,6 +1493,7 @@ export default function ProductPage() {
         pinching: false,
       }));
       panStartRef.current = null;
+      pinchStartMidpointRef.current = null;
       touchStartXRef.current = null;
       touchStartYRef.current = null;
       return;
@@ -1578,6 +1605,7 @@ export default function ProductPage() {
         : prev
     );
     pinchStartDistanceRef.current = null;
+    pinchStartMidpointRef.current = null;
     panStartRef.current = null;
   }, [activeImg]);
 
@@ -2004,6 +2032,12 @@ export default function ProductPage() {
 
                 <div
                   className={`imgBox ${currentMedia?.type === "image" ? "zoomReady" : ""}`}
+                  style={{
+                    touchAction:
+                      currentMedia?.type === "image" && (mobileImageZoom.scale > 1.02 || mobileImageZoom.pinching)
+                        ? "none"
+                        : "pan-y",
+                  }}
                   onTouchStart={onImageTouchStart}
                   onTouchMove={onImageTouchMove}
                   onTouchEnd={onImageTouchEnd}
@@ -2049,7 +2083,8 @@ export default function ProductPage() {
                         style={{
                           transform: `translate3d(${mobileImageZoom.translateX}px, ${mobileImageZoom.translateY}px, 0) scale(${mobileImageZoom.scale})`,
                           transformOrigin: "center center",
-                          transition: mobileImageZoom.pinching ? "none" : "transform 180ms ease",
+                          transition: mobileImageZoom.pinching ? "none" : "transform 180ms cubic-bezier(0.22, 1, 0.36, 1)",
+                          willChange: mobileImageZoom.scale > 1 || mobileImageZoom.pinching ? "transform" : "auto",
                         }}
                       />
                     )
@@ -2891,7 +2926,6 @@ export default function ProductPage() {
           mix-blend-mode: multiply;
         }
         .swipeHint {
-          display: none !important;
           position: absolute;
           left: 50%;
           bottom: 16px;
