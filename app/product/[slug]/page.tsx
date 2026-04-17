@@ -2107,11 +2107,6 @@ export default function ProductPage() {
                     </>
                   ) : null}
 
-                  <div className="imgBadge">
-                    <span className="b1">JUSP</span>
-                    <span className="bDot" aria-hidden="true" />
-                    <span className="b2">{urgencyText}</span>
-                  </div>
 
                   <div className="imgGlow" aria-hidden="true" />
 
