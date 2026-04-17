@@ -1067,17 +1067,63 @@ export default function ProductPage() {
         return;
       }
 
-      const checks = await Promise.all(
-        mediaCandidates.map(async (item) => ({
-          item,
-          ok: item.type === "video" ? await loadVideo(item.src) : await loadImage(item.src),
-        }))
+      const order = new Map(mediaCandidates.map((item, index) => [`${item.type}::${item.src}`, index]));
+      let foundAny = false;
+      let validItems: ProductMediaItem[] = [];
+
+      const commit = (nextItems: ProductMediaItem[]) => {
+        validItems = uniqueMediaItems(nextItems).sort((a, b) => {
+          const keyA = `${a.type}::${a.src}`;
+          const keyB = `${b.type}::${b.src}`;
+          return (order.get(keyA) ?? Number.MAX_SAFE_INTEGER) - (order.get(keyB) ?? Number.MAX_SAFE_INTEGER);
+        });
+
+        if (!cancelled) {
+          setMediaItems(validItems);
+        }
+      };
+
+      const verify = async (item: ProductMediaItem) => {
+        return item.type === "video" ? await loadVideo(item.src) : await loadImage(item.src);
+      };
+
+      for (const item of mediaCandidates) {
+        const ok = await verify(item);
+        if (cancelled) return;
+
+        if (ok) {
+          foundAny = true;
+          commit([...validItems, item]);
+          break;
+        }
+      }
+
+      if (cancelled) return;
+
+      if (!foundAny) {
+        setMediaItems([]);
+      }
+
+      const remaining = mediaCandidates.filter(
+        (item) => !validItems.some((existing) => existing.type === item.type && existing.src === item.src)
       );
 
-      const valid = checks.filter((x) => x.ok).map((x) => x.item);
+      const batchSize = 4;
+      for (let i = 0; i < remaining.length; i += batchSize) {
+        const batch = remaining.slice(i, i + batchSize);
+        const checks = await Promise.all(
+          batch.map(async (item) => ({
+            item,
+            ok: await verify(item),
+          }))
+        );
 
-      if (!cancelled) {
-        setMediaItems(uniqueMediaItems(valid));
+        if (cancelled) return;
+
+        const batchValid = checks.filter((entry) => entry.ok).map((entry) => entry.item);
+        if (batchValid.length) {
+          commit([...validItems, ...batchValid]);
+        }
       }
     }
 
@@ -1146,30 +1192,6 @@ export default function ProductPage() {
   const [qty, setQty] = useState<number>(1);
   const [toast, setToast] = useState<string | null>(null);
   const [activeImg, setActiveImg] = useState<number>(0);
-  useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      const tag = (document.activeElement?.tagName || "").toLowerCase();
-      if (tag === "input" || tag === "textarea") return;
-
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setActiveImg((prev) =>
-          mediaItems.length ? (prev + 1) % mediaItems.length : prev
-        );
-      }
-
-      if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setActiveImg((prev) =>
-          mediaItems.length ? (prev - 1 + mediaItems.length) % mediaItems.length : prev
-        );
-      }
-    }
-
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [mediaItems.length]);
-
   const [attemptedBuy, setAttemptedBuy] = useState(false);
   const [imageZoom, setImageZoom] = useState({
     active: false,
