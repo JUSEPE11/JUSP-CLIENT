@@ -274,7 +274,7 @@ export default function ProductReviews({
       ? "Comparte cómo te fue"
       : viewer?.alreadyReviewed
         ? "Tu reseña ya está publicada"
-        : "Acceso a reseñas verificadas";
+        : "Opiniones reales de personas que ya compraron";
 
   const accessCardHint = loading
     ? "Comprobamos tu sesión y la compra asociada a este producto."
@@ -417,7 +417,7 @@ export default function ProductReviews({
           </div>
 
           <div className="summaryNote">
-            Esto ayuda a que nuevos clientes vean experiencias reales antes de comprar.
+            Este producto es nuevo. Sé de los primeros en recibirlo y compartir tu experiencia.
           </div>
         </aside>
 

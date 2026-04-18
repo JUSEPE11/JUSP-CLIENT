@@ -38,7 +38,10 @@ function toSafeStock(value: unknown): number | null {
   return Math.max(0, Math.floor(n));
 }
 
-function findMaxStockForCartItem(products: ProductApi[], item: { id: string; color?: string | null; size?: string | null }) {
+function findMaxStockForCartItem(
+  products: ProductApi[],
+  item: { id: string; color?: string | null; size?: string | null }
+) {
   const itemId = normalizeLoose(item.id);
   const itemColor = normalizeLoose(item.color);
   const itemSize = String(item.size ?? "").trim();
@@ -77,7 +80,8 @@ function findMaxStockForCartItem(products: ProductApi[], item: { id: string; col
 }
 
 export default function CartDrawer() {
-  const { state, cartCount, cartTotal, closePanel, incQty, decQty, removeFromCart, clearCart } = useStore();
+  const { state, cartCount, cartTotal, closePanel, incQty, decQty, removeFromCart, clearCart } =
+    useStore();
 
   const open = state.ui.panel === "cart";
   const items = state.cart;
@@ -160,16 +164,17 @@ export default function CartDrawer() {
       <div className="ov" onClick={closePanel} aria-hidden="true" />
 
       <aside className="dw" role="dialog" aria-modal="true" aria-label="Carrito">
+        <button className="floatingClose" type="button" onClick={closePanel} aria-label="Cerrar carrito">
+          <span aria-hidden="true">×</span>
+        </button>
+
         <div className="top">
           <div className="ttl">Carrito</div>
-          <button className="x" type="button" onClick={closePanel} aria-label="Cerrar">
-            ✕
-          </button>
         </div>
 
         <div className="sub">
           <div className="cnt">
-            {cartCount} item{cartCount === 1 ? "" : "s"}
+            {cartCount} producto{cartCount === 1 ? "" : "s"}
           </div>
           {!empty ? (
             <button className="lnk" type="button" onClick={clearCart}>
@@ -268,6 +273,11 @@ export default function CartDrawer() {
             </div>
 
             <div className="foot">
+              <div className="sumrow">
+                <span>Producto</span>
+                <strong>{cartCount}</strong>
+              </div>
+
               <div className="tot">
                 <span>Total</span>
                 <strong>${moneyCOP(cartTotal)}</strong>
@@ -293,6 +303,7 @@ export default function CartDrawer() {
           backdrop-filter: blur(4px);
           z-index: 80;
         }
+
         .dw {
           position: fixed;
           top: 0;
@@ -304,29 +315,51 @@ export default function CartDrawer() {
           box-shadow: -30px 0 80px rgba(0, 0, 0, 0.25);
           display: flex;
           flex-direction: column;
+          overflow: hidden;
+        }
+
+        .floatingClose {
+          position: absolute;
+          top: 14px;
+          right: 14px;
+          z-index: 9999;
+          width: 42px;
+          height: 42px;
+          border-radius: 999px;
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          background: rgba(255, 255, 255, 0.98);
+          box-shadow:
+            0 10px 24px rgba(0, 0, 0, 0.12),
+            0 1px 0 rgba(255, 255, 255, 0.9) inset;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          padding: 0;
+          -webkit-tap-highlight-color: transparent;
+        }
+
+        .floatingClose span {
+          font-size: 28px;
+          line-height: 1;
+          color: #111;
+          transform: translateY(-1px);
         }
 
         .top {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 16px 16px 10px;
+          padding: 16px 64px 10px 16px;
           border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+          min-height: 66px;
         }
+
         .ttl {
           font-weight: 950;
           font-size: 18px;
           color: #111;
           letter-spacing: -0.02em;
-        }
-        .x {
-          width: 40px;
-          height: 40px;
-          border-radius: 999px;
-          border: 1px solid rgba(0, 0, 0, 0.12);
-          background: #fff;
-          cursor: pointer;
-          font-weight: 950;
         }
 
         .sub {
@@ -338,6 +371,7 @@ export default function CartDrawer() {
           font-weight: 900;
           font-size: 12px;
         }
+
         .lnk {
           border: 0;
           background: transparent;
@@ -353,15 +387,18 @@ export default function CartDrawer() {
           display: grid;
           gap: 8px;
         }
+
         .empT {
           font-weight: 950;
           font-size: 16px;
           color: #111;
         }
+
         .empS {
           font-weight: 900;
           color: rgba(0, 0, 0, 0.65);
         }
+
         .btn {
           margin-top: 8px;
           display: inline-flex;
@@ -399,6 +436,7 @@ export default function CartDrawer() {
           place-items: center;
           box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05) inset;
         }
+
         .img :global(img) {
           width: 100%;
           height: 100%;
@@ -406,6 +444,7 @@ export default function CartDrawer() {
           padding: 8px;
           display: block;
         }
+
         .ph {
           width: 12px;
           height: 12px;
@@ -419,12 +458,14 @@ export default function CartDrawer() {
           font-size: 13px;
           line-height: 1.2;
         }
+
         .meta {
           margin-top: 6px;
           display: flex;
           gap: 8px;
           flex-wrap: wrap;
         }
+
         .tag {
           font-size: 11px;
           font-weight: 950;
@@ -441,6 +482,7 @@ export default function CartDrawer() {
           font-weight: 950;
           color: rgba(0, 0, 0, 0.62);
         }
+
         .stock.soldOut {
           color: #b3261e;
         }
@@ -461,6 +503,7 @@ export default function CartDrawer() {
           border-radius: 999px;
           padding: 6px 8px;
         }
+
         .q {
           width: 30px;
           height: 30px;
@@ -470,10 +513,12 @@ export default function CartDrawer() {
           cursor: pointer;
           font-weight: 950;
         }
+
         .q:disabled {
           opacity: 0.45;
           cursor: not-allowed;
         }
+
         .qv {
           min-width: 20px;
           text-align: center;
@@ -507,6 +552,21 @@ export default function CartDrawer() {
           display: grid;
           gap: 10px;
         }
+
+        .sumrow {
+          display: flex;
+          justify-content: space-between;
+          align-items: baseline;
+          font-weight: 900;
+          color: rgba(0, 0, 0, 0.7);
+        }
+
+        .sumrow strong {
+          color: #111;
+          font-weight: 950;
+          font-size: 16px;
+        }
+
         .tot {
           display: flex;
           justify-content: space-between;
@@ -514,6 +574,7 @@ export default function CartDrawer() {
           font-weight: 900;
           color: rgba(0, 0, 0, 0.7);
         }
+
         .tot strong {
           color: #111;
           font-weight: 950;
@@ -529,6 +590,7 @@ export default function CartDrawer() {
           font-weight: 950;
           text-align: center;
         }
+
         .keep {
           border-radius: 14px;
           padding: 12px 12px;
@@ -536,6 +598,23 @@ export default function CartDrawer() {
           border: 1px solid rgba(0, 0, 0, 0.14);
           font-weight: 950;
           cursor: pointer;
+        }
+
+        @media (max-width: 640px) {
+          .floatingClose {
+            top: 12px;
+            right: 12px;
+            width: 40px;
+            height: 40px;
+          }
+
+          .floatingClose span {
+            font-size: 26px;
+          }
+
+          .top {
+            padding-right: 60px;
+          }
         }
       `}</style>
     </>
