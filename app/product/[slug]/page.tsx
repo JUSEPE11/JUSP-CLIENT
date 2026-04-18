@@ -2316,6 +2316,39 @@ export default function ProductPage() {
                 </div>
               </div>
 
+              <div className="paymentStrip" aria-label="Métodos de pago disponibles">
+                <div className="paymentStripHead">Puedes pagar con</div>
+                <div className="paymentStripLogos">
+                  <span className="payLogo visa" aria-label="Tarjetas débito y crédito Visa">
+                    VISA
+                  </span>
+
+                  <span className="payLogo mastercard" aria-label="Tarjetas débito y crédito Mastercard">
+                    <span className="mcDots" aria-hidden="true">
+                      <span className="mcDot mcDotLeft" />
+                      <span className="mcDot mcDotRight" />
+                    </span>
+                  </span>
+
+                  <span className="payLogo bancolombia" aria-label="Bancolombia">
+                    <span className="bancoMark" aria-hidden="true">
+                      <span className="bancoStripe bancoStripeYellow" />
+                      <span className="bancoStripe bancoStripeBlue" />
+                      <span className="bancoStripe bancoStripeRed" />
+                    </span>
+                    <span>Bancolombia</span>
+                  </span>
+
+                  <span className="payLogo nequi" aria-label="Nequi">
+                    <span className="nequiMark" aria-hidden="true">
+                      <span className="nequiShape nequiBlue" />
+                      <span className="nequiShape nequiPink" />
+                    </span>
+                    <span>NEQUI</span>
+                  </span>
+                </div>
+              </div>
+
               <div className="ctaRow">
                 <button
                   className="ctaAlt"
@@ -2642,7 +2675,12 @@ export default function ProductPage() {
           display: grid;
           grid-template-columns: 1.18fr 0.82fr;
           gap: 18px;
-          align-items: start;
+          align-items: stretch;
+        }
+
+        .grid > section {
+          min-width: 0;
+          align-self: stretch;
         }
 
         .mediaCard {
@@ -2651,6 +2689,7 @@ export default function ProductPage() {
           background: rgba(255, 255, 255, 0.86);
           box-shadow: var(--shadow);
           overflow: hidden;
+          height: 100%;
         }
 
         .gallery {
@@ -2777,12 +2816,12 @@ export default function ProductPage() {
 
         .imgBox img,
         .imgBox video {
-          width: auto;
-          height: auto;
-          max-width: 100%;
-          max-height: 100%;
-          object-fit: contain;
-          padding: 10px;
+          width: 100%;
+          height: 100%;
+          max-width: none;
+          max-height: none;
+          object-fit: cover;
+          padding: 0;
           display: block;
           user-select: none;
           -webkit-user-select: none;
@@ -2987,6 +3026,7 @@ export default function ProductPage() {
           position: sticky;
           top: calc(var(--jusp-header-h, 64px) + 16px);
           overflow: hidden;
+          min-height: 100%;
         }
         .card::before {
           content: "";
@@ -3340,6 +3380,129 @@ export default function ProductPage() {
           text-align: center;
           font-weight: 950;
           color: rgba(0, 0, 0, 0.86);
+        }
+
+        .paymentStrip {
+          margin-top: 14px;
+          padding: 14px 14px 13px;
+          border-radius: 20px;
+          border: 1px solid rgba(0, 0, 0, 0.07);
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(250, 247, 241, 0.98) 100%);
+          box-shadow: 0 14px 36px rgba(0, 0, 0, 0.06);
+        }
+        .paymentStripHead {
+          text-align: center;
+          font-size: 12px;
+          line-height: 1;
+          font-weight: 900;
+          color: rgba(0, 0, 0, 0.72);
+          margin-bottom: 12px;
+        }
+        .paymentStripLogos {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 14px;
+          flex-wrap: wrap;
+        }
+        .payLogo {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          white-space: nowrap;
+          user-select: none;
+        }
+        .payLogo.visa {
+          font-size: 15px;
+          line-height: 1;
+          font-weight: 1000;
+          letter-spacing: 0.01em;
+          color: #1a3ea8;
+          font-style: italic;
+        }
+        .payLogo.mastercard {
+          min-width: 34px;
+        }
+        .mcDots {
+          position: relative;
+          width: 30px;
+          height: 18px;
+          display: inline-block;
+        }
+        .mcDot {
+          position: absolute;
+          top: 0;
+          width: 18px;
+          height: 18px;
+          border-radius: 999px;
+        }
+        .mcDotLeft {
+          left: 0;
+          background: #ea001b;
+        }
+        .mcDotRight {
+          right: 0;
+          background: #f9a01b;
+          mix-blend-mode: multiply;
+        }
+        .payLogo.bancolombia {
+          gap: 5px;
+          font-size: 12px;
+          line-height: 1;
+          font-weight: 900;
+          color: #22408c;
+        }
+        .bancoMark {
+          display: inline-flex;
+          align-items: center;
+          gap: 1px;
+          transform: skewX(-16deg);
+        }
+        .bancoStripe {
+          display: block;
+          width: 7px;
+          height: 5px;
+          border-radius: 2px;
+        }
+        .bancoStripeYellow {
+          background: #ffc928;
+        }
+        .bancoStripeBlue {
+          background: #1063db;
+        }
+        .bancoStripeRed {
+          background: #ee3b2d;
+        }
+        .payLogo.nequi {
+          gap: 6px;
+          font-size: 12px;
+          line-height: 1;
+          font-weight: 1000;
+          color: #24316a;
+          letter-spacing: 0.02em;
+        }
+        .nequiMark {
+          position: relative;
+          width: 16px;
+          height: 16px;
+          display: inline-block;
+        }
+        .nequiShape {
+          position: absolute;
+          inset: 0;
+          border-radius: 4px;
+          transform: rotate(45deg);
+        }
+        .nequiBlue {
+          background: linear-gradient(180deg, #2c4fd6 0%, #1c2f8f 100%);
+        }
+        .nequiPink {
+          width: 11px;
+          height: 11px;
+          left: 6px;
+          top: 2px;
+          border-radius: 3px;
+          background: linear-gradient(180deg, #f046a5 0%, #b91f88 100%);
         }
 
         .ctaRow {
