@@ -566,6 +566,91 @@ export default function Header() {
 
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const cartSwipeStartYRef = useRef<number | null>(null);
+  const cartSwipeStartXRef = useRef<number | null>(null);
+  const cartSwipeLockedRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const isTouchDevice = window.matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
+    if (!isTouchDevice) return;
+
+    const cartSwipeSelector = [
+      "[data-cart-sheet]",
+      "[data-cart-drawer]",
+      "[data-cart-panel]",
+      "[data-cart]",
+      ".jusp-cart-sheet",
+      ".jusp-cart-drawer",
+      ".jusp-cart-panel",
+      ".cart-sheet",
+      ".cart-drawer",
+      ".cart-panel",
+      "[aria-label*='carrito' i]",
+      "[aria-labelledby*='carrito' i]",
+      "[id*='cart' i]",
+    ].join(",");
+
+    const getCartTarget = (target: EventTarget | null) => {
+      if (!(target instanceof Element)) return null;
+      return target.closest(cartSwipeSelector);
+    };
+
+    const resetSwipe = () => {
+      cartSwipeStartYRef.current = null;
+      cartSwipeStartXRef.current = null;
+      cartSwipeLockedRef.current = false;
+    };
+
+    const onTouchStart = (event: TouchEvent) => {
+      const cartTarget = getCartTarget(event.target);
+      if (!cartTarget) {
+        resetSwipe();
+        return;
+      }
+
+      const touch = event.touches[0];
+      if (!touch) return;
+
+      cartSwipeStartYRef.current = touch.clientY;
+      cartSwipeStartXRef.current = touch.clientX;
+      cartSwipeLockedRef.current = false;
+    };
+
+    const onTouchMove = (event: TouchEvent) => {
+      if (cartSwipeStartYRef.current == null || cartSwipeStartXRef.current == null || cartSwipeLockedRef.current) return;
+
+      const touch = event.touches[0];
+      if (!touch) return;
+
+      const deltaY = touch.clientY - cartSwipeStartYRef.current;
+      const deltaX = Math.abs(touch.clientX - cartSwipeStartXRef.current);
+
+      if (deltaY > 72 && deltaX < 44) {
+        cartSwipeLockedRef.current = true;
+        openCart();
+        resetSwipe();
+      }
+    };
+
+    const onTouchEnd = () => {
+      resetSwipe();
+    };
+
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    window.addEventListener("touchcancel", onTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("touchcancel", onTouchEnd);
+    };
+  }, [openCart]);
+
   const menus: MegaConfig[] = useMemo(
     () => [
       {
