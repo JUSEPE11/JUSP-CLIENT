@@ -88,12 +88,10 @@ export default function CartDrawer() {
 
   const [products, setProducts] = useState<ProductApi[]>([]);
   const [loadingStock, setLoadingStock] = useState(false);
-  const [dragY, setDragY] = useState(0);
 
   const touchStartYRef = useRef(0);
-  const touchCurrentYRef = useRef(0);
-  const touchStartTimeRef = useRef(0);
-  const draggingRef = useRef(false);
+  const touchStartXRef = useRef(0);
+  const touchMovedRef = useRef(false);
   const lastTapRef = useRef(0);
 
   useEffect(() => {
@@ -146,6 +144,50 @@ export default function CartDrawer() {
 
   const empty = useMemo(() => items.length === 0, [items.length]);
 
+  const handleGestureTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    touchStartYRef.current = touch.clientY;
+    touchStartXRef.current = touch.clientX;
+    touchMovedRef.current = false;
+  };
+
+  const handleGestureTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    const deltaY = touch.clientY - touchStartYRef.current;
+    const deltaX = Math.abs(touch.clientX - touchStartXRef.current);
+
+    if (Math.abs(deltaY) > 8 || deltaX > 8) {
+      touchMovedRef.current = true;
+    }
+  };
+
+  const handleGestureTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    const touch = e.changedTouches[0];
+    if (!touch) return;
+
+    const deltaY = touch.clientY - touchStartYRef.current;
+    const deltaX = Math.abs(touch.clientX - touchStartXRef.current);
+    const now = Date.now();
+
+    if (deltaY > 72 && deltaX < 48) {
+      closePanel();
+      lastTapRef.current = 0;
+      return;
+    }
+
+    const isTap = !touchMovedRef.current && Math.abs(deltaY) < 10 && deltaX < 10;
+    if (isTap) {
+      if (now - lastTapRef.current < 280) {
+        closePanel();
+        lastTapRef.current = 0;
+        return;
+      }
+      lastTapRef.current = now;
+    }
+  };
+
   const itemStocks = useMemo(() => {
     const out = new Map<string, number | null>();
 
@@ -164,70 +206,23 @@ export default function CartDrawer() {
     return out;
   }, [items, products]);
 
-  const handleDrawerTouchStart = (e: React.TouchEvent<HTMLElement>) => {
-    const touch = e.touches[0];
-    if (!touch) return;
-    touchStartYRef.current = touch.clientY;
-    touchCurrentYRef.current = touch.clientY;
-    touchStartTimeRef.current = Date.now();
-    draggingRef.current = true;
-  };
-
-  const handleDrawerTouchMove = (e: React.TouchEvent<HTMLElement>) => {
-    if (!draggingRef.current) return;
-    const touch = e.touches[0];
-    if (!touch) return;
-    touchCurrentYRef.current = touch.clientY;
-    const deltaY = touch.clientY - touchStartYRef.current;
-    setDragY(deltaY > 0 ? deltaY : 0);
-  };
-
-  const handleDrawerTouchEnd = () => {
-    const deltaY = touchCurrentYRef.current - touchStartYRef.current;
-    const elapsed = Date.now() - touchStartTimeRef.current;
-    draggingRef.current = false;
-
-    if (deltaY > 90 && elapsed < 500) {
-      setDragY(0);
-      closePanel();
-      return;
-    }
-
-    if (Math.abs(deltaY) < 12 && elapsed < 250) {
-      const now = Date.now();
-      if (now - lastTapRef.current < 280) {
-        setDragY(0);
-        closePanel();
-        lastTapRef.current = 0;
-        return;
-      }
-      lastTapRef.current = now;
-    }
-
-    setDragY(0);
-  };
-
   if (!open) return null;
 
   return (
     <>
       <div className="ov" onClick={closePanel} aria-hidden="true" />
 
-      <aside
-        className="dw"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Carrito"
-        onTouchStart={handleDrawerTouchStart}
-        onTouchMove={handleDrawerTouchMove}
-        onTouchEnd={handleDrawerTouchEnd}
-        style={{ transform: dragY > 0 ? `translateY(${dragY}px)` : undefined, transition: dragY > 0 ? "none" : "transform 180ms ease" }}
-      >
+      <aside className="dw" role="dialog" aria-modal="true" aria-label="Carrito">
         <button className="floatingClose" type="button" onClick={closePanel} aria-label="Cerrar carrito">
           <span aria-hidden="true">×</span>
         </button>
 
-        <div className="top">
+        <div
+          className="top"
+          onTouchStart={handleGestureTouchStart}
+          onTouchMove={handleGestureTouchMove}
+          onTouchEnd={handleGestureTouchEnd}
+        >
           <div className="grab" aria-hidden="true" />
           <div className="ttl">Carrito</div>
         </div>
@@ -407,13 +402,15 @@ export default function CartDrawer() {
         }
 
         .top {
+          position: relative;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 16px 64px 10px 16px;
+          padding: 24px 64px 10px 16px;
           border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-          min-height: 66px;
-          position: relative;
+          min-height: 74px;
+          touch-action: none;
+          -webkit-tap-highlight-color: transparent;
         }
 
         .grab {
@@ -686,6 +683,7 @@ export default function CartDrawer() {
 
           .top {
             padding-right: 60px;
+            padding-top: 24px;
           }
         }
       `}</style>
