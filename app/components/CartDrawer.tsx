@@ -1,7 +1,7 @@
 // app/components/CartDrawer.tsx
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useStore } from "./store";
 
@@ -89,6 +89,12 @@ export default function CartDrawer() {
   const [products, setProducts] = useState<ProductApi[]>([]);
   const [loadingStock, setLoadingStock] = useState(false);
 
+  const drawerRef = useRef<HTMLElement | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
+  const touchStartXRef = useRef<number | null>(null);
+  const touchStartTimeRef = useRef<number>(0);
+  const lastTapRef = useRef<number>(0);
+
   useEffect(() => {
     if (!open) return;
 
@@ -137,6 +143,50 @@ export default function CartDrawer() {
     };
   }, [open, items.length]);
 
+  useEffect(() => {
+    if (!open) return;
+
+    const node = drawerRef.current;
+    if (!node) return;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      const touch = e.touches[0];
+      touchStartYRef.current = touch.clientY;
+      touchStartXRef.current = touch.clientX;
+      touchStartTimeRef.current = Date.now();
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (touchStartYRef.current === null || touchStartXRef.current === null) return;
+
+      const touch = e.changedTouches[0];
+      const deltaY = touch.clientY - touchStartYRef.current;
+      const deltaX = Math.abs(touch.clientX - touchStartXRef.current);
+      const elapsed = Date.now() - touchStartTimeRef.current;
+      const now = Date.now();
+
+      const isVerticalSwipeDown = deltaY > 90 && deltaX < 60 && elapsed < 450;
+      const isDoubleTap = Math.abs(deltaY) < 16 && deltaX < 16 && now - lastTapRef.current < 280;
+
+      if (isVerticalSwipeDown || isDoubleTap) {
+        closePanel();
+      }
+
+      lastTapRef.current = now;
+      touchStartYRef.current = null;
+      touchStartXRef.current = null;
+    };
+
+    node.addEventListener("touchstart", onTouchStart, { passive: true });
+    node.addEventListener("touchend", onTouchEnd, { passive: true });
+
+    return () => {
+      node.removeEventListener("touchstart", onTouchStart);
+      node.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [open, closePanel]);
+
   const empty = useMemo(() => items.length === 0, [items.length]);
 
   const itemStocks = useMemo(() => {
@@ -163,10 +213,14 @@ export default function CartDrawer() {
     <>
       <div className="ov" onClick={closePanel} aria-hidden="true" />
 
-      <aside className="dw" role="dialog" aria-modal="true" aria-label="Carrito">
+      <aside ref={drawerRef} className="dw" role="dialog" aria-modal="true" aria-label="Carrito">
         <button className="floatingClose" type="button" onClick={closePanel} aria-label="Cerrar carrito">
           <span aria-hidden="true">×</span>
         </button>
+
+        <div className="grab" aria-hidden="true">
+          <span />
+        </div>
 
         <div className="top">
           <div className="ttl">Carrito</div>
@@ -316,6 +370,14 @@ export default function CartDrawer() {
           display: flex;
           flex-direction: column;
           overflow: hidden;
+        }
+
+        .grab {
+          display: none;
+        }
+
+        .grab span {
+          display: block;
         }
 
         .floatingClose {
@@ -601,7 +663,15 @@ export default function CartDrawer() {
         }
 
         @media (max-width: 640px) {
-          .floatingClose {
+          .grab {
+          display: none;
+        }
+
+        .grab span {
+          display: block;
+        }
+
+        .floatingClose {
             top: 12px;
             right: 12px;
             width: 40px;
