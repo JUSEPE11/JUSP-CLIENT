@@ -2110,9 +2110,6 @@ export default function ProductPage() {
 
                   <div className="imgGlow" aria-hidden="true" />
 
-                  {mediaItems.length > 1 ? (
-                    <div className="swipeHint" aria-hidden="true"></div>
-                  ) : null}
                 </div>
               </div>
             </div>
