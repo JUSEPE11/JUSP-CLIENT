@@ -1726,7 +1726,11 @@ export default function ProductPage() {
     return "Disponible";
   }, [currentStock, isSoldOut]);
 
-  const deliveryEstimate = useMemo(() => getDeliveryEstimate(), []);
+  const [deliveryEstimate, setDeliveryEstimate] = useState("15 - 20 días hábiles");
+
+  useEffect(() => {
+    setDeliveryEstimate(getDeliveryEstimate());
+  }, []);
 
   const trustHighlights = [
     {
@@ -2817,8 +2821,6 @@ export default function ProductPage() {
           height: 100%;
           max-width: none;
           max-height: none;
-          object-fit: cover;
-          padding: 0;
           display: block;
           user-select: none;
           -webkit-user-select: none;
@@ -2826,6 +2828,15 @@ export default function ProductPage() {
           backface-visibility: hidden;
           image-rendering: auto;
           -webkit-backface-visibility: hidden;
+        }
+        .imgBox img {
+          object-fit: contain;
+          padding: 16px;
+          background: #fff;
+        }
+        .imgBox video {
+          object-fit: cover;
+          padding: 0;
         }
         .imgBox.zoomReady img {
           cursor: zoom-in;

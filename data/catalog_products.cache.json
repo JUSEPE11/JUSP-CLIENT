@@ -1,8 +1,8 @@
 {
   "version": 8,
-  "generatedAt": "2026-04-15T20:07:08.012Z",
+  "generatedAt": "2026-04-20T23:46:02.415Z",
   "excelPath": "C:\\JUSP\\jusp-app2\\data\\catalogo_jusp.xlsx",
-  "excelMtimeMs": 1776283622376.9236,
+  "excelMtimeMs": 1776728753743.7622,
   "products": [
     {
       "id": "nike-hf5407-010",
@@ -17,13 +17,13 @@
       "image": "/products/nike-hf5407-010/03.jpeg",
       "images": [
         "/products/nike-hf5407-010/03.jpeg",
-        "/products/nike-hf5407-010/04.jpeg",
-        "/products/nike-hf5407-010/05.jpeg",
-        "/products/nike-hf5407-010/06.jpeg",
-        "/products/nike-hf5407-010/07.jpeg",
-        "/products/nike-hf5407-010/08.jpeg",
-        "/products/nike-hf5407-010/09.jpeg",
-        "/products/nike-hf5407-010/10.jpeg"
+        "/products/nike-hf5407-010/04.jpg",
+        "/products/nike-hf5407-010/05.jpg",
+        "/products/nike-hf5407-010/06.jpg",
+        "/products/nike-hf5407-010/07.jpg",
+        "/products/nike-hf5407-010/08.jpg",
+        "/products/nike-hf5407-010/09.jpg",
+        "/products/nike-hf5407-010/10.jpg"
       ],
       "videos": [
         "/products/nike-hf5407-010/01.mp4",
@@ -44,31 +44,31 @@
         },
         {
           "type": "image",
-          "src": "/products/nike-hf5407-010/04.jpeg"
+          "src": "/products/nike-hf5407-010/04.jpg"
         },
         {
           "type": "image",
-          "src": "/products/nike-hf5407-010/05.jpeg"
+          "src": "/products/nike-hf5407-010/05.jpg"
         },
         {
           "type": "image",
-          "src": "/products/nike-hf5407-010/06.jpeg"
+          "src": "/products/nike-hf5407-010/06.jpg"
         },
         {
           "type": "image",
-          "src": "/products/nike-hf5407-010/07.jpeg"
+          "src": "/products/nike-hf5407-010/07.jpg"
         },
         {
           "type": "image",
-          "src": "/products/nike-hf5407-010/08.jpeg"
+          "src": "/products/nike-hf5407-010/08.jpg"
         },
         {
           "type": "image",
-          "src": "/products/nike-hf5407-010/09.jpeg"
+          "src": "/products/nike-hf5407-010/09.jpg"
         },
         {
           "type": "image",
-          "src": "/products/nike-hf5407-010/10.jpeg"
+          "src": "/products/nike-hf5407-010/10.jpg"
         }
       ],
       "parameters": [],
@@ -110,6 +110,1559 @@
           "size": "XL",
           "color": "black",
           "price": 135990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false,
+      "favoritesCount": 0,
+      "isFavorite": false
+    },
+    {
+      "id": "nike-cn5263-010",
+      "slug": "nike-cn5263-010",
+      "product_code": "nike-cn5263-010",
+      "title": "Sujetador deportivo de entrenamiento NIKE CLASSIC SWOOSH",
+      "name": "Sujetador deportivo de entrenamiento NIKE CLASSIC SWOOSH",
+      "brand": "Nike",
+      "price": 99990,
+      "currency": "COP",
+      "description": "Sujetador deportivo de entrenamiento NIKE CLASSIC SWOOSH. Producto disponible en JUSP.",
+      "image": "/products/nike-cn5263-010/1.jpg",
+      "images": [
+        "/products/nike-cn5263-010/1.jpg",
+        "/products/nike-cn5263-010/2.jpg",
+        "/products/nike-cn5263-010/3.jpg",
+        "/products/nike-cn5263-010/4.jpg",
+        "/products/nike-cn5263-010/5.jpg",
+        "/products/nike-cn5263-010/6.jpg"
+      ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-cn5263-010/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-cn5263-010/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-cn5263-010/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-cn5263-010/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-cn5263-010/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-cn5263-010/6.jpg"
+        }
+      ],
+      "parameters": [],
+      "sizes": [
+        "M"
+      ],
+      "colors": [
+        "black"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "sports-bra",
+      "collections": [
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "sports-bra",
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "isNew": true,
+      "discountPercent": 30,
+      "stockHint": 1,
+      "pickupToday": true,
+      "expressDelivery": true,
+      "variants": [
+        {
+          "key": "nike-cn5263-010-m-black",
+          "size": "M",
+          "color": "black",
+          "price": 99990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false,
+      "favoritesCount": 0,
+      "isFavorite": false
+    },
+    {
+      "id": "jordan-cw2427-010",
+      "slug": "jordan-cw2427-010",
+      "product_code": "jordan-cw2427-010",
+      "title": "AS WJ JUMPMAN BRA",
+      "name": "AS WJ JUMPMAN BRA",
+      "brand": "Jordan",
+      "price": 119990,
+      "currency": "COP",
+      "description": "AS WJ JUMPMAN BRA. Producto disponible en JUSP.",
+      "image": "/products/jordan-cw2427-010/1.jpg",
+      "images": [
+        "/products/jordan-cw2427-010/1.jpg",
+        "/products/jordan-cw2427-010/2.jpg",
+        "/products/jordan-cw2427-010/3.jpg",
+        "/products/jordan-cw2427-010/4.jpg",
+        "/products/jordan-cw2427-010/5.jpg"
+      ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/jordan-cw2427-010/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-cw2427-010/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-cw2427-010/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-cw2427-010/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-cw2427-010/5.jpg"
+        }
+      ],
+      "parameters": [],
+      "sizes": [
+        "M"
+      ],
+      "colors": [
+        "black"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "sports-bra",
+      "collections": [
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "jordan",
+        "sports-bra",
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "isNew": true,
+      "discountPercent": 30,
+      "stockHint": 1,
+      "pickupToday": true,
+      "expressDelivery": true,
+      "variants": [
+        {
+          "key": "jordan-cw2427-010-m-black",
+          "size": "M",
+          "color": "black",
+          "price": 119990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false,
+      "favoritesCount": 0,
+      "isFavorite": false
+    },
+    {
+      "id": "nike-dm0672-100",
+      "slug": "nike-dm0672-100",
+      "product_code": "nike-dm0672-100",
+      "title": "Nike Low Impact Support Padded Letter Sports Bra Women Underwear White",
+      "name": "Nike Low Impact Support Padded Letter Sports Bra Women Underwear White",
+      "brand": "Nike",
+      "price": 95990,
+      "currency": "COP",
+      "description": "Nike Low Impact Support Padded Letter Sports Bra Women Underwear White. Producto disponible en JUSP.",
+      "image": "/products/nike-dm0672-100/1.jpeg",
+      "images": [
+        "/products/nike-dm0672-100/1.jpeg",
+        "/products/nike-dm0672-100/1.jpg",
+        "/products/nike-dm0672-100/2.jpeg",
+        "/products/nike-dm0672-100/3.jpeg",
+        "/products/nike-dm0672-100/4.jpeg",
+        "/products/nike-dm0672-100/5.jpg"
+      ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-dm0672-100/1.jpeg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dm0672-100/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dm0672-100/2.jpeg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dm0672-100/3.jpeg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dm0672-100/4.jpeg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dm0672-100/5.jpg"
+        }
+      ],
+      "parameters": [],
+      "sizes": [
+        "L",
+        "M"
+      ],
+      "colors": [
+        "white"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "sports-bra",
+      "collections": [
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "sports-bra",
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "isNew": true,
+      "discountPercent": 45,
+      "stockHint": 2,
+      "pickupToday": true,
+      "expressDelivery": true,
+      "variants": [
+        {
+          "key": "nike-dm0672-100-l-white",
+          "size": "L",
+          "color": "white",
+          "price": 95990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-dm0672-100-m-white",
+          "size": "M",
+          "color": "white",
+          "price": 95990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false,
+      "favoritesCount": 0,
+      "isFavorite": false
+    },
+    {
+      "id": "nike-fb4125-100",
+      "slug": "nike-fb4125-100",
+      "product_code": "nike-fb4125-100",
+      "title": "Sujetador deportivo de entrenamiento NIKE DRY BRA",
+      "name": "Sujetador deportivo de entrenamiento NIKE DRY BRA",
+      "brand": "Nike",
+      "price": 110990,
+      "currency": "COP",
+      "description": "Sujetador deportivo de entrenamiento NIKE DRY BRA. Producto disponible en JUSP.",
+      "image": "/products/nike-fb4125-100/1.jpg",
+      "images": [
+        "/products/nike-fb4125-100/1.jpg",
+        "/products/nike-fb4125-100/2.jpg",
+        "/products/nike-fb4125-100/3.jpg",
+        "/products/nike-fb4125-100/4.jpg",
+        "/products/nike-fb4125-100/5.jpg",
+        "/products/nike-fb4125-100/6.jpg",
+        "/products/nike-fb4125-100/7.jpg",
+        "/products/nike-fb4125-100/8.jpg",
+        "/products/nike-fb4125-100/9.jpg",
+        "/products/nike-fb4125-100/10.jpg"
+      ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-fb4125-100/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fb4125-100/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fb4125-100/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fb4125-100/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fb4125-100/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fb4125-100/6.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fb4125-100/7.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fb4125-100/8.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fb4125-100/9.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fb4125-100/10.jpg"
+        }
+      ],
+      "parameters": [],
+      "sizes": [
+        "XL",
+        "L"
+      ],
+      "colors": [
+        "white"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "sports-bra",
+      "collections": [
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "sports-bra",
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "isNew": true,
+      "discountPercent": 20,
+      "stockHint": 2,
+      "pickupToday": true,
+      "expressDelivery": true,
+      "variants": [
+        {
+          "key": "nike-fb4125-100-xl-white",
+          "size": "XL",
+          "color": "white",
+          "price": 110990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-fb4125-100-l-white",
+          "size": "L",
+          "color": "white",
+          "price": 110990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false,
+      "favoritesCount": 0,
+      "isFavorite": false
+    },
+    {
+      "id": "nike-fb4081-675",
+      "slug": "nike-fb4081-675",
+      "product_code": "nike-fb4081-675",
+      "title": "Sujetador deportivo Nike Swoosh",
+      "name": "Sujetador deportivo Nike Swoosh",
+      "brand": "Nike",
+      "price": 195990,
+      "currency": "COP",
+      "description": "Sujetador deportivo Nike Swoosh. Producto disponible en JUSP.",
+      "image": "/products/nike-fb4081-675/1.jpg",
+      "images": [
+        "/products/nike-fb4081-675/1.jpg",
+        "/products/nike-fb4081-675/2.jpg",
+        "/products/nike-fb4081-675/3.jpg",
+        "/products/nike-fb4081-675/4.jpg",
+        "/products/nike-fb4081-675/5.jpg"
+      ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-fb4081-675/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fb4081-675/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fb4081-675/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fb4081-675/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fb4081-675/5.jpg"
+        }
+      ],
+      "parameters": [],
+      "sizes": [
+        "L",
+        "XL"
+      ],
+      "colors": [
+        "bright pink"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "sports-bra",
+      "collections": [
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "sports-bra",
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "isNew": true,
+      "stockHint": 2,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "nike-fb4081-675-l-bright-pink",
+          "size": "L",
+          "color": "bright pink",
+          "price": 195990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-fb4081-675-xl-bright-pink",
+          "size": "XL",
+          "color": "bright pink",
+          "price": 205990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false,
+      "favoritesCount": 0,
+      "isFavorite": false
+    },
+    {
+      "id": "nike-fb4081-100",
+      "slug": "nike-fb4081-100",
+      "product_code": "nike-fb4081-100",
+      "title": "Nike Nk Swsh Med Spt Futura Br",
+      "name": "Nike Nk Swsh Med Spt Futura Br",
+      "brand": "Nike",
+      "price": 139990,
+      "currency": "COP",
+      "description": "Nike Nk Swsh Med Spt Futura Br. Producto disponible en JUSP.",
+      "image": "/products/nike-fb4081-100/1.jpg",
+      "images": [
+        "/products/nike-fb4081-100/1.jpg",
+        "/products/nike-fb4081-100/2.jpg",
+        "/products/nike-fb4081-100/3.jpg",
+        "/products/nike-fb4081-100/4.jpg",
+        "/products/nike-fb4081-100/5.jpg"
+      ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-fb4081-100/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fb4081-100/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fb4081-100/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fb4081-100/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fb4081-100/5.jpg"
+        }
+      ],
+      "parameters": [],
+      "sizes": [
+        "XL"
+      ],
+      "colors": [
+        "white"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "general",
+      "collections": [
+        "clothing"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "clothing"
+      ],
+      "isNew": true,
+      "discountPercent": 20,
+      "stockHint": 1,
+      "pickupToday": true,
+      "expressDelivery": true,
+      "variants": [
+        {
+          "key": "nike-fb4081-100-xl-white",
+          "size": "XL",
+          "color": "white",
+          "price": 139990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false,
+      "favoritesCount": 0,
+      "isFavorite": false
+    },
+    {
+      "id": "jordan-fb6873-633",
+      "slug": "jordan-fb6873-633",
+      "product_code": "jordan-fb6873-633",
+      "title": "JORDAN BRAND AS W J SPT JUMPMAN BRA PICANTE RED",
+      "name": "JORDAN BRAND AS W J SPT JUMPMAN BRA PICANTE RED",
+      "brand": "Jordan",
+      "price": 125990,
+      "currency": "COP",
+      "description": "JORDAN BRAND AS W J SPT JUMPMAN BRA PICANTE RED. Producto disponible en JUSP.",
+      "image": "/products/jordan-fb6873-633/1.webp",
+      "images": [
+        "/products/jordan-fb6873-633/1.webp",
+        "/products/jordan-fb6873-633/2.webp",
+        "/products/jordan-fb6873-633/3.webp",
+        "/products/jordan-fb6873-633/4.webp",
+        "/products/jordan-fb6873-633/5.webp"
+      ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/jordan-fb6873-633/1.webp"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-fb6873-633/2.webp"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-fb6873-633/3.webp"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-fb6873-633/4.webp"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-fb6873-633/5.webp"
+        }
+      ],
+      "parameters": [],
+      "sizes": [
+        "M"
+      ],
+      "colors": [
+        "red"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "sports-bra",
+      "collections": [
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "jordan",
+        "sports-bra",
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "isNew": true,
+      "discountPercent": 35,
+      "stockHint": 1,
+      "pickupToday": true,
+      "expressDelivery": true,
+      "variants": [
+        {
+          "key": "jordan-fb6873-633-m-red",
+          "size": "M",
+          "color": "red",
+          "price": 125990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false,
+      "favoritesCount": 0,
+      "isFavorite": false
+    },
+    {
+      "id": "nike-dd1459-010",
+      "slug": "nike-dd1459-010",
+      "product_code": "nike-dd1459-010",
+      "title": "Nike women's sports bra, intensity",
+      "name": "Nike women's sports bra, intensity",
+      "brand": "Nike",
+      "price": 99990,
+      "currency": "COP",
+      "description": "Nike women's sports bra, intensity. Producto disponible en JUSP.",
+      "image": "/products/nike-dd1459-010/1.jpg",
+      "images": [
+        "/products/nike-dd1459-010/1.jpg",
+        "/products/nike-dd1459-010/2.jpg",
+        "/products/nike-dd1459-010/3.jpg",
+        "/products/nike-dd1459-010/4.jpg",
+        "/products/nike-dd1459-010/5.jpg",
+        "/products/nike-dd1459-010/6.jpg",
+        "/products/nike-dd1459-010/7.jpg",
+        "/products/nike-dd1459-010/8.jpg",
+        "/products/nike-dd1459-010/9.jpg"
+      ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-dd1459-010/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dd1459-010/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dd1459-010/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dd1459-010/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dd1459-010/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dd1459-010/6.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dd1459-010/7.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dd1459-010/8.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dd1459-010/9.jpg"
+        }
+      ],
+      "parameters": [],
+      "sizes": [
+        "L"
+      ],
+      "colors": [
+        "black"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "sports-bra",
+      "collections": [
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "sports-bra",
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "isNew": true,
+      "discountPercent": 25,
+      "stockHint": 1,
+      "pickupToday": true,
+      "expressDelivery": true,
+      "variants": [
+        {
+          "key": "nike-dd1459-010-l-black",
+          "size": "L",
+          "color": "black",
+          "price": 99990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false,
+      "favoritesCount": 0,
+      "isFavorite": false
+    },
+    {
+      "id": "nike-cz4457-100",
+      "slug": "nike-cz4457-100",
+      "product_code": "nike-cz4457-100",
+      "title": "Nike DIR-FIT Training Sports Bra",
+      "name": "Nike DIR-FIT Training Sports Bra",
+      "brand": "Nike",
+      "price": 95990,
+      "currency": "COP",
+      "description": "Nike DIR-FIT Training Sports Bra. Producto disponible en JUSP.",
+      "image": "/products/nike-cz4457-100/1.jpg",
+      "images": [
+        "/products/nike-cz4457-100/1.jpg",
+        "/products/nike-cz4457-100/2.jpg",
+        "/products/nike-cz4457-100/3.jpg",
+        "/products/nike-cz4457-100/4.jpg",
+        "/products/nike-cz4457-100/5.jpg",
+        "/products/nike-cz4457-100/6.jpg",
+        "/products/nike-cz4457-100/7.jpg",
+        "/products/nike-cz4457-100/8.jpg"
+      ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-cz4457-100/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-cz4457-100/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-cz4457-100/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-cz4457-100/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-cz4457-100/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-cz4457-100/6.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-cz4457-100/7.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-cz4457-100/8.jpg"
+        }
+      ],
+      "parameters": [],
+      "sizes": [
+        "M"
+      ],
+      "colors": [
+        "white"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "sports-bra",
+      "collections": [
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "sport": [
+        "training"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "sports-bra",
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "isNew": true,
+      "discountPercent": 30,
+      "stockHint": 1,
+      "pickupToday": true,
+      "expressDelivery": true,
+      "variants": [
+        {
+          "key": "nike-cz4457-100-m-white",
+          "size": "M",
+          "color": "white",
+          "price": 95990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false,
+      "favoritesCount": 0,
+      "isFavorite": false
+    },
+    {
+      "id": "nike-dq5135-539",
+      "slug": "nike-dq5135-539",
+      "product_code": "nike-dq5135-539",
+      "title": "NIKE AS W NK DF SWSH",
+      "name": "NIKE AS W NK DF SWSH",
+      "brand": "Nike",
+      "price": 119990,
+      "currency": "COP",
+      "description": "NIKE AS W NK DF SWSH. Producto disponible en JUSP.",
+      "image": "/products/nike-dq5135-539/2.webp",
+      "images": [
+        "/products/nike-dq5135-539/2.webp",
+        "/products/nike-dq5135-539/3.jpg",
+        "/products/nike-dq5135-539/4.jpg",
+        "/products/nike-dq5135-539/5.jpg",
+        "/products/nike-dq5135-539/6.jpg"
+      ],
+      "videos": [
+        "/products/nike-dq5135-539/1.mp4"
+      ],
+      "media": [
+        {
+          "type": "video",
+          "src": "/products/nike-dq5135-539/1.mp4"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dq5135-539/2.webp"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dq5135-539/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dq5135-539/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dq5135-539/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dq5135-539/6.jpg"
+        }
+      ],
+      "parameters": [],
+      "sizes": [
+        "L"
+      ],
+      "colors": [
+        "light periwinkle blue"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "general",
+      "collections": [
+        "clothing"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "clothing"
+      ],
+      "isNew": true,
+      "discountPercent": 30,
+      "stockHint": 1,
+      "pickupToday": true,
+      "expressDelivery": true,
+      "variants": [
+        {
+          "key": "nike-dq5135-539-l-light-periwinkle-blue",
+          "size": "L",
+          "color": "light periwinkle blue",
+          "price": 119990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false,
+      "favoritesCount": 0,
+      "isFavorite": false
+    },
+    {
+      "id": "nike-dq5135-043",
+      "slug": "nike-dq5135-043",
+      "product_code": "nike-dq5135-043",
+      "title": "NIKE AS W NK DF SWSH",
+      "name": "NIKE AS W NK DF SWSH",
+      "brand": "Nike",
+      "price": 119990,
+      "currency": "COP",
+      "description": "NIKE AS W NK DF SWSH. Producto disponible en JUSP.",
+      "image": "/products/nike-dq5135-043/1.webp",
+      "images": [
+        "/products/nike-dq5135-043/1.webp",
+        "/products/nike-dq5135-043/2.jpg",
+        "/products/nike-dq5135-043/3.jpg",
+        "/products/nike-dq5135-043/4.jpg",
+        "/products/nike-dq5135-043/5.jpg",
+        "/products/nike-dq5135-043/6.jpg"
+      ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-dq5135-043/1.webp"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dq5135-043/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dq5135-043/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dq5135-043/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dq5135-043/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dq5135-043/6.jpg"
+        }
+      ],
+      "parameters": [],
+      "sizes": [
+        "L"
+      ],
+      "colors": [
+        "light grey"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "general",
+      "collections": [
+        "clothing"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "clothing"
+      ],
+      "isNew": true,
+      "discountPercent": 30,
+      "stockHint": 1,
+      "pickupToday": true,
+      "expressDelivery": true,
+      "variants": [
+        {
+          "key": "nike-dq5135-043-l-light-grey",
+          "size": "L",
+          "color": "light grey",
+          "price": 119990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false,
+      "favoritesCount": 0,
+      "isFavorite": false
+    },
+    {
+      "id": "jordan-cw2427-386",
+      "slug": "jordan-cw2427-386",
+      "product_code": "jordan-cw2427-386",
+      "title": "JORDAN BRAND AS W J JUMPMAN",
+      "name": "JORDAN BRAND AS W J JUMPMAN",
+      "brand": "Jordan",
+      "price": 119990,
+      "currency": "COP",
+      "description": "JORDAN BRAND AS W J JUMPMAN. Producto disponible en JUSP.",
+      "image": "/products/jordan-cw2427-386/1.jpg",
+      "images": [
+        "/products/jordan-cw2427-386/1.jpg",
+        "/products/jordan-cw2427-386/2.jpg",
+        "/products/jordan-cw2427-386/3.jpg",
+        "/products/jordan-cw2427-386/4.jpg",
+        "/products/jordan-cw2427-386/5.jpg",
+        "/products/jordan-cw2427-386/6.jpg"
+      ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/jordan-cw2427-386/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-cw2427-386/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-cw2427-386/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-cw2427-386/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-cw2427-386/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-cw2427-386/6.jpg"
+        }
+      ],
+      "parameters": [],
+      "sizes": [
+        "M"
+      ],
+      "colors": [
+        "olive green"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "sports-bra",
+      "collections": [
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "jordan",
+        "sports-bra",
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "isNew": true,
+      "discountPercent": 35,
+      "stockHint": 1,
+      "pickupToday": true,
+      "expressDelivery": true,
+      "variants": [
+        {
+          "key": "jordan-cw2427-386-m-olive-green",
+          "size": "M",
+          "color": "olive green",
+          "price": 119990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false,
+      "favoritesCount": 0,
+      "isFavorite": false
+    },
+    {
+      "id": "nike-bv3637-010",
+      "slug": "nike-bv3637-010",
+      "product_code": "nike-bv3637-010",
+      "title": "Women's Medium-Support 1-Piece Pad Sports Bra",
+      "name": "Women's Medium-Support 1-Piece Pad Sports Bra",
+      "brand": "Nike",
+      "price": 99990,
+      "currency": "COP",
+      "description": "Women's Medium-Support 1-Piece Pad Sports Bra. Producto disponible en JUSP.",
+      "image": "/products/nike-bv3637-010/1.jpg",
+      "images": [
+        "/products/nike-bv3637-010/1.jpg",
+        "/products/nike-bv3637-010/2.jpg",
+        "/products/nike-bv3637-010/3.jpg",
+        "/products/nike-bv3637-010/4.jpg",
+        "/products/nike-bv3637-010/5.jpg"
+      ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-bv3637-010/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-bv3637-010/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-bv3637-010/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-bv3637-010/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-bv3637-010/5.jpg"
+        }
+      ],
+      "parameters": [],
+      "sizes": [
+        "M"
+      ],
+      "colors": [
+        "blanck"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "sports-bra",
+      "collections": [
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "sports-bra",
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "isNew": true,
+      "discountPercent": 25,
+      "stockHint": 1,
+      "pickupToday": true,
+      "expressDelivery": true,
+      "variants": [
+        {
+          "key": "nike-bv3637-010-m-blanck",
+          "size": "M",
+          "color": "blanck",
+          "price": 99990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false,
+      "favoritesCount": 0,
+      "isFavorite": false
+    },
+    {
+      "id": "nike-fz2856-010",
+      "slug": "nike-fz2856-010",
+      "product_code": "nike-fz2856-010",
+      "title": "NIKE AS W NSW SS TEE OC VARZITY BLACK",
+      "name": "NIKE AS W NSW SS TEE OC VARZITY BLACK",
+      "brand": "Nike",
+      "price": 86990,
+      "currency": "COP",
+      "description": "NIKE AS W NSW SS TEE OC VARZITY BLACK. Producto disponible en JUSP.",
+      "image": "/products/nike-fz2856-010/1.jpg",
+      "images": [
+        "/products/nike-fz2856-010/1.jpg",
+        "/products/nike-fz2856-010/2.jpg",
+        "/products/nike-fz2856-010/3.jpg",
+        "/products/nike-fz2856-010/4.jpg",
+        "/products/nike-fz2856-010/5.jpg",
+        "/products/nike-fz2856-010/6.jpg",
+        "/products/nike-fz2856-010/7.jpg"
+      ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-fz2856-010/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fz2856-010/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fz2856-010/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fz2856-010/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fz2856-010/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fz2856-010/6.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fz2856-010/7.jpg"
+        }
+      ],
+      "parameters": [],
+      "sizes": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "colors": [
+        "blanck"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "tshirts",
+      "collections": [
+        "clothing"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "tshirts",
+        "clothing"
+      ],
+      "isNew": true,
+      "discountPercent": 30,
+      "stockHint": 3,
+      "pickupToday": true,
+      "expressDelivery": true,
+      "variants": [
+        {
+          "key": "nike-fz2856-010-m-blanck",
+          "size": "M",
+          "color": "blanck",
+          "price": 86990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-fz2856-010-l-blanck",
+          "size": "L",
+          "color": "blanck",
+          "price": 86990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-fz2856-010-xl-blanck",
+          "size": "XL",
+          "color": "blanck",
+          "price": 86990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false,
+      "favoritesCount": 0,
+      "isFavorite": false
+    },
+    {
+      "id": "puma-521598",
+      "slug": "puma-521598",
+      "product_code": "puma-521598",
+      "title": "Sujetador Puma MID IMPACT STRONG SPORT-BH  W",
+      "name": "Sujetador Puma MID IMPACT STRONG SPORT-BH  W",
+      "brand": "Puma",
+      "price": 96990,
+      "currency": "COP",
+      "description": "Sujetador Puma MID IMPACT STRONG SPORT-BH  W. Producto disponible en JUSP.",
+      "image": "/products/puma-521598/1.webp",
+      "images": [
+        "/products/puma-521598/1.webp",
+        "/products/puma-521598/2.webp",
+        "/products/puma-521598/3.webp",
+        "/products/puma-521598/4.webp",
+        "/products/puma-521598/5.jpg"
+      ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/puma-521598/1.webp"
+        },
+        {
+          "type": "image",
+          "src": "/products/puma-521598/2.webp"
+        },
+        {
+          "type": "image",
+          "src": "/products/puma-521598/3.webp"
+        },
+        {
+          "type": "image",
+          "src": "/products/puma-521598/4.webp"
+        },
+        {
+          "type": "image",
+          "src": "/products/puma-521598/5.jpg"
+        }
+      ],
+      "parameters": [],
+      "sizes": [
+        "L"
+      ],
+      "colors": [
+        "slate blue"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "sports-bra",
+      "collections": [
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "puma",
+        "sports-bra",
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "isNew": true,
+      "discountPercent": 25,
+      "stockHint": 1,
+      "pickupToday": true,
+      "expressDelivery": true,
+      "variants": [
+        {
+          "key": "puma-521598-l-slate-blue",
+          "size": "L",
+          "color": "slate blue",
+          "price": 96990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false,
+      "favoritesCount": 0,
+      "isFavorite": false
+    },
+    {
+      "id": "puma-526429",
+      "slug": "puma-526429",
+      "product_code": "puma-526429",
+      "title": "Puma breathable sports bra",
+      "name": "Puma breathable sports bra",
+      "brand": "Puma",
+      "price": 95990,
+      "currency": "COP",
+      "description": "Puma breathable sports bra. Producto disponible en JUSP.",
+      "image": "/products/puma-526429/1.webp",
+      "images": [
+        "/products/puma-526429/1.webp",
+        "/products/puma-526429/2.jpg",
+        "/products/puma-526429/3.jpg",
+        "/products/puma-526429/4.jpg",
+        "/products/puma-526429/5.jpg"
+      ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/puma-526429/1.webp"
+        },
+        {
+          "type": "image",
+          "src": "/products/puma-526429/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/puma-526429/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/puma-526429/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/puma-526429/5.jpg"
+        }
+      ],
+      "parameters": [],
+      "sizes": [
+        "L"
+      ],
+      "colors": [
+        "black"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "sports-bra",
+      "collections": [
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "puma",
+        "sports-bra",
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "isNew": true,
+      "discountPercent": 25,
+      "stockHint": 1,
+      "pickupToday": true,
+      "expressDelivery": true,
+      "variants": [
+        {
+          "key": "puma-526429-l-black",
+          "size": "L",
+          "color": "black",
+          "price": 95990,
           "stock": 1,
           "isAvailable": true
         }
@@ -185,23 +1738,7 @@
           "src": "/products/short-nike-kids/10.jpg"
         }
       ],
-      "parameters": [
-        {
-          "label": "Transpirante",
-          "value": "Nike",
-          "order": 0
-        },
-        {
-          "label": "Material",
-          "value": "Textil y sintetico",
-          "order": 2
-        },
-        {
-          "label": "Uso recomendado",
-          "value": "Lifestyle y entrenamiento",
-          "order": 3
-        }
-      ],
+      "parameters": [],
       "sizes": [
         "XS (135)",
         "S (140)"
@@ -230,8 +1767,8 @@
       "isNew": true,
       "discountPercent": 5,
       "stockHint": 2,
-      "pickupToday": true,
-      "expressDelivery": true,
+      "pickupToday": false,
+      "expressDelivery": false,
       "variants": [
         {
           "key": "short-nike-kids-xs-135-black",
@@ -1199,7 +2736,7 @@
       "title": "Jordan Jumpman",
       "name": "Jordan Jumpman",
       "brand": "Jordan",
-      "price": 125990,
+      "price": 135990,
       "currency": "COP",
       "description": "Jordan Jumpman. Producto disponible en JUSP.",
       "image": "/products/jordan-cw2427-360/1.jpg",
@@ -1289,7 +2826,7 @@
           "key": "jordan-cw2427-360-m-green",
           "size": "M",
           "color": "green",
-          "price": 125990,
+          "price": 135990,
           "stock": 1,
           "isAvailable": true
         }
