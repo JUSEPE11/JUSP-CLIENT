@@ -1,8 +1,8 @@
 {
   "version": 8,
-  "generatedAt": "2026-04-21T01:59:28.708Z",
+  "generatedAt": "2026-04-21T03:56:27.565Z",
   "excelPath": "C:\\JUSP\\jusp-app2\\data\\catalogo_jusp.xlsx",
-  "excelMtimeMs": 1776736046636.9668,
+  "excelMtimeMs": 1776743689858.616,
   "products": [
     {
       "id": "nike-hf5407-010",
@@ -167,7 +167,7 @@
       ],
       "parameters": [],
       "sizes": [
-        "M"
+        "L"
       ],
       "colors": [
         "black"
@@ -201,8 +201,8 @@
       "expressDelivery": true,
       "variants": [
         {
-          "key": "nike-cn5263-010-m-black",
-          "size": "M",
+          "key": "nike-cn5263-010-l-black",
+          "size": "L",
           "color": "black",
           "price": 99990,
           "stock": 1,
@@ -352,8 +352,7 @@
       ],
       "parameters": [],
       "sizes": [
-        "L",
-        "M"
+        "L"
       ],
       "colors": [
         "white"
@@ -382,21 +381,13 @@
       ],
       "isNew": true,
       "discountPercent": 45,
-      "stockHint": 2,
+      "stockHint": 1,
       "pickupToday": true,
       "expressDelivery": true,
       "variants": [
         {
           "key": "nike-dm0672-100-l-white",
           "size": "L",
-          "color": "white",
-          "price": 95990,
-          "stock": 1,
-          "isAvailable": true
-        },
-        {
-          "key": "nike-dm0672-100-m-white",
-          "size": "M",
           "color": "white",
           "price": 95990,
           "stock": 1,
@@ -476,8 +467,7 @@
       ],
       "parameters": [],
       "sizes": [
-        "XL",
-        "L"
+        "XL"
       ],
       "colors": [
         "white"
@@ -506,21 +496,13 @@
       ],
       "isNew": true,
       "discountPercent": 20,
-      "stockHint": 2,
+      "stockHint": 1,
       "pickupToday": true,
       "expressDelivery": true,
       "variants": [
         {
           "key": "nike-fb4125-100-xl-white",
           "size": "XL",
-          "color": "white",
-          "price": 110990,
-          "stock": 1,
-          "isAvailable": true
-        },
-        {
-          "key": "nike-fb4125-100-l-white",
-          "size": "L",
           "color": "white",
           "price": 110990,
           "stock": 1,
@@ -866,6 +848,7 @@
       ],
       "parameters": [],
       "sizes": [
+        "M",
         "L"
       ],
       "colors": [
@@ -895,10 +878,18 @@
       ],
       "isNew": true,
       "discountPercent": 25,
-      "stockHint": 1,
+      "stockHint": 2,
       "pickupToday": true,
       "expressDelivery": true,
       "variants": [
+        {
+          "key": "nike-dd1459-010-m-black",
+          "size": "M",
+          "color": "black",
+          "price": 99990,
+          "stock": 1,
+          "isAvailable": true
+        },
         {
           "key": "nike-dd1459-010-l-black",
           "size": "L",
@@ -920,7 +911,7 @@
       "title": "Nike DIR-FIT Training Sports Bra",
       "name": "Nike DIR-FIT Training Sports Bra",
       "brand": "Nike",
-      "price": 95990,
+      "price": 109990,
       "currency": "COP",
       "description": "Nike DIR-FIT Training Sports Bra. Producto disponible en JUSP.",
       "image": "/products/nike-cz4457-100/1.jpg",
@@ -971,7 +962,7 @@
       ],
       "parameters": [],
       "sizes": [
-        "M"
+        "S"
       ],
       "colors": [
         "white"
@@ -1001,14 +992,14 @@
       "isNew": true,
       "discountPercent": 30,
       "stockHint": 1,
-      "pickupToday": true,
-      "expressDelivery": true,
+      "pickupToday": false,
+      "expressDelivery": false,
       "variants": [
         {
-          "key": "nike-cz4457-100-m-white",
-          "size": "M",
+          "key": "nike-cz4457-100-s-white",
+          "size": "S",
           "color": "white",
-          "price": 95990,
+          "price": 109990,
           "stock": 1,
           "isAvailable": true
         }
@@ -1019,54 +1010,55 @@
       "isFavorite": false
     },
     {
-      "id": "nike-dq5135-539",
-      "slug": "nike-dq5135-539",
-      "product_code": "nike-dq5135-539",
+      "id": "nike-dq5135-569",
+      "slug": "nike-dq5135-569",
+      "product_code": "nike-dq5135-569",
       "title": "NIKE AS W NK DF SWSH",
       "name": "NIKE AS W NK DF SWSH",
       "brand": "Nike",
       "price": 119990,
       "currency": "COP",
       "description": "NIKE AS W NK DF SWSH. Producto disponible en JUSP.",
-      "image": "/products/nike-dq5135-539/2.webp",
+      "image": "/products/nike-dq5135-569/2.webp",
       "images": [
-        "/products/nike-dq5135-539/2.webp",
-        "/products/nike-dq5135-539/3.jpg",
-        "/products/nike-dq5135-539/4.jpg",
-        "/products/nike-dq5135-539/5.jpg",
-        "/products/nike-dq5135-539/6.jpg"
+        "/products/nike-dq5135-569/2.webp",
+        "/products/nike-dq5135-569/3.jpg",
+        "/products/nike-dq5135-569/4.jpg",
+        "/products/nike-dq5135-569/5.jpg",
+        "/products/nike-dq5135-569/6.jpg"
       ],
       "videos": [
-        "/products/nike-dq5135-539/1.mp4"
+        "/products/nike-dq5135-569/1.mp4"
       ],
       "media": [
         {
           "type": "video",
-          "src": "/products/nike-dq5135-539/1.mp4"
+          "src": "/products/nike-dq5135-569/1.mp4"
         },
         {
           "type": "image",
-          "src": "/products/nike-dq5135-539/2.webp"
+          "src": "/products/nike-dq5135-569/2.webp"
         },
         {
           "type": "image",
-          "src": "/products/nike-dq5135-539/3.jpg"
+          "src": "/products/nike-dq5135-569/3.jpg"
         },
         {
           "type": "image",
-          "src": "/products/nike-dq5135-539/4.jpg"
+          "src": "/products/nike-dq5135-569/4.jpg"
         },
         {
           "type": "image",
-          "src": "/products/nike-dq5135-539/5.jpg"
+          "src": "/products/nike-dq5135-569/5.jpg"
         },
         {
           "type": "image",
-          "src": "/products/nike-dq5135-539/6.jpg"
+          "src": "/products/nike-dq5135-569/6.jpg"
         }
       ],
       "parameters": [],
       "sizes": [
+        "M",
         "L"
       ],
       "colors": [
@@ -1089,12 +1081,20 @@
       ],
       "isNew": true,
       "discountPercent": 30,
-      "stockHint": 1,
-      "pickupToday": true,
-      "expressDelivery": true,
+      "stockHint": 2,
+      "pickupToday": false,
+      "expressDelivery": false,
       "variants": [
         {
-          "key": "nike-dq5135-539-l-light-periwinkle-blue",
+          "key": "nike-dq5135-569-m-light-periwinkle-blue",
+          "size": "M",
+          "color": "light periwinkle blue",
+          "price": 119990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-dq5135-569-l-light-periwinkle-blue",
           "size": "L",
           "color": "light periwinkle blue",
           "price": 119990,
@@ -1433,7 +1433,6 @@
       ],
       "parameters": [],
       "sizes": [
-        "M",
         "L",
         "XL"
       ],
@@ -1458,18 +1457,10 @@
       ],
       "isNew": true,
       "discountPercent": 30,
-      "stockHint": 3,
+      "stockHint": 2,
       "pickupToday": true,
       "expressDelivery": true,
       "variants": [
-        {
-          "key": "nike-fz2856-010-m-blanck",
-          "size": "M",
-          "color": "blanck",
-          "price": 86990,
-          "stock": 1,
-          "isAvailable": true
-        },
         {
           "key": "nike-fz2856-010-l-blanck",
           "size": "L",
