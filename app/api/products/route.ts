@@ -5,6 +5,7 @@ import fs from "fs";
 import * as XLSX from "xlsx";
 import { getActiveReservationSummary } from "@/lib/stockExcel";
 import { getFavoritesCountMap } from "@/lib/favoritesRepo";
+import { resolveFlashWindow } from "@/lib/flash";
 
 export const runtime = "nodejs";
 
@@ -60,6 +61,11 @@ type Product = {
   stockHint: number;
   pickupToday?: boolean;
   expressDelivery?: boolean;
+  isFlash24h?: boolean;
+  flashStartsAt?: string;
+  flashExpiresAt?: string;
+  flashActive?: boolean;
+  flashUpcoming?: boolean;
   variants: Variant[];
   isActive: boolean;
   isSoldOut: boolean;
@@ -68,14 +74,14 @@ type Product = {
 };
 
 type CatalogCacheFile = {
-  version: 8;
+  version: 9;
   generatedAt: string;
   excelPath: string;
   excelMtimeMs: number;
   products: Product[];
 };
 
-const CACHE_VERSION = 8;
+const CACHE_VERSION = 9;
 
 function resolveExcelPath(): string | null {
   const dataDir = path.join(process.cwd(), "data");
@@ -572,10 +578,17 @@ function loadExcelProducts(): Product[] {
     const excelCategory = normalizeExcelCategory(getRowValue(rawRow, ["category", "categoria", "categoría"], ""));
     const pickupToday = toSafeBoolean(getRowValue(rawRow, ["pickup_today", "pickup", "retiro_hoy"], ""));
     const expressDelivery = toSafeBoolean(getRowValue(rawRow, ["express_delivery", "express", "envio_express"], ""));
+    const flashWindow = resolveFlashWindow({
+      isFlash24h: getRowValue(rawRow, ["is_flash_24h", "flash_24h", "flash24h"], ""),
+      flashStartsAt: getRowValue(rawRow, ["flash_starts_at", "flash_start", "inicio_flash"], ""),
+      flashExpiresAt: getRowValue(rawRow, ["flash_expires_at", "flash_end", "fin_flash"], ""),
+    });
     const discountPercent = toSafeNumber(
       getRowValue(rawRow, ["discount_percent", "discount", "descuento", "porcentaje_descuento"], 0),
       0
     );
+    const rowIsActive = getRowValue(rawRow, ["is_active", "active", "activo"], "");
+    const isRowActive = String(rowIsActive).trim() ? toSafeBoolean(rowIsActive) : true;
 
     if (!slug || !title || price <= 0) continue;
 
@@ -627,8 +640,13 @@ function loadExcelProducts(): Product[] {
         stockHint: 0,
         pickupToday,
         expressDelivery,
+        isFlash24h: flashWindow.isFlash24h,
+        flashStartsAt: flashWindow.flashStartsAt,
+        flashExpiresAt: flashWindow.flashExpiresAt,
+        flashActive: flashWindow.flashActive,
+        flashUpcoming: flashWindow.flashUpcoming,
         variants: [],
-        isActive: true,
+        isActive: isRowActive,
         isSoldOut: false,
         favoritesCount: 0,
         isFavorite: false,
@@ -663,6 +681,14 @@ function loadExcelProducts(): Product[] {
     product.stockHint = product.variants.reduce((acc, variant) => acc + toSafeNumber(variant.stock, 0), 0);
     product.pickupToday = Boolean(product.pickupToday || pickupToday);
     product.expressDelivery = Boolean(product.expressDelivery || expressDelivery);
+    product.isFlash24h = Boolean(product.isFlash24h || flashWindow.isFlash24h);
+    product.flashStartsAt = product.flashStartsAt || flashWindow.flashStartsAt;
+    product.flashExpiresAt = product.flashExpiresAt || flashWindow.flashExpiresAt;
+    product.flashActive = Boolean(product.flashActive || flashWindow.flashActive);
+    product.flashUpcoming = Boolean(product.flashUpcoming || flashWindow.flashUpcoming);
+    if (product.isActive && !isRowActive) {
+      product.isActive = false;
+    }
     if (!product.discountPercent && discountPercent > 0) {
       product.discountPercent = discountPercent;
     }
@@ -679,7 +705,7 @@ function loadExcelProducts(): Product[] {
         ...product,
         stockHint,
         isSoldOut,
-        isActive: !isSoldOut,
+        isActive: product.isActive !== false && !isSoldOut,
         sizes: uniqCaseInsensitive(product.sizes),
         colors: uniqCaseInsensitive(product.colors),
         collections: uniqCaseInsensitive(product.collections),
@@ -694,7 +720,7 @@ function loadExcelProducts(): Product[] {
         isFavorite: product.isFavorite ?? false,
       };
     })
-    .filter((product) => Number(product.stockHint || 0) > 0);
+    .filter((product) => product.isActive !== false && Number(product.stockHint || 0) > 0);
 }
 
 function readCatalogCache(): CatalogCacheFile | null {

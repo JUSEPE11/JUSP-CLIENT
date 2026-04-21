@@ -251,6 +251,19 @@ function pickAccountLabel(user: SessionUser | null) {
   return "Mi cuenta";
 }
 
+function isFridayInSantiago(now = new Date()) {
+  try {
+    const weekday = new Intl.DateTimeFormat("en-US", {
+      weekday: "short",
+      timeZone: "America/Santiago",
+    }).format(now);
+
+    return weekday.toLowerCase().startsWith("fri");
+  } catch {
+    return now.getDay() === 5;
+  }
+}
+
 function DrawerIcon({ name }: { name: string }) {
   const common = {
     width: 18,
@@ -522,6 +535,11 @@ export default function Header() {
   const isAuthed = !!user && user?.profile !== undefined;
   const hasProfile = !!user && user?.profile != null;
   const accountTitle = useMemo(() => pickAccountLabel(user), [user]);
+  const [dropHypeFriday, setDropHypeFriday] = useState(false);
+
+  useEffect(() => {
+    setDropHypeFriday(isFridayInSantiago());
+  }, []);
 
   const [isCoarsePointer, setIsCoarsePointer] = useState(false);
   useEffect(() => {
@@ -1225,6 +1243,11 @@ export default function Header() {
                         <Link className="jusp-account-link" href="/mis-cupones" onClick={() => setAccountOpen(false)}>
                           Mis cupones
                         </Link>
+                        {dropHypeFriday ? (
+                          <Link className="jusp-account-link" href="/drops" onClick={() => setAccountOpen(false)}>
+                            Drop-Hype del viernes
+                          </Link>
+                        ) : null}
                         <Link className="jusp-account-link" href="/favorites" onClick={() => setAccountOpen(false)}>
                           Favoritos
                         </Link>
@@ -1534,6 +1557,12 @@ export default function Header() {
               {!sessionLoading && isAuthed ? (
                 <Link href="/favorites" onClick={() => setMobileOpen(false)}>
                   Favoritos
+                </Link>
+              ) : null}
+
+              {!sessionLoading && isAuthed && dropHypeFriday ? (
+                <Link href="/drops" onClick={() => setMobileOpen(false)}>
+                  Drop-Hype del viernes
                 </Link>
               ) : null}
 

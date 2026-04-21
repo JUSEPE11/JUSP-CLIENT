@@ -1,3 +1,5 @@
+import { resolveFlashWindow } from "@/lib/flash";
+
 export type ProductVariant = {
   key: string;
   color?: string;
@@ -59,6 +61,12 @@ export type Product = {
 
   pickupToday?: boolean;
   expressDelivery?: boolean;
+  isFlash24h?: boolean;
+  flashStartsAt?: string;
+  flashExpiresAt?: string;
+  flashActive?: boolean;
+  flashUpcoming?: boolean;
+  isActive?: boolean;
 
   variants?: ProductVariant[];
 
@@ -67,7 +75,7 @@ export type Product = {
 };
 
 type CachePayload = {
-  version: 3;
+  version: 4;
   generatedAt: string;
   excelPath: string | null;
   excelMtimeMs: number;
@@ -513,7 +521,9 @@ function buildProductsFromExcel(): Product[] {
     if (!fs || !XLSX || !filePath || !fs.existsSync(filePath)) return [];
 
     const workbook = XLSX.readFile(filePath);
-    const firstSheetName = workbook.SheetNames[0];
+    const firstSheetName =
+      workbook.SheetNames.find((sheetName: string) => ["productos", "Productos"].includes(sheetName)) ??
+      workbook.SheetNames[0];
 
     if (!firstSheetName) return [];
 
@@ -542,10 +552,17 @@ function buildProductsFromExcel(): Product[] {
       const expressDelivery = toSafeBoolean(
         getRowValue(row, ["express_delivery", "express", "envio_express"], "")
       );
+      const flashWindow = resolveFlashWindow({
+        isFlash24h: getRowValue(row, ["is_flash_24h", "flash_24h", "flash24h"], ""),
+        flashStartsAt: getRowValue(row, ["flash_starts_at", "flash_start", "inicio_flash"], ""),
+        flashExpiresAt: getRowValue(row, ["flash_expires_at", "flash_end", "fin_flash"], ""),
+      });
       const discountPercent = toSafeNumber(
         getRowValue(row, ["discount_percent", "discount", "descuento", "porcentaje_descuento"], 0),
         0
       );
+      const rowIsActive = getRowValue(row, ["is_active", "active", "activo"], "");
+      const isRowActive = String(rowIsActive).trim() ? toSafeBoolean(rowIsActive) : true;
 
       if (!slug || !title || price <= 0) continue;
 
@@ -583,6 +600,12 @@ function buildProductsFromExcel(): Product[] {
           price,
           pickupToday,
           expressDelivery,
+          isFlash24h: flashWindow.isFlash24h,
+          flashStartsAt: flashWindow.flashStartsAt,
+          flashExpiresAt: flashWindow.flashExpiresAt,
+          flashActive: flashWindow.flashActive,
+          flashUpcoming: flashWindow.flashUpcoming,
+          isActive: isRowActive,
           favoritesCount: 0,
           isFavorite: false,
         });
@@ -605,6 +628,14 @@ function buildProductsFromExcel(): Product[] {
 
       product.pickupToday = Boolean(product.pickupToday || pickupToday);
       product.expressDelivery = Boolean(product.expressDelivery || expressDelivery);
+      product.isFlash24h = Boolean(product.isFlash24h || flashWindow.isFlash24h);
+      product.flashStartsAt = product.flashStartsAt || flashWindow.flashStartsAt;
+      product.flashExpiresAt = product.flashExpiresAt || flashWindow.flashExpiresAt;
+      product.flashActive = Boolean(product.flashActive || flashWindow.flashActive);
+      product.flashUpcoming = Boolean(product.flashUpcoming || flashWindow.flashUpcoming);
+      if (product.isActive !== false && !isRowActive) {
+        product.isActive = false;
+      }
       if (!product.discountPercent && discountPercent > 0) {
         product.discountPercent = discountPercent;
       }
@@ -617,7 +648,7 @@ function buildProductsFromExcel(): Product[] {
         favoritesCount: product.favoritesCount ?? 0,
         isFavorite: product.isFavorite ?? false,
       }))
-      .filter((product) => Number(product.stockHint || 0) > 0);
+      .filter((product) => product.isActive !== false && Number(product.stockHint || 0) > 0);
   } catch {
     return [];
   }
@@ -635,7 +666,7 @@ function readCache(cachePath: string): CachePayload | null {
 
     const parsed = JSON.parse(raw) as CachePayload;
     if (!parsed || !Array.isArray(parsed.products)) return null;
-    if (parsed.version !== 3) return null;
+    if (parsed.version !== 4) return null;
 
     return parsed;
   } catch {
@@ -658,7 +689,7 @@ function writeCache(
     ensureDataDir();
 
     const payload: CachePayload = {
-      version: 3,
+      version: 4,
       generatedAt: new Date().toISOString(),
       excelPath,
       excelMtimeMs,

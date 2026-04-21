@@ -1,8 +1,8 @@
 {
-  "version": 8,
-  "generatedAt": "2026-04-21T04:10:07.689Z",
+  "version": 9,
+  "generatedAt": "2026-04-21T18:36:03.824Z",
   "excelPath": "C:\\JUSP\\jusp-app2\\data\\catalogo_jusp.xlsx",
-  "excelMtimeMs": 1776744506507.8806,
+  "excelMtimeMs": 1776796194513.438,
   "products": [
     {
       "id": "nike-hf5407-010",
@@ -104,6 +104,11 @@
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": true,
+      "flashStartsAt": "2026-04-19T00:00:00.000Z",
+      "flashExpiresAt": "2026-04-22T02:59:00.000Z",
+      "flashActive": true,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-hf5407-010-xl-black",
@@ -199,6 +204,9 @@
       "stockHint": 1,
       "pickupToday": true,
       "expressDelivery": true,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-cn5263-010-l-black",
@@ -289,6 +297,9 @@
       "stockHint": 1,
       "pickupToday": true,
       "expressDelivery": true,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "jordan-cw2427-010-m-black",
@@ -384,6 +395,9 @@
       "stockHint": 1,
       "pickupToday": true,
       "expressDelivery": true,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-dm0672-100-l-white",
@@ -499,6 +513,9 @@
       "stockHint": 1,
       "pickupToday": true,
       "expressDelivery": true,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-fb4125-100-xl-white",
@@ -589,6 +606,9 @@
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-fb4081-675-l-bright-pink",
@@ -680,6 +700,9 @@
       "stockHint": 1,
       "pickupToday": true,
       "expressDelivery": true,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-fb4081-100-xl-white",
@@ -770,6 +793,9 @@
       "stockHint": 1,
       "pickupToday": true,
       "expressDelivery": true,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "jordan-fb6873-633-m-red",
@@ -881,6 +907,9 @@
       "stockHint": 2,
       "pickupToday": true,
       "expressDelivery": true,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-dd1459-010-m-black",
@@ -994,6 +1023,9 @@
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-cz4457-100-s-white",
@@ -1084,6 +1116,9 @@
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-dq5135-569-m-light-periwinkle-blue",
@@ -1180,6 +1215,9 @@
       "stockHint": 1,
       "pickupToday": true,
       "expressDelivery": true,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-dq5135-043-l-light-grey",
@@ -1275,6 +1313,9 @@
       "stockHint": 1,
       "pickupToday": true,
       "expressDelivery": true,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "jordan-cw2427-386-m-olive-green",
@@ -1365,6 +1406,9 @@
       "stockHint": 1,
       "pickupToday": true,
       "expressDelivery": true,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-bv3637-010-m-blanck",
@@ -1460,6 +1504,9 @@
       "stockHint": 2,
       "pickupToday": true,
       "expressDelivery": true,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-fz2856-010-l-blanck",
@@ -1558,6 +1605,9 @@
       "stockHint": 1,
       "pickupToday": true,
       "expressDelivery": true,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "puma-521598-l-slate-blue",
@@ -1648,6 +1698,9 @@
       "stockHint": 1,
       "pickupToday": true,
       "expressDelivery": true,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "puma-526429-l-black",
@@ -1730,6 +1783,9 @@
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "jordan-JD2213006GS-001-unica-black",
@@ -1842,6 +1898,9 @@
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "short-nike-kids-xs-135-black",
@@ -1941,6 +2000,9 @@
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-bra-dri-fit-s-pink",
@@ -2042,6 +2104,9 @@
       "stockHint": 3,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "jordan-club-cap-sm-beige",
@@ -2147,6 +2212,9 @@
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-sports-pants-womens-purple-m-purple",
@@ -2236,6 +2304,9 @@
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women-xl-white",
@@ -2321,6 +2392,9 @@
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-sport-high-l-white",
@@ -2416,6 +2490,9 @@
       "stockHint": 3,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap-sm-violet",
@@ -2527,6 +2604,9 @@
       "stockHint": 5,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-sportswear-xs-beige",
@@ -2676,6 +2756,9 @@
       "stockHint": 4,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-dri-fit-pro-cropped-printed-women-s-grey",
@@ -2779,6 +2862,9 @@
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "puma-622575-01-s-black",
@@ -2894,6 +2980,9 @@
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "jordan-cw2427-360-m-green",
@@ -3003,6 +3092,9 @@
       "stockHint": 3,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-hq5684-345-s-blue",
@@ -3108,6 +3200,9 @@
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-im9607-010-ml-black",
@@ -3204,6 +3299,9 @@
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "lacoste-rk5398-ajustable-black",
@@ -3307,6 +3405,9 @@
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-iq4185-010-ajustable-black",
@@ -3395,6 +3496,9 @@
       "stockHint": 3,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-ih9258-010-sm-black",
@@ -3503,6 +3607,9 @@
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-fb5061-010-unica-black",
@@ -3594,6 +3701,9 @@
       "stockHint": 5,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-if1805-010-s-black",
@@ -3717,6 +3827,9 @@
       "stockHint": 3,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "jordan-jd2413048AD-001-s-black",
@@ -3818,6 +3931,9 @@
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "jordan-jd2413048AD-002-m-white",
@@ -3921,6 +4037,9 @@
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "jordan-ac4142-010-sm-black",
@@ -4003,6 +4122,9 @@
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "jordan-ac4142-010 W-lxl-white",
@@ -4087,6 +4209,9 @@
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "lacoste-rk0527-m56-58cm-beige",
@@ -4183,6 +4308,9 @@
       "stockHint": 5,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-ii0682-121-s-white",
@@ -4300,6 +4428,9 @@
       "stockHint": 4,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-if0787-010-s-black",
@@ -4430,6 +4561,9 @@
       "stockHint": 5,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-hv0885-133-s-khaki",
@@ -4558,6 +4692,9 @@
       "stockHint": 4,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-if5172-100-m-white",
@@ -4677,6 +4814,9 @@
       "stockHint": 4,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "jordan-fn5841-010-s-black",
@@ -4790,6 +4930,9 @@
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "variants": [
         {
           "key": "nike-dx6822-494-s-blue",

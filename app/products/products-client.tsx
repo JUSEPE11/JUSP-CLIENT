@@ -18,8 +18,8 @@ function clamp(n: number, a: number, b: number) {
 function computeSale(price: number, discountPercent?: number) {
   const d = typeof discountPercent === "number" ? clamp(discountPercent, 0, 90) : 0;
   if (!d) return { has: false, was: price, now: price, d: 0 };
-  const now = Math.round(price * (1 - d / 100));
-  return { has: true, was: price, now, d };
+  const was = Math.round(price / (1 - d / 100));
+  return { has: true, was, now: price, d };
 }
 function safeArr(v: unknown): string[] {
   return Array.isArray(v) ? v.filter((x) => typeof x === "string" && x.trim()).map((x) => x.trim()) : [];
@@ -2029,6 +2029,7 @@ const ProductCard = memo(function ProductCard({
   const price = Number((p as any).price ?? 0) || 0;
   const disc = Number((p as any).discountPercent ?? (p as any).discount ?? 0);
   const sale = computeSale(price, disc);
+  const flashActive = Boolean((p as any).isFlash24h && (p as any).flashActive);
 
   const favKey = String((p as any).id || (p as any).slug || (p as any).name || "");
   const slugOrId = String((p as any).slug || (p as any).id || (p as any).product_code || "");
@@ -2097,7 +2098,10 @@ const ProductCard = memo(function ProductCard({
           <span className="imgBg" aria-hidden="true" />
         </Link>
 
-        {sale.has ? <div className="sale">-{sale.d}%</div> : null}
+        <div className="badges">
+          {sale.has ? <div className="sale">-{sale.d}%</div> : null}
+          {flashActive ? <div className="flashDeal">24H</div> : null}
+        </div>
 
         {productTypeOf(p) !== "shoes" && colors.length > 0 ? (
           <div className="dotsRow" aria-label="Available colors">
@@ -2229,10 +2233,16 @@ const ProductCard = memo(function ProductCard({
           background: linear-gradient(90deg, rgba(0, 0, 0, 0.03), rgba(0, 0, 0, 0.07), rgba(0, 0, 0, 0.03));
         }
 
-        .sale {
+        .badges {
           position: absolute;
           top: 12px;
           left: 12px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          z-index: 3;
+        }
+        .sale {
           background: rgba(17, 17, 17, 0.92);
           color: rgba(255, 255, 255, 0.95);
           font-weight: 950;
@@ -2240,7 +2250,15 @@ const ProductCard = memo(function ProductCard({
           padding: 8px 10px;
           font-size: 12px;
           letter-spacing: -0.01em;
-          z-index: 3;
+        }
+        .flashDeal {
+          background: rgba(195, 42, 42, 0.94);
+          color: rgba(255, 255, 255, 0.96);
+          font-weight: 950;
+          border-radius: 999px;
+          padding: 8px 10px;
+          font-size: 12px;
+          letter-spacing: 0.04em;
         }
 
         .cmp {

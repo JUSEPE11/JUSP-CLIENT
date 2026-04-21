@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useStore } from "../../components/store";
 import ProductReviews from "./ProductReviews";
+import { formatCountdownParts } from "@/lib/flash";
 
 type ProductVariant = {
   key: string;
@@ -57,6 +58,11 @@ type Product = {
   discountPercent?: number;
   bestSeller?: boolean;
   stockHint?: number;
+  isFlash24h?: boolean;
+  flashStartsAt?: string;
+  flashExpiresAt?: string;
+  flashActive?: boolean;
+  flashUpcoming?: boolean;
   variants?: ProductVariant[];
   favoritesCount?: number;
   isFavorite?: boolean;
@@ -1682,14 +1688,11 @@ export default function ProductPage() {
     return findVariantBySelection(product, scope, size, selectedColor);
   }, [product, scope, size, selectedColor]);
 
-  const displayPrice = useMemo(() => {
+  const baseDisplayPrice = useMemo(() => {
     if (!product) return 0;
     if (selectedVariant && typeof selectedVariant.price === "number") return selectedVariant.price;
     return Number(product.price ?? 0);
   }, [product, selectedVariant]);
-
-  const fromPrice = useMemo(() => (product ? minVariantPrice(product) : 0), [product]);
-  const toPrice = useMemo(() => (product ? maxVariantPrice(product) : 0), [product]);
 
   const discountPct = useMemo(() => {
     const d = Number(product?.discountPercent ?? 0);
@@ -1697,11 +1700,15 @@ export default function ProductPage() {
     return Math.max(0, Math.min(90, Math.round(d)));
   }, [product]);
 
+  const displayPrice = useMemo(() => baseDisplayPrice, [baseDisplayPrice]);
+  const fromPrice = useMemo(() => (product ? minVariantPrice(product) : 0), [product]);
+  const toPrice = useMemo(() => (product ? maxVariantPrice(product) : 0), [product]);
+
   const priceBefore = useMemo(() => {
-    if (!displayPrice) return 0;
+    if (!baseDisplayPrice) return 0;
     if (!discountPct) return 0;
-    return Math.round(displayPrice / (1 - discountPct / 100));
-  }, [displayPrice, discountPct]);
+    return Math.round(baseDisplayPrice / (1 - discountPct / 100));
+  }, [baseDisplayPrice, discountPct]);
 
   const currentStock = useMemo(() => {
     if (!product) return 0;
@@ -1731,6 +1738,41 @@ export default function ProductPage() {
   useEffect(() => {
     setDeliveryEstimate(getDeliveryEstimate());
   }, []);
+
+  const [flashNow, setFlashNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!product?.isFlash24h) return;
+    if (!product.flashActive && !product.flashUpcoming) return;
+
+    const timer = window.setInterval(() => {
+      setFlashNow(Date.now());
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [product?.flashActive, product?.flashExpiresAt, product?.flashStartsAt, product?.flashUpcoming, product?.isFlash24h]);
+
+  const flashCountdown = useMemo(() => {
+    if (!product?.isFlash24h) return null;
+
+    const targetIso = product.flashActive ? product.flashExpiresAt : product.flashUpcoming ? product.flashStartsAt : null;
+    if (!targetIso) return null;
+
+    const targetMs = new Date(targetIso).getTime();
+    if (!Number.isFinite(targetMs)) return null;
+
+    const remaining = targetMs - flashNow;
+    if (remaining <= 0) return null;
+
+    return formatCountdownParts(remaining);
+  }, [
+    flashNow,
+    product?.flashActive,
+    product?.flashExpiresAt,
+    product?.flashStartsAt,
+    product?.flashUpcoming,
+    product?.isFlash24h,
+  ]);
 
   const trustHighlights = [
     {
@@ -2167,6 +2209,16 @@ export default function ProductPage() {
                   ) : null}
                 </div>
               </div>
+
+              {product.isFlash24h && flashCountdown ? (
+                <div className={`flashCountdown ${product.flashActive ? "active" : "upcoming"}`}>
+                  <div className="flashCountdownEyebrow">Flash 24H</div>
+                  <div className="flashCountdownCopy">
+                    {product.flashActive ? "Termina en" : "Empieza en"}{" "}
+                    <span className="flashCountdownValue">{flashCountdown.compact}</span>
+                  </div>
+                </div>
+              ) : null}
 
               {selectionHint ? (
                 <div className={`hint ${attemptedBuy && selectionMissing ? "err" : ""}`}>{selectionHint}</div>
@@ -2682,6 +2734,12 @@ export default function ProductPage() {
         .grid > section {
           min-width: 0;
           align-self: stretch;
+          height: 100%;
+        }
+
+        .media,
+        .info {
+          height: 100%;
         }
 
         .mediaCard {
@@ -2697,8 +2755,10 @@ export default function ProductPage() {
           display: grid;
           grid-template-columns: 98px 1fr;
           gap: 12px;
-          align-items: start;
+          align-items: center;
           padding: 14px;
+          height: 100%;
+          box-sizing: border-box;
         }
 
         .thumbCol {
@@ -2807,8 +2867,8 @@ export default function ProductPage() {
           border: 1px solid rgba(0, 0, 0, 0.08);
           background: radial-gradient(500px 240px at 40% 20%, rgba(212, 175, 55, 0.12), transparent 60%), #fafafa;
           overflow: hidden;
-          aspect-ratio: 3 / 4;
-          min-height: 520px;
+          aspect-ratio: 3 / 4.35;
+          min-height: 580px;
           display: grid;
           place-items: center;
           box-shadow: var(--shadow2);
@@ -3035,6 +3095,8 @@ export default function ProductPage() {
           top: calc(var(--jusp-header-h, 64px) + 16px);
           overflow: hidden;
           min-height: 100%;
+          height: 100%;
+          box-sizing: border-box;
         }
         .card::before {
           content: "";
@@ -3161,6 +3223,40 @@ export default function ProductPage() {
           color: rgba(0, 0, 0, 0.45);
           margin-left: 0;
           font-weight: 900;
+        }
+
+        .flashCountdown {
+          position: relative;
+          margin-top: 10px;
+          border-radius: 18px;
+          padding: 12px 14px;
+          border: 1px solid rgba(195, 42, 42, 0.16);
+          background: linear-gradient(180deg, rgba(255, 245, 245, 0.98), rgba(255, 255, 255, 0.98));
+          box-shadow: 0 14px 34px rgba(195, 42, 42, 0.08);
+        }
+        .flashCountdown.upcoming {
+          border-color: rgba(212, 175, 55, 0.2);
+          background: linear-gradient(180deg, rgba(255, 250, 236, 0.98), rgba(255, 255, 255, 0.98));
+          box-shadow: 0 14px 34px rgba(212, 175, 55, 0.08);
+        }
+        .flashCountdownEyebrow {
+          font-size: 11px;
+          font-weight: 1000;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: rgba(195, 42, 42, 0.86);
+        }
+        .flashCountdown.upcoming .flashCountdownEyebrow {
+          color: rgba(151, 109, 20, 0.88);
+        }
+        .flashCountdownCopy {
+          margin-top: 6px;
+          font-size: 14px;
+          font-weight: 900;
+          color: rgba(0, 0, 0, 0.82);
+        }
+        .flashCountdownValue {
+          font-variant-numeric: tabular-nums;
         }
 
         .hint {

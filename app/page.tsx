@@ -151,8 +151,11 @@ type TopItem = {
   img?: string;
   brand?: string;
   price?: string;
+  compareAt?: number;
+  discountPercent?: number;
   gender?: "men" | "women" | "kids";
   expressDelivery?: boolean;
+  flashActive?: boolean;
   searchBlob?: string;
 };
 
@@ -386,7 +389,14 @@ function mapProductsToTopItems(input: Product[]): TopItem[] {
       : "/products";
 
     const priceNum = minPriceFromProduct(p);
-    const price = typeof priceNum === "number" && priceNum > 0 ? `$${formatCOP(priceNum)}` : undefined;
+    const discountPercent = Number(p?.discountPercent ?? 0);
+    const finalPrice = typeof priceNum === "number" && priceNum > 0 ? priceNum : undefined;
+    const compareAt =
+      typeof finalPrice === "number" && finalPrice > 0 && discountPercent > 0
+        ? Math.round(finalPrice / (1 - Math.min(90, Math.max(0, discountPercent)) / 100))
+        : undefined;
+    const price =
+      typeof finalPrice === "number" && finalPrice > 0 ? `$${formatCOP(finalPrice)}` : undefined;
 
     const searchBlob = [
       title,
@@ -410,8 +420,11 @@ function mapProductsToTopItems(input: Product[]): TopItem[] {
       imgBase,
       brand,
       price,
+      compareAt,
+      discountPercent: discountPercent > 0 ? discountPercent : undefined,
       gender,
       expressDelivery: Boolean(p?.expressDelivery || p?.pickupToday),
+      flashActive: Boolean(p?.isFlash24h && p?.flashActive),
       searchBlob,
     } as TopItem;
   });
@@ -2371,6 +2384,30 @@ function HomePageContent() {
                       </button>
 
                       <div className="__jusp_home_product_media" style={{ height: 220, position: "relative" }}>
+                        {p.flashActive ? (
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: 10,
+                              left: 10,
+                              zIndex: 3,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 6,
+                              padding: "8px 10px",
+                              borderRadius: 999,
+                              background: "rgba(195, 42, 42, 0.94)",
+                              color: "#fff",
+                              fontSize: 11,
+                              fontWeight: 1000,
+                              letterSpacing: "0.08em",
+                              textTransform: "uppercase",
+                              boxShadow: "0 10px 22px rgba(0,0,0,0.18)",
+                            }}
+                          >
+                            24H
+                          </div>
+                        ) : null}
                         <SmartImg
                           baseSrc={p.imgBase}
                           alt={p.name}
@@ -2381,7 +2418,29 @@ function HomePageContent() {
 
                     <div style={{ padding: 12 }}>
                       <div style={{ fontWeight: 1000, fontSize: 14, lineHeight: 1.2 }}>{p.name}</div>
-                      <div style={{ marginTop: 6, fontSize: 12, opacity: 0.72 }}>{p.price ?? "Oferta"}</div>
+                      <div style={{ marginTop: 6, display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+                        <div style={{ fontSize: 16, fontWeight: 1000 }}>{p.price ?? "Oferta"}</div>
+                        {typeof p.compareAt === "number" && p.compareAt > 0 ? (
+                          <>
+                            <div style={{ fontSize: 12, opacity: 0.5, textDecoration: "line-through" }}>
+                              ${formatCOP(p.compareAt)}
+                            </div>
+                            {typeof p.discountPercent === "number" && p.discountPercent > 0 ? (
+                              <div
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 1000,
+                                  padding: "4px 8px",
+                                  borderRadius: 999,
+                                  background: "rgba(0,0,0,0.06)",
+                                }}
+                              >
+                                -{Math.round(p.discountPercent)}%
+                              </div>
+                            ) : null}
+                          </>
+                        ) : null}
+                      </div>
                     </div>
                   </a>
                 </React.Fragment>

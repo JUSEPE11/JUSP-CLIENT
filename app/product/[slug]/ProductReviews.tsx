@@ -503,9 +503,11 @@ export default function ProductReviews({
                       Solo habilitamos estrellas y comentarios cuando encontramos una compra
                       válida en tu historial.
                     </div>
-                    <Link href="/login" className="loginLink">
+                    <div className="loginCtaRow">
+                      <Link href="/login" className="loginLink">
                       Iniciar sesión
-                    </Link>
+                      </Link>
+                    </div>
                   </>
                 ) : isPurchaseRequiredState ? (
                   <>
@@ -1055,14 +1057,72 @@ export default function ProductReviews({
         }
 
         .loginLink {
-          width: fit-content;
-          align-self: start;
+          width: auto;
+          align-self: center;
+          position: relative;
+          display: inline-flex;
+          min-height: 54px;
+          padding: 0 56px 0 22px;
+          border: 1px solid rgba(212, 175, 55, 0.2);
+          border-radius: 18px;
+          background:
+            radial-gradient(120px 60px at 18% 20%, rgba(255, 255, 255, 0.2), transparent 60%),
+            linear-gradient(180deg, #1b1b1b, #101010);
+          box-shadow:
+            0 18px 44px rgba(0, 0, 0, 0.18),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+          overflow: hidden;
+          color: rgba(255, 255, 255, 0.96);
+          text-decoration: none;
+          letter-spacing: 0.01em;
+          white-space: nowrap;
+        }
+
+        .loginCtaRow {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 100%;
+          padding-top: 10px;
+        }
+
+        .loginLink::before {
+          content: "";
+          position: absolute;
+          inset: 1px;
+          border-radius: inherit;
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0));
+          pointer-events: none;
+        }
+
+        .loginLink::after {
+          content: "→";
+          position: absolute;
+          right: 18px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 28px;
+          height: 28px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.1);
+          color: rgba(255, 255, 255, 0.96);
+          font-size: 15px;
+          line-height: 1;
+          transition: transform 140ms ease, background 140ms ease;
         }
 
         .submitBtn:hover,
         .loginLink:hover {
           transform: translateY(-1px);
           box-shadow: 0 22px 54px rgba(0, 0, 0, 0.2);
+        }
+
+        .loginLink:hover::after {
+          transform: translate(2px, -50%);
+          background: rgba(255, 255, 255, 0.16);
         }
 
         .viewAllBtn {

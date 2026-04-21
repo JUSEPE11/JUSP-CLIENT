@@ -1,6 +1,6 @@
 import React, { Suspense } from "react";
 import ProductsClient from "./products-client";
-import { PRODUCTS } from "@/lib/products";
+import { getProducts } from "@/lib/products";
 
 export const dynamic = "force-dynamic";
 
@@ -19,10 +19,12 @@ function ProductsSkeleton() {
   );
 }
 
-export default function ProductsPage() {
+export default async function ProductsPage() {
+  const products = await getProducts();
+
   return (
     <Suspense fallback={<ProductsSkeleton />}>
-      <ProductsClient initialProducts={PRODUCTS} />
+      <ProductsClient initialProducts={products} />
     </Suspense>
   );
 }
