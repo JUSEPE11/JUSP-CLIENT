@@ -1,8 +1,8 @@
 {
   "version": 8,
-  "generatedAt": "2026-04-20T23:46:02.415Z",
+  "generatedAt": "2026-04-21T01:59:28.708Z",
   "excelPath": "C:\\JUSP\\jusp-app2\\data\\catalogo_jusp.xlsx",
-  "excelMtimeMs": 1776728753743.7622,
+  "excelMtimeMs": 1776736046636.9668,
   "products": [
     {
       "id": "nike-hf5407-010",
@@ -1663,6 +1663,88 @@
           "size": "L",
           "color": "black",
           "price": 95990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false,
+      "favoritesCount": 0,
+      "isFavorite": false
+    },
+    {
+      "id": "jordan-JD2213006GS-001",
+      "slug": "jordan-JD2213006GS-001",
+      "product_code": "jordan-JD2213006GS-001",
+      "title": "Nike Jordan shoulder bag",
+      "name": "Nike Jordan shoulder bag",
+      "brand": "Nike",
+      "price": 129990,
+      "currency": "COP",
+      "description": "Nike Jordan shoulder bag. Producto disponible en JUSP.",
+      "image": "/products/jordan-JD2213006GS-001/1.jpg",
+      "images": [
+        "/products/jordan-JD2213006GS-001/1.jpg",
+        "/products/jordan-JD2213006GS-001/2.jpg",
+        "/products/jordan-JD2213006GS-001/3.jpg",
+        "/products/jordan-JD2213006GS-001/4.jpg",
+        "/products/jordan-JD2213006GS-001/5.jpg"
+      ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/jordan-JD2213006GS-001/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-JD2213006GS-001/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-JD2213006GS-001/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-JD2213006GS-001/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/jordan-JD2213006GS-001/5.jpg"
+        }
+      ],
+      "parameters": [],
+      "sizes": [
+        "Unica"
+      ],
+      "colors": [
+        "black"
+      ],
+      "category": "accessories",
+      "gender": "unisex",
+      "productType": "accessory",
+      "kind": "general",
+      "collections": [
+        "accessories"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "accessories"
+      ],
+      "isNew": true,
+      "stockHint": 1,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "variants": [
+        {
+          "key": "jordan-JD2213006GS-001-unica-black",
+          "size": "Unica",
+          "color": "black",
+          "price": 129990,
           "stock": 1,
           "isAvailable": true
         }
