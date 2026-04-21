@@ -615,7 +615,7 @@ function HomePageContent() {
   }, [videoIndex]);
 
   const topItems = useMemo(() => {
-    const live = ALL_PRODUCTS.filter((item) => String(item.imgBase || "").trim());
+    const live = ALL_PRODUCTS.filter((item) => !item.flashActive && String(item.imgBase || "").trim());
     if (live.length >= 4) return live.slice(0, 10);
 
     const merged = [...live];
@@ -1462,7 +1462,7 @@ function HomePageContent() {
   const activeCollection = colCards[colActive] ?? colCards[0] ?? collectionCards[0];
 
   const filteredProducts = useMemo(
-    () => ALL_PRODUCTS.filter((p) => matchesHomeProductFilter(p, homeProductFilter)),
+    () => ALL_PRODUCTS.filter((p) => !p.flashActive && matchesHomeProductFilter(p, homeProductFilter)),
     [ALL_PRODUCTS, homeProductFilter]
   );
 

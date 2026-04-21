@@ -2,6 +2,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import DropsGate from "./DropsGate";
+import { getProducts, type Product } from "@/lib/products";
 
 export const metadata: Metadata = {
   title: "Drops | JUSP",
@@ -75,8 +77,42 @@ function Badge({ label }: { label: string }) {
   return <span className="badge">{label}</span>;
 }
 
-export default function DropsPage() {
+function isFridayInSantiago(now = new Date()) {
+  try {
+    const weekday = new Intl.DateTimeFormat("en-US", {
+      weekday: "short",
+      timeZone: "America/Santiago",
+    }).format(now);
+
+    return weekday.toLowerCase().startsWith("fri");
+  } catch {
+    return now.getDay() === 5;
+  }
+}
+
+function firstMediaImage(product: Product) {
+  const images = Array.isArray(product.images) ? product.images : [];
+  const image = String(product.image ?? "").trim();
+  return images[0] || image || "";
+}
+
+function buildCompareAt(price: number, discountPercent?: number) {
+  const d = Number(discountPercent ?? 0);
+  if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(d) || d <= 0) return 0;
+  return Math.round(price / (1 - Math.min(90, Math.max(0, d)) / 100));
+}
+
+function moneyCOP(value: number) {
+  return Math.round(value).toLocaleString("es-CO");
+}
+
+export default async function DropsPage() {
+  const isFriday = isFridayInSantiago();
+  const products = await getProducts();
+  const flashProducts = products.filter((product) => Boolean(product.isFlash24h && (product.flashActive || product.flashUpcoming)));
+
   return (
+    <DropsGate>
     <main className="dropsRoot">
       <style>{`
         /* =========================================
@@ -497,6 +533,119 @@ export default function DropsPage() {
           gap: 10px;
           flex-wrap: wrap;
         }
+        .flashShelf{
+          margin-top: 34px;
+          display:grid;
+          gap: 18px;
+        }
+        .flashShelfHead{
+          display:flex;
+          align-items:end;
+          justify-content:space-between;
+          gap: 14px;
+          flex-wrap: wrap;
+        }
+        .flashShelfTitle{
+          font-size: clamp(28px, 4vw, 42px);
+          line-height: .96;
+          font-weight: 1000;
+          letter-spacing: -0.04em;
+        }
+        .flashShelfSub{
+          color: var(--muted);
+          font-size: 14px;
+          max-width: 720px;
+        }
+        .flashGrid{
+          display:grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 18px;
+        }
+        .flashCard{
+          display:flex;
+          flex-direction:column;
+          text-decoration:none;
+          color:#fff;
+          border-radius: 24px;
+          overflow:hidden;
+          border:1px solid rgba(255,255,255,0.12);
+          background: rgba(255,255,255,0.05);
+          box-shadow: 0 22px 70px rgba(0,0,0,0.26);
+        }
+        .flashMedia{
+          aspect-ratio: 1 / 1;
+          background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+          position: relative;
+        }
+        .flashMedia img{
+          width:100%;
+          height:100%;
+          object-fit: contain;
+          display:block;
+          padding: 16px;
+        }
+        .flashBadge{
+          position:absolute;
+          top: 12px;
+          left: 12px;
+          padding: 8px 10px;
+          border-radius: 999px;
+          background: rgba(195,42,42,0.94);
+          color:#fff;
+          font-size: 11px;
+          font-weight:1000;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+        .flashMeta{
+          padding: 16px;
+          display:grid;
+          gap: 10px;
+        }
+        .flashBrand{
+          font-size: 11px;
+          font-weight:1000;
+          letter-spacing:0.08em;
+          color: var(--muted2);
+          text-transform: uppercase;
+        }
+        .flashName{
+          font-size: 18px;
+          font-weight: 1000;
+          line-height: 1.06;
+          letter-spacing:-0.02em;
+        }
+        .flashPriceRow{
+          display:flex;
+          align-items: baseline;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .flashPrice{
+          font-size: 22px;
+          font-weight: 1000;
+        }
+        .flashCompare{
+          font-size: 13px;
+          color: var(--muted3);
+          text-decoration: line-through;
+        }
+        .flashDiscount{
+          padding: 5px 8px;
+          border-radius: 999px;
+          background: rgba(250,204,21,0.14);
+          color: #ffd44d;
+          font-size: 11px;
+          font-weight:1000;
+        }
+        .flashEmpty{
+          border-radius: 24px;
+          border:1px solid rgba(255,255,255,0.1);
+          background: rgba(255,255,255,0.04);
+          padding: 24px;
+          color: var(--muted);
+          font-size: 14px;
+        }
         .note{
           margin-top: 14px;
           font-size: 12px;
@@ -509,10 +658,12 @@ export default function DropsPage() {
           .wrap{ width: min(1120px, calc(100% - 32px)); }
           .grid3{ grid-template-columns: 1fr; }
           .faqGrid{ grid-template-columns: 1fr; }
+          .flashGrid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
           .h1{ font-size: 44px; }
         }
         @media (max-width: 520px){
           .wrap{ width: calc(100% - 28px); padding: 36px 0 64px; }
+          .flashGrid{ grid-template-columns: 1fr; }
           .h1{ font-size: 38px; }
           .btn{ height: 42px; }
         }
@@ -645,5 +796,6 @@ export default function DropsPage() {
         </section>
       </div>
     </main>
+    </DropsGate>
   );
 }

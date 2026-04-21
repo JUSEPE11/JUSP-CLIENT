@@ -13,6 +13,7 @@ type MegaKey =
   | "snkrs"
   | "jordan"
   | "ofertas"
+  | "drophype"
   | "exclusivo"
   | null;
 
@@ -471,6 +472,18 @@ function DrawerIcon({ name }: { name: string }) {
           <path d="M7.5 7.5h.01" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" />
         </svg>
       );
+    case "drophype":
+      return (
+        <svg {...common} aria-hidden="true">
+          <path
+            d="M12 3l2.2 4.9 5.3.5-4 3.7 1.1 5.2L12 14.8 7.4 17.3l1.1-5.2-4-3.7 5.3-.5L12 3Z"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
     default:
       return (
         <svg {...common} aria-hidden="true">
@@ -488,6 +501,7 @@ function iconNameForKey(key: Exclude<MegaKey, null>, label: string): string {
   if (key === "accesorios") return "accesorios";
   if (key === "exclusivo") return "exclusivo";
   if (key === "ofertas") return "ofertas";
+  if (key === "drophype") return "drophype";
   if (label.toLowerCase().includes("colecciones") || key === "jordan") return "colecciones";
   return "colecciones";
 }
@@ -851,8 +865,32 @@ export default function Header() {
           },
         ],
       },
+      ...(dropHypeFriday
+        ? [
+            {
+              label: "Drop-Hype",
+              href: isAuthed ? "/drops" : "/login?next=%2Fdrops",
+              key: "drophype" as const,
+              highlight: true,
+              columns: [
+                {
+                  title: "Flash 24H",
+                  items: [
+                    {
+                      label: isAuthed ? "Entrar al Drop-Hype" : "Iniciar sesión para entrar",
+                      href: isAuthed ? "/drops" : "/login?next=%2Fdrops",
+                    },
+                    { label: "Solo disponible los viernes", href: isAuthed ? "/drops" : "/login?next=%2Fdrops" },
+                    { label: "Productos flash 24H", href: isAuthed ? "/drops" : "/login?next=%2Fdrops" },
+                    { label: "Acceso con tu cuenta", href: isAuthed ? "/drops" : "/login?next=%2Fdrops" },
+                  ],
+                },
+              ],
+            },
+          ]
+        : []),
     ],
-    []
+    [dropHypeFriday, isAuthed]
   );
 
   const activeMenu = useMemo(() => menus.find((m) => m.key === active) || null, [menus, active]);
