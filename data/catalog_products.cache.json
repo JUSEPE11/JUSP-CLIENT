@@ -1,8 +1,8 @@
 {
   "version": 8,
-  "generatedAt": "2026-04-21T03:56:27.565Z",
+  "generatedAt": "2026-04-21T04:10:07.689Z",
   "excelPath": "C:\\JUSP\\jusp-app2\\data\\catalogo_jusp.xlsx",
-  "excelMtimeMs": 1776743689858.616,
+  "excelMtimeMs": 1776744506507.8806,
   "products": [
     {
       "id": "nike-hf5407-010",
@@ -2169,7 +2169,7 @@
       "title": "Nike sujetador tops",
       "name": "Nike sujetador tops",
       "brand": "Nike",
-      "price": 99990,
+      "price": 139990,
       "currency": "COP",
       "description": "Nike sujetador tops. Producto disponible en JUSP.",
       "image": "/products/nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women/1.jpg",
@@ -2205,7 +2205,7 @@
       ],
       "parameters": [],
       "sizes": [
-        "M"
+        "XL"
       ],
       "colors": [
         "white"
@@ -2238,10 +2238,10 @@
       "expressDelivery": false,
       "variants": [
         {
-          "key": "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women-m-white",
-          "size": "M",
+          "key": "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women-xl-white",
+          "size": "XL",
           "color": "white",
-          "price": 99990,
+          "price": 139990,
           "stock": 1,
           "isAvailable": true
         }
