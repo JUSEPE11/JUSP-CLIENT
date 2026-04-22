@@ -3,7 +3,6 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { COOKIE_AT, COOKIE_PROFILE, verifyAccessToken } from "@/lib/auth";
-import { getProducts, type Product } from "@/lib/products";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const runtime = "nodejs";
@@ -140,82 +139,18 @@ function prettyInitial(name: string) {
   return clean ? clean[0]!.toUpperCase() : "J";
 }
 
-function normalizeProfileText(value: unknown) {
-  return String(value ?? "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
+function getMissingProfileItems(profile: any) {
+  const items: string[] = [];
 
-function buildInterestTokens(profile: JsonRecord, interests: string[]) {
-  const tokens = new Set<string>();
-
-  const push = (value: unknown) => {
-    const normalized = normalizeProfileText(value);
-    if (!normalized) return;
-    for (const token of normalized.split(/\s+/)) {
-      if (token) tokens.add(token);
-    }
-  };
-
-  push(profile?.segment);
-  push(profile?.size);
-  push(profile?.vibe);
-  push(profile?.city);
-  push(profile?.location);
-  for (const interest of interests) push(interest);
-
-  return Array.from(tokens);
-}
-
-function scoreProductForProfile(product: Product, profile: JsonRecord, tokens: string[]) {
-  const haystack = normalizeProfileText(
-    [
-      product.title,
-      product.name,
-      product.brand,
-      product.category,
-      product.kind,
-      product.gender,
-      product.colors?.join(" "),
-      product.tags?.join(" "),
-      product.sport?.join(" "),
-      product.models?.join(" "),
-    ].join(" ")
-  );
-
-  if (!haystack) return 0;
-
-  let score = 0;
-  const segment = normalizeProfileText(profile?.segment);
-  const vibe = normalizeProfileText(profile?.vibe);
-
-  if (segment) {
-    if (segment.includes("muj") && product.gender === "women") score += 80;
-    if (segment.includes("hom") && product.gender === "men") score += 80;
-    if ((segment.includes("nin") || segment.includes("kid")) && product.gender === "kids") score += 80;
+  if (!profile?.segment) items.push("Definir tu segmento");
+  if (!profile?.size) items.push("Agregar tu talla base");
+  if (!Array.isArray(profile?.interests) || profile.interests.length === 0) {
+    items.push("Completar tus intereses");
   }
+  if (!profile?.vibe) items.push("Elegir tu estilo principal");
+  if (!String(profile?.city ?? profile?.location ?? "").trim()) items.push("Agregar tu ciudad");
 
-  if (vibe && haystack.includes(vibe)) score += 32;
-
-  for (const token of tokens) {
-    if (!token) continue;
-    if (haystack.includes(token)) score += 18;
-    if (normalizeProfileText(product.brand).startsWith(token)) score += 10;
-  }
-
-  if (Array.isArray(product.tags) && product.tags.length) score += 6;
-  if (Array.isArray(product.colors) && product.colors.length) score += 4;
-  return score;
-}
-
-function productHref(product: Product) {
-  const rawId = String(product.slug || product.id || "").trim();
-  const gender = String(product.gender || "").trim();
-  const query = gender ? `?g=${gender}` : "";
-  return `/product/${encodeURIComponent(rawId)}${query}`;
+  return items;
 }
 
 export default async function AccountPage() {
@@ -261,14 +196,39 @@ export default async function AccountPage() {
 
   const progressWidth = `${Math.max(8, Math.min(completion, 100))}%`;
   const initial = prettyInitial(firstName);
-  const products = await getProducts();
-  const interestTokens = buildInterestTokens(profile, interests);
-  const recommendedProducts = products
-    .map((product) => ({ product, score: scoreProductForProfile(product, profile, interestTokens) }))
-    .filter((entry) => entry.score > 0)
-    .sort((a, b) => b.score - a.score || String(a.product.title || "").localeCompare(String(b.product.title || "")))
-    .slice(0, 8)
-    .map((entry) => entry.product);
+  const missingItems = getMissingProfileItems(profile);
+
+  const emailValue = niceValue(profile?.email ?? email, "Sin email");
+  const phoneValue = niceValue(profile?.phone ?? profile?.phone_number, "Aún no definido");
+
+  const addressLine1 = niceValue(
+    profile?.address_line1 ?? profile?.address ?? profile?.shipping_address,
+    ""
+  );
+  const addressLine2 = niceValue(
+    profile?.address_line2 ?? profile?.apartment ?? profile?.reference,
+    ""
+  );
+  const regionValue = niceValue(
+    profile?.state ?? profile?.region ?? profile?.department,
+    ""
+  );
+  const countryValue = niceValue(profile?.country, "");
+  const hasSavedAddress = Boolean(addressLine1);
+
+  const savedAddressText = [
+    addressLine1,
+    addressLine2,
+    city !== "Por definir" ? city : "",
+    regionValue,
+    countryValue,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  const paymentLast4 = String(profile?.payment_last4 ?? "").trim();
+  const paymentBrand = String(profile?.payment_brand ?? "").trim();
+  const hasPaymentMethod = Boolean(paymentLast4);
 
   return (
     <main
@@ -854,8 +814,12 @@ export default async function AccountPage() {
         </section>
 
         <section
+          className="account-section-grid"
           style={{
             marginTop: 18,
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+            gap: 18,
           }}
         >
           <div
@@ -877,61 +841,181 @@ export default async function AccountPage() {
                 color: "rgba(171,125,74,0.92)",
               }}
             >
-              Tu experiencia JUSP
+              Estado inteligente
             </div>
 
             <h3
               className="account-section-title"
               style={{
                 margin: "12px 0 0",
-                fontSize: 28,
-                lineHeight: 1.08,
+                fontSize: 30,
                 fontWeight: 1000,
-                letterSpacing: "-0.045em",
+                letterSpacing: "-0.05em",
                 color: "#111",
+                lineHeight: 1.06,
               }}
             >
-              Beneficios de un perfil completo.
+              Qué te falta para dejar tu perfil más fuerte.
+            </h3>
+
+            <div style={{ marginTop: 18, display: "grid", gap: 12 }}>
+              {missingItems.length > 0 ? (
+                missingItems.map((item) => (
+                  <div
+                    key={item}
+                    style={{
+                      borderRadius: 18,
+                      border: "1px solid rgba(0,0,0,0.06)",
+                      background: "linear-gradient(180deg, #fff, #faf7f4)",
+                      padding: 16,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: "50%",
+                        display: "grid",
+                        placeItems: "center",
+                        background: "rgba(212,165,116,0.12)",
+                        color: "#b07c49",
+                        fontWeight: 900,
+                        flexShrink: 0,
+                      }}
+                    >
+                      !
+                    </span>
+                    <div
+                      style={{
+                        fontSize: 15,
+                        fontWeight: 800,
+                        color: "#111",
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {item}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div
+                  style={{
+                    borderRadius: 20,
+                    border: "1px solid rgba(34,197,94,0.18)",
+                    background: "rgba(34,197,94,0.08)",
+                    padding: 18,
+                    color: "#166534",
+                    fontSize: 15,
+                    fontWeight: 800,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  Todo está completo. Tu perfil ya está listo y afinado para una experiencia JUSP más
+                  precisa.
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginTop: 16 }}>
+              <Link
+                href="/onboarding"
+                className="account-action-link"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minHeight: 48,
+                  borderRadius: 999,
+                  padding: "0 18px",
+                  background: "linear-gradient(135deg, #121212 0%, #1b1612 100%)",
+                  color: "#fff",
+                  textDecoration: "none",
+                  fontSize: 14,
+                  fontWeight: 950,
+                }}
+              >
+                Completar perfil
+              </Link>
+            </div>
+          </div>
+
+          <div
+            className="account-light-card"
+            style={{
+              borderRadius: 30,
+              background: "#ffffff",
+              border: "1px solid rgba(0,0,0,0.06)",
+              boxShadow: "0 22px 60px rgba(0,0,0,0.06)",
+              padding: 22,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 900,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: "rgba(171,125,74,0.92)",
+              }}
+            >
+              Seguridad de cuenta
+            </div>
+
+            <h3
+              className="account-section-title"
+              style={{
+                margin: "12px 0 0",
+                fontSize: 30,
+                fontWeight: 1000,
+                letterSpacing: "-0.05em",
+                color: "#111",
+                lineHeight: 1.06,
+              }}
+            >
+              Tu acceso y sesión actual.
             </h3>
 
             <div style={{ marginTop: 18, display: "grid", gap: 12 }}>
               {[
-                { text: "Recomendaciones más precisas según tu estilo.", icon: "✦" },
-                { text: "Mejor selección por talla y preferencias.", icon: "⌁" },
-                { text: "Acceso rápido a tus pedidos y seguimiento.", icon: "◉" },
-                { text: "Experiencia más alineada con tus intereses.", icon: "◈" },
+                {
+                  title: "Sesión activa",
+                  text: "Este dispositivo tiene una sesión abierta y válida.",
+                },
+                {
+                  title: "Correo principal",
+                  text: emailValue,
+                },
+                {
+                  title: "Cierre seguro",
+                  text: "Puedes cerrar sesión en este dispositivo cuando quieras.",
+                },
               ].map((item) => (
                 <div
-                  key={item.text}
+                  key={item.title}
                   style={{
                     borderRadius: 18,
                     border: "1px solid rgba(0,0,0,0.06)",
                     background: "linear-gradient(180deg, #fff, #faf7f4)",
                     padding: 16,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
                   }}
                 >
-                  <span
-                    style={{
-                      width: 42,
-                      height: 42,
-                      borderRadius: "50%",
-                      display: "grid",
-                      placeItems: "center",
-                      background: "linear-gradient(135deg, #fff 0%, #f3ebe2 100%)",
-                      border: "1px solid rgba(0,0,0,0.06)",
-                      color: "#b07c49",
-                      fontSize: 15,
-                      fontWeight: 900,
-                      flexShrink: 0,
-                    }}
-                  >
-                    {item.icon}
-                  </span>
                   <div
                     style={{
+                      fontSize: 11,
+                      fontWeight: 900,
+                      color: "rgba(0,0,0,0.48)",
+                      letterSpacing: "0.12em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {item.title}
+                  </div>
+                  <div
+                    style={{
+                      marginTop: 8,
                       fontSize: 15,
                       fontWeight: 800,
                       color: "#111",
@@ -942,6 +1026,56 @@ export default async function AccountPage() {
                   </div>
                 </div>
               ))}
+            </div>
+
+            <div
+              style={{
+                marginTop: 16,
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 10,
+              }}
+            >
+              <Link
+                href="/reset-password"
+                className="account-action-link"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minHeight: 48,
+                  borderRadius: 999,
+                  padding: "0 18px",
+                  background: "linear-gradient(135deg, #fff 0%, #f6efe7 100%)",
+                  color: "#111",
+                  textDecoration: "none",
+                  fontSize: 14,
+                  fontWeight: 950,
+                  border: "1px solid rgba(0,0,0,0.06)",
+                }}
+              >
+                Cambiar contraseña
+              </Link>
+
+              <form action={logoutAction} style={{ margin: 0 }} className="account-action-form-inline">
+                <button
+                  type="submit"
+                  className="account-action-button-inline"
+                  style={{
+                    minHeight: 48,
+                    borderRadius: 999,
+                    padding: "0 18px",
+                    border: "1px solid rgba(0,0,0,0.08)",
+                    background: "#fff",
+                    color: "#111",
+                    fontSize: 14,
+                    fontWeight: 950,
+                    cursor: "pointer",
+                  }}
+                >
+                  Cerrar esta sesión
+                </button>
+              </form>
             </div>
           </div>
         </section>
@@ -974,7 +1108,7 @@ export default async function AccountPage() {
                 color: "rgba(171,125,74,0.92)",
               }}
             >
-              Tus intereses
+              Direcciones guardadas
             </div>
 
             <h3
@@ -986,248 +1120,341 @@ export default async function AccountPage() {
                 letterSpacing: "-0.05em",
                 color: "#111",
                 lineHeight: 1.06,
-                maxWidth: 520,
               }}
             >
-              Esto ayuda a afinar lo que ves dentro de JUSP.
+              Tu dirección principal de entrega.
             </h3>
 
-            <div
-              style={{
-                marginTop: 18,
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 10,
-              }}
-            >
-              {interests.length > 0 ? (
-                interests.map((interest) => (
-                  <span
-                    key={interest}
+            <div style={{ marginTop: 18 }}>
+              {hasSavedAddress ? (
+                <div
+                  style={{
+                    borderRadius: 20,
+                    border: "1px solid rgba(0,0,0,0.06)",
+                    background: "linear-gradient(180deg, #fff, #faf7f4)",
+                    padding: 18,
+                  }}
+                >
+                  <div
                     style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      minHeight: 40,
-                      borderRadius: 999,
-                      padding: "0 14px",
-                      border: "1px solid rgba(0,0,0,0.07)",
-                      background: "linear-gradient(180deg, #fff, #f5f1ed)",
-                      color: "#111",
-                      fontSize: 13,
+                      fontSize: 11,
                       fontWeight: 900,
+                      color: "rgba(0,0,0,0.48)",
+                      letterSpacing: "0.12em",
+                      textTransform: "uppercase",
                     }}
                   >
-                    {interest}
-                  </span>
-                ))
+                    Dirección activa
+                  </div>
+                  <div
+                    style={{
+                      marginTop: 10,
+                      fontSize: 15,
+                      fontWeight: 800,
+                      color: "#111",
+                      lineHeight: 1.65,
+                    }}
+                  >
+                    {savedAddressText}
+                  </div>
+                </div>
               ) : (
                 <div
                   style={{
-                    width: "100%",
                     borderRadius: 20,
                     border: "1px solid rgba(0,0,0,0.06)",
                     background: "rgba(0,0,0,0.02)",
                     padding: 16,
-                    color: "rgba(0,0,0,0.68)",
+                    color: "rgba(0,0,0,0.72)",
                     fontSize: 14,
                     lineHeight: 1.7,
                   }}
                 >
-                  Aún no has definido tus intereses. Completar esa parte mejora tus sugerencias,
-                  colecciones y descubrimiento de producto.
+                  Aún no tienes una dirección guardada. Agregarla hace más rápido tu proceso de compra.
                 </div>
               )}
             </div>
 
             <div
               style={{
-                marginTop: 18,
+                marginTop: 16,
+                display: "grid",
+                gap: 10,
+              }}
+            >
+              <div
+                style={{
+                  borderRadius: 18,
+                  border: "1px solid rgba(0,0,0,0.06)",
+                  background: "#fff",
+                  padding: 14,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 900,
+                    color: "rgba(0,0,0,0.48)",
+                    letterSpacing: "0.12em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Ciudad
+                </div>
+                <div
+                  style={{
+                    marginTop: 8,
+                    fontSize: 15,
+                    fontWeight: 800,
+                    color: "#111",
+                  }}
+                >
+                  {city}
+                </div>
+              </div>
+
+              <Link
+                href="/onboarding"
+                className="account-action-link"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minHeight: 48,
+                  borderRadius: 999,
+                  padding: "0 18px",
+                  background: "linear-gradient(135deg, #121212 0%, #1b1612 100%)",
+                  color: "#fff",
+                  textDecoration: "none",
+                  fontSize: 14,
+                  fontWeight: 950,
+                }}
+              >
+                Editar dirección
+              </Link>
+            </div>
+          </div>
+
+          <div
+            className="account-light-card"
+            style={{
+              borderRadius: 30,
+              background: "#ffffff",
+              border: "1px solid rgba(0,0,0,0.06)",
+              boxShadow: "0 22px 60px rgba(0,0,0,0.06)",
+              padding: 22,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 900,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: "rgba(171,125,74,0.92)",
+              }}
+            >
+              Métodos de pago
+            </div>
+
+            <h3
+              className="account-section-title"
+              style={{
+                margin: "12px 0 0",
+                fontSize: 30,
+                fontWeight: 1000,
+                letterSpacing: "-0.05em",
+                color: "#111",
+                lineHeight: 1.06,
+              }}
+            >
+              Tu forma de pago guardada.
+            </h3>
+
+            <div style={{ marginTop: 18 }}>
+              {hasPaymentMethod ? (
+                <div
+                  style={{
+                    borderRadius: 20,
+                    border: "1px solid rgba(0,0,0,0.06)",
+                    background: "linear-gradient(135deg, #121212 0%, #1b1612 100%)",
+                    padding: 18,
+                    color: "#fff",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 900,
+                      color: "rgba(255,255,255,0.54)",
+                      letterSpacing: "0.12em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Método activo
+                  </div>
+                  <div
+                    style={{
+                      marginTop: 10,
+                      fontSize: 18,
+                      fontWeight: 900,
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {paymentBrand || "Tarjeta"} terminada en **** {paymentLast4}
+                  </div>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    borderRadius: 20,
+                    border: "1px solid rgba(0,0,0,0.06)",
+                    background: "rgba(0,0,0,0.02)",
+                    padding: 16,
+                    color: "rgba(0,0,0,0.72)",
+                    fontSize: 14,
+                    lineHeight: 1.7,
+                  }}
+                >
+                  Aún no tienes un método de pago guardado. Cuando lo agregues, tu checkout será más
+                  rápido.
+                </div>
+              )}
+            </div>
+
+            <div
+              style={{
+                marginTop: 16,
                 borderRadius: 18,
                 border: "1px solid rgba(0,0,0,0.06)",
                 background: "linear-gradient(180deg, #faf7f4, #f4eeea)",
                 padding: 16,
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 12,
               }}
             >
-              <span
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: "50%",
-                  display: "grid",
-                  placeItems: "center",
-                  background: "#fff",
-                  border: "1px solid rgba(0,0,0,0.06)",
-                  color: "#b07c49",
-                  fontWeight: 900,
-                  flexShrink: 0,
-                }}
-              >
-                ✦
-              </span>
               <div
                 style={{
-                  fontSize: 14,
-                  lineHeight: 1.65,
-                  color: "rgba(0,0,0,0.72)",
+                  fontSize: 11,
+                  fontWeight: 900,
+                  color: "rgba(0,0,0,0.48)",
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
                 }}
               >
-                Completa tus intereses para recibir mejores sugerencias, colecciones y descubrimiento
-                de producto.
+                Estado
+              </div>
+              <div
+                style={{
+                  marginTop: 8,
+                  fontSize: 15,
+                  fontWeight: 800,
+                  color: "#111",
+                  lineHeight: 1.6,
+                }}
+              >
+                {hasPaymentMethod
+                  ? "Tu cuenta ya tiene un método disponible."
+                  : "Sin métodos guardados por ahora."}
               </div>
             </div>
+          </div>
+        </section>
 
-            {recommendedProducts.length > 0 ? (
-              <div
-                style={{
-                  marginTop: 22,
-                  borderRadius: 24,
-                  border: "1px solid rgba(0,0,0,0.06)",
-                  background: "linear-gradient(180deg, #fff, #f7f2ed)",
-                  padding: 18,
-                }}
-              >
-                <div
+        <section
+          className="account-section-grid"
+          style={{
+            marginTop: 18,
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+            gap: 18,
+          }}
+        >
+          <div
+            className="account-light-card"
+            style={{
+              borderRadius: 30,
+              background: "#ffffff",
+              border: "1px solid rgba(0,0,0,0.06)",
+              boxShadow: "0 22px 60px rgba(0,0,0,0.06)",
+              padding: 22,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 900,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: "rgba(171,125,74,0.92)",
+              }}
+            >
+              Centro de ayuda
+            </div>
+
+            <h3
+              className="account-section-title"
+              style={{
+                margin: "12px 0 0",
+                fontSize: 30,
+                fontWeight: 1000,
+                letterSpacing: "-0.05em",
+                color: "#111",
+                lineHeight: 1.06,
+              }}
+            >
+              Accesos rápidos para resolver lo importante.
+            </h3>
+
+            <div style={{ marginTop: 18, display: "grid", gap: 12 }}>
+              {[
+                { href: "/help", label: "Ayuda general", text: "Preguntas frecuentes y soporte." },
+                {
+                  href: "/mis-pedidos",
+                  label: "Seguimiento de pedidos",
+                  text: "Revisa el estado y avance de tus compras.",
+                },
+                {
+                  href: "/help#devoluciones",
+                  label: "Devoluciones",
+                  text: "Consulta cómo funciona el proceso de cambios o devoluciones.",
+                },
+              ].map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className="account-help-link"
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 12,
-                    flexWrap: "wrap",
+                    textDecoration: "none",
+                    borderRadius: 18,
+                    border: "1px solid rgba(0,0,0,0.06)",
+                    background: "linear-gradient(180deg, #fff, #faf7f4)",
+                    padding: 16,
+                    color: "#111",
                   }}
                 >
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 900,
-                        letterSpacing: "0.14em",
-                        textTransform: "uppercase",
-                        color: "#ab7d4a",
-                      }}
-                    >
-                      Recomendado para ti
-                    </div>
-                    <div
-                      style={{
-                        marginTop: 6,
-                        fontSize: 22,
-                        fontWeight: 1000,
-                        letterSpacing: "-0.04em",
-                        color: "#111",
-                      }}
-                    >
-                      Productos alineados con tu cuenta
-                    </div>
-                  </div>
-
-                  <Link
-                    href="/products"
+                  <div
                     style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      minHeight: 42,
-                      borderRadius: 999,
-                      padding: "0 16px",
-                      border: "1px solid rgba(0,0,0,0.08)",
-                      background: "#fff",
-                      color: "#111",
-                      fontSize: 13,
+                      fontSize: 11,
                       fontWeight: 900,
-                      textDecoration: "none",
+                      color: "rgba(0,0,0,0.48)",
+                      letterSpacing: "0.12em",
+                      textTransform: "uppercase",
                     }}
                   >
-                    Ver catálogo
-                  </Link>
-                </div>
-
-                <div
-                  style={{
-                    marginTop: 18,
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
-                    gap: 14,
-                  }}
-                >
-                  {recommendedProducts.map((product) => (
-                    <Link
-                      key={String(product.id)}
-                      href={productHref(product)}
-                      style={{
-                        textDecoration: "none",
-                        color: "inherit",
-                        borderRadius: 22,
-                        overflow: "hidden",
-                        border: "1px solid rgba(0,0,0,0.06)",
-                        background: "#fff",
-                        boxShadow: "0 16px 34px rgba(0,0,0,0.06)",
-                      }}
-                    >
-                      <div
-                        style={{
-                          aspectRatio: "1 / 1.08",
-                          background: "linear-gradient(180deg, #f6f1eb, #fff)",
-                        }}
-                      >
-                        {product.image ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={product.image}
-                            alt={product.title}
-                            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                          />
-                        ) : null}
-                      </div>
-
-                      <div style={{ padding: 14 }}>
-                        <div
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 900,
-                            color: "rgba(0,0,0,0.5)",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.08em",
-                          }}
-                        >
-                          {product.brand || "JUSP"}
-                        </div>
-                        <div
-                          style={{
-                            marginTop: 8,
-                            fontSize: 16,
-                            lineHeight: 1.2,
-                            fontWeight: 900,
-                            color: "#111",
-                            display: "-webkit-box",
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: "vertical",
-                            overflow: "hidden",
-                            minHeight: 38,
-                          }}
-                        >
-                          {product.title}
-                        </div>
-                        <div
-                          style={{
-                            marginTop: 10,
-                            fontSize: 22,
-                            fontWeight: 1000,
-                            letterSpacing: "-0.04em",
-                            color: "#111",
-                          }}
-                        >
-                          ${Math.round(Number(product.price) || 0).toLocaleString("es-CO")}
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ) : null}
+                    {item.label}
+                  </div>
+                  <div
+                    style={{
+                      marginTop: 8,
+                      fontSize: 15,
+                      fontWeight: 800,
+                      lineHeight: 1.55,
+                    }}
+                  >
+                    {item.text}
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
 
           <div
@@ -1383,14 +1610,148 @@ export default async function AccountPage() {
             </div>
           </div>
         </section>
+
+        <section
+          style={{
+            marginTop: 18,
+          }}
+        >
+          <div
+            className="account-light-card"
+            style={{
+              borderRadius: 30,
+              background: "#ffffff",
+              border: "1px solid rgba(0,0,0,0.06)",
+              boxShadow: "0 22px 60px rgba(0,0,0,0.06)",
+              padding: 22,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 900,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: "rgba(171,125,74,0.92)",
+              }}
+            >
+              Tus intereses
+            </div>
+
+            <h3
+              className="account-section-title"
+              style={{
+                margin: "12px 0 0",
+                fontSize: 30,
+                fontWeight: 1000,
+                letterSpacing: "-0.05em",
+                color: "#111",
+                lineHeight: 1.06,
+                maxWidth: 520,
+              }}
+            >
+              Esto ayuda a afinar lo que ves dentro de JUSP.
+            </h3>
+
+            <div
+              style={{
+                marginTop: 18,
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 10,
+              }}
+            >
+              {interests.length > 0 ? (
+                interests.map((interest) => (
+                  <span
+                    key={interest}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minHeight: 40,
+                      borderRadius: 999,
+                      padding: "0 14px",
+                      border: "1px solid rgba(0,0,0,0.07)",
+                      background: "linear-gradient(180deg, #fff, #f5f1ed)",
+                      color: "#111",
+                      fontSize: 13,
+                      fontWeight: 900,
+                    }}
+                  >
+                    {interest}
+                  </span>
+                ))
+              ) : (
+                <div
+                  style={{
+                    width: "100%",
+                    borderRadius: 20,
+                    border: "1px solid rgba(0,0,0,0.06)",
+                    background: "rgba(0,0,0,0.02)",
+                    padding: 16,
+                    color: "rgba(0,0,0,0.68)",
+                    fontSize: 14,
+                    lineHeight: 1.7,
+                  }}
+                >
+                  Aún no has definido tus intereses. Completar esa parte mejora tus sugerencias,
+                  colecciones y descubrimiento de producto.
+                </div>
+              )}
+            </div>
+
+            <div
+              style={{
+                marginTop: 18,
+                borderRadius: 18,
+                border: "1px solid rgba(0,0,0,0.06)",
+                background: "linear-gradient(180deg, #faf7f4, #f4eeea)",
+                padding: 16,
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 12,
+              }}
+            >
+              <span
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: "50%",
+                  display: "grid",
+                  placeItems: "center",
+                  background: "#fff",
+                  border: "1px solid rgba(0,0,0,0.06)",
+                  color: "#b07c49",
+                  fontWeight: 900,
+                  flexShrink: 0,
+                }}
+              >
+                ✦
+              </span>
+              <div
+                style={{
+                  fontSize: 14,
+                  lineHeight: 1.65,
+                  color: "rgba(0,0,0,0.72)",
+                }}
+              >
+                Completa tus intereses para recibir mejores sugerencias, colecciones y descubrimiento
+                de producto.
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
 
       <style>{`
-        .account-action-form {
+        .account-action-form,
+        .account-action-form-inline {
           margin: 0;
         }
 
-        .account-action-button {
+        .account-action-button,
+        .account-action-button-inline {
           width: 100%;
           transition:
             transform 0.2s ease,
@@ -1399,7 +1760,8 @@ export default async function AccountPage() {
             box-shadow 0.2s ease;
         }
 
-        .account-action-link {
+        .account-action-link,
+        .account-help-link {
           transition:
             transform 0.2s ease,
             background 0.2s ease,
@@ -1424,7 +1786,9 @@ export default async function AccountPage() {
         }
 
         .account-action-link:hover,
-        .account-action-button:hover {
+        .account-action-button:hover,
+        .account-action-button-inline:hover,
+        .account-help-link:hover {
           transform: translateY(-2px);
           box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
         }
@@ -1510,13 +1874,16 @@ export default async function AccountPage() {
           .account-action-link,
           .account-action-link-primary,
           .account-action-form,
-          .account-action-button {
+          .account-action-button,
+          .account-action-form-inline,
+          .account-action-button-inline {
             width: 100% !important;
           }
 
           .account-action-link,
           .account-action-link-primary,
-          .account-action-button {
+          .account-action-button,
+          .account-action-button-inline {
             min-height: 48px !important;
             padding: 12px 16px !important;
           }
@@ -1526,6 +1893,8 @@ export default async function AccountPage() {
           .account-dark-card:hover,
           .account-action-link:hover,
           .account-action-button:hover,
+          .account-action-button-inline:hover,
+          .account-help-link:hover,
           .account-avatar-badge:hover {
             transform: none !important;
           }
