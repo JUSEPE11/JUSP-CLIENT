@@ -31,31 +31,35 @@ async function readProfileCookie() {
 }
 
 async function readProfileFromDb(email: string) {
-  const admin = supabaseAdmin();
+  try {
+    const admin = supabaseAdmin();
 
-  const { data, error } = await admin
-    .from("user_registry")
-    .select("profile, name, email")
-    .eq("email", email)
-    .maybeSingle();
+    const { data, error } = await admin
+      .from("user_registry")
+      .select("profile, name, email")
+      .eq("email", email)
+      .maybeSingle();
 
-  if (error) return null;
-  if (!data) return null;
+    if (error) return null;
+    if (!data) return null;
 
-  const profile =
-    data.profile && typeof data.profile === "object" && !Array.isArray(data.profile)
-      ? ({ ...(data.profile as JsonRecord) } as JsonRecord)
-      : {};
+    const profile =
+      data.profile && typeof data.profile === "object" && !Array.isArray(data.profile)
+        ? ({ ...(data.profile as JsonRecord) } as JsonRecord)
+        : {};
 
-  if (!profile.name && data.name) {
-    profile.name = String(data.name).trim();
+    if (!profile.name && data.name) {
+      profile.name = String(data.name).trim();
+    }
+
+    if (!profile.email && data.email) {
+      profile.email = String(data.email).trim().toLowerCase();
+    }
+
+    return profile;
+  } catch {
+    return null;
   }
-
-  if (!profile.email && data.email) {
-    profile.email = String(data.email).trim().toLowerCase();
-  }
-
-  return profile;
 }
 
 async function logoutAction() {
@@ -763,192 +767,10 @@ export default async function AccountPage() {
         </section>
 
         <section
-          className="account-section-grid"
           style={{
             marginTop: 18,
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 1.02fr) minmax(0, 0.98fr)",
-            gap: 18,
           }}
         >
-          <div
-            className="account-light-card"
-            style={{
-              borderRadius: 30,
-              background: "rgba(255,255,255,0.90)",
-              border: "1px solid rgba(0,0,0,0.06)",
-              boxShadow: "0 22px 60px rgba(0,0,0,0.06)",
-              padding: 22,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 900,
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: "rgba(171,125,74,0.92)",
-              }}
-            >
-              Tu perfil
-            </div>
-
-            <h2
-              className="account-section-title"
-              style={{
-                margin: "12px 0 0",
-                fontSize: 34,
-                lineHeight: 1.02,
-                fontWeight: 1000,
-                letterSpacing: "-0.05em",
-                color: "#111",
-                maxWidth: 580,
-              }}
-            >
-              Preferencias que hacen tu experiencia más precisa.
-            </h2>
-
-            <div
-              className="account-info-grid"
-              style={{
-                marginTop: 18,
-                display: "grid",
-                gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                gap: 12,
-              }}
-            >
-              {[
-                {
-                  title: "Talla base",
-                  text: size,
-                  icon: "⌁",
-                },
-                {
-                  title: "Tu estilo",
-                  text: vibe,
-                  icon: "✦",
-                },
-                {
-                  title: "Segmento",
-                  text: segment,
-                  icon: "◈",
-                },
-                {
-                  title: "Ubicación",
-                  text: city,
-                  icon: "◉",
-                },
-              ].map((item) => (
-                <div
-                  key={item.title}
-                  style={{
-                    borderRadius: 22,
-                    border: "1px solid rgba(0,0,0,0.07)",
-                    background:
-                      "linear-gradient(180deg, rgba(255,255,255,1), rgba(246,243,239,0.96))",
-                    padding: 18,
-                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.7)",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 38,
-                      height: 38,
-                      borderRadius: "50%",
-                      display: "grid",
-                      placeItems: "center",
-                      background: "linear-gradient(135deg, #fff 0%, #f3ebe2 100%)",
-                      border: "1px solid rgba(0,0,0,0.06)",
-                      color: "#b07c49",
-                      fontSize: 14,
-                      fontWeight: 900,
-                    }}
-                  >
-                    {item.icon}
-                  </div>
-                  <div
-                    style={{
-                      marginTop: 12,
-                      fontSize: 11,
-                      fontWeight: 900,
-                      color: "rgba(0,0,0,0.48)",
-                      letterSpacing: "0.12em",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    {item.title}
-                  </div>
-                  <div
-                    style={{
-                      marginTop: 10,
-                      fontSize: 18,
-                      fontWeight: 950,
-                      color: "#111",
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    {item.text}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div
-              style={{
-                marginTop: 14,
-                borderRadius: 22,
-                background: "linear-gradient(135deg, #121212 0%, #1b1612 100%)",
-                border: "1px solid rgba(0,0,0,0.08)",
-                padding: 16,
-                color: "#fff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 14,
-                flexWrap: "wrap",
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 900,
-                    color: "#e8c7a4",
-                  }}
-                >
-                  Experiencia personalizada activa
-                </div>
-                <div
-                  style={{
-                    marginTop: 6,
-                    fontSize: 14,
-                    lineHeight: 1.6,
-                    color: "rgba(255,255,255,0.76)",
-                  }}
-                >
-                  Seguimos afinando tu experiencia JUSP.
-                </div>
-              </div>
-
-              <span
-                style={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: "50%",
-                  display: "grid",
-                  placeItems: "center",
-                  border: "1px solid rgba(255,255,255,0.10)",
-                  background: "rgba(255,255,255,0.05)",
-                  color: "#fff",
-                  fontSize: 18,
-                  flexShrink: 0,
-                }}
-              >
-                →
-              </span>
-            </div>
-          </div>
-
           <div
             className="account-light-card"
             style={{
@@ -1334,20 +1156,56 @@ export default async function AccountPage() {
 
         .account-action-button {
           width: 100%;
-          transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+          transition:
+            transform 0.2s ease,
+            background 0.2s ease,
+            border-color 0.2s ease,
+            box-shadow 0.2s ease;
         }
 
         .account-action-link {
           transition:
-            transform 0.18s ease,
-            background 0.18s ease,
-            border-color 0.18s ease,
-            box-shadow 0.18s ease;
+            transform 0.2s ease,
+            background 0.2s ease,
+            border-color 0.2s ease,
+            box-shadow 0.2s ease;
+        }
+
+        .account-card,
+        .account-light-card,
+        .account-dark-card {
+          transition:
+            transform 0.25s ease,
+            box-shadow 0.25s ease,
+            border-color 0.25s ease;
+        }
+
+        .account-avatar-badge {
+          transition:
+            transform 0.25s ease,
+            box-shadow 0.25s ease,
+            border-color 0.25s ease;
         }
 
         .account-action-link:hover,
         .account-action-button:hover {
-          transform: translateY(-1px);
+          transform: translateY(-2px);
+          box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+        }
+
+        .account-card:hover,
+        .account-light-card:hover,
+        .account-dark-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 28px 70px rgba(0, 0, 0, 0.12);
+        }
+
+        .account-avatar-badge:hover {
+          transform: scale(1.04);
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.08),
+            0 22px 50px rgba(0,0,0,0.32),
+            0 0 24px rgba(212,165,116,0.14);
         }
 
         @media (max-width: 1024px) {
@@ -1403,7 +1261,6 @@ export default async function AccountPage() {
             line-height: 1.1 !important;
           }
 
-          .account-info-grid,
           .account-mini-grid {
             grid-template-columns: 1fr !important;
           }
@@ -1426,6 +1283,15 @@ export default async function AccountPage() {
           .account-action-button {
             min-height: 48px !important;
             padding: 12px 16px !important;
+          }
+
+          .account-card:hover,
+          .account-light-card:hover,
+          .account-dark-card:hover,
+          .account-action-link:hover,
+          .account-action-button:hover,
+          .account-avatar-badge:hover {
+            transform: none !important;
           }
         }
 
