@@ -137,6 +137,7 @@ function statusLabel(s?: string | null) {
   if (v === "shipped") return "Enviada";
   if (v === "delivered") return "Entregada";
   if (v === "cancelled" || v === "canceled") return "Cancelada";
+  if (v === "refunded") return "Reembolsada";
   if (v === "paid") return "Pagada";
   return String(s);
 }
@@ -172,6 +173,7 @@ function progressForStatus(status?: string | null) {
   if (s === "shipped") return 75;
   if (s === "delivered") return 100;
   if (s === "paid") return 30;
+  if (s === "refunded") return 100;
   if (s === "cancelled" || s === "canceled") return 100;
   return 15;
 }
@@ -187,7 +189,8 @@ function isCustomerVisibleOrder(order: OrderRow) {
 
   const paymentApproved =
     payment === "paid" ||
-    payment === "approved";
+    payment === "approved" ||
+    payment === "refunded";
 
   const hiddenByPayment =
     payment === "failed" ||
@@ -195,20 +198,19 @@ function isCustomerVisibleOrder(order: OrderRow) {
     payment === "rejected" ||
     payment === "voided" ||
     payment === "error" ||
-    payment === "refunded" ||
     payment === "none" ||
     payment === "pending" ||
     payment === "in_progress";
 
   const hiddenByStatus =
-    status === "cancelled" ||
-    status === "canceled" ||
     status === "failed" ||
     status === "declined" ||
     status === "rejected" ||
     status === "error";
 
   if (hiddenByPayment || hiddenByStatus) return false;
+
+  if (status === "cancelled" || status === "canceled" || status === "refunded") return true;
 
   return paymentApproved;
 }
@@ -624,7 +626,7 @@ function MisPedidosContent() {
             <h1 className="hero-title">Mis pedidos</h1>
 
             <p className="hero-sub">
-              Aquí solo ves pedidos aprobados y válidos para cliente. Las órdenes fallidas, rechazadas o canceladas quedan solo en admin.
+              Aquí ves pedidos válidos para cliente, incluyendo órdenes canceladas por falta de stock y órdenes reembolsadas.
             </p>
 
             <div className="kpis">
@@ -760,9 +762,9 @@ function MisPedidosContent() {
                 </div>
               </div>
 
-              <div className="empty-h">Aquí solo aparecen pedidos aprobados.</div>
+              <div className="empty-h">Aquí aparecen tus pedidos válidos y sus cambios.</div>
               <div className="empty-p">
-                Las órdenes canceladas, rechazadas, fallidas o pendientes no se muestran al cliente. Solo verás compras válidas.
+                Las órdenes pagadas, enviadas, entregadas, canceladas por falta de stock o reembolsadas se muestran aquí. Las fallidas, rechazadas o pendientes siguen ocultas.
               </div>
 
               <div className="empty-actions">

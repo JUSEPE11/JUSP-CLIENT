@@ -99,9 +99,20 @@ function fmtDate(iso: string) {
 
 function pillTone(s?: string | null) {
   const v = String(s || "").toLowerCase();
-  if (v.includes("paid") || v.includes("succeeded") || v.includes("ok")) return "good";
-  if (v.includes("pending") || v.includes("processing")) return "warn";
-  if (v.includes("failed") || v.includes("canceled") || v.includes("cancelled")) return "bad";
+  if (v.includes("refunded")) return "good";
+  if (v.includes("refund_pending")) return "warn";
+  if (v.includes("paid") || v.includes("approved") || v.includes("succeeded") || v.includes("ok")) return "good";
+  if (v.includes("pending") || v.includes("processing") || v.includes("in_progress")) return "warn";
+  if (
+    v.includes("failed") ||
+    v.includes("declined") ||
+    v.includes("rejected") ||
+    v.includes("voided") ||
+    v.includes("canceled") ||
+    v.includes("cancelled")
+  ) {
+    return "bad";
+  }
   return "neutral";
 }
 
@@ -116,6 +127,7 @@ function statusLabel(s?: string | null) {
   if (v === "in_transit") return "En tránsito";
   if (v === "delivered") return "Entregada";
   if (v === "cancelled" || v === "canceled") return "Cancelada";
+  if (v === "refunded") return "Reembolsada";
   return String(s);
 }
 
@@ -124,8 +136,10 @@ function payLabel(s?: string | null) {
   if (!v) return "—";
   if (v === "none") return "Sin pago";
   if (v === "pending") return "Pendiente";
-  if (v === "paid") return "Pagado";
+  if (v === "in_progress") return "En proceso";
+  if (v === "paid" || v === "approved") return "Pagado";
   if (v === "failed") return "Fallido";
+  if (v === "refund_pending") return "Reembolso pendiente";
   if (v === "refunded") return "Reembolsado";
   return String(s);
 }
@@ -319,9 +333,13 @@ function progressForLogistics(order: OrderRow) {
   if (Number.isFinite(manual)) return clampPercent(manual);
 
   const st = String(order.status || "").toLowerCase();
-  const paid = String(order.payment_status || "").toLowerCase() === "paid";
+  const pay = String(order.payment_status || "").toLowerCase();
+  const paid = pay === "paid" || pay === "approved";
   const tracking = !!safeStr(order.tracking_code);
 
+  if (st === "cancelled" || st === "canceled") return 0;
+  if (st === "refunded") return 100;
+  if (pay === "refund_pending") return tracking ? 76 : 48;
   if (st === "delivered") return 100;
   if (st === "shipped") return tracking ? 76 : 70;
   if (st === "packed") return 56;
@@ -331,6 +349,11 @@ function progressForLogistics(order: OrderRow) {
 }
 
 function routeStatus(order: OrderRow) {
+  const st = String(order.status || "").toLowerCase();
+  const pay = String(order.payment_status || "").toLowerCase();
+  if (st === "cancelled" || st === "canceled") return "Orden cancelada";
+  if (st === "refunded") return "Reembolso completado";
+  if (pay === "refund_pending") return "Reembolso en proceso";
   const progress = progressForLogistics(order);
   if (progress >= 100) return "Entregado";
   if (progress >= 76) return "En camino a tu dirección";
@@ -358,6 +381,65 @@ function buildRealisticTimeline(order: OrderRow, destination: { city: string; co
   const shippedAt = safeStr(order.shipped_at) || (st === "shipped" || st === "delivered" ? safeStr(order.updated_at) || createdAt : "");
   const trackingAt = safeStr(order.tracking_assigned_at) || (tracking ? safeStr(order.updated_at) || createdAt : "");
   const deliveredAt = safeStr(order.delivered_at) || (st === "delivered" ? safeStr(order.updated_at) || createdAt : "");
+  const refundAt = safeStr(order.updated_at) || paidAt || createdAt;
+
+  if (st === "cancelled" || st === "canceled") {
+    return [
+      {
+        key: "created",
+        label: "Pedido recibido",
+        when: dateOrDash(createdAt),
+        done: !!createdAt,
+        tone: "good",
+        place: "JUSP",
+      },
+      {
+        key: "cancelled",
+        label: "Orden cancelada",
+        when: dateOrDash(refundAt),
+        done: true,
+        tone: "warn",
+        place: "Dashboard JUSP",
+      },
+      {
+        key: "resolution",
+        label: pay === "refunded" ? "Reembolso procesado" : pay === "refund_pending" ? "Reembolso en revisión" : "Esperando resolución",
+        when: pay === "refunded" || pay === "refund_pending" ? dateOrDash(refundAt) : "—",
+        done: pay === "refunded" || pay === "refund_pending",
+        tone: pay === "refunded" ? "good" : "warn",
+        place: destination.line1 || destination.city || "Cliente",
+      },
+    ];
+  }
+
+  if (st === "refunded" || pay === "refunded" || pay === "refund_pending") {
+    return [
+      {
+        key: "created",
+        label: "Pedido recibido",
+        when: dateOrDash(createdAt),
+        done: !!createdAt,
+        tone: "good",
+        place: "JUSP",
+      },
+      {
+        key: "payment",
+        label: "Pago confirmado",
+        when: dateOrDash(paidAt),
+        done: !!paidAt,
+        tone: paidAt ? "good" : "neutral",
+        place: "Checkout",
+      },
+      {
+        key: "refund",
+        label: pay === "refund_pending" ? "Reembolso en proceso" : "Reembolso completado",
+        when: dateOrDash(refundAt),
+        done: true,
+        tone: pay === "refund_pending" ? "warn" : "good",
+        place: destination.line1 || destination.city || "Cliente",
+      },
+    ];
+  }
 
   return [
     {

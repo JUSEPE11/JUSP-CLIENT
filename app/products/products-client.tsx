@@ -2741,9 +2741,17 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
     sp.delete(Q.size);
     sp.delete(Q.price);
     sp.delete(Q.isNew);
+    const prices = all
+      .map((p) => Number((p as any).price ?? 0))
+      .filter((n) => Number.isFinite(n) && n > 0)
+      .sort((a, b) => a - b);
+    const nextMin = prices.length ? Math.floor(prices[0] / 1000) * 1000 : 0;
+    const nextMax = prices.length ? Math.ceil(prices[prices.length - 1] / 1000) * 1000 : 500000;
+    setPriceFloor(nextMin);
+    setPriceCeil(nextMax);
     const qs = sp.toString();
     router.replace(qs ? `${pathname}?${qs}` : `${pathname}`, { scroll: false });
-  }, [router, pathname, searchParams]);
+  }, [router, pathname, searchParams, all]);
 
   const activeFilters = useMemo(() => {
     const items: Array<{ key: string; label: string; onRemove: () => void }> = [];
@@ -2917,6 +2925,11 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
       });
     }
 
+    list = list.filter((p) => {
+      const price = Number((p as any).price ?? 0) || 0;
+      return price >= priceFloor && price <= priceCeil;
+    });
+
     for (const p of list) {
       for (const c of getProductColorLabels(p)) {
         const normalized = normalizeColorValue(c);
@@ -2924,7 +2937,7 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
       }
     }
     return set;
-  }, [all, newOnly, dCap, type, brand, size, priceBucket]);
+  }, [all, newOnly, dCap, type, brand, size, priceBucket, priceFloor, priceCeil]);
 
   const hasAnyColorAvailabilityData = useMemo(() => availableColorsSet.size > 0, [availableColorsSet.size]);
 
@@ -3109,7 +3122,7 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
     }
 
     return list;
-  }, [all, dCap, type, brand, color, size, sort, priceBucket, newOnly, expressDelivery]);
+  }, [all, dCap, type, brand, color, size, sort, priceBucket, newOnly, expressDelivery, priceFloor, priceCeil]);
 
   const prefetchRef = useRef<Record<string, number>>({});
   const onPrefetch = useCallback(
@@ -3356,6 +3369,36 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
                     </Chip>
                   ))}
                 </div>
+                <div className="priceBarrier">
+                  <div className="priceBarrierTop">
+                    <span>Rango manual</span>
+                    <span>
+                      ${moneyCOP(priceFloor)} – ${moneyCOP(priceCeil)}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={priceExtremes.min}
+                    max={priceExtremes.max}
+                    step={1000}
+                    value={priceFloor}
+                    onChange={(e) => {
+                      const next = Math.min(Number(e.target.value), priceCeil);
+                      setPriceFloor(clampPriceRange(next, priceExtremes.min, priceExtremes.max));
+                    }}
+                  />
+                  <input
+                    type="range"
+                    min={priceExtremes.min}
+                    max={priceExtremes.max}
+                    step={1000}
+                    value={priceCeil}
+                    onChange={(e) => {
+                      const next = Math.max(Number(e.target.value), priceFloor);
+                      setPriceCeil(clampPriceRange(next, priceExtremes.min, priceExtremes.max));
+                    }}
+                  />
+                </div>
               </FilterSection>
 
               <FilterSection title="Type" open={secType} onToggle={() => setSecType((v) => !v)}>
@@ -3534,6 +3577,36 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
                       {r.label}
                     </Chip>
                   ))}
+                </div>
+                <div className="priceBarrier">
+                  <div className="priceBarrierTop">
+                    <span>Rango manual</span>
+                    <span>
+                      ${moneyCOP(priceFloor)} – ${moneyCOP(priceCeil)}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={priceExtremes.min}
+                    max={priceExtremes.max}
+                    step={1000}
+                    value={priceFloor}
+                    onChange={(e) => {
+                      const next = Math.min(Number(e.target.value), priceCeil);
+                      setPriceFloor(clampPriceRange(next, priceExtremes.min, priceExtremes.max));
+                    }}
+                  />
+                  <input
+                    type="range"
+                    min={priceExtremes.min}
+                    max={priceExtremes.max}
+                    step={1000}
+                    value={priceCeil}
+                    onChange={(e) => {
+                      const next = Math.max(Number(e.target.value), priceFloor);
+                      setPriceCeil(clampPriceRange(next, priceExtremes.min, priceExtremes.max));
+                    }}
+                  />
                 </div>
               </div>
 
@@ -3855,6 +3928,29 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
 
         .colorSwatchGrid {
           align-items: center;
+        }
+        .priceBarrier {
+          margin-top: 14px;
+          padding: 14px;
+          border-radius: 18px;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          background: linear-gradient(180deg, #fff, #f7f7f7);
+          display: grid;
+          gap: 10px;
+        }
+        .priceBarrierTop {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          flex-wrap: wrap;
+          font-size: 12px;
+          font-weight: 900;
+          color: rgba(0, 0, 0, 0.72);
+        }
+        .priceBarrier input[type="range"] {
+          width: 100%;
+          accent-color: #111;
         }
 
         .sw {

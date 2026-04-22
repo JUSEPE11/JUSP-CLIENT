@@ -116,6 +116,13 @@ function normalizeOrigin(raw: string): "DALLAS" | "MIAMI" {
 
 function getStatusLabel(status: string): string {
   switch (status) {
+    case "CANCELLED":
+    case "CANCELED":
+      return "Orden cancelada";
+    case "REFUNDED":
+      return "Reembolso completado";
+    case "REFUND_PENDING":
+      return "Reembolso en proceso";
     case "ORDER_CONFIRMED":
       return "Pedido confirmado";
     case "PREPARING_ORDER":
@@ -147,6 +154,13 @@ function getStatusLabel(status: string): string {
 
 function getProgressPercent(status: string): number {
   switch (status) {
+    case "CANCELLED":
+    case "CANCELED":
+      return 0;
+    case "REFUNDED":
+      return 100;
+    case "REFUND_PENDING":
+      return 48;
     case "ORDER_CONFIRMED":
       return 10;
     case "PREPARING_ORDER":
@@ -173,14 +187,34 @@ function getProgressPercent(status: string): number {
 }
 
 function getHealthTone(status: string): "green" | "yellow" | "red" {
+  if (status === "CANCELLED" || status === "CANCELED") return "red";
+  if (status === "REFUND_PENDING" || status === "DELAYED") return "yellow";
   if (status === "DELAYED") return "yellow";
   return "green";
 }
 
 function getHealthLabel(status: string): string {
+  if (status === "CANCELLED" || status === "CANCELED") return "Orden cancelada";
+  if (status === "REFUND_PENDING") return "Reembolso en revisión";
+  if (status === "REFUNDED") return "Reembolso completado";
   if (status === "DELAYED") return "Demora logística";
   if (status === "DELIVERED") return "Entregado correctamente";
   return "Normal";
+}
+
+function normalizeTrackingStatus(rawStatus: string, rawPaymentStatus: string): string {
+  const status = String(rawStatus || "").trim().toUpperCase();
+  const paymentStatus = String(rawPaymentStatus || "").trim().toUpperCase();
+
+  if (status === "CANCELLED" || status === "CANCELED") {
+    return paymentStatus === "REFUNDED" ? "REFUNDED" : "CANCELLED";
+  }
+
+  if (status === "REFUNDED") return "REFUNDED";
+  if (paymentStatus === "REFUNDED") return "REFUNDED";
+  if (paymentStatus === "REFUND_PENDING") return "REFUND_PENDING";
+
+  return status || "ORDER_CONFIRMED";
 }
 
 function buildTimeline(
@@ -357,11 +391,17 @@ function buildTimeline(
 }
 
 function normalizeOrderForTracking(row: JsonMap) {
-  const status = pickFirstString(
+  const rawStatus = pickFirstString(
     row,
     ["status", "order_status", "shipping_status"],
     "ORDER_CONFIRMED"
   ).toUpperCase();
+  const rawPaymentStatus = pickFirstString(
+    row,
+    ["payment_status", "paymentState", "payment_state"],
+    ""
+  ).toUpperCase();
+  const status = normalizeTrackingStatus(rawStatus, rawPaymentStatus);
 
   const originRaw = pickFirstString(
     row,
