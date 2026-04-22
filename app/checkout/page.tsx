@@ -206,6 +206,17 @@ type SavedAddress = Shipping & {
   updatedAt: string;
 };
 
+type CouponRow = {
+  id: string;
+  code: string;
+  title: string;
+  description?: string | null;
+  discount_type: string;
+  discount_value: number;
+  expires_at?: string | null;
+  is_active?: boolean | null;
+};
+
 function emptyShipping(): Shipping {
   return {
     fullName: "",
@@ -350,6 +361,10 @@ export default function CheckoutPage() {
 
   const [ship, setShip] = useState<Shipping>(emptyShipping());
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [availableCoupons, setAvailableCoupons] = useState<CouponRow[]>([]);
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<CouponRow | null>(null);
+  const [couponError, setCouponError] = useState("");
 
   const items = state.cart;
   const canContinue = cartCount > 0;
@@ -366,7 +381,7 @@ export default function CheckoutPage() {
     ] ?? [];
   }, [ship.region]);
 
-  const summary = useMemo(() => {
+  const baseSummary = useMemo(() => {
     let shipping = SHIPPING_PRICE;
 
     if (expressEligibleOnly) {
@@ -381,6 +396,27 @@ export default function CheckoutPage() {
       total: cartTotal + shipping,
     };
   }, [cartTotal, cartCount, expressEligibleOnly]);
+
+  const summary = useMemo(() => {
+    const rawValue = Number(appliedCoupon?.discount_value || 0);
+    let discount = 0;
+
+    if (appliedCoupon && rawValue > 0) {
+      if (String(appliedCoupon.discount_type || "").toLowerCase() === "percentage") {
+        discount = Math.round(baseSummary.subtotal * (rawValue / 100));
+      } else {
+        discount = Math.round(rawValue);
+      }
+    }
+
+    discount = Math.max(0, Math.min(discount, baseSummary.subtotal + baseSummary.shipping));
+
+    return {
+      ...baseSummary,
+      discount,
+      total: Math.max(0, baseSummary.subtotal + baseSummary.shipping - discount),
+    };
+  }, [appliedCoupon, baseSummary]);
 
   const shippingLabel = useMemo(() => {
     if (expressEligibleOnly) return "Envio gratis express";
@@ -482,12 +518,20 @@ export default function CheckoutPage() {
         }
 
         if (res.ok) {
-          const addressesRes = await fetch("/api/account/addresses", {
-            method: "GET",
-            credentials: "include",
-            cache: "no-store",
-            headers: { "cache-control": "no-store" },
-          }).catch(() => null);
+          const [addressesRes, couponsRes] = await Promise.all([
+            fetch("/api/account/addresses", {
+              method: "GET",
+              credentials: "include",
+              cache: "no-store",
+              headers: { "cache-control": "no-store" },
+            }).catch(() => null),
+            fetch("/api/account/coupons", {
+              method: "GET",
+              credentials: "include",
+              cache: "no-store",
+              headers: { "cache-control": "no-store" },
+            }).catch(() => null),
+          ]);
 
           if (addressesRes?.ok) {
             const addressesJson = await addressesRes.json().catch(() => null);
@@ -497,6 +541,14 @@ export default function CheckoutPage() {
             const merged = mergeSavedAddresses(serverAddresses, loadSavedAddresses());
             setSavedAddresses(merged);
             persistSavedAddresses(merged);
+          }
+
+          if (couponsRes?.ok) {
+            const couponsJson = await couponsRes.json().catch(() => null);
+            const nextCoupons = Array.isArray(couponsJson?.coupons)
+              ? (couponsJson.coupons as CouponRow[])
+              : [];
+            setAvailableCoupons(nextCoupons);
           }
         }
       } catch {
@@ -601,6 +653,28 @@ export default function CheckoutPage() {
     window.location.href = `/login?redirect=${encodeURIComponent(redirect)}`;
   }
 
+  function applyCouponByCode(code: string) {
+    const normalized = String(code || "").trim().toUpperCase();
+    if (!normalized) {
+      setAppliedCoupon(null);
+      setCouponError("");
+      return;
+    }
+
+    const found = availableCoupons.find(
+      (coupon) => String(coupon.code || "").trim().toUpperCase() === normalized
+    );
+
+    if (!found) {
+      setCouponError("Ese cupón no está disponible para tu cuenta.");
+      return;
+    }
+
+    setAppliedCoupon(found);
+    setCouponCode(found.code);
+    setCouponError("");
+  }
+
   function handleContinueToPayment() {
     if (!shipOk) return;
     void rememberCurrentAddress();
@@ -681,8 +755,18 @@ export default function CheckoutPage() {
         totals: {
           subtotal: summary.subtotal,
           shipping: summary.shipping,
+          discount: summary.discount,
           total: summary.total,
         },
+        coupon: appliedCoupon
+          ? {
+              id: appliedCoupon.id,
+              code: appliedCoupon.code,
+              title: appliedCoupon.title,
+              discountType: appliedCoupon.discount_type,
+              discountValue: appliedCoupon.discount_value,
+            }
+          : null,
       };
 
       const createRes = await fetch(CREATE_ORDER_ENDPOINT, {
@@ -1116,6 +1200,12 @@ export default function CheckoutPage() {
                   <span>Envio</span>
                   <b>{shippingLabel}</b>
                 </div>
+                {summary.discount > 0 ? (
+                  <div className="r">
+                    <span>Cupón</span>
+                    <b>- ${moneyCOP(summary.discount)}</b>
+                  </div>
+                ) : null}
                 <div className="r tot">
                   <span>Total</span>
                   <b>${moneyCOP(summary.total)}</b>
@@ -1133,6 +1223,64 @@ export default function CheckoutPage() {
                   <div className="holdInfo">
                     <span>Reserva activa</span>
                     <b>Hasta {reservedUntilLabel}</b>
+                  </div>
+                ) : null}
+
+                {isAuthed ? (
+                  <div className="couponBox">
+                    <div className="couponHead">
+                      <span>Cupones disponibles</span>
+                      <b>{availableCoupons.length}</b>
+                    </div>
+                    <div className="couponInline">
+                      <input
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                        placeholder="Código del cupón"
+                        className="couponInput"
+                      />
+                      <button type="button" onClick={() => applyCouponByCode(couponCode)} className="couponBtn">
+                        Aplicar
+                      </button>
+                    </div>
+                    {couponError ? <div className="couponError">{couponError}</div> : null}
+                    {appliedCoupon ? (
+                      <div className="couponActive">
+                        <div className="couponActiveTitle">{appliedCoupon.code} · {appliedCoupon.title}</div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAppliedCoupon(null);
+                            setCouponCode("");
+                            setCouponError("");
+                          }}
+                          className="couponRemove"
+                        >
+                          Quitar
+                        </button>
+                      </div>
+                    ) : null}
+                    {availableCoupons.length ? (
+                      <div className="couponList">
+                        {availableCoupons.slice(0, 3).map((coupon) => (
+                          <button
+                            key={coupon.id}
+                            type="button"
+                            onClick={() => applyCouponByCode(coupon.code)}
+                            className={`couponChip ${appliedCoupon?.id === coupon.id ? "on" : ""}`}
+                          >
+                            <span>{coupon.code}</span>
+                            <small>
+                              {coupon.discount_type === "percentage"
+                                ? `${Number(coupon.discount_value || 0)}% OFF`
+                                : `$${moneyCOP(Number(coupon.discount_value || 0))} OFF`}
+                            </small>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="couponEmpty">No tienes cupones activos por ahora.</div>
+                    )}
                   </div>
                 ) : null}
               </div>
@@ -1492,6 +1640,105 @@ const baseCss = `
     text-align: right;
   }
 
+  .couponBox{
+    display:grid;
+    gap: 10px;
+    padding: 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(0,0,0,0.08);
+    background: rgba(0,0,0,0.02);
+  }
+  .couponHead{
+    display:flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-weight: 950;
+    color:#111;
+  }
+  .couponInline{
+    display:grid;
+    grid-template-columns: minmax(0,1fr) auto;
+    gap: 8px;
+  }
+  .couponInput{
+    width:100%;
+    border-radius: 14px;
+    border: 1px solid rgba(0,0,0,0.14);
+    background:#fff;
+    padding: 12px 14px;
+    font-weight: 900;
+    outline:none;
+  }
+  .couponBtn{
+    border:none;
+    border-radius: 14px;
+    background:#111;
+    color:#fff;
+    padding: 12px 14px;
+    font-weight: 950;
+    cursor:pointer;
+  }
+  .couponError{
+    font-size: 12px;
+    font-weight: 900;
+    color:#991b1b;
+  }
+  .couponActive{
+    display:flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: rgba(22,101,52,0.08);
+    border: 1px solid rgba(22,101,52,0.18);
+  }
+  .couponActiveTitle{
+    font-size: 13px;
+    font-weight: 950;
+    color:#166534;
+  }
+  .couponRemove{
+    border:none;
+    background:transparent;
+    color:#111;
+    font-weight: 950;
+    cursor:pointer;
+  }
+  .couponList{
+    display:grid;
+    gap: 8px;
+  }
+  .couponChip{
+    display:flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items:center;
+    border-radius: 14px;
+    border: 1px solid rgba(0,0,0,0.10);
+    background:#fff;
+    padding: 12px 14px;
+    cursor:pointer;
+  }
+  .couponChip.on{
+    border-color: rgba(22,101,52,0.28);
+    background: rgba(22,101,52,0.05);
+  }
+  .couponChip span{
+    font-weight: 950;
+    color:#111;
+  }
+  .couponChip small{
+    font-size: 12px;
+    font-weight: 900;
+    color: rgba(0,0,0,0.62);
+  }
+  .couponEmpty{
+    font-size: 12px;
+    font-weight: 900;
+    color: rgba(0,0,0,0.58);
+  }
+
   .payBox{
     margin-top: 14px;
     border-radius: 18px;
@@ -1545,6 +1792,9 @@ const baseCss = `
     }
     .holdInfo b{
       text-align: left;
+    }
+    .couponInline{
+      grid-template-columns: 1fr;
     }
     .cityMegaGrid{ grid-template-columns: 1fr; }
     .savedGrid{ grid-template-columns: 1fr; }

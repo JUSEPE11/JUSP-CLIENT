@@ -39,6 +39,16 @@ type SearchProduct = {
 };
 
 type SearchCatalogProduct = Record<string, any>;
+type ImageFeature = {
+  r: number;
+  g: number;
+  b: number;
+  brightness: number;
+  variance: number;
+  aspect: number;
+  hash: string;
+  edgeBalance: number;
+};
 
 function normalizeSearchText(value: unknown): string {
   let text = String(value ?? "")
@@ -164,6 +174,186 @@ function scoreCatalogProduct(product: SearchCatalogProduct, query: string): numb
   }
 
   score += Math.min(tokens.length * 10, 40);
+  return score;
+}
+
+function getCatalogProductImage(product: SearchCatalogProduct): string | undefined {
+  if (typeof product.image === "string" && product.image.trim()) return product.image.trim();
+  if (Array.isArray(product.images)) {
+    const firstImage = product.images.find((item) => typeof item === "string" && item.trim());
+    if (typeof firstImage === "string") return firstImage.trim();
+  }
+  return undefined;
+}
+
+function loadImageElement(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.decoding = "async";
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("image_load_failed"));
+    img.src = src;
+  });
+}
+
+function computeImageFeatureFromImage(image: CanvasImageSource, width: number, height: number): ImageFeature | null {
+  if (typeof document === "undefined") return null;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = 24;
+  canvas.height = 24;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return null;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+  const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  let count = 0;
+  let sumR = 0;
+  let sumG = 0;
+  let sumB = 0;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const alpha = data[i + 3];
+    if (alpha < 8) continue;
+    sumR += data[i];
+    sumG += data[i + 1];
+    sumB += data[i + 2];
+    count += 1;
+  }
+
+  if (!count) return null;
+
+  const r = sumR / count;
+  const g = sumG / count;
+  const b = sumB / count;
+  const brightness = (r + g + b) / 3;
+
+  let varianceAccumulator = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    const alpha = data[i + 3];
+    if (alpha < 8) continue;
+    const localBrightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
+    varianceAccumulator += Math.pow(localBrightness - brightness, 2);
+  }
+
+  const variance = Math.sqrt(varianceAccumulator / count) / 255;
+
+  const hashCanvas = document.createElement("canvas");
+  hashCanvas.width = 9;
+  hashCanvas.height = 8;
+  const hashCtx = hashCanvas.getContext("2d", { willReadFrequently: true });
+  if (!hashCtx) return null;
+
+  hashCtx.clearRect(0, 0, hashCanvas.width, hashCanvas.height);
+  hashCtx.drawImage(image, 0, 0, hashCanvas.width, hashCanvas.height);
+  const hashData = hashCtx.getImageData(0, 0, hashCanvas.width, hashCanvas.height).data;
+  const rows: number[][] = [];
+
+  for (let y = 0; y < hashCanvas.height; y += 1) {
+    const row: number[] = [];
+    for (let x = 0; x < hashCanvas.width; x += 1) {
+      const idx = (y * hashCanvas.width + x) * 4;
+      row.push((hashData[idx] + hashData[idx + 1] + hashData[idx + 2]) / 3);
+    }
+    rows.push(row);
+  }
+
+  let hash = "";
+  let edgeBalance = 0;
+  for (const row of rows) {
+    for (let x = 0; x < 8; x += 1) {
+      const bit = row[x] > row[x + 1] ? "1" : "0";
+      hash += bit;
+      if (bit === "1") edgeBalance += 1;
+    }
+  }
+
+  return {
+    r,
+    g,
+    b,
+    brightness,
+    variance,
+    aspect: width > 0 && height > 0 ? width / height : 1,
+    hash,
+    edgeBalance,
+  };
+}
+
+async function computeImageFeatureFromFile(file: File): Promise<ImageFeature | null> {
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const img = await loadImageElement(objectUrl);
+    return computeImageFeatureFromImage(img, img.naturalWidth || img.width, img.naturalHeight || img.height);
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+function inferVisualTokens(feature: ImageFeature): string[] {
+  const tokens: string[] = [];
+  const { r, g, b, brightness } = feature;
+
+  if (brightness <= 78) tokens.push("black", "negro");
+  if (brightness >= 214) tokens.push("white", "blanco");
+
+  if (r > g + 26 && r > b + 26) {
+    if (brightness > 150) tokens.push("pink", "rosa", "rosado");
+    else tokens.push("red", "rojo");
+  }
+
+  if (b > r + 18 && b > g + 12) tokens.push("blue", "azul");
+  if (g > r + 18 && g > b + 12) tokens.push("green", "verde");
+  if (r > 150 && g > 120 && b < 110) tokens.push("orange", "naranja");
+  if (r > 155 && g > 145 && b < 90) tokens.push("yellow", "amarillo");
+  if (Math.abs(r - g) < 16 && Math.abs(g - b) < 16 && brightness >= 90 && brightness <= 190) {
+    tokens.push("grey", "gray", "gris");
+  }
+
+  return [...new Set(tokens)];
+}
+
+function hammingDistance(a: string, b: string): number {
+  if (!a || !b || a.length !== b.length) return Math.max(a.length, b.length, 64);
+  let diff = 0;
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) diff += 1;
+  }
+  return diff;
+}
+
+function scoreVisualMatch(product: SearchCatalogProduct, source: ImageFeature, candidate: ImageFeature): number {
+  const colorDistance = Math.sqrt(
+    Math.pow(source.r - candidate.r, 2) +
+      Math.pow(source.g - candidate.g, 2) +
+      Math.pow(source.b - candidate.b, 2)
+  );
+  const varianceDistance = Math.abs(source.variance - candidate.variance) * 180;
+  const aspectDistance = Math.abs(source.aspect - candidate.aspect) * 42;
+  const hashDistance = hammingDistance(source.hash, candidate.hash);
+  const edgeDistance = Math.abs(source.edgeBalance - candidate.edgeBalance) * 2.4;
+
+  let score = 460 - colorDistance * 0.78 - varianceDistance - aspectDistance - hashDistance * 4.2 - edgeDistance;
+  const haystack = buildSearchHaystack(product);
+
+  for (const token of inferVisualTokens(source)) {
+    if (haystack.includes(token)) score += 20;
+  }
+
+  const normalizedCategory = normalizeSearchText(`${product.kind || ""} ${product.category || ""} ${product.title || ""}`);
+  if (
+    normalizedCategory.includes("bra") ||
+    normalizedCategory.includes("top") ||
+    normalizedCategory.includes("tank") ||
+    normalizedCategory.includes("support") ||
+    normalizedCategory.includes("sujetador")
+  ) {
+    if (source.aspect > 0.78 && source.aspect < 1.35) score += 16;
+  }
+
   return score;
 }
 
@@ -535,6 +725,9 @@ export default function Header() {
   const [q, setQ] = useState("");
   const [recents, setRecents] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const imageSearchInputRef = useRef<HTMLInputElement | null>(null);
+  const imageFeatureCacheRef = useRef<Map<string, ImageFeature | null>>(new Map());
+  const [imageSearchLabel, setImageSearchLabel] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState<SearchProduct[]>([]);
@@ -950,6 +1143,7 @@ export default function Header() {
     setSearchOpen(false);
     setQ("");
     setProducts([]);
+    setImageSearchLabel("");
     setLoading(false);
     if (searchAbortRef.current) {
       searchAbortRef.current.abort();
@@ -960,9 +1154,14 @@ export default function Header() {
   function submitSearch(text: string) {
     const s = text.trim();
     if (!s) return;
+    setImageSearchLabel("");
     safeSaveRecent(s);
     setRecents(safeLoadRecents());
     window.location.href = `/products?q=${encodeURIComponent(s)}`;
+  }
+
+  function openImageSearchPicker() {
+    imageSearchInputRef.current?.click();
   }
 
   async function loadCatalog(signal?: AbortSignal): Promise<SearchCatalogProduct[]> {
@@ -981,7 +1180,12 @@ export default function Header() {
   async function fetchProducts(query: string) {
     const s = query.trim();
     if (!s) {
+      if (imageSearchLabel) {
+        setLoading(false);
+        return;
+      }
       setProducts([]);
+      setImageSearchLabel("");
       setLoading(false);
       if (searchAbortRef.current) {
         searchAbortRef.current.abort();
@@ -1018,6 +1222,61 @@ export default function Header() {
       setProducts([]);
     } finally {
       if (!ctrl.signal.aborted && lastReq.current === reqId) setLoading(false);
+    }
+  }
+
+  async function getCachedImageFeature(src: string): Promise<ImageFeature | null> {
+    const cached = imageFeatureCacheRef.current.get(src);
+    if (cached !== undefined) return cached;
+
+    try {
+      const img = await loadImageElement(src);
+      const feature = computeImageFeatureFromImage(img, img.naturalWidth || img.width, img.naturalHeight || img.height);
+      imageFeatureCacheRef.current.set(src, feature);
+      return feature;
+    } catch {
+      imageFeatureCacheRef.current.set(src, null);
+      return null;
+    }
+  }
+
+  async function runImageSearch(file: File) {
+    setQ("");
+    setImageSearchLabel(file.name);
+    setProducts([]);
+    setLoading(true);
+
+    try {
+      const [catalog, sourceFeature] = await Promise.all([loadCatalog(), computeImageFeatureFromFile(file)]);
+      if (!sourceFeature) {
+        setProducts([]);
+        return;
+      }
+
+      const ranked = await Promise.all(
+        catalog.map(async (product) => {
+          const image = getCatalogProductImage(product);
+          if (!image) return null;
+          const feature = await getCachedImageFeature(image);
+          if (!feature) return null;
+          return {
+            product,
+            score: scoreVisualMatch(product, sourceFeature, feature),
+          };
+        })
+      );
+
+      const matches = ranked
+        .filter((entry): entry is { product: SearchCatalogProduct; score: number } => Boolean(entry && entry.score > 0))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 12)
+        .map((entry) => mapCatalogProductToSearchProduct(entry.product));
+
+      setProducts(matches);
+    } catch {
+      setProducts([]);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -1397,15 +1656,39 @@ export default function Header() {
                 <div className="jusp-search-ico" aria-hidden="true">
                   ⌕
                 </div>
+                <button
+                  className="jusp-search-camera"
+                  type="button"
+                  onClick={openImageSearchPicker}
+                  aria-label="Buscar por imagen"
+                  title="Buscar por imagen"
+                >
+                  📷
+                </button>
                 <input
                   ref={inputRef}
                   value={q}
-                  onChange={(e) => setQ(e.target.value)}
+                  onChange={(e) => {
+                    setQ(e.target.value);
+                    if (imageSearchLabel) setImageSearchLabel("");
+                  }}
                   placeholder="Buscar productos, marcas, estilos…"
                   className="jusp-search-input"
                   aria-label="Buscar"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") submitSearch(q);
+                  }}
+                />
+                <input
+                  ref={imageSearchInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="jusp-search-fileinput"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) void runImageSearch(file);
+                    e.currentTarget.value = "";
                   }}
                 />
               </div>
@@ -1458,7 +1741,9 @@ export default function Header() {
                 </div>
 
                 <div className="jusp-search-col">
-                  <div className="jusp-search-coltitle">Resultados</div>
+                  <div className="jusp-search-coltitle">
+                    {imageSearchLabel ? `Resultados por imagen: ${imageSearchLabel}` : "Resultados"}
+                  </div>
                   <div className="jusp-search-results">
                     {loading ? <div className="jusp-search-loading">Buscando…</div> : null}
                     {!loading && q.trim() && products.length === 0 ? (
@@ -2252,7 +2537,7 @@ export default function Header() {
           border: 1px solid rgba(0, 0, 0, 0.12);
           border-radius: 999px;
           background: #f7f7f7;
-          padding: 10px 18px 10px 48px;
+          padding: 10px 18px 10px 64px;
           transition: box-shadow var(--jusp-fast) var(--jusp-ease), border-color var(--jusp-fast) var(--jusp-ease), background var(--jusp-fast) var(--jusp-ease);
         }
 
@@ -2263,12 +2548,39 @@ export default function Header() {
         }
 
         .jusp-search-ico {
+          display: none;
+        }
+
+        .jusp-search-camera {
           position: absolute;
           left: 18px;
           top: 50%;
           transform: translateY(-50%);
-          opacity: 0.55;
-          font-size: 18px;
+          width: 34px;
+          height: 34px;
+          border-radius: 999px;
+          border: 1px solid rgba(17, 17, 17, 0.1);
+          background: #fff;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          box-shadow: 0 8px 20px rgba(17, 17, 17, 0.06);
+          transition: transform var(--jusp-fast) var(--jusp-ease), box-shadow var(--jusp-fast) var(--jusp-ease), border-color var(--jusp-fast) var(--jusp-ease);
+        }
+
+        .jusp-search-camera:hover {
+          transform: translateY(calc(-50% - 1px));
+          border-color: rgba(17, 17, 17, 0.18);
+          box-shadow: 0 12px 26px rgba(17, 17, 17, 0.1);
+        }
+
+        .jusp-search-fileinput {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          opacity: 0;
+          pointer-events: none;
         }
 
         .jusp-search-input {
@@ -2694,7 +3006,7 @@ export default function Header() {
 
           .jusp-search-inputwrap {
             min-height: 50px;
-            padding-left: 42px;
+            padding-left: 58px;
           }
 
           .jusp-search-input {

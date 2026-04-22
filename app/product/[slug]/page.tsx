@@ -5,7 +5,6 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useStore } from "../../components/store";
 import ProductReviews from "./ProductReviews";
-import { formatCountdownParts } from "@/lib/flash";
 
 type ProductVariant = {
   key: string;
@@ -1739,41 +1738,6 @@ export default function ProductPage() {
     setDeliveryEstimate(getDeliveryEstimate());
   }, []);
 
-  const [flashNow, setFlashNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    if (!product?.isFlash24h) return;
-    if (!product.flashActive && !product.flashUpcoming) return;
-
-    const timer = window.setInterval(() => {
-      setFlashNow(Date.now());
-    }, 1000);
-
-    return () => window.clearInterval(timer);
-  }, [product?.flashActive, product?.flashExpiresAt, product?.flashStartsAt, product?.flashUpcoming, product?.isFlash24h]);
-
-  const flashCountdown = useMemo(() => {
-    if (!product?.isFlash24h) return null;
-
-    const targetIso = product.flashActive ? product.flashExpiresAt : product.flashUpcoming ? product.flashStartsAt : null;
-    if (!targetIso) return null;
-
-    const targetMs = new Date(targetIso).getTime();
-    if (!Number.isFinite(targetMs)) return null;
-
-    const remaining = targetMs - flashNow;
-    if (remaining <= 0) return null;
-
-    return formatCountdownParts(remaining);
-  }, [
-    flashNow,
-    product?.flashActive,
-    product?.flashExpiresAt,
-    product?.flashStartsAt,
-    product?.flashUpcoming,
-    product?.isFlash24h,
-  ]);
-
   const trustHighlights = [
     {
       key: "auth",
@@ -1929,11 +1893,12 @@ export default function ProductPage() {
       .filter((candidate) => {
         const aliases = productAliases(candidate);
         if (!aliases.length) return false;
+        if (candidate.isFlash24h) return false;
         return !aliases.some((alias) => blockedAliases.has(alias));
       })
       .map((candidate) => scoreRecommendation(candidate, product, tasteHistory, favoriteProducts, effectiveTasteProfile))
       .sort((a, b) => b.score - a.score)
-      .slice(0, 8);
+      .slice(0, 24);
 
     return scored;
   }, [catalogProducts, effectiveTasteProfile, favoriteProducts, product, tasteHistory]);
@@ -2209,16 +2174,6 @@ export default function ProductPage() {
                   ) : null}
                 </div>
               </div>
-
-              {product.isFlash24h && flashCountdown ? (
-                <div className={`flashCountdown ${product.flashActive ? "active" : "upcoming"}`}>
-                  <div className="flashCountdownEyebrow">Flash 24H</div>
-                  <div className="flashCountdownCopy">
-                    {product.flashActive ? "Termina en" : "Empieza en"}{" "}
-                    <span className="flashCountdownValue">{flashCountdown.compact}</span>
-                  </div>
-                </div>
-              ) : null}
 
               {selectionHint ? (
                 <div className={`hint ${attemptedBuy && selectionMissing ? "err" : ""}`}>{selectionHint}</div>
@@ -3223,40 +3178,6 @@ export default function ProductPage() {
           color: rgba(0, 0, 0, 0.45);
           margin-left: 0;
           font-weight: 900;
-        }
-
-        .flashCountdown {
-          position: relative;
-          margin-top: 10px;
-          border-radius: 18px;
-          padding: 12px 14px;
-          border: 1px solid rgba(195, 42, 42, 0.16);
-          background: linear-gradient(180deg, rgba(255, 245, 245, 0.98), rgba(255, 255, 255, 0.98));
-          box-shadow: 0 14px 34px rgba(195, 42, 42, 0.08);
-        }
-        .flashCountdown.upcoming {
-          border-color: rgba(212, 175, 55, 0.2);
-          background: linear-gradient(180deg, rgba(255, 250, 236, 0.98), rgba(255, 255, 255, 0.98));
-          box-shadow: 0 14px 34px rgba(212, 175, 55, 0.08);
-        }
-        .flashCountdownEyebrow {
-          font-size: 11px;
-          font-weight: 1000;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          color: rgba(195, 42, 42, 0.86);
-        }
-        .flashCountdown.upcoming .flashCountdownEyebrow {
-          color: rgba(151, 109, 20, 0.88);
-        }
-        .flashCountdownCopy {
-          margin-top: 6px;
-          font-size: 14px;
-          font-weight: 900;
-          color: rgba(0, 0, 0, 0.82);
-        }
-        .flashCountdownValue {
-          font-variant-numeric: tabular-nums;
         }
 
         .hint {

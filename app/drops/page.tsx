@@ -760,6 +760,60 @@ export default async function DropsPage() {
               ))}
             </div>
 
+            <section className="flashShelf" aria-labelledby="flashShelfTitle">
+              <div className="flashShelfHead">
+                <div>
+                  <div id="flashShelfTitle" className="flashShelfTitle">Drop-Hype 24H</div>
+                  <div className="flashShelfSub">
+                    {isFriday
+                      ? "Los productos flash de 24 horas viven aquí los viernes. Fuera de este espacio no se muestran en la página principal."
+                      : "El Drop-Hype solo abre los viernes."}
+                  </div>
+                </div>
+                <TonePill tone="gold">{isFriday ? "Viernes activo" : "Cerrado por ahora"}</TonePill>
+              </div>
+
+              {isFriday && flashProducts.length ? (
+                <div className="flashGrid">
+                  {flashProducts.map((product) => {
+                    const image = firstMediaImage(product);
+                    const price = Number(product.price || 0);
+                    const compareAt = buildCompareAt(price, product.discountPercent);
+                    const gender = String(product.gender || "unisex").trim().toLowerCase();
+                    const href = `/product/${encodeURIComponent(String(product.slug || product.id || ""))}?g=${encodeURIComponent(
+                      gender === "men" || gender === "women" || gender === "kids" ? gender : "men"
+                    )}`;
+
+                    return (
+                      <Link key={String(product.id)} href={href} className="flashCard">
+                        <div className="flashMedia">
+                          <div className="flashBadge">24H</div>
+                          {image ? <img src={image} alt={product.title || product.name || "Producto flash"} /> : null}
+                        </div>
+                        <div className="flashMeta">
+                          <div className="flashBrand">{product.brand || "JUSP"}</div>
+                          <div className="flashName">{product.title || product.name || "Producto"}</div>
+                          <div className="flashPriceRow">
+                            <div className="flashPrice">${moneyCOP(price)}</div>
+                            {compareAt > 0 ? <div className="flashCompare">${moneyCOP(compareAt)}</div> : null}
+                            {Number(product.discountPercent || 0) > 0 ? (
+                              <div className="flashDiscount">-{Math.round(Number(product.discountPercent || 0))}%</div>
+                            ) : null}
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flashEmpty">
+                  {isFriday
+                    ? "Hoy no hay productos flash 24H activos o programados para este Drop-Hype."
+                    : "El Drop-Hype 24H se habilita solamente los viernes."}
+                </div>
+              )}
+            </section>
+
             {/* FAQ */}
             <div className="faq" aria-label="Preguntas rápidas">
               <div className="faqTop">

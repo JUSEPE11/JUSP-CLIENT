@@ -2554,6 +2554,7 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
 // ✅ Base list por sección: SOLO men/women/kids (+ unisex en men/women)
   const all = useMemo(() => {
     let list = allRaw.filter((p) => matchesGenderScope((p as any).gender, scope));
+    list = list.filter((p) => !Boolean((p as any).isFlash24h));
 
     if (navKey === "snkrs") {
       list = list.filter((p) => productTypeOf(p) === "shoes");

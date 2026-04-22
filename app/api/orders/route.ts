@@ -169,6 +169,7 @@ export async function POST(req: NextRequest) {
     const shipping = body.shipping || {};
     const totals = body.totals || {};
     const customer = body.customer || {};
+    const coupon = body.coupon && typeof body.coupon === "object" ? body.coupon : null;
 
     if (!items.length) {
       return NextResponse.json(
@@ -223,7 +224,10 @@ export async function POST(req: NextRequest) {
       region: shipping.region || null,
       country: shipping.country || "CO",
 
-      shipping_address: shipping,
+      shipping_address: {
+        ...shipping,
+        coupon: coupon || null,
+      },
 
       items,
       items_count: items.reduce((a: number, b: any) => a + (b.qty || 0), 0),

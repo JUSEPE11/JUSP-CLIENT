@@ -22,6 +22,8 @@ type InvoiceRow = {
   status?: string | null;
   customer_email?: string | null;
   total_cop?: number | null;
+  invoice_number?: string | null;
+  invoice_note?: string | null;
 };
 
 function moneyCOP(value: number) {
@@ -74,8 +76,37 @@ export default async function MisFacturasPage() {
     query = query.eq("customer_email", email);
   }
 
-  const { data } = await query;
-  const invoices = (Array.isArray(data) ? (data as InvoiceRow[]) : []).filter(isInvoiceVisible);
+  const [ordersResult, logsResult] = await Promise.all([
+    query,
+    admin
+      .from("logs")
+      .select("id,order_id,user_email,meta,created_at")
+      .eq("scope", "customer_invoice")
+      .eq("user_email", email)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  const orders = Array.isArray(ordersResult.data) ? (ordersResult.data as InvoiceRow[]) : [];
+  const invoiceLogs = Array.isArray(logsResult.data) ? logsResult.data : [];
+  const invoiceMetaByOrder = new Map<string, { invoice_number?: string | null; invoice_note?: string | null; created_at?: string | null }>();
+
+  for (const row of invoiceLogs) {
+    const meta = row?.meta && typeof row.meta === "object" ? row.meta : {};
+    const orderId = String(row?.order_id || meta?.order_id || "").trim();
+    if (!orderId || invoiceMetaByOrder.has(orderId)) continue;
+    invoiceMetaByOrder.set(orderId, {
+      invoice_number: String(meta?.invoice_number || "").trim() || null,
+      invoice_note: String(meta?.note || "").trim() || null,
+      created_at: String(meta?.issued_at || row?.created_at || "").trim() || null,
+    });
+  }
+
+  const invoices = orders
+    .filter(isInvoiceVisible)
+    .map((row) => ({
+      ...row,
+      ...(invoiceMetaByOrder.get(String(row.id || "").trim()) || {}),
+    }));
 
   return (
     <main
@@ -150,7 +181,7 @@ export default async function MisFacturasPage() {
                       Factura
                     </div>
                     <div style={{ marginTop: 8, fontSize: 22, fontWeight: 1000 }}>
-                      #{String(invoice?.order_code || invoice?.id || "").trim()}
+                      #{String(invoice?.invoice_number || invoice?.order_code || invoice?.id || "").trim()}
                     </div>
                     <div style={{ marginTop: 8, fontSize: 14, color: "rgba(0,0,0,0.62)" }}>
                       Emitida el {formatDate(String(invoice?.created_at || ""))}
@@ -158,6 +189,11 @@ export default async function MisFacturasPage() {
                     <div style={{ marginTop: 6, fontSize: 14, color: "rgba(0,0,0,0.62)" }}>
                       Correo: {String(invoice?.customer_email || email || "No disponible")}
                     </div>
+                    {invoice?.invoice_note ? (
+                      <div style={{ marginTop: 6, fontSize: 13, color: "rgba(0,0,0,0.66)" }}>
+                        {String(invoice.invoice_note)}
+                      </div>
+                    ) : null}
                   </div>
 
                   <div>
