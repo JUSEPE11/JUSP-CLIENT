@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import DropsGate from "./DropsGate";
 import { getProducts, type Product } from "@/lib/products";
+import { isFridayInSantiago } from "@/lib/flash";
 
 export const metadata: Metadata = {
   title: "Drops | JUSP",
@@ -77,19 +78,6 @@ function Badge({ label }: { label: string }) {
   return <span className="badge">{label}</span>;
 }
 
-function isFridayInSantiago(now = new Date()) {
-  try {
-    const weekday = new Intl.DateTimeFormat("en-US", {
-      weekday: "short",
-      timeZone: "America/Santiago",
-    }).format(now);
-
-    return weekday.toLowerCase().startsWith("fri");
-  } catch {
-    return now.getDay() === 5;
-  }
-}
-
 function firstMediaImage(product: Product) {
   const images = Array.isArray(product.images) ? product.images : [];
   const image = String(product.image ?? "").trim();
@@ -108,7 +96,7 @@ function moneyCOP(value: number) {
 
 export default async function DropsPage() {
   const isFriday = isFridayInSantiago();
-  const products = await getProducts();
+  const products = await getProducts({ includeFlash24h: true });
   const flashProducts = products.filter((product) => Boolean(product.isFlash24h && (product.flashActive || product.flashUpcoming)));
 
   return (
@@ -782,7 +770,7 @@ export default async function DropsPage() {
                     const gender = String(product.gender || "unisex").trim().toLowerCase();
                     const href = `/product/${encodeURIComponent(String(product.slug || product.id || ""))}?g=${encodeURIComponent(
                       gender === "men" || gender === "women" || gender === "kids" ? gender : "men"
-                    )}`;
+                    )}&drop=1`;
 
                     return (
                       <Link key={String(product.id)} href={href} className="flashCard">

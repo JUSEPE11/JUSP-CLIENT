@@ -297,6 +297,14 @@ function buildTrackingSearchUrl(carrierRaw: string, trackingRaw: string) {
   return `https://www.google.com/search?q=${encodeURIComponent(q)}`;
 }
 
+function build17TrackUrl(trackingRaw: string, carrierRaw?: string | null) {
+  const code = String(trackingRaw || "").trim();
+  if (!code) return null;
+  const carrier = String(carrierRaw || "").trim();
+  const q = carrier ? `${code} ${carrier}` : code;
+  return `https://www.17track.net/es?nums=${encodeURIComponent(q)}`;
+}
+
 function normalizeHub(rawA?: string | null, rawB?: string | null, carrier?: string | null) {
   const raw = `${safeStr(rawA)} ${safeStr(rawB)} ${safeStr(carrier)}`.toLowerCase();
   if (raw.includes("miami") || raw.includes("mia") || raw.includes("florida")) return "Miami, Florida 🇺🇸";
@@ -617,6 +625,7 @@ export default function PedidoDetallePage() {
 
     const trackingUrl = tracking ? buildTrackingUrl(carrier, tracking) : null;
     const trackingSearchUrl = tracking ? buildTrackingSearchUrl(carrier, tracking) : null;
+    const tracking17Url = tracking ? build17TrackUrl(tracking, carrier) : null;
 
     const pi = o?.payment_intent_id ? String(o.payment_intent_id) : "";
     const hubLabel = normalizeHub(o?.shipping_origin, o?.origin_hub, o?.carrier);
@@ -644,6 +653,7 @@ export default function PedidoDetallePage() {
       carrierPretty: carrierLabel(carrier),
       trackingUrl,
       trackingSearchUrl,
+      tracking17Url,
       pi,
       timeline,
       hubLabel,
@@ -973,6 +983,10 @@ export default function PedidoDetallePage() {
                         <a className="btn tiny" href={view.trackingUrl} target="_blank" rel="noreferrer">
                           Ver tracking
                         </a>
+                      ) : view.tracking17Url ? (
+                        <a className="btn tiny" href={view.tracking17Url} target="_blank" rel="noreferrer">
+                          Ver tracking
+                        </a>
                       ) : view.trackingSearchUrl ? (
                         <a className="btn tiny" href={view.trackingSearchUrl} target="_blank" rel="noreferrer">
                           Buscar tracking
@@ -984,6 +998,56 @@ export default function PedidoDetallePage() {
                       )}
                     </div>
                   </div>
+
+                  <div className={`track-map ${view.tracking ? "active" : ""}`}>
+                    <div className="track-map-bg" />
+                    <div className="track-map-route route-a" />
+                    <div className={`track-map-route route-b ${view.progress >= 56 ? "on" : ""}`} />
+                    <div className={`track-map-route route-c ${view.progress >= 76 ? "on" : ""}`} />
+
+                    <div className={`track-pin pin-origin ${view.progress >= 12 ? "on" : ""}`}>
+                      <span className="pin-dot">A</span>
+                      <span className="pin-label">{view.hubLabel}</span>
+                    </div>
+
+                    <div className={`track-pin pin-local ${view.progress >= 76 ? "on" : ""}`}>
+                      <span className="pin-dot">B</span>
+                      <span className="pin-label">{view.city || "Centro local"}</span>
+                    </div>
+
+                    <div className={`track-pin pin-dest ${view.progress >= 96 ? "on" : ""}`}>
+                      <span className="pin-dot">C</span>
+                      <span className="pin-label">{view.line1}</span>
+                    </div>
+
+                    <div className="track-card">
+                      <div className="track-card-box">📦</div>
+                      <div className={`track-card-badge ${view.tracking ? "live" : ""}`}>
+                        {view.tracking ? "TRACKING ACTIVO" : "PREPARANDO"}
+                      </div>
+                      <div className="track-card-meta">{view.routeLabel}</div>
+                      <div className="track-card-sub">
+                        {view.tracking
+                          ? `Código: ${view.tracking}`
+                          : "Cuando se asigne la guía, verás aquí la ruta y el acceso al courier."}
+                      </div>
+                    </div>
+                  </div>
+
+                  {view.tracking ? (
+                    <div className="track-links">
+                      {view.tracking17Url ? (
+                        <a className="track-link-chip" href={view.tracking17Url} target="_blank" rel="noreferrer">
+                          Abrir en 17TRACK
+                        </a>
+                      ) : null}
+                      {view.trackingSearchUrl ? (
+                        <a className="track-link-chip ghost" href={view.trackingSearchUrl} target="_blank" rel="noreferrer">
+                          Buscar en navegador
+                        </a>
+                      ) : null}
+                    </div>
+                  ) : null}
 
                   {!view.tracking ? (
                     <div className="track-empty">
@@ -1563,6 +1627,205 @@ export default function PedidoDetallePage() {
           color: rgba(0, 0, 0, 0.7);
           font-size: 12px;
           line-height: 1.55;
+        }
+        .track-map {
+          position: relative;
+          margin-top: 14px;
+          min-height: 250px;
+          border-radius: 24px;
+          overflow: hidden;
+          border: 1px solid rgba(0, 0, 0, 0.06);
+          background:
+            linear-gradient(180deg, rgba(255,255,255,0.96), rgba(247,247,247,0.96));
+        }
+        .track-map-bg {
+          position: absolute;
+          inset: 0;
+          background:
+            radial-gradient(circle at 18% 18%, rgba(114, 197, 121, 0.22), transparent 0 16%),
+            radial-gradient(circle at 76% 20%, rgba(91, 167, 232, 0.28), transparent 0 18%),
+            radial-gradient(circle at 82% 76%, rgba(114, 197, 121, 0.18), transparent 0 16%),
+            linear-gradient(115deg, transparent 0 8%, rgba(0,0,0,0.045) 8% 9%, transparent 9% 17%, rgba(0,0,0,0.045) 17% 18%, transparent 18% 26%, rgba(0,0,0,0.045) 26% 27%, transparent 27% 100%),
+            linear-gradient(25deg, transparent 0 14%, rgba(0,0,0,0.04) 14% 15%, transparent 15% 28%, rgba(0,0,0,0.04) 28% 29%, transparent 29% 100%),
+            #f4f4f1;
+          opacity: 0.96;
+        }
+        .track-map-route {
+          position: absolute;
+          height: 5px;
+          border-radius: 999px;
+          background: rgba(242, 193, 92, 0.35);
+          transform-origin: left center;
+        }
+        .track-map-route.route-a {
+          left: 64%;
+          top: 26%;
+          width: 18%;
+          transform: rotate(140deg);
+          background: rgba(242, 193, 92, 0.95);
+        }
+        .track-map-route.route-b {
+          left: 43%;
+          top: 52%;
+          width: 28%;
+          transform: rotate(-14deg);
+          background: rgba(242, 193, 92, 0.35);
+        }
+        .track-map-route.route-b.on {
+          background: rgba(242, 193, 92, 0.95);
+        }
+        .track-map-route.route-c {
+          left: 56%;
+          top: 68%;
+          width: 20%;
+          transform: rotate(80deg);
+          background: rgba(84, 196, 112, 0.28);
+        }
+        .track-map-route.route-c.on {
+          background: rgba(84, 196, 112, 0.92);
+        }
+        .track-pin {
+          position: absolute;
+          display: grid;
+          gap: 4px;
+          align-items: center;
+        }
+        .track-pin .pin-dot {
+          width: 28px;
+          height: 28px;
+          border-radius: 999px;
+          display: inline-grid;
+          place-items: center;
+          font-size: 12px;
+          font-weight: 1000;
+          background: rgba(255,255,255,0.92);
+          border: 2px solid rgba(242, 193, 92, 0.7);
+          color: rgba(206, 143, 14, 0.95);
+          box-shadow: 0 10px 22px rgba(0,0,0,0.08);
+        }
+        .track-pin.on .pin-dot {
+          background: #fff9eb;
+        }
+        .track-pin .pin-label {
+          display: inline-block;
+          max-width: 150px;
+          font-size: 11px;
+          font-weight: 900;
+          line-height: 1.2;
+          color: rgba(0,0,0,0.7);
+        }
+        .pin-origin {
+          top: 18px;
+          right: 56px;
+        }
+        .pin-local {
+          right: 70px;
+          bottom: 28px;
+        }
+        .pin-dest {
+          left: 48px;
+          bottom: 50px;
+        }
+        .track-card {
+          position: absolute;
+          left: 18px;
+          top: 34px;
+          width: 150px;
+          min-height: 180px;
+          border-radius: 22px;
+          background: rgba(255,255,255,0.94);
+          border: 2px solid rgba(0,0,0,0.85);
+          box-shadow: 0 18px 44px rgba(0,0,0,0.12);
+          padding: 18px 14px;
+          display: grid;
+          align-content: start;
+          gap: 12px;
+        }
+        .track-card-box {
+          font-size: 48px;
+          line-height: 1;
+        }
+        .track-card-badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: fit-content;
+          padding: 5px 9px;
+          border-radius: 10px;
+          background: rgba(0,0,0,0.08);
+          color: rgba(0,0,0,0.6);
+          font-size: 11px;
+          font-weight: 1000;
+          letter-spacing: 0.04em;
+        }
+        .track-card-badge.live {
+          background: #7ddf8f;
+          color: #fff;
+        }
+        .track-card-meta {
+          font-size: 13px;
+          font-weight: 950;
+          color: #111;
+          line-height: 1.25;
+        }
+        .track-card-sub {
+          font-size: 11px;
+          color: rgba(0,0,0,0.62);
+          font-weight: 800;
+          line-height: 1.45;
+          word-break: break-word;
+        }
+        .track-links {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          margin-top: 12px;
+        }
+        .track-link-chip {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 10px 14px;
+          border-radius: 999px;
+          text-decoration: none;
+          font-size: 12px;
+          font-weight: 950;
+          color: #111;
+          background: #fff7dd;
+          border: 1px solid rgba(229, 179, 63, 0.55);
+        }
+        .track-link-chip.ghost {
+          background: rgba(255,255,255,0.82);
+          border: 1px solid rgba(0,0,0,0.08);
+        }
+        .track-map.active .track-card {
+          border-color: rgba(0,0,0,0.75);
+        }
+        @media (max-width: 720px) {
+          .track-map {
+            min-height: 320px;
+          }
+          .track-card {
+            width: 128px;
+            min-height: 164px;
+            left: 14px;
+            top: 18px;
+          }
+          .pin-origin {
+            top: 14px;
+            right: 24px;
+          }
+          .pin-local {
+            right: 30px;
+            bottom: 18px;
+          }
+          .pin-dest {
+            left: 24px;
+            bottom: 22px;
+          }
+          .track-pin .pin-label {
+            max-width: 104px;
+          }
         }
 
         .tl {

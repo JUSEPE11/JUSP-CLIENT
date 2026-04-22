@@ -131,3 +131,16 @@ export function formatCountdownParts(ms: number) {
         : `${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}`,
   };
 }
+
+export function isFridayInSantiago(now = new Date()) {
+  try {
+    const weekday = new Intl.DateTimeFormat("en-US", {
+      weekday: "short",
+      timeZone: "America/Santiago",
+    }).format(now);
+
+    return weekday.toLowerCase().startsWith("fri");
+  } catch {
+    return now.getDay() === 5;
+  }
+}

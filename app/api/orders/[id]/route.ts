@@ -542,25 +542,57 @@ function normalizeOrderForTracking(row: JsonMap) {
   return {
     id: asString(row.id, ""),
     orderCode: pickFirstString(row, ["order_code", "code"], ""),
+    order_code: pickFirstString(row, ["order_code", "code"], ""),
     status,
     statusLabel: getStatusLabel(status),
+    status_label: getStatusLabel(status),
     customerName,
     customerEmail,
+    customer_name: customerName,
+    customer_email: customerEmail,
     trackingCode,
     trackingUrl,
     courierName,
+    tracking_code: trackingCode === "Pendiente" ? "" : trackingCode,
+    tracking_url: trackingUrl || null,
+    carrier: courierName || null,
+    courier_name: courierName || null,
     etaLabel,
+    eta_label: etaLabel,
     shippingOrigin,
     destinationCountry,
     destinationCity,
     destinationAddress,
+    shipping_origin: shippingOrigin,
+    destination_country: destinationCountry,
+    destination_city: destinationCity,
+    destination_address: destinationAddress,
     productTitle,
     productImage,
+    product_title: productTitle,
+    product_image: productImage,
     progressPercent,
     healthLabel,
     healthTone,
+    progress_percent: progressPercent,
+    health_label: healthLabel,
+    health_tone: healthTone,
     lastUpdateLabel: pickFirstNullableString(row, ["updated_at", "created_at"]),
     timeline,
+    items: Array.isArray(row.items) ? row.items : [],
+    created_at: asNullableString(row.created_at),
+    updated_at: asNullableString(row.updated_at),
+    paid_at: asNullableString(row.paid_at),
+    payment_status: asNullableString(row.payment_status),
+    payment_intent_id: asNullableString(row.payment_intent_id || row.payment_id),
+    shipping_address: isObject(row.shipping_address) ? row.shipping_address : null,
+    confirmed_at: asNullableString(row.confirmed_at),
+    packed_at: asNullableString(row.packed_at || row.preparing_at),
+    shipped_at: asNullableString(row.shipped_at),
+    delivered_at: asNullableString(row.delivered_at),
+    tracking_assigned_at: asNullableString(
+      row.tracking_assigned_at || row.shipped_at || row.updated_at
+    ),
   };
 }
 
@@ -592,13 +624,38 @@ export async function GET(req: NextRequest, ctx: Ctx) {
       return NextResponse.json({ ok: false, error: "Order not found" }, { status: 404 });
     }
 
-    const normalizedOrder = normalizeOrderForTracking(data);
+    const { data: shipment } = await supabase
+      .from("order_shipments")
+      .select("order_id,tracking_code,provider,updated_at,shipped_at,last_event_status,last_event_at")
+      .eq("order_id", cleanId)
+      .maybeSingle();
+
+    const mergedOrder = {
+      ...data,
+      tracking_code:
+        pickFirstString(data as JsonMap, ["tracking_code"], "") ||
+        pickFirstString((shipment ?? {}) as JsonMap, ["tracking_code"], ""),
+      courier_name:
+        pickFirstString(data as JsonMap, ["courier_name", "carrier", "shipping_carrier"], "") ||
+        pickFirstString((shipment ?? {}) as JsonMap, ["provider"], ""),
+      carrier:
+        pickFirstString(data as JsonMap, ["carrier", "courier_name", "shipping_carrier"], "") ||
+        pickFirstString((shipment ?? {}) as JsonMap, ["provider"], ""),
+      shipped_at:
+        pickFirstNullableString(data as JsonMap, ["shipped_at"]) ||
+        pickFirstNullableString((shipment ?? {}) as JsonMap, ["shipped_at", "last_event_at"]),
+      tracking_assigned_at:
+        pickFirstNullableString((shipment ?? {}) as JsonMap, ["updated_at", "last_event_at"]) ||
+        pickFirstNullableString(data as JsonMap, ["tracking_assigned_at", "updated_at"]),
+    };
+
+    const normalizedOrder = normalizeOrderForTracking(mergedOrder);
 
     const res = NextResponse.json(
       {
         ok: true,
         order: normalizedOrder,
-        raw: data,
+        raw: mergedOrder,
       },
       { status: 200 }
     );

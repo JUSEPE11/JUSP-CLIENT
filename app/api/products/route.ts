@@ -809,6 +809,7 @@ function getProductsFast(): Product[] {
 
 export async function GET(req: NextRequest) {
   const sessionId = String(req.nextUrl.searchParams.get("session_id") || "").trim();
+  const includeFlash24h = String(req.nextUrl.searchParams.get("includeFlash24h") || "").trim() === "1";
   const products = getProductsFast();
 
   let countMap: Record<string, number> = {};
@@ -830,7 +831,11 @@ export async function GET(req: NextRequest) {
     };
   });
 
-  return NextResponse.json(enriched, {
+  const visibleProducts = includeFlash24h
+    ? enriched
+    : enriched.filter((product) => !Boolean(product?.isFlash24h));
+
+  return NextResponse.json(visibleProducts, {
     headers: {
       "Cache-Control": "no-store, max-age=0",
     },

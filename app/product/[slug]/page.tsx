@@ -895,6 +895,7 @@ export default function ProductPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const gParam = searchParams?.get("g");
+  const dropParam = searchParams?.get("drop") === "1";
 
   const slug = decodeURIComponent(String(params?.slug || "")).trim().toLowerCase();
 
@@ -921,6 +922,19 @@ export default function ProductPage() {
     hydrateFavCountsFromProducts,
   } = useStore();
 
+  function isFridayInSantiago(now = new Date()) {
+    try {
+      const weekday = new Intl.DateTimeFormat("en-US", {
+        weekday: "short",
+        timeZone: "America/Santiago",
+      }).format(now);
+
+      return weekday.toLowerCase().startsWith("fri");
+    } catch {
+      return now.getDay() === 5;
+    }
+  }
+
   useEffect(() => {
     let cancelled = false;
 
@@ -928,7 +942,9 @@ export default function ProductPage() {
       try {
         setLoadingProduct(true);
 
-        const res = await fetch("/api/products", { cache: "no-store" });
+        const allowDropFlash = dropParam && isFridayInSantiago();
+        const endpoint = allowDropFlash ? "/api/products?includeFlash24h=1" : "/api/products";
+        const res = await fetch(endpoint, { cache: "no-store" });
         const data = await res.json();
 
         const list = Array.isArray(data) ? data : [];
@@ -962,7 +978,7 @@ export default function ProductPage() {
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [dropParam, slug]);
 
   useEffect(() => {
     let cancelled = false;

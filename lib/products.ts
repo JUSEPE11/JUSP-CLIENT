@@ -82,6 +82,10 @@ type CachePayload = {
   products: Product[];
 };
 
+type GetProductsOptions = {
+  includeFlash24h?: boolean;
+};
+
 function isServer(): boolean {
   return typeof window === "undefined";
 }
@@ -700,7 +704,12 @@ function writeCache(
   } catch {}
 }
 
-function getProductsFast(): Product[] {
+function filterVisibleProducts(products: Product[], options?: GetProductsOptions): Product[] {
+  if (options?.includeFlash24h) return products;
+  return products.filter((product) => !Boolean(product?.isFlash24h));
+}
+
+function getProductsFast(options?: GetProductsOptions): Product[] {
   if (!isServer()) return [];
 
   const excelPath = resolveExcelPath();
@@ -709,34 +718,41 @@ function getProductsFast(): Product[] {
   const cached = readCache(cachePath);
 
   if (cached && cached.excelMtimeMs >= excelMtimeMs && cached.products.length) {
-    return cached.products.map((product) => ({
-      ...product,
-      favoritesCount: product.favoritesCount ?? 0,
-      isFavorite: product.isFavorite ?? false,
-    }));
+    return filterVisibleProducts(
+      cached.products.map((product) => ({
+        ...product,
+        favoritesCount: product.favoritesCount ?? 0,
+        isFavorite: product.isFavorite ?? false,
+      })),
+      options
+    );
   }
 
   const fresh = buildProductsFromExcel();
 
   if (fresh.length) {
     writeCache(cachePath, fresh, excelPath, excelMtimeMs);
-    return fresh;
+    return filterVisibleProducts(fresh, options);
   }
 
   if (cached?.products?.length) {
-    return cached.products.map((product) => ({
-      ...product,
-      favoritesCount: product.favoritesCount ?? 0,
-      isFavorite: product.isFavorite ?? false,
-    }));
+    return filterVisibleProducts(
+      cached.products.map((product) => ({
+        ...product,
+        favoritesCount: product.favoritesCount ?? 0,
+        isFavorite: product.isFavorite ?? false,
+      })),
+      options
+    );
   }
 
   return [];
 }
 
-async function getProductsFromApi(): Promise<Product[]> {
+async function getProductsFromApi(options?: GetProductsOptions): Promise<Product[]> {
   try {
-    const res = await fetch("/api/products", {
+    const includeFlash24h = options?.includeFlash24h ? "?includeFlash24h=1" : "";
+    const res = await fetch(`/api/products${includeFlash24h}`, {
       cache: "no-store",
     });
 
@@ -753,12 +769,12 @@ const EXCEL_PRODUCTS = isServer() ? getProductsFast() : [];
 
 export const PRODUCTS: Product[] = EXCEL_PRODUCTS;
 
-export async function getProducts(): Promise<Product[]> {
+export async function getProducts(options?: GetProductsOptions): Promise<Product[]> {
   if (isServer()) {
-    return getProductsFast();
+    return getProductsFast(options);
   }
 
-  return getProductsFromApi();
+  return getProductsFromApi(options);
 }
 
 export async function getProductById(id: string): Promise<Product | undefined> {

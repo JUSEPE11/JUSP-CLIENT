@@ -74,6 +74,11 @@ function sanitizeOrderItems(items: any[]) {
     .filter((item) => item.id && item.qty > 0);
 }
 
+function normalizeCarrierName(raw: unknown): string | null {
+  const value = String(raw ?? "").trim();
+  return value || null;
+}
+
 export async function GET(req: NextRequest) {
   const gate = await requireSession(req);
   if (!gate.ok) return gate.res;
@@ -109,10 +114,53 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const orders = Array.isArray(data) ? data : [];
+    const orderIds = orders
+      .map((order) => String(order?.id ?? "").trim())
+      .filter(Boolean);
+
+    let shipmentMap = new Map<string, any>();
+    if (orderIds.length) {
+      const { data: shipments } = await supabase
+        .from("order_shipments")
+        .select("order_id,tracking_code,provider,updated_at,shipped_at,last_event_status,last_event_at")
+        .in("order_id", orderIds);
+
+      shipmentMap = new Map(
+        (Array.isArray(shipments) ? shipments : []).map((shipment: any) => [
+          String(shipment?.order_id ?? "").trim(),
+          shipment,
+        ])
+      );
+    }
+
+    const hydratedOrders = orders.map((order: any) => {
+      const shipment = shipmentMap.get(String(order?.id ?? "").trim());
+      const trackingCode =
+        String(order?.tracking_code ?? "").trim() ||
+        String(shipment?.tracking_code ?? "").trim() ||
+        null;
+      const carrier =
+        normalizeCarrierName(order?.carrier) ||
+        normalizeCarrierName(order?.courier_name) ||
+        normalizeCarrierName(order?.shipping_carrier) ||
+        normalizeCarrierName(shipment?.provider);
+
+      return {
+        ...order,
+        tracking_code: trackingCode,
+        carrier,
+        courier_name: order?.courier_name ?? carrier,
+        shipping_carrier: order?.shipping_carrier ?? carrier,
+        shipped_at: order?.shipped_at ?? shipment?.shipped_at ?? null,
+        tracking_updated_at: shipment?.updated_at ?? shipment?.last_event_at ?? null,
+      };
+    });
+
     return NextResponse.json(
       {
         ok: true,
-        orders: Array.isArray(data) ? data : [],
+        orders: hydratedOrders,
       },
       { status: 200, headers: { "Cache-Control": "no-store" } }
     );
