@@ -339,6 +339,13 @@ function routeStatus(order: OrderRow) {
   return "Pedido recibido";
 }
 
+function routeStageIndex(progress: number) {
+  if (progress >= 96) return 3;
+  if (progress >= 76) return 2;
+  if (progress >= 56) return 1;
+  return 0;
+}
+
 function buildRealisticTimeline(order: OrderRow, destination: { city: string; country: string; line1: string }, hubLabel: string): LogisticStep[] {
   const st = String(order.status || "").toLowerCase();
   const pay = String(order.payment_status || "").toLowerCase();
@@ -534,6 +541,7 @@ export default function PedidoDetallePage() {
     const progress = progressForLogistics(o || ({} as OrderRow));
     const routeLabel = routeStatus(o || ({} as OrderRow));
     const timeline = buildRealisticTimeline(o || ({} as OrderRow), destination, hubLabel);
+    const currentStage = routeStageIndex(progress);
 
     return {
       items,
@@ -558,6 +566,7 @@ export default function PedidoDetallePage() {
       timeline,
       hubLabel,
       progress,
+      currentStage,
       routeLabel,
       etaLabel: safeStr(o?.eta_label) || "Entrega estimada en actualización",
       healthLabel: safeStr(o?.health_label) || (tracking ? "En seguimiento" : "Preparando envío"),
@@ -759,7 +768,7 @@ export default function PedidoDetallePage() {
                 <div className="route-top">
                   <div>
                     <div className="route-kicker">SEGUIMIENTO DEL ENVÍO</div>
-                    <div className="route-title">Centro logístico → dirección de entrega</div>
+                    <div className="route-title">Mapa del envío hasta la dirección del cliente</div>
                   </div>
                   <div className="route-right">
                     <span className="route-note">Entrega estimada: {view.etaLabel}</span>
@@ -773,33 +782,41 @@ export default function PedidoDetallePage() {
                   </div>
                   <div className="progress-meta">
                     <span>Progreso del envío</span>
-                    <span>{view.hubLabel}</span>
+                    <span>Ubicación actual: {view.timeline[view.currentStage]?.place || view.hubLabel}</span>
                   </div>
                 </div>
 
                 <div className="route-map">
-                  <div className={`route-node ${view.progress >= 10 ? "done" : ""}`}>
+                  <div className={`route-node ${view.progress >= 10 ? "done" : ""} ${view.currentStage === 0 ? "current" : ""}`}>
                     <div className="route-dot" />
+                    <div className="route-icon">🏁</div>
                     <div className="route-node-k">ORIGEN</div>
                     <div className="route-node-v">{view.hubLabel}</div>
+                    <div className="route-node-s">Pedido recibido y alistado en origen.</div>
                   </div>
 
-                  <div className={`route-node ${view.progress >= 56 ? "done" : ""}`}>
+                  <div className={`route-node ${view.progress >= 56 ? "done" : ""} ${view.currentStage === 1 ? "current" : ""}`}>
                     <div className="route-dot" />
+                    <div className="route-icon">✈️</div>
                     <div className="route-node-k">TRÁNSITO</div>
                     <div className="route-node-v">En proceso de transporte</div>
+                    <div className="route-node-s">El paquete va moviéndose entre centros logísticos.</div>
                   </div>
 
-                  <div className={`route-node ${view.progress >= 76 ? "done" : ""}`}>
+                  <div className={`route-node ${view.progress >= 76 ? "done" : ""} ${view.currentStage === 2 ? "current" : ""}`}>
                     <div className="route-dot" />
+                    <div className="route-icon">📦</div>
                     <div className="route-node-k">CENTRO LOCAL</div>
-                    <div className="route-node-v">Centro de distribución</div>
+                    <div className="route-node-v">{view.city || "Centro de distribución"}</div>
+                    <div className="route-node-s">{view.line2}</div>
                   </div>
 
-                  <div className={`route-node ${view.progress >= 96 ? "done" : ""}`}>
+                  <div className={`route-node ${view.progress >= 96 ? "done" : ""} ${view.currentStage === 3 ? "current" : ""}`}>
                     <div className="route-dot" />
+                    <div className="route-icon">📍</div>
                     <div className="route-node-k">ENTREGA</div>
                     <div className="route-node-v">{view.line1}</div>
+                    <div className="route-node-s">{view.line2}</div>
                   </div>
                 </div>
               </div>
@@ -1306,11 +1323,17 @@ export default function PedidoDetallePage() {
           padding: 12px;
           display: grid;
           gap: 6px;
+          position: relative;
         }
         .route-node.done {
           background: rgba(255, 255, 255, 0.86);
           border-color: rgba(255, 214, 0, 0.28);
           box-shadow: inset 0 0 0 1px rgba(255, 214, 0, 0.14);
+        }
+        .route-node.current {
+          border-color: rgba(16, 185, 129, 0.28);
+          box-shadow: 0 16px 34px rgba(16, 185, 129, 0.12), inset 0 0 0 1px rgba(16, 185, 129, 0.08);
+          background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(241,255,249,0.94));
         }
         .route-dot {
           width: 10px;
@@ -1320,6 +1343,16 @@ export default function PedidoDetallePage() {
         }
         .route-node.done .route-dot {
           background: rgba(16, 185, 129, 0.82);
+        }
+        .route-icon {
+          width: 36px;
+          height: 36px;
+          border-radius: 12px;
+          display: grid;
+          place-items: center;
+          background: rgba(255, 255, 255, 0.92);
+          border: 1px solid rgba(0, 0, 0, 0.07);
+          font-size: 18px;
         }
         .route-node-k {
           font-size: 11px;
@@ -1332,6 +1365,12 @@ export default function PedidoDetallePage() {
           font-weight: 950;
           color: #111;
           line-height: 1.35;
+          word-break: break-word;
+        }
+        .route-node-s {
+          font-size: 12px;
+          line-height: 1.45;
+          color: rgba(0, 0, 0, 0.58);
           word-break: break-word;
         }
 

@@ -271,21 +271,38 @@ export default function HelpHomePage() {
       .trim();
   }
 
+  function tokenize(value: string) {
+    return normalize(value).split(/\s+/).filter(Boolean);
+  }
+
+  function scoreField(field: string, word: string) {
+    if (!field || !word) return 0;
+    if (field === word) return 32;
+    if (field.startsWith(word)) return 20;
+    if (field.includes(word)) return 10;
+    return 0;
+  }
+
   function scoreCard(card: HelpCard, query: string) {
     if (!query) return 1;
 
     const qn = normalize(query);
+    const queryWords = tokenize(query);
     const title = normalize(card.title);
     const description = normalize(card.description);
     const category = normalize(card.category);
     const keywords = card.keywords.map(normalize);
     const searchText = normalize(card.searchText);
+    const haystack = [title, description, category, keywords.join(" "), searchText].join(" ");
 
     let score = 0;
 
     if (title === qn) score += 140;
     if (title.startsWith(qn)) score += 90;
     if (title.includes(qn)) score += 60;
+    if (description.startsWith(qn)) score += 40;
+    if (searchText.startsWith(qn)) score += 38;
+    if (haystack.includes(qn)) score += 28;
 
     if (description.includes(qn)) score += 30;
     if (category.includes(qn)) score += 12;
@@ -297,13 +314,37 @@ export default function HelpHomePage() {
       else if (kw.includes(qn)) score += 24;
     }
 
-    const queryWords = qn.split(/\s+/).filter(Boolean);
+    let matchedWords = 0;
     for (const word of queryWords) {
-      if (title.includes(word)) score += 18;
-      if (description.includes(word)) score += 10;
-      if (category.includes(word)) score += 4;
-      if (keywords.some((kw) => kw.includes(word))) score += 14;
-      if (searchText.includes(word)) score += 12;
+      const wordScore =
+        scoreField(title, word) * 2 +
+        scoreField(description, word) +
+        Math.round(scoreField(category, word) * 0.55) +
+        (keywords.some((kw) => kw.includes(word)) ? 16 : 0) +
+        (searchText.includes(word) ? 14 : 0);
+
+      if (wordScore > 0) matchedWords += 1;
+      score += wordScore;
+    }
+
+    if (queryWords.length) {
+      const coverage = matchedWords / queryWords.length;
+      if (coverage === 1) score += 90 + queryWords.length * 8;
+      else if (coverage >= 0.75) score += 42;
+      else if (coverage >= 0.5) score += 20;
+      else if (coverage === 0) return 0;
+    }
+
+    const orderedPhrase = queryWords.join(" ");
+    if (orderedPhrase && title.includes(orderedPhrase)) score += 44;
+    if (orderedPhrase && description.includes(orderedPhrase)) score += 18;
+    if (orderedPhrase && searchText.includes(orderedPhrase)) score += 26;
+
+    const titleWords = title.split(/\s+/).filter(Boolean);
+    const titleStartsWordByWord =
+      queryWords.length > 1 && queryWords.every((word, index) => titleWords[index]?.startsWith(word));
+    if (titleStartsWordByWord) {
+      score += 36;
     }
 
     return score;

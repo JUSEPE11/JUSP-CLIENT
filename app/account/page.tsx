@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { COOKIE_AT, COOKIE_PROFILE, verifyAccessToken } from "@/lib/auth";
+import { getProducts, type Product } from "@/lib/products";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const runtime = "nodejs";
@@ -139,6 +140,84 @@ function prettyInitial(name: string) {
   return clean ? clean[0]!.toUpperCase() : "J";
 }
 
+function normalizeProfileText(value: unknown) {
+  return String(value ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function buildInterestTokens(profile: JsonRecord, interests: string[]) {
+  const tokens = new Set<string>();
+
+  const push = (value: unknown) => {
+    const normalized = normalizeProfileText(value);
+    if (!normalized) return;
+    for (const token of normalized.split(/\s+/)) {
+      if (token) tokens.add(token);
+    }
+  };
+
+  push(profile?.segment);
+  push(profile?.size);
+  push(profile?.vibe);
+  push(profile?.city);
+  push(profile?.location);
+  for (const interest of interests) push(interest);
+
+  return Array.from(tokens);
+}
+
+function scoreProductForProfile(product: Product, profile: JsonRecord, tokens: string[]) {
+  const haystack = normalizeProfileText(
+    [
+      product.title,
+      product.name,
+      product.brand,
+      product.category,
+      product.kind,
+      product.gender,
+      product.colors?.join(" "),
+      product.tags?.join(" "),
+      product.sport?.join(" "),
+      product.models?.join(" "),
+    ].join(" ")
+  );
+
+  if (!haystack) return 0;
+
+  let score = 0;
+  const segment = normalizeProfileText(profile?.segment);
+  const vibe = normalizeProfileText(profile?.vibe);
+
+  if (segment) {
+    if (segment.includes("muj") && product.gender === "women") score += 80;
+    if (segment.includes("hom") && product.gender === "men") score += 80;
+    if ((segment.includes("nin") || segment.includes("kid")) && product.gender === "kids") score += 80;
+  }
+
+  if (vibe && haystack.includes(vibe)) score += 32;
+
+  for (const token of tokens) {
+    if (!token) continue;
+    if (haystack.includes(token)) score += 18;
+    if (normalizeProfileText(product.brand).startsWith(token)) score += 10;
+  }
+
+  if (Array.isArray(product.tags) && product.tags.length) score += 6;
+  if (Array.isArray(product.colors) && product.colors.length) score += 4;
+  return score;
+}
+
+function productHref(product: Product) {
+  const rawId = String(product.slug || product.id || "").trim();
+  const gender = String(product.gender || "").trim();
+  const query = gender ? `?g=${gender}` : "";
+  return `/product/${encodeURIComponent(rawId)}${query}`;
+}
+
 export default async function AccountPage() {
   const store = await cookies();
 
@@ -182,6 +261,14 @@ export default async function AccountPage() {
 
   const progressWidth = `${Math.max(8, Math.min(completion, 100))}%`;
   const initial = prettyInitial(firstName);
+  const products = await getProducts();
+  const interestTokens = buildInterestTokens(profile, interests);
+  const recommendedProducts = products
+    .map((product) => ({ product, score: scoreProductForProfile(product, profile, interestTokens) }))
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score || String(a.product.title || "").localeCompare(String(b.product.title || "")))
+    .slice(0, 8)
+    .map((entry) => entry.product);
 
   return (
     <main
@@ -992,6 +1079,155 @@ export default async function AccountPage() {
                 de producto.
               </div>
             </div>
+
+            {recommendedProducts.length > 0 ? (
+              <div
+                style={{
+                  marginTop: 22,
+                  borderRadius: 24,
+                  border: "1px solid rgba(0,0,0,0.06)",
+                  background: "linear-gradient(180deg, #fff, #f7f2ed)",
+                  padding: 18,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 900,
+                        letterSpacing: "0.14em",
+                        textTransform: "uppercase",
+                        color: "#ab7d4a",
+                      }}
+                    >
+                      Recomendado para ti
+                    </div>
+                    <div
+                      style={{
+                        marginTop: 6,
+                        fontSize: 22,
+                        fontWeight: 1000,
+                        letterSpacing: "-0.04em",
+                        color: "#111",
+                      }}
+                    >
+                      Productos alineados con tu cuenta
+                    </div>
+                  </div>
+
+                  <Link
+                    href="/products"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minHeight: 42,
+                      borderRadius: 999,
+                      padding: "0 16px",
+                      border: "1px solid rgba(0,0,0,0.08)",
+                      background: "#fff",
+                      color: "#111",
+                      fontSize: 13,
+                      fontWeight: 900,
+                      textDecoration: "none",
+                    }}
+                  >
+                    Ver catálogo
+                  </Link>
+                </div>
+
+                <div
+                  style={{
+                    marginTop: 18,
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+                    gap: 14,
+                  }}
+                >
+                  {recommendedProducts.map((product) => (
+                    <Link
+                      key={String(product.id)}
+                      href={productHref(product)}
+                      style={{
+                        textDecoration: "none",
+                        color: "inherit",
+                        borderRadius: 22,
+                        overflow: "hidden",
+                        border: "1px solid rgba(0,0,0,0.06)",
+                        background: "#fff",
+                        boxShadow: "0 16px 34px rgba(0,0,0,0.06)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          aspectRatio: "1 / 1.08",
+                          background: "linear-gradient(180deg, #f6f1eb, #fff)",
+                        }}
+                      >
+                        {product.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={product.image}
+                            alt={product.title}
+                            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                          />
+                        ) : null}
+                      </div>
+
+                      <div style={{ padding: 14 }}>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 900,
+                            color: "rgba(0,0,0,0.5)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                          }}
+                        >
+                          {product.brand || "JUSP"}
+                        </div>
+                        <div
+                          style={{
+                            marginTop: 8,
+                            fontSize: 16,
+                            lineHeight: 1.2,
+                            fontWeight: 900,
+                            color: "#111",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                            minHeight: 38,
+                          }}
+                        >
+                          {product.title}
+                        </div>
+                        <div
+                          style={{
+                            marginTop: 10,
+                            fontSize: 22,
+                            fontWeight: 1000,
+                            letterSpacing: "-0.04em",
+                            color: "#111",
+                          }}
+                        >
+                          ${Math.round(Number(product.price) || 0).toLocaleString("es-CO")}
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <div

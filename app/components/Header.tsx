@@ -47,7 +47,16 @@ type ImageFeature = {
   variance: number;
   aspect: number;
   hash: string;
+  centerHash: string;
   edgeBalance: number;
+  histogram: number[];
+  centerHistogram: number[];
+};
+type VisualIntent = {
+  brands: string[];
+  categories: string[];
+  genders: string[];
+  colors: string[];
 };
 
 function normalizeSearchText(value: unknown): string {
@@ -177,13 +186,29 @@ function scoreCatalogProduct(product: SearchCatalogProduct, query: string): numb
   return score;
 }
 
-function getCatalogProductImage(product: SearchCatalogProduct): string | undefined {
-  if (typeof product.image === "string" && product.image.trim()) return product.image.trim();
-  if (Array.isArray(product.images)) {
-    const firstImage = product.images.find((item) => typeof item === "string" && item.trim());
-    if (typeof firstImage === "string") return firstImage.trim();
+function getCatalogProductImages(product: SearchCatalogProduct): string[] {
+  const values: string[] = [];
+
+  if (typeof product.image === "string" && product.image.trim()) {
+    values.push(product.image.trim());
   }
-  return undefined;
+
+  if (Array.isArray(product.images)) {
+    for (const item of product.images) {
+      if (typeof item === "string" && item.trim()) values.push(item.trim());
+    }
+  }
+
+  if (Array.isArray(product.media)) {
+    for (const item of product.media) {
+      if (!item || typeof item !== "object") continue;
+      if (item.type === "image" && typeof item.src === "string" && item.src.trim()) {
+        values.push(item.src.trim());
+      }
+    }
+  }
+
+  return [...new Set(values)].slice(0, 6);
 }
 
 function loadImageElement(src: string): Promise<HTMLImageElement> {
@@ -197,8 +222,108 @@ function loadImageElement(src: string): Promise<HTMLImageElement> {
   });
 }
 
+function extractForegroundBounds(
+  image: CanvasImageSource,
+  width: number,
+  height: number
+): { x: number; y: number; width: number; height: number } {
+  if (typeof document === "undefined") {
+    return { x: 0, y: 0, width, height };
+  }
+
+  const probeCanvas = document.createElement("canvas");
+  probeCanvas.width = 64;
+  probeCanvas.height = 64;
+  const probeCtx = probeCanvas.getContext("2d", { willReadFrequently: true });
+  if (!probeCtx) return { x: 0, y: 0, width, height };
+
+  probeCtx.clearRect(0, 0, probeCanvas.width, probeCanvas.height);
+  probeCtx.drawImage(image, 0, 0, probeCanvas.width, probeCanvas.height);
+  const data = probeCtx.getImageData(0, 0, probeCanvas.width, probeCanvas.height).data;
+
+  let borderCount = 0;
+  let borderR = 0;
+  let borderG = 0;
+  let borderB = 0;
+
+  for (let y = 0; y < probeCanvas.height; y += 1) {
+    for (let x = 0; x < probeCanvas.width; x += 1) {
+      const isBorder =
+        x < 4 || y < 4 || x >= probeCanvas.width - 4 || y >= probeCanvas.height - 4;
+      if (!isBorder) continue;
+      const idx = (y * probeCanvas.width + x) * 4;
+      const alpha = data[idx + 3];
+      if (alpha < 8) continue;
+      borderR += data[idx];
+      borderG += data[idx + 1];
+      borderB += data[idx + 2];
+      borderCount += 1;
+    }
+  }
+
+  if (!borderCount) return { x: 0, y: 0, width, height };
+
+  const bgR = borderR / borderCount;
+  const bgG = borderG / borderCount;
+  const bgB = borderB / borderCount;
+  const bgLum = (bgR + bgG + bgB) / 3;
+
+  let minX = probeCanvas.width;
+  let minY = probeCanvas.height;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (let y = 0; y < probeCanvas.height; y += 1) {
+    for (let x = 0; x < probeCanvas.width; x += 1) {
+      const idx = (y * probeCanvas.width + x) * 4;
+      const alpha = data[idx + 3];
+      if (alpha < 8) continue;
+
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
+      const lum = (r + g + b) / 3;
+      const colorDistance = Math.sqrt(
+        Math.pow(r - bgR, 2) + Math.pow(g - bgG, 2) + Math.pow(b - bgB, 2)
+      );
+      const lumDistance = Math.abs(lum - bgLum);
+      const isForeground = colorDistance > 28 || lumDistance > 18;
+
+      if (!isForeground) continue;
+
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    }
+  }
+
+  if (maxX <= minX || maxY <= minY) return { x: 0, y: 0, width, height };
+
+  const padX = Math.max(2, Math.round((maxX - minX) * 0.08));
+  const padY = Math.max(2, Math.round((maxY - minY) * 0.08));
+
+  minX = Math.max(0, minX - padX);
+  minY = Math.max(0, minY - padY);
+  maxX = Math.min(probeCanvas.width - 1, maxX + padX);
+  maxY = Math.min(probeCanvas.height - 1, maxY + padY);
+
+  return {
+    x: (minX / probeCanvas.width) * width,
+    y: (minY / probeCanvas.height) * height,
+    width: ((maxX - minX + 1) / probeCanvas.width) * width,
+    height: ((maxY - minY + 1) / probeCanvas.height) * height,
+  };
+}
+
 function computeImageFeatureFromImage(image: CanvasImageSource, width: number, height: number): ImageFeature | null {
   if (typeof document === "undefined") return null;
+
+  const bounds = extractForegroundBounds(image, width, height);
+  const cropX = Math.max(0, bounds.x);
+  const cropY = Math.max(0, bounds.y);
+  const cropWidth = Math.max(1, bounds.width);
+  const cropHeight = Math.max(1, bounds.height);
 
   const canvas = document.createElement("canvas");
   canvas.width = 24;
@@ -207,13 +332,14 @@ function computeImageFeatureFromImage(image: CanvasImageSource, width: number, h
   if (!ctx) return null;
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+  ctx.drawImage(image, cropX, cropY, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
 
   const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
   let count = 0;
   let sumR = 0;
   let sumG = 0;
   let sumB = 0;
+  const histogram = new Array<number>(16).fill(0);
 
   for (let i = 0; i < data.length; i += 4) {
     const alpha = data[i + 3];
@@ -221,6 +347,8 @@ function computeImageFeatureFromImage(image: CanvasImageSource, width: number, h
     sumR += data[i];
     sumG += data[i + 1];
     sumB += data[i + 2];
+    const bucket = Math.max(0, Math.min(15, Math.floor(((data[i] + data[i + 1] + data[i + 2]) / 3) / 16)));
+    histogram[bucket] += 1;
     count += 1;
   }
 
@@ -248,7 +376,7 @@ function computeImageFeatureFromImage(image: CanvasImageSource, width: number, h
   if (!hashCtx) return null;
 
   hashCtx.clearRect(0, 0, hashCanvas.width, hashCanvas.height);
-  hashCtx.drawImage(image, 0, 0, hashCanvas.width, hashCanvas.height);
+  hashCtx.drawImage(image, cropX, cropY, cropWidth, cropHeight, 0, 0, hashCanvas.width, hashCanvas.height);
   const hashData = hashCtx.getImageData(0, 0, hashCanvas.width, hashCanvas.height).data;
   const rows: number[][] = [];
 
@@ -271,15 +399,63 @@ function computeImageFeatureFromImage(image: CanvasImageSource, width: number, h
     }
   }
 
+  const centerCanvas = document.createElement("canvas");
+  centerCanvas.width = 9;
+  centerCanvas.height = 8;
+  const centerCtx = centerCanvas.getContext("2d", { willReadFrequently: true });
+  if (!centerCtx) return null;
+
+  const centerCropWidth = Math.max(1, cropWidth * 0.68);
+  const centerCropHeight = Math.max(1, cropHeight * 0.68);
+  const centerCropX = Math.max(0, cropX + (cropWidth - centerCropWidth) / 2);
+  const centerCropY = Math.max(0, cropY + (cropHeight - centerCropHeight) / 2);
+  centerCtx.clearRect(0, 0, centerCanvas.width, centerCanvas.height);
+  centerCtx.drawImage(
+    image,
+    centerCropX,
+    centerCropY,
+    centerCropWidth,
+    centerCropHeight,
+    0,
+    0,
+    centerCanvas.width,
+    centerCanvas.height
+  );
+  const centerData = centerCtx.getImageData(0, 0, centerCanvas.width, centerCanvas.height).data;
+  let centerHash = "";
+  const centerHistogram = new Array<number>(16).fill(0);
+  const centerRows: number[][] = [];
+
+  for (let y = 0; y < centerCanvas.height; y += 1) {
+    const row: number[] = [];
+    for (let x = 0; x < centerCanvas.width; x += 1) {
+      const idx = (y * centerCanvas.width + x) * 4;
+      const lum = (centerData[idx] + centerData[idx + 1] + centerData[idx + 2]) / 3;
+      row.push(lum);
+      const bucket = Math.max(0, Math.min(15, Math.floor(lum / 16)));
+      centerHistogram[bucket] += 1;
+    }
+    centerRows.push(row);
+  }
+
+  for (const row of centerRows) {
+    for (let x = 0; x < 8; x += 1) {
+      centerHash += row[x] > row[x + 1] ? "1" : "0";
+    }
+  }
+
   return {
     r,
     g,
     b,
     brightness,
     variance,
-    aspect: width > 0 && height > 0 ? width / height : 1,
+    aspect: cropWidth > 0 && cropHeight > 0 ? cropWidth / cropHeight : 1,
     hash,
+    centerHash,
     edgeBalance,
+    histogram: histogram.map((value) => value / count),
+    centerHistogram: centerHistogram.map((value) => value / (centerCanvas.width * centerCanvas.height)),
   };
 }
 
@@ -316,6 +492,59 @@ function inferVisualTokens(feature: ImageFeature): string[] {
   return [...new Set(tokens)];
 }
 
+function inferIntentFromImage(fileName: string, feature: ImageFeature): VisualIntent {
+  const text = normalizeSearchText(fileName);
+  const brands = new Set<string>();
+  const categories = new Set<string>();
+  const genders = new Set<string>();
+  const colors = new Set<string>(inferVisualTokens(feature));
+
+  const brandMatchers = [
+    ["nike", ["nike", "jordan", "jumpman"]],
+    ["jordan", ["jordan", "jumpman"]],
+    ["puma", ["puma"]],
+    ["adidas", ["adidas"]],
+    ["new-balance", ["new balance", "newbalance", "nb"]],
+  ] as const;
+
+  for (const [brand, terms] of brandMatchers) {
+    if (terms.some((term) => text.includes(normalizeSearchText(term)))) brands.add(brand);
+  }
+
+  const categoryMatchers = [
+    ["sports-bra", ["bra", "sports bra", "sujetador", "top", "support", "tank", "padde", "padded"]],
+    ["shirt", ["shirt", "camiseta", "tee", "polo", "playera"]],
+    ["pants", ["pants", "pant", "pantalon", "leggings", "jogger", "trouser"]],
+    ["shorts", ["short", "shorts"]],
+    ["jacket", ["jacket", "chaqueta", "hoodie", "sudadera"]],
+    ["cap", ["cap", "gorra", "hat"]],
+    ["shoes", ["shoe", "shoes", "zapatilla", "zapatillas", "sneaker", "tenis"]],
+  ] as const;
+
+  for (const [category, terms] of categoryMatchers) {
+    if (terms.some((term) => text.includes(normalizeSearchText(term)))) categories.add(category);
+  }
+
+  if (/\bmujer\b|\bwomen\b|\bladies\b|\bfemale\b/.test(text)) genders.add("women");
+  if (/\bhombre\b|\bmen\b|\bmale\b/.test(text)) genders.add("men");
+  if (/\bninos\b|\bnino\b|\bkids\b|\bgirls\b|\bboys\b/.test(text)) genders.add("kids");
+
+  if (feature.aspect > 0.78 && feature.aspect < 1.36) {
+    categories.add("sports-bra");
+  } else if (feature.aspect > 0.56 && feature.aspect < 1.1) {
+    categories.add("shirt");
+  } else if (feature.aspect >= 1.36) {
+    categories.add("pants");
+  }
+
+  return {
+    brands: [...brands],
+    categories: [...categories],
+    genders: [...genders],
+    colors: [...colors],
+  };
+}
+
 function hammingDistance(a: string, b: string): number {
   if (!a || !b || a.length !== b.length) return Math.max(a.length, b.length, 64);
   let diff = 0;
@@ -323,6 +552,65 @@ function hammingDistance(a: string, b: string): number {
     if (a[i] !== b[i]) diff += 1;
   }
   return diff;
+}
+
+function histogramDistance(a: number[], b: number[]): number {
+  const length = Math.min(a.length, b.length);
+  let total = 0;
+  for (let i = 0; i < length; i += 1) {
+    total += Math.abs(a[i] - b[i]);
+  }
+  return total;
+}
+
+function scoreIntentMatch(product: SearchCatalogProduct, intent: VisualIntent): number {
+  const haystack = buildSearchHaystack(product);
+  const brand = normalizeSearchText(product.brand || "");
+  const gender = normalizeSearchText(product.gender || "");
+  const category = normalizeSearchText(`${product.kind || ""} ${product.category || ""} ${product.title || ""}`);
+  let score = 0;
+
+  if (intent.brands.length) {
+    const matchesBrand = intent.brands.some((token) => brand.includes(token) || haystack.includes(token));
+    score += matchesBrand ? 68 : -34;
+  }
+
+  if (intent.genders.length) {
+    const matchesGender = intent.genders.some((token) => gender.includes(token) || haystack.includes(token));
+    score += matchesGender ? 24 : -12;
+  }
+
+  if (intent.categories.length) {
+    const categoryMap: Record<string, string[]> = {
+      "sports-bra": ["bra", "sujetador", "top", "support", "tank", "sports bra"],
+      shirt: ["shirt", "camiseta", "tee", "polo", "playera"],
+      pants: ["pants", "pantalon", "leggings", "jogger", "trouser"],
+      shorts: ["short", "shorts"],
+      jacket: ["jacket", "chaqueta", "hoodie", "sudadera"],
+      cap: ["cap", "gorra", "hat"],
+      shoes: ["shoe", "shoes", "zapatilla", "zapatillas", "sneaker", "tenis"],
+    };
+
+    let bestCategoryScore = -18;
+    for (const token of intent.categories) {
+      const terms = categoryMap[token] || [token];
+      const match = terms.some((term) => category.includes(normalizeSearchText(term)) || haystack.includes(normalizeSearchText(term)));
+      if (match) {
+        bestCategoryScore = Math.max(bestCategoryScore, 42);
+      }
+    }
+    score += bestCategoryScore;
+  }
+
+  if (intent.colors.length) {
+    let colorHits = 0;
+    for (const token of intent.colors.slice(0, 3)) {
+      if (haystack.includes(normalizeSearchText(token))) colorHits += 1;
+    }
+    score += colorHits * 8;
+  }
+
+  return score;
 }
 
 function scoreVisualMatch(product: SearchCatalogProduct, source: ImageFeature, candidate: ImageFeature): number {
@@ -334,9 +622,21 @@ function scoreVisualMatch(product: SearchCatalogProduct, source: ImageFeature, c
   const varianceDistance = Math.abs(source.variance - candidate.variance) * 180;
   const aspectDistance = Math.abs(source.aspect - candidate.aspect) * 42;
   const hashDistance = hammingDistance(source.hash, candidate.hash);
+  const centerHashDistance = hammingDistance(source.centerHash, candidate.centerHash);
   const edgeDistance = Math.abs(source.edgeBalance - candidate.edgeBalance) * 2.4;
+  const histogramDelta = histogramDistance(source.histogram, candidate.histogram) * 150;
+  const centerHistogramDelta = histogramDistance(source.centerHistogram, candidate.centerHistogram) * 180;
 
-  let score = 460 - colorDistance * 0.78 - varianceDistance - aspectDistance - hashDistance * 4.2 - edgeDistance;
+  let score =
+    540 -
+    colorDistance * 0.66 -
+    varianceDistance -
+    aspectDistance -
+    hashDistance * 2.9 -
+    centerHashDistance * 4.4 -
+    edgeDistance -
+    histogramDelta -
+    centerHistogramDelta;
   const haystack = buildSearchHaystack(product);
 
   for (const token of inferVisualTokens(source)) {
@@ -352,6 +652,15 @@ function scoreVisualMatch(product: SearchCatalogProduct, source: ImageFeature, c
     normalizedCategory.includes("sujetador")
   ) {
     if (source.aspect > 0.78 && source.aspect < 1.35) score += 16;
+  }
+
+  if (
+    normalizedCategory.includes("shirt") ||
+    normalizedCategory.includes("camiseta") ||
+    normalizedCategory.includes("tee") ||
+    normalizedCategory.includes("polo")
+  ) {
+    if (source.aspect > 0.62 && source.aspect < 1.08) score += 10;
   }
 
   return score;
@@ -697,11 +1006,19 @@ function iconNameForKey(key: Exclude<MegaKey, null>, label: string): string {
 }
 
 export default function Header() {
-  const { cartCount, openCart } = useStore();
+  const { cartCount, openCart, closePanel, state } = useStore();
 
   const prevCartCount = useRef<number>(cartCount);
   const [cartBump, setCartBump] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+
+  const toggleCartPanel = () => {
+    if (state.ui.panel === "cart") {
+      closePanel();
+      return;
+    }
+    openCart();
+  };
 
   useEffect(() => {
     const prev = prevCartCount.current;
@@ -1252,16 +1569,27 @@ export default function Header() {
         setProducts([]);
         return;
       }
+      const intent = inferIntentFromImage(file.name, sourceFeature);
 
       const ranked = await Promise.all(
         catalog.map(async (product) => {
-          const image = getCatalogProductImage(product);
-          if (!image) return null;
-          const feature = await getCachedImageFeature(image);
-          if (!feature) return null;
+          const images = getCatalogProductImages(product);
+          if (!images.length) return null;
+
+          let bestScore = Number.NEGATIVE_INFINITY;
+          for (const image of images) {
+            const feature = await getCachedImageFeature(image);
+            if (!feature) continue;
+            bestScore = Math.max(
+              bestScore,
+              scoreVisualMatch(product, sourceFeature, feature) + scoreIntentMatch(product, intent)
+            );
+          }
+
+          if (!Number.isFinite(bestScore)) return null;
           return {
             product,
-            score: scoreVisualMatch(product, sourceFeature, feature),
+            score: bestScore,
           };
         })
       );
@@ -1424,7 +1752,7 @@ export default function Header() {
             type="button"
             className={`jusp-icon jusp-cart-ico ${cartBump ? "bump" : ""}`}
             aria-label="Carrito"
-            onClick={() => openCart()}
+            onClick={toggleCartPanel}
             title="Carrito"
           >
             🛒

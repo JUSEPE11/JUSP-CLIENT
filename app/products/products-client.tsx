@@ -428,7 +428,71 @@ function normalizeColorValue(value: string) {
     .replace(/\s+/g, " ")
     .replace(/\bgr[ae]y\b/g, "grey")
     .replace(/\boff white\b/g, "off-white")
+    .replace(/\blightgrey\b/g, "light grey")
+    .replace(/\bdarkgrey\b/g, "dark grey")
     .trim();
+}
+
+function canonicalColorLabel(value: string) {
+  const key = normalizeColorValue(value);
+  const map: Record<string, string> = {
+    black: "Black",
+    negro: "Black",
+    white: "White",
+    blanco: "White",
+    grey: "Grey",
+    gray: "Grey",
+    gris: "Grey",
+    "light grey": "Light Grey",
+    "dark grey": "Dark Grey",
+    red: "Red",
+    rojo: "Red",
+    blue: "Blue",
+    azul: "Blue",
+    "light blue": "Light Blue",
+    "dark blue": "Dark Blue",
+    "sky blue": "Sky Blue",
+    "royal blue": "Royal Blue",
+    green: "Green",
+    verde: "Green",
+    olive: "Olive",
+    pink: "Pink",
+    rosa: "Pink",
+    rosado: "Pink",
+    purple: "Purple",
+    morado: "Purple",
+    violeta: "Purple",
+    lila: "Purple",
+    yellow: "Yellow",
+    amarillo: "Yellow",
+    orange: "Orange",
+    naranja: "Orange",
+    brown: "Brown",
+    marron: "Brown",
+    cafe: "Brown",
+    "cafe ": "Brown",
+    beige: "Beige",
+    cream: "Cream",
+    crema: "Cream",
+    gold: "Gold",
+    silver: "Silver",
+    navy: "Navy",
+    tan: "Tan",
+    khaki: "Khaki",
+    burgundy: "Burgundy",
+    mint: "Mint",
+    cyan: "Cyan",
+    teal: "Teal",
+    maroon: "Maroon",
+    offwhite: "Off-White",
+    "off-white": "Off-White",
+    ivory: "Ivory",
+    sand: "Sand",
+    chocolate: "Chocolate",
+    lime: "Lime",
+    multicolor: "Multicolor",
+  };
+  return map[key] || String(value || "").trim().replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
 function splitColorTokens(value: unknown): string[] {
@@ -442,7 +506,8 @@ function splitColorTokens(value: unknown): string[] {
     .filter((item) => {
       const key = normalizeColorValue(item);
       return key && key !== "n/a" && key !== "na" && key !== "none" && key !== "sin color";
-    });
+    })
+    .map(canonicalColorLabel);
 }
 
 function detectColorFromTitle(p: Product): string[] {
@@ -467,7 +532,7 @@ function detectColorFromTitle(p: Product): string[] {
   for (const [label, terms] of Object.entries(aliases)) {
     if (terms.some((term) => t.includes(normKey(term)))) out.push(label);
   }
-  return out;
+  return out.map(canonicalColorLabel);
 }
 
 function getProductColorLabels(p: Product): string[] {
@@ -481,7 +546,8 @@ function getProductColorLabels(p: Product): string[] {
     ...fromColors,
     ...fromVariants,
     ...fromSingleColor,
-  ]);
+    ...detectColorFromTitle(p),
+  ]).map(canonicalColorLabel);
 }
 
 function productHasColor(p: Product, wanted: string | null) {
@@ -740,15 +806,19 @@ function ColorChip({
       <span className="ring">
         <span className="fill" style={{ backgroundColor: colorToCss(color) || "#111111" }} aria-hidden="true" />
       </span>
+      <span className="txt">{label}</span>
       <style jsx>{`
         .cchip {
-          width: 44px;
-          height: 44px;
-          border-radius: 999px;
+          min-width: 96px;
+          min-height: 44px;
+          padding: 0 12px;
+          border-radius: 16px;
           border: 1px solid rgba(0, 0, 0, 0.14);
           background: #fff;
-          display: inline-grid;
-          place-items: center;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
           cursor: pointer;
           transition: transform 120ms ease, box-shadow 140ms ease, border-color 140ms ease, opacity 140ms ease;
         }
@@ -782,9 +852,20 @@ function ColorChip({
           border: 1px solid rgba(0, 0, 0, 0.12);
           display: inline-block;
         }
+        .txt {
+          font-size: 12px;
+          font-weight: 900;
+          color: #111;
+          text-transform: capitalize;
+          white-space: nowrap;
+        }
       `}</style>
     </button>
   );
+}
+
+function clampPriceRange(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
 }
 
 /** =========================
@@ -2759,6 +2840,50 @@ function ProductsInner({ initialProducts }: { initialProducts: Product[] }) {
 
     return fromProducts.sort((a, b) => a.localeCompare(b));
   }, [all]);
+
+  const priceExtremes = useMemo(() => {
+    const prices = all
+      .map((p) => Number((p as any).price ?? 0))
+      .filter((n) => Number.isFinite(n) && n > 0)
+      .sort((a, b) => a - b);
+
+    if (!prices.length) {
+      return { min: 0, max: 500000 };
+    }
+
+    return {
+      min: Math.floor(prices[0] / 1000) * 1000,
+      max: Math.ceil(prices[prices.length - 1] / 1000) * 1000,
+    };
+  }, [all]);
+
+  const [priceFloor, setPriceFloor] = useState(priceExtremes.min);
+  const [priceCeil, setPriceCeil] = useState(priceExtremes.max);
+
+  useEffect(() => {
+    const nextRange = (() => {
+      if (!priceBucket) return { min: priceExtremes.min, max: priceExtremes.max };
+      if (priceBucket.endsWith("+")) {
+        const min = Number(priceBucket.slice(0, -1));
+        return {
+          min: Number.isFinite(min) ? min : priceExtremes.min,
+          max: priceExtremes.max,
+        };
+      }
+      const parts = priceBucket.split("-");
+      const min = Number(parts[0]);
+      const max = Number(parts[1]);
+      return {
+        min: Number.isFinite(min) ? min : priceExtremes.min,
+        max: Number.isFinite(max) ? max : priceExtremes.max,
+      };
+    })();
+
+    setPriceFloor(clampPriceRange(nextRange.min, priceExtremes.min, priceExtremes.max));
+    setPriceCeil(clampPriceRange(nextRange.max, priceExtremes.min, priceExtremes.max));
+  }, [priceBucket, priceExtremes.max, priceExtremes.min]);
+
+  const priceRangeActive = priceFloor > priceExtremes.min || priceCeil < priceExtremes.max;
 
   // ✅ PRO MAX: disponibilidad de colores (depende de filtros NO-color)
   const availableColorsSet = useMemo(() => {

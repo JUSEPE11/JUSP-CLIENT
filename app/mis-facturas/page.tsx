@@ -24,6 +24,8 @@ type InvoiceRow = {
   total_cop?: number | null;
   invoice_number?: string | null;
   invoice_note?: string | null;
+  invoice_file_url?: string | null;
+  invoice_file_name?: string | null;
 };
 
 function moneyCOP(value: number) {
@@ -88,7 +90,16 @@ export default async function MisFacturasPage() {
 
   const orders = Array.isArray(ordersResult.data) ? (ordersResult.data as InvoiceRow[]) : [];
   const invoiceLogs = Array.isArray(logsResult.data) ? logsResult.data : [];
-  const invoiceMetaByOrder = new Map<string, { invoice_number?: string | null; invoice_note?: string | null; created_at?: string | null }>();
+  const invoiceMetaByOrder = new Map<
+    string,
+    {
+      invoice_number?: string | null;
+      invoice_note?: string | null;
+      invoice_file_url?: string | null;
+      invoice_file_name?: string | null;
+      created_at?: string | null;
+    }
+  >();
 
   for (const row of invoiceLogs) {
     const meta = row?.meta && typeof row.meta === "object" ? row.meta : {};
@@ -97,6 +108,8 @@ export default async function MisFacturasPage() {
     invoiceMetaByOrder.set(orderId, {
       invoice_number: String(meta?.invoice_number || "").trim() || null,
       invoice_note: String(meta?.note || "").trim() || null,
+      invoice_file_url: String(meta?.invoice_file_url || "").trim() || null,
+      invoice_file_name: String(meta?.invoice_file_name || "").trim() || null,
       created_at: String(meta?.issued_at || row?.created_at || "").trim() || null,
     });
   }
@@ -209,6 +222,25 @@ export default async function MisFacturasPage() {
                   </div>
 
                   <div style={{ display: "grid", gap: 10 }}>
+                    {invoice?.invoice_file_url ? (
+                      <a
+                        href={String(invoice.invoice_file_url)}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          textDecoration: "none",
+                          textAlign: "center",
+                          borderRadius: 999,
+                          background: "#111",
+                          color: "#fff",
+                          padding: "12px 16px",
+                          fontSize: 14,
+                          fontWeight: 1000,
+                        }}
+                      >
+                        {String(invoice?.invoice_file_name || "").trim() || "Ver factura"}
+                      </a>
+                    ) : null}
                     <Link
                       href={`/mis-pedidos/${encodeURIComponent(String(invoice?.id || ""))}`}
                       style={{
