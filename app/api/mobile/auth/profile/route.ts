@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAccessToken } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import {
+  listSavedAddressesForIdentity,
+  upsertSavedAddressForIdentity,
+} from "@/lib/addressBook";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,75 +58,20 @@ async function requireUser(req: NextRequest) {
     };
   }
 
-  return {
-    ok: true as const,
-    userId,
-    email,
-  };
+  return { ok: true as const, userId, email };
 }
 
 function pickProfile(body: any) {
   const profile = body?.profile && typeof body.profile === "object" ? body.profile : body || {};
 
-  const fullName = clean(
-    profile.fullName ||
-      profile.full_name ||
-      profile.name ||
-      profile.nombre ||
-      body?.fullName ||
-      body?.name
-  );
-
-  const documentType = clean(
-    profile.documentType ||
-      profile.document_type ||
-      profile.tipoDocumento ||
-      profile.tipo_documento ||
-      body?.documentType
-  ).toUpperCase();
-
-  const documentNumber = clean(
-    profile.documentNumber ||
-      profile.document_number ||
-      profile.numeroDocumento ||
-      profile.numero_documento ||
-      profile.document ||
-      body?.documentNumber
-  );
-
-  const phone = clean(
-    profile.phone ||
-      profile.telefono ||
-      profile.mobile ||
-      profile.celular ||
-      body?.phone
-  );
-
-  const city = clean(
-    profile.city ||
-      profile.ciudad ||
-      profile.municipality ||
-      profile.municipio ||
-      body?.city
-  );
-
-  const region = clean(
-    profile.region ||
-      profile.departamento ||
-      profile.state ||
-      profile.province ||
-      body?.region
-  );
-
-  const addressLine1 = clean(
-    profile.addressLine1 ||
-      profile.address ||
-      profile.direccion ||
-      profile.street ||
-      body?.addressLine1
-  );
-
-  const notes = clean(profile.notes || profile.notas || body?.notes);
+  const fullName = clean(profile.fullName || profile.full_name || profile.name || profile.nombre);
+  const documentType = clean(profile.documentType || profile.document_type || profile.tipoDocumento).toUpperCase();
+  const documentNumber = clean(profile.documentNumber || profile.document_number || profile.numeroDocumento || profile.document);
+  const phone = clean(profile.phone || profile.telefono || profile.mobile || profile.celular);
+  const municipality = clean(profile.municipality || profile.city || profile.ciudad || profile.municipio);
+  const region = clean(profile.region || profile.departamento || profile.state || profile.province);
+  const addressLine1 = clean(profile.addressLine1 || profile.address || profile.direccion || profile.street);
+  const notes = clean(profile.notes || profile.notas);
 
   return {
     fullName,
@@ -133,8 +82,10 @@ function pickProfile(body: any) {
     document_number: documentNumber,
     phone,
     telefono: phone,
-    city,
-    ciudad: city,
+    city: municipality,
+    ciudad: municipality,
+    municipality,
+    municipio: municipality,
     region,
     departamento: region,
     addressLine1,
@@ -151,7 +102,7 @@ function validateProfile(profile: ReturnType<typeof pickProfile>) {
   if (!profile.documentType) return "Tipo de documento requerido.";
   if (!profile.documentNumber) return "Número de documento requerido.";
   if (!profile.phone) return "Teléfono requerido.";
-  if (!profile.city) return "Ciudad requerida.";
+  if (!profile.municipality) return "Ciudad requerida.";
   if (!profile.region) return "Región/departamento requerido.";
   if (!profile.addressLine1) return "Dirección requerida.";
 
@@ -165,6 +116,67 @@ function validateProfile(profile: ReturnType<typeof pickProfile>) {
   }
 
   return "";
+}
+
+function normalizeMobileAddress(address: any) {
+  return {
+    id: clean(address?.id),
+    label: clean(address?.label),
+    fullName: clean(address?.fullName),
+    email: clean(address?.email).toLowerCase(),
+    documentType: clean(address?.documentType).toUpperCase(),
+    documentNumber: clean(address?.documentNumber),
+    phone: clean(address?.phone),
+    city: clean(address?.municipality || address?.city),
+    municipality: clean(address?.municipality || address?.city),
+    region: clean(address?.region),
+    addressLine1: clean(address?.addressLine1),
+    country: "CO",
+    notes: clean(address?.notes),
+    isDefault: false,
+    createdAt: address?.createdAt || null,
+    updatedAt: address?.updatedAt || null,
+  };
+}
+
+async function buildUserResponse(params: {
+  userId: string;
+  email: string;
+  name: string | null;
+  profile: any;
+}) {
+  const savedAddressesRaw = await listSavedAddressesForIdentity({
+    userId: params.userId,
+    email: params.email,
+  });
+
+  const savedAddresses = savedAddressesRaw.map((address, index) => ({
+    ...normalizeMobileAddress(address),
+    isDefault: index === 0,
+  }));
+
+  const defaultAddress = savedAddresses[0] || null;
+
+  const mergedProfile =
+    params.profile && typeof params.profile === "object"
+      ? {
+          ...params.profile,
+          savedAddresses,
+          defaultAddress,
+        }
+      : {
+          savedAddresses,
+          defaultAddress,
+        };
+
+  return {
+    id: params.userId,
+    email: params.email,
+    name: params.name || null,
+    profile: mergedProfile,
+    savedAddresses,
+    defaultAddress,
+  };
 }
 
 export async function GET(req: NextRequest) {
@@ -187,16 +199,15 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const user = await buildUserResponse({
+      userId: gate.userId,
+      email: data?.email || gate.email,
+      name: data?.name || null,
+      profile: data?.profile || null,
+    });
+
     return NextResponse.json(
-      {
-        ok: true,
-        user: {
-          id: gate.userId,
-          email: data?.email || gate.email,
-          name: data?.name || null,
-          profile: data?.profile || null,
-        },
-      },
+      { ok: true, user },
       { status: 200, headers: { "Cache-Control": "no-store" } }
     );
   } catch (e: any) {
@@ -236,9 +247,30 @@ export async function POST(req: NextRequest) {
         ? existing.profile
         : {};
 
+    const savedAddress = await upsertSavedAddressForIdentity(
+      {
+        userId: gate.userId,
+        email: gate.email,
+      },
+      {
+        label: `${profile.fullName} - ${profile.municipality}`,
+        fullName: profile.fullName,
+        email: gate.email,
+        documentType: profile.documentType,
+        documentNumber: profile.documentNumber,
+        phone: profile.phone,
+        municipality: profile.municipality,
+        region: profile.region,
+        addressLine1: profile.addressLine1,
+        notes: profile.notes,
+      }
+    );
+
     const nextProfile = {
       ...previousProfile,
       ...profile,
+      defaultAddress: savedAddress,
+      lastSavedAddress: savedAddress,
     };
 
     const { data, error } = await admin
@@ -249,7 +281,6 @@ export async function POST(req: NextRequest) {
           email: gate.email,
           name: profile.fullName,
           profile: nextProfile,
-          updated_at: new Date().toISOString(),
         },
         { onConflict: "user_id" }
       )
@@ -263,16 +294,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const user = await buildUserResponse({
+      userId: gate.userId,
+      email: data?.email || gate.email,
+      name: data?.name || profile.fullName,
+      profile: data?.profile || nextProfile,
+    });
+
     return NextResponse.json(
-      {
-        ok: true,
-        user: {
-          id: gate.userId,
-          email: data?.email || gate.email,
-          name: data?.name || profile.fullName,
-          profile: data?.profile || nextProfile,
-        },
-      },
+      { ok: true, user },
       { status: 200, headers: { "Cache-Control": "no-store" } }
     );
   } catch (e: any) {
