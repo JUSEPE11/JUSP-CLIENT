@@ -49,6 +49,7 @@ function couponDiscount(coupon: CouponRow) {
 
 function normalizeCoupon(row: any): CouponRow {
   const meta = row?.meta && typeof row.meta === "object" ? row.meta : {};
+  const status = String(row?.status || meta?.status || meta?.estado || "").trim().toLowerCase();
   return {
     id: String(row?.id || meta?.coupon_id || "").trim(),
     code: String(row?.code || meta?.code || "").trim(),
@@ -57,20 +58,22 @@ function normalizeCoupon(row: any): CouponRow {
     discount_type: String(row?.discount_type || meta?.discount_type || "fixed").trim().toLowerCase(),
     discount_value: row?.discount_value ?? meta?.discount_value ?? 0,
     expires_at: row?.expires_at || meta?.expires_at ? String(row?.expires_at || meta?.expires_at) : null,
-    is_active: row?.is_active !== false && meta?.is_active !== false && meta?.deleted !== true,
+    is_active:
+      row?.is_active !== false &&
+      meta?.is_active !== false &&
+      meta?.deleted !== true &&
+      meta?.used !== true &&
+      meta?.redeemed !== true &&
+      !meta?.used_at &&
+      !meta?.redeemed_at &&
+      !["inactive", "disabled", "deleted", "used", "redeemed", "expired", "no disponible"].includes(status),
     email: String(row?.email || meta?.email || row?.user_email || "").trim().toLowerCase(),
     user_id: String(row?.user_id || meta?.user_id || "").trim(),
   };
 }
 
 function isCouponAvailable(coupon: CouponRow) {
-  if (!String(coupon?.code || "").trim()) return false;
-  if (coupon?.is_active === false) return false;
-  if (!coupon?.expires_at) return true;
-
-  const expiresAt = new Date(coupon.expires_at).getTime();
-  if (!Number.isFinite(expiresAt)) return true;
-  return expiresAt >= Date.now();
+  return Boolean(String(coupon?.code || "").trim()) && coupon?.is_active !== false;
 }
 
 function isMissingCouponsTable(error: any) {
@@ -115,11 +118,12 @@ async function getCoupons(userId: string, email: string): Promise<CouponRow[]> {
 
   const tableResult = await query;
   if (!tableResult.error) {
-    const coupons = (Array.isArray(tableResult.data) ? tableResult.data : [])
+    const tableRows = Array.isArray(tableResult.data) ? tableResult.data : [];
+    const coupons = tableRows
       .map(normalizeCoupon)
       .filter(isCouponAvailable);
 
-    return coupons.length ? coupons : getCouponsFromLogs(admin, userId, email);
+    return tableRows.length ? coupons : getCouponsFromLogs(admin, userId, email);
   }
 
   if (!isMissingCouponsTable(tableResult.error)) return [];

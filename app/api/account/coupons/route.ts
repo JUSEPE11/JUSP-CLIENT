@@ -17,6 +17,7 @@ function pickEmail(payload: any): string {
 
 function normalizeCoupon(row: any) {
   const meta = row?.meta && typeof row.meta === "object" ? row.meta : row || {};
+  const status = String(row?.status || meta?.status || meta?.estado || "").trim().toLowerCase();
   return {
     id: String(row?.id || meta?.coupon_id || "").trim(),
     code: String(row?.code || meta?.code || "").trim(),
@@ -25,17 +26,20 @@ function normalizeCoupon(row: any) {
     discount_type: String(row?.discount_type || meta?.discount_type || "fixed").trim().toLowerCase(),
     discount_value: Number(row?.discount_value ?? meta?.discount_value ?? 0),
     expires_at: row?.expires_at || meta?.expires_at ? String(row?.expires_at || meta.expires_at) : null,
-    is_active: row?.is_active !== false && meta?.is_active !== false && meta?.deleted !== true,
+    is_active:
+      row?.is_active !== false &&
+      meta?.is_active !== false &&
+      meta?.deleted !== true &&
+      meta?.used !== true &&
+      meta?.redeemed !== true &&
+      !meta?.used_at &&
+      !meta?.redeemed_at &&
+      !["inactive", "disabled", "deleted", "used", "redeemed", "expired", "no disponible"].includes(status),
   };
 }
 
 function isCouponAvailable(row: ReturnType<typeof normalizeCoupon>) {
-  if (!row.code || row.is_active === false) return false;
-  if (!row.expires_at) return true;
-
-  const expiresAt = new Date(row.expires_at).getTime();
-  if (!Number.isFinite(expiresAt)) return true;
-  return expiresAt >= Date.now();
+  return Boolean(row.code) && row.is_active !== false;
 }
 
 function isMissingCouponsTable(error: any) {
@@ -118,11 +122,12 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const coupons = (Array.isArray(tableResult.data) ? tableResult.data : [])
+    const tableRows = Array.isArray(tableResult.data) ? tableResult.data : [];
+    const coupons = tableRows
       .map(normalizeCoupon)
       .filter(isCouponAvailable);
 
-    if (!coupons.length) {
+    if (!tableRows.length) {
       const logsResult = await getCouponsFromLogs(admin, userId, email);
       if (logsResult.error) {
         return NextResponse.json({ ok: false, error: logsResult.error.message }, { status: 500 });
