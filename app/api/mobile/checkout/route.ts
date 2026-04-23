@@ -1,3 +1,45 @@
+import { NextResponse } from "next/server";
+import { verifyAccessToken, COOKIE_AT } from "@/lib/auth";
+
+// 🔥 FIX: agregar esta función (era lo que faltaba)
+function getBearerToken(req: Request) {
+  const auth = req.headers.get("authorization") || "";
+  const [type, token] = auth.split(" ");
+  if (type !== "Bearer" || !token) return null;
+  return token.trim();
+}
+
+// 🔥 helpers mínimos (si ya los tienes en otro lado, esto no rompe)
+function getBaseUrl(req: Request) {
+  const url = new URL(req.url);
+  const proto =
+    req.headers.get("x-forwarded-proto") ||
+    url.protocol.replace(":", "") ||
+    "http";
+  const host = req.headers.get("host") || url.host;
+  return `${proto}://${host}`;
+}
+
+function normalizeItems(items: any[]) {
+  if (!Array.isArray(items)) return [];
+  return items.map((item) => ({
+    id: item.id,
+    quantity: Number(item.quantity || 1),
+    price: Number(item.price || 0),
+  }));
+}
+
+function calculateTotal(items: any[]) {
+  return items.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+}
+
+function makeReference() {
+  return `JUSP-${Date.now()}`;
+}
+
 export async function POST(req: Request) {
   try {
     const accessToken = getBearerToken(req);
@@ -41,7 +83,6 @@ export async function POST(req: Request) {
 
     const baseUrl = getBaseUrl(req);
 
-    // 🔥 SOLO WOMPI (SIN CREAR ORDEN)
     const wompiRes = await fetch(`${baseUrl}/api/wompi/checkout-url`, {
       method: "POST",
       headers: {
@@ -54,8 +95,6 @@ export async function POST(req: Request) {
         amountInCents,
         currency: "COP",
         totals: { total },
-
-        // ⚠️ DATOS MÍNIMOS PARA QUE WOMPI FUNCIONE
         customer: {
           fullName: verified.name || "Cliente JUSP",
           email: verified.email,

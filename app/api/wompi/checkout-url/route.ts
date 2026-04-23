@@ -309,7 +309,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const redirectUrl = `jusp://payment-result?reference=${encodeURIComponent(reference)}`;
+    const redirectUrl = `${origin}/checkout/success?reference=${encodeURIComponent(reference)}`;
     const signature = sha256Hex(`${reference}${amountInCents}${currency}${integrity}`);
 
     const reservation = await reserveExcelStock(reference, items, 10);
@@ -326,8 +326,7 @@ export async function POST(req: NextRequest) {
       await dbUpsertOrder({
         order_code: reference,
         wompi_reference: reference,
-        status: "pending_payment",
-        payment_status: "pending_payment",
+        status: "pending",
         total_amount: totalCalculated,
         currency,
         customer_name: fullName,
