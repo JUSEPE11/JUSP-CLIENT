@@ -179,21 +179,23 @@ export default async function MisFacturasPage() {
                   border: "1px solid rgba(0,0,0,0.08)",
                   padding: 20,
                   boxShadow: "0 16px 40px rgba(0,0,0,0.05)",
+                  overflow: "hidden",
                 }}
               >
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "minmax(0, 1.4fr) minmax(200px, 0.8fr) minmax(160px, 0.7fr)",
-                    gap: 14,
+                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                    gap: 18,
                     alignItems: "center",
+                    width: "100%",
                   }}
                 >
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(0,0,0,0.48)" }}>
                       Factura
                     </div>
-                    <div style={{ marginTop: 8, fontSize: 22, fontWeight: 1000 }}>
+                    <div style={{ marginTop: 8, fontSize: 22, fontWeight: 1000, overflowWrap: "anywhere" }}>
                       #{String(invoice?.invoice_number || invoice?.order_code || invoice?.id || "").trim()}
                     </div>
                     <div style={{ marginTop: 8, fontSize: 14, color: "rgba(0,0,0,0.62)" }}>
@@ -209,7 +211,7 @@ export default async function MisFacturasPage() {
                     ) : null}
                   </div>
 
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 12, fontWeight: 1000, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(0,0,0,0.48)" }}>
                       Total
                     </div>
@@ -221,7 +223,7 @@ export default async function MisFacturasPage() {
                     </div>
                   </div>
 
-                  <div style={{ display: "grid", gap: 10 }}>
+                  <div style={{ display: "grid", gap: 10, minWidth: 0 }}>
                     {invoice?.invoice_file_url ? (
                       <a
                         href={String(invoice.invoice_file_url)}
@@ -236,9 +238,15 @@ export default async function MisFacturasPage() {
                           padding: "12px 16px",
                           fontSize: 14,
                           fontWeight: 1000,
+                          width: "100%",
+                          minWidth: 0,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
                         }}
+                        title={String(invoice?.invoice_file_name || "Ver factura")}
                       >
-                        {String(invoice?.invoice_file_name || "").trim() || "Ver factura"}
+                        Ver factura
                       </a>
                     ) : null}
                     <Link
@@ -252,6 +260,8 @@ export default async function MisFacturasPage() {
                         padding: "12px 16px",
                         fontSize: 14,
                         fontWeight: 1000,
+                        width: "100%",
+                        minWidth: 0,
                       }}
                     >
                       Ver detalle
@@ -268,6 +278,8 @@ export default async function MisFacturasPage() {
                         padding: "12px 16px",
                         fontSize: 14,
                         fontWeight: 900,
+                        width: "100%",
+                        minWidth: 0,
                       }}
                     >
                       Ver pedidos
