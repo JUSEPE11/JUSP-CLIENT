@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { COOKIE_AT, verifyAccessToken } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import CouponCountdown from "./CouponCountdown";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -73,7 +74,12 @@ function normalizeCoupon(row: any): CouponRow {
 }
 
 function isCouponAvailable(coupon: CouponRow) {
-  return Boolean(String(coupon?.code || "").trim()) && coupon?.is_active !== false;
+  if (!String(coupon?.code || "").trim() || coupon?.is_active === false) return false;
+  if (!coupon?.expires_at) return true;
+
+  const expiresAt = new Date(coupon.expires_at).getTime();
+  if (!Number.isFinite(expiresAt)) return true;
+  return expiresAt > Date.now();
 }
 
 function isMissingCouponsTable(error: any) {
@@ -179,6 +185,7 @@ export default async function MisCuponesPage() {
               <div className="ticketRight">
                 <div className="ticketDiscount">{couponDiscount(coupon)}</div>
                 <div className="ticketDate">Vence: {formatDate(coupon?.expires_at)}</div>
+                <CouponCountdown expiresAt={coupon?.expires_at} />
                 <div className="ticketStatus">Disponible</div>
               </div>
             </article>
@@ -343,6 +350,34 @@ export default async function MisCuponesPage() {
           padding:7px 11px;
           font-size:12px;
           font-weight:1000;
+        }
+        .couponCountdown{
+          width:max-content;
+          display:inline-flex;
+          align-items:center;
+          gap:8px;
+          border-radius:999px;
+          background:#111;
+          color:#fff;
+          padding:9px 12px;
+          font-size:13px;
+          font-weight:1000;
+          font-variant-numeric:tabular-nums;
+          box-shadow:0 12px 24px rgba(0,0,0,.12);
+        }
+        .couponCountdown.expired{
+          background:#fee2e2;
+          color:#991b1b;
+          box-shadow:none;
+        }
+        .countIcon{
+          display:inline-grid;
+          place-items:center;
+          width:22px;
+          height:22px;
+          border-radius:999px;
+          background:rgba(255,255,255,.16);
+          font-size:14px;
         }
         .couponEmptyState{
           border-radius:30px;

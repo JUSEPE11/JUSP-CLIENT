@@ -39,7 +39,12 @@ function normalizeCoupon(row: any) {
 }
 
 function isCouponAvailable(row: ReturnType<typeof normalizeCoupon>) {
-  return Boolean(row.code) && row.is_active !== false;
+  if (!row.code || row.is_active === false) return false;
+  if (!row.expires_at) return true;
+
+  const expiresAt = new Date(row.expires_at).getTime();
+  if (!Number.isFinite(expiresAt)) return true;
+  return expiresAt > Date.now();
 }
 
 function isMissingCouponsTable(error: any) {

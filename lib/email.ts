@@ -18,6 +18,16 @@ type SendMembershipRequestArgs = {
   plan: "core" | "plus" | "elite";
 };
 
+type SendCouponCreatedArgs = {
+  to: string;
+  code: string;
+  title?: string | null;
+  description?: string | null;
+  discountType?: string | null;
+  discountValue?: number | string | null;
+  expiresAt?: string | null;
+};
+
 function getMembershipPlanLabel(plan: SendMembershipRequestArgs["plan"]) {
   if (plan === "core") return "Core";
   if (plan === "plus") return "Plus";
@@ -120,6 +130,106 @@ function assetHref(src?: string) {
 
 function moneyCOP(value: number) {
   return Math.round(Number(value || 0)).toLocaleString("es-CO");
+}
+
+function couponDiscountLabel(type?: string | null, value?: number | string | null) {
+  const amount = Number(value || 0);
+  if (String(type || "").toLowerCase() === "percentage") return `${amount}% OFF`;
+  return `$${moneyCOP(amount)} OFF`;
+}
+
+function formatCouponDate(value?: string | null) {
+  const raw = String(value || "").trim();
+  if (!raw) return "Sin fecha de vencimiento";
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return raw;
+  return parsed.toLocaleDateString("es-CO", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+export async function sendCouponCreatedEmail({
+  to,
+  code,
+  title,
+  description,
+  discountType,
+  discountValue,
+  expiresAt,
+}: SendCouponCreatedArgs) {
+  const safeTo = String(to || "").trim().toLowerCase();
+  const safeCode = String(code || "").trim().toUpperCase();
+  if (!safeTo || !safeCode) return;
+
+  const origin = process.env.NEXT_PUBLIC_SITE_URL || "https://www.juspco.com";
+  const discount = couponDiscountLabel(discountType, discountValue);
+  const dateLabel = formatCouponDate(expiresAt);
+  const subject = `Tienes un nuevo cupon JUSP: ${safeCode}`;
+
+  const html = `
+    <div style="margin:0;padding:26px;background:#f3f1ec;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#111111">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:680px;margin:0 auto;border-collapse:collapse">
+        <tr>
+          <td style="padding:30px;border-radius:30px;background:linear-gradient(135deg,#111111 0%,#1b1b1b 56%,#2c2c2c 100%);color:#ffffff;box-shadow:0 24px 70px rgba(0,0,0,0.18)">
+            <div style="font-size:12px;font-weight:900;letter-spacing:0.22em;text-transform:uppercase;color:rgba(255,255,255,0.68)">JUSP BENEFIT</div>
+            <div style="margin-top:14px;font-size:38px;line-height:0.98;font-weight:1000;letter-spacing:-0.055em">Nuevo cupon para ti</div>
+            <p style="margin:14px 0 0;font-size:15px;line-height:1.75;color:rgba(255,255,255,0.76)">
+              ${String(title || "Tienes un beneficio disponible").trim()}
+            </p>
+          </td>
+        </tr>
+        <tr><td style="height:18px"></td></tr>
+        <tr>
+          <td style="border-radius:28px;background:#ffffff;border:1px solid rgba(0,0,0,0.08);overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,0.08)">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse">
+              <tr>
+                <td style="padding:28px;background:#111111;color:#ffffff">
+                  <div style="font-size:11px;font-weight:900;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.62)">Codigo</div>
+                  <div style="margin-top:10px;font-size:40px;line-height:1;font-weight:1000;letter-spacing:0.02em">${safeCode}</div>
+                  ${
+                    description
+                      ? `<p style="margin:14px 0 0;color:rgba(255,255,255,0.74);font-size:14px;line-height:1.7">${String(description).trim()}</p>`
+                      : ""
+                  }
+                </td>
+                <td style="width:210px;padding:26px;background:#ffffff;color:#111111">
+                  <div style="font-size:28px;line-height:1;font-weight:1000;letter-spacing:-0.04em">${discount}</div>
+                  <div style="margin-top:12px;font-size:13px;font-weight:800;color:#555555">Vence: ${dateLabel}</div>
+                  <div style="margin-top:18px">
+                    <a href="${origin}/checkout" style="display:inline-block;padding:13px 18px;border-radius:999px;background:#111111;color:#ffffff;text-decoration:none;font-weight:1000;font-size:13px">Usar ahora</a>
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:18px 4px 0;color:#666666;font-size:12px;line-height:1.6">
+            Este cupon esta asociado a tu cuenta JUSP. Si no solicitaste este beneficio, simplemente ignora este correo.
+          </td>
+        </tr>
+      </table>
+    </div>
+  `;
+
+  const text = [
+    "JUSP - Nuevo cupon",
+    "",
+    `Codigo: ${safeCode}`,
+    `Descuento: ${discount}`,
+    `Vence: ${dateLabel}`,
+    "",
+    `${origin}/checkout`,
+  ].join("\n");
+
+  await sendEmail({
+    to: [safeTo],
+    subject,
+    html,
+    text,
+  });
 }
 
 export async function sendProductDropDigestEmail({
