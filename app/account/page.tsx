@@ -226,6 +226,7 @@ export default async function AccountPage() {
       String(profile?.city ?? profile?.location ?? "").trim() ||
       String(primarySavedAddress?.municipality ?? "").trim(),
   });
+  const shouldShowSmartStatus = missingItems.length > 0;
 
   const emailValue = niceValue(profile?.email ?? email, "Sin email");
   const phoneValue = niceValue(profile?.phone ?? profile?.phone_number, "Aún no definido");
@@ -822,6 +823,7 @@ export default async function AccountPage() {
             gap: 18,
           }}
         >
+          {shouldShowSmartStatus ? (
           <div
             className="account-light-card"
             style={{
@@ -941,6 +943,7 @@ export default async function AccountPage() {
               </Link>
             </div>
           </div>
+          ) : null}
 
           <div
             className="account-light-card"

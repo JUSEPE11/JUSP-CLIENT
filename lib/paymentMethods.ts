@@ -81,6 +81,17 @@ function onlyDigits(value: unknown) {
   return String(value ?? "").replace(/\D/g, "");
 }
 
+function normalizeCardExpiryYear(value: unknown) {
+  const digits = onlyDigits(value);
+  if (digits.length === 2) {
+    return `20${digits}`;
+  }
+  if (digits.length >= 4) {
+    return digits.slice(0, 4);
+  }
+  return digits;
+}
+
 function safePayload(value: unknown): AccessTokenPayload {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   const record = value as Record<string, unknown>;
@@ -129,7 +140,7 @@ function normalizePaymentMethod(input: PaymentMethodPayload) {
   const last4 = onlyDigits(input.last4).slice(-4);
   const cardholderName = normalizeText(input.cardholderName);
   const expMonth = onlyDigits(input.expMonth).slice(0, 2);
-  const expYear = onlyDigits(input.expYear).slice(0, 4);
+  const expYear = normalizeCardExpiryYear(input.expYear);
   const provider = normalizeText(input.provider) || "wompi";
   const paymentSourceId = normalizeText(input.paymentSourceId);
   const sourceStatus = normalizeText(input.sourceStatus) || "available";

@@ -157,6 +157,19 @@ function onlyDigits(value: string) {
   return value.replace(/\D/g, "");
 }
 
+function normalizeExpiryYearForStorage(value: string) {
+  const digits = onlyDigits(value);
+  if (digits.length === 2) return `20${digits}`;
+  if (digits.length >= 4) return digits.slice(0, 4);
+  return digits;
+}
+
+function normalizeExpiryYearForWompi(value: string) {
+  const digits = onlyDigits(value);
+  if (digits.length >= 4) return digits.slice(-2);
+  return digits.slice(0, 2);
+}
+
 export default function AccountClientPanels(props: {
   initialEmail: string;
   initialAddresses: SavedAddressRecord[];
@@ -320,7 +333,8 @@ export default function AccountClientPanels(props: {
       const cleanCardNumber = onlyDigits(paymentForm.cardNumber || "");
       const cleanCvc = onlyDigits(paymentForm.cvc || "");
       const expMonth = onlyDigits(paymentForm.expMonth).slice(0, 2);
-      const expYear = onlyDigits(paymentForm.expYear).slice(0, 4);
+      const expYearForWompi = normalizeExpiryYearForWompi(paymentForm.expYear);
+      const expYearForStorage = normalizeExpiryYearForStorage(paymentForm.expYear);
 
       if (cleanCardNumber.length < 13 || cleanCardNumber.length > 19) {
         throw new Error("Escribe un número de tarjeta válido.");
@@ -346,7 +360,7 @@ export default function AccountClientPanels(props: {
             number: cleanCardNumber,
             cvc: cleanCvc,
             exp_month: expMonth,
-            exp_year: expYear,
+            exp_year: expYearForWompi,
             card_holder: paymentForm.cardholderName.trim(),
           }),
         }
@@ -368,7 +382,7 @@ export default function AccountClientPanels(props: {
         last4: cleanCardNumber.slice(-4),
         cardholderName: paymentForm.cardholderName.trim(),
         expMonth,
-        expYear,
+        expYear: expYearForStorage,
         isDefault: paymentForm.isDefault,
         customerEmail: initialEmail,
         acceptanceToken: tokenizationConfig.acceptanceToken,
