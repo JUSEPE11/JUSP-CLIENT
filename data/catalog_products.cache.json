@@ -1,8 +1,8 @@
 {
   "version": 9,
-  "generatedAt": "2026-04-21T18:36:03.824Z",
+  "generatedAt": "2026-04-23T01:03:24.217Z",
   "excelPath": "C:\\JUSP\\jusp-app2\\data\\catalogo_jusp.xlsx",
-  "excelMtimeMs": 1776796194513.438,
+  "excelMtimeMs": 1776885704400.9941,
   "products": [
     {
       "id": "nike-hf5407-010",
@@ -105,8 +105,8 @@
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": true,
-      "flashStartsAt": "2026-04-19T00:00:00.000Z",
-      "flashExpiresAt": "2026-04-22T02:59:00.000Z",
+      "flashStartsAt": "2026-04-22T04:00:00.000Z",
+      "flashExpiresAt": "2026-04-23T04:00:00.000Z",
       "flashActive": true,
       "flashUpcoming": false,
       "variants": [
@@ -1377,7 +1377,7 @@
         "M"
       ],
       "colors": [
-        "blanck"
+        "black"
       ],
       "category": "women",
       "gender": "women",
@@ -1411,9 +1411,9 @@
       "flashUpcoming": false,
       "variants": [
         {
-          "key": "nike-bv3637-010-m-blanck",
+          "key": "nike-bv3637-010-m-black",
           "size": "M",
-          "color": "blanck",
+          "color": "black",
           "price": 99990,
           "stock": 1,
           "isAvailable": true
@@ -1481,7 +1481,7 @@
         "XL"
       ],
       "colors": [
-        "blanck"
+        "black"
       ],
       "category": "women",
       "gender": "women",
@@ -1509,17 +1509,17 @@
       "flashUpcoming": false,
       "variants": [
         {
-          "key": "nike-fz2856-010-l-blanck",
+          "key": "nike-fz2856-010-l-black",
           "size": "L",
-          "color": "blanck",
+          "color": "black",
           "price": 86990,
           "stock": 1,
           "isAvailable": true
         },
         {
-          "key": "nike-fz2856-010-xl-blanck",
+          "key": "nike-fz2856-010-xl-black",
           "size": "XL",
-          "color": "blanck",
+          "color": "black",
           "price": 86990,
           "stock": 1,
           "isAvailable": true
