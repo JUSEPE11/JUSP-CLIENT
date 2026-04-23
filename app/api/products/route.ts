@@ -58,7 +58,15 @@ type Product = {
   tags: string[];
   isNew: boolean;
   discountPercent?: number;
+
+  stock: number;
+  inventory: number;
+  quantity: number;
+  qty: number;
+  availableStock: number;
+  available_quantity: number;
   stockHint: number;
+
   pickupToday?: boolean;
   expressDelivery?: boolean;
   isFlash24h?: boolean;
@@ -74,14 +82,14 @@ type Product = {
 };
 
 type CatalogCacheFile = {
-  version: 9;
+  version: 10;
   generatedAt: string;
   excelPath: string;
   excelMtimeMs: number;
   products: Product[];
 };
 
-const CACHE_VERSION = 9;
+const CACHE_VERSION = 10;
 
 function resolveExcelPath(): string | null {
   const dataDir = path.join(process.cwd(), "data");
@@ -637,7 +645,15 @@ function loadExcelProducts(): Product[] {
         tags,
         isNew: true,
         discountPercent: discountPercent > 0 ? discountPercent : undefined,
+
+        stock: 0,
+        inventory: 0,
+        quantity: 0,
+        qty: 0,
+        availableStock: 0,
+        available_quantity: 0,
         stockHint: 0,
+
         pickupToday,
         expressDelivery,
         isFlash24h: flashWindow.isFlash24h,
@@ -679,6 +695,13 @@ function loadExcelProducts(): Product[] {
     if (color) product.colors = uniqCaseInsensitive([...product.colors, color]);
 
     product.stockHint = product.variants.reduce((acc, variant) => acc + toSafeNumber(variant.stock, 0), 0);
+    product.stock = product.stockHint;
+    product.inventory = product.stockHint;
+    product.quantity = product.stockHint;
+    product.qty = product.stockHint;
+    product.availableStock = product.stockHint;
+    product.available_quantity = product.stockHint;
+
     product.pickupToday = Boolean(product.pickupToday || pickupToday);
     product.expressDelivery = Boolean(product.expressDelivery || expressDelivery);
     product.isFlash24h = Boolean(product.isFlash24h || flashWindow.isFlash24h);
@@ -703,6 +726,12 @@ function loadExcelProducts(): Product[] {
 
       return {
         ...product,
+        stock: stockHint,
+        inventory: stockHint,
+        quantity: stockHint,
+        qty: stockHint,
+        availableStock: stockHint,
+        available_quantity: stockHint,
         stockHint,
         isSoldOut,
         isActive: product.isActive !== false && !isSoldOut,
@@ -763,6 +792,12 @@ function getProductsFast(): Product[] {
     const cache = readCatalogCache();
     return (cache?.products ?? []).map((product) => ({
       ...product,
+      stock: Number(product.stock ?? product.stockHint ?? 0),
+      inventory: Number(product.inventory ?? product.stockHint ?? 0),
+      quantity: Number(product.quantity ?? product.stockHint ?? 0),
+      qty: Number(product.qty ?? product.stockHint ?? 0),
+      availableStock: Number(product.availableStock ?? product.stockHint ?? 0),
+      available_quantity: Number(product.available_quantity ?? product.stockHint ?? 0),
       favoritesCount: product.favoritesCount ?? 0,
       isFavorite: product.isFavorite ?? false,
     }));
@@ -782,6 +817,12 @@ function getProductsFast(): Product[] {
   if (cacheIsFresh) {
     return cache.products.map((product) => ({
       ...product,
+      stock: Number(product.stock ?? product.stockHint ?? 0),
+      inventory: Number(product.inventory ?? product.stockHint ?? 0),
+      quantity: Number(product.quantity ?? product.stockHint ?? 0),
+      qty: Number(product.qty ?? product.stockHint ?? 0),
+      availableStock: Number(product.availableStock ?? product.stockHint ?? 0),
+      available_quantity: Number(product.available_quantity ?? product.stockHint ?? 0),
       favoritesCount: product.favoritesCount ?? 0,
       isFavorite: product.isFavorite ?? false,
     }));
@@ -802,6 +843,12 @@ function getProductsFast(): Product[] {
 
   return (cache?.products ?? []).map((product) => ({
     ...product,
+    stock: Number(product.stock ?? product.stockHint ?? 0),
+    inventory: Number(product.inventory ?? product.stockHint ?? 0),
+    quantity: Number(product.quantity ?? product.stockHint ?? 0),
+    qty: Number(product.qty ?? product.stockHint ?? 0),
+    availableStock: Number(product.availableStock ?? product.stockHint ?? 0),
+    available_quantity: Number(product.available_quantity ?? product.stockHint ?? 0),
     favoritesCount: product.favoritesCount ?? 0,
     isFavorite: product.isFavorite ?? false,
   }));

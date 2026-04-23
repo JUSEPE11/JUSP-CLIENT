@@ -111,12 +111,26 @@ function mapWompiStatus(statusRaw: string | undefined | null) {
   const status = String(statusRaw || "").toUpperCase();
 
   if (status === "APPROVED") return "paid";
-  if (status === "PENDING") return "pending";
-  if (status === "DECLINED") return "cancelled";
+  if (status === "PENDING") return "pending_payment";
+  if (status === "DECLINED") return "declined";
   if (status === "VOIDED") return "cancelled";
-  if (status === "ERROR") return "cancelled";
+  if (status === "ERROR") return "failed";
+  if (status === "EXPIRED") return "expired";
 
-  return "pending";
+  return "pending_payment";
+}
+
+function mapPaymentStatus(statusRaw: string | undefined | null) {
+  const status = String(statusRaw || "").toUpperCase();
+
+  if (status === "APPROVED") return "paid";
+  if (status === "PENDING") return "pending_payment";
+  if (status === "DECLINED") return "declined";
+  if (status === "VOIDED") return "cancelled";
+  if (status === "ERROR") return "failed";
+  if (status === "EXPIRED") return "expired";
+
+  return "pending_payment";
 }
 
 function toSafeQty(value: unknown): number {
@@ -217,6 +231,7 @@ export async function POST(req: Request) {
     const reference = String(tx.reference || "").trim();
     const wompiStatus = String(tx.status || "").toUpperCase();
     const appStatus = mapWompiStatus(wompiStatus);
+    const paymentStatus = mapPaymentStatus(wompiStatus);
     const amount = Number(tx.amount_in_cents || 0) / 100;
     const shipping = tx.shipping_address || null;
 
@@ -225,9 +240,10 @@ export async function POST(req: Request) {
     }
 
     const existingOrder = await dbGetOrderByCode(reference);
+    const hasExistingOrder = !!existingOrder;
     const wasAlreadyPaid = String(existingOrder?.status || "").toLowerCase() === "paid";
 
-    if (wompiStatus === "APPROVED" && !wasAlreadyPaid) {
+    if (wompiStatus === "APPROVED") {
       const rawOrderItems = Array.isArray(existingOrder?.items) ? existingOrder.items : [];
       const orderItems = sanitizeOrderItems(rawOrderItems);
 
@@ -235,58 +251,106 @@ export async function POST(req: Request) {
         throw new Error(`La orden ${reference} no tiene items válidos para descontar stock.`);
       }
 
-      try {
-        await consumeExcelReservationAndDecrement(reference, orderItems);
-      } catch {
-        await decrementExcelStock(orderItems);
+      if (!wasAlreadyPaid) {
+        try {
+          await consumeExcelReservationAndDecrement(reference, orderItems);
+        } catch {
+          await decrementExcelStock(orderItems);
+        }
+
+        await dbInsertLog({
+          level: "info",
+          scope: "wompi.webhook",
+          message: "Stock descontado del Excel consumiendo reserva",
+          order_id: reference,
+          meta: {
+            transactionId,
+            items: orderItems,
+          },
+        });
       }
 
-      await dbInsertLog({
-        level: "info",
-        scope: "wompi.webhook",
-        message: "Stock descontado del Excel consumiendo reserva",
-        order_id: reference,
-        meta: {
-          transactionId,
-          items: orderItems,
-        },
+      await dbUpsertOrder({
+        order_code: reference,
+        wompi_reference: reference,
+        status: "paid",
+        payment_status: "paid",
+        total_amount: Number.isFinite(amount) ? amount : null,
+        currency: tx.currency || "COP",
+        customer_name: shipping?.name || existingOrder?.customer_name || null,
+        customer_email: tx.customer_email || existingOrder?.customer_email || null,
+        phone: shipping?.phone_number || existingOrder?.phone || null,
+        country: shipping?.country || existingOrder?.country || null,
+        city: shipping?.city || existingOrder?.city || null,
+        customer_region: shipping?.region || existingOrder?.customer_region || null,
+        address: shipping?.address_line_1 || existingOrder?.address || null,
+        provider: "wompi",
+        payment_id: transactionId,
+        paid_at: new Date().toISOString(),
       });
-    }
-
-    if (
-      (wompiStatus === "DECLINED" || wompiStatus === "VOIDED" || wompiStatus === "ERROR") &&
-      !wasAlreadyPaid
+    } else if (
+      wompiStatus === "DECLINED" ||
+      wompiStatus === "VOIDED" ||
+      wompiStatus === "ERROR" ||
+      wompiStatus === "EXPIRED"
     ) {
-      await releaseExcelReservation(reference);
+      if (!wasAlreadyPaid) {
+        await releaseExcelReservation(reference);
 
-      await dbInsertLog({
-        level: "warn",
-        scope: "wompi.webhook",
-        message: "Reserva de stock liberada por pago no aprobado",
-        order_id: reference,
-        meta: {
-          transactionId,
-          wompiStatus,
-        },
-      });
+        await dbInsertLog({
+          level: "warn",
+          scope: "wompi.webhook",
+          message: "Reserva de stock liberada por pago no aprobado",
+          order_id: reference,
+          meta: {
+            transactionId,
+            wompiStatus,
+          },
+        });
+      }
+
+      if (hasExistingOrder) {
+        await dbUpsertOrder({
+          order_code: reference,
+          wompi_reference: reference,
+          status: appStatus,
+          payment_status: paymentStatus,
+          total_amount: Number.isFinite(amount) ? amount : null,
+          currency: tx.currency || existingOrder?.currency || "COP",
+          customer_name: shipping?.name || existingOrder?.customer_name || null,
+          customer_email: tx.customer_email || existingOrder?.customer_email || null,
+          phone: shipping?.phone_number || existingOrder?.phone || null,
+          country: shipping?.country || existingOrder?.country || null,
+          city: shipping?.city || existingOrder?.city || null,
+          customer_region: shipping?.region || existingOrder?.customer_region || null,
+          address: shipping?.address_line_1 || existingOrder?.address || null,
+          provider: "wompi",
+          payment_id: transactionId,
+          paid_at: null,
+        });
+      }
+    } else if (wompiStatus === "PENDING") {
+      if (hasExistingOrder) {
+        await dbUpsertOrder({
+          order_code: reference,
+          wompi_reference: reference,
+          status: "pending_payment",
+          payment_status: "pending_payment",
+          total_amount: Number.isFinite(amount) ? amount : null,
+          currency: tx.currency || existingOrder?.currency || "COP",
+          customer_name: shipping?.name || existingOrder?.customer_name || null,
+          customer_email: tx.customer_email || existingOrder?.customer_email || null,
+          phone: shipping?.phone_number || existingOrder?.phone || null,
+          country: shipping?.country || existingOrder?.country || null,
+          city: shipping?.city || existingOrder?.city || null,
+          customer_region: shipping?.region || existingOrder?.customer_region || null,
+          address: shipping?.address_line_1 || existingOrder?.address || null,
+          provider: "wompi",
+          payment_id: transactionId,
+          paid_at: null,
+        });
+      }
     }
-
-    await dbUpsertOrder({
-      order_code: reference,
-      wompi_reference: reference,
-      status: appStatus,
-      total_amount: Number.isFinite(amount) ? amount : null,
-      currency: tx.currency || "COP",
-      customer_name: shipping?.name || null,
-      customer_email: tx.customer_email || null,
-      phone: shipping?.phone_number || null,
-      country: shipping?.country || null,
-      city: shipping?.city || null,
-      address: shipping?.address_line_1 || null,
-      provider: "wompi",
-      payment_id: transactionId,
-      paid_at: wompiStatus === "APPROVED" ? new Date().toISOString() : null,
-    });
 
     try {
       await syncDashboardPaymentData({
@@ -323,11 +387,13 @@ export async function POST(req: Request) {
         transactionId,
         wompiStatus,
         appStatus,
+        paymentStatus,
         amount_in_cents: tx.amount_in_cents || null,
         currency: tx.currency || null,
         shipping_address_line_1: shipping?.address_line_1 || null,
         shipping_region: shipping?.region || null,
         skippedStockDiscountBecauseAlreadyPaid: wasAlreadyPaid,
+        hasExistingOrder,
       },
     });
 

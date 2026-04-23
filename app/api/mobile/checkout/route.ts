@@ -1,51 +1,3 @@
-import { NextResponse } from "next/server";
-import { COOKIE_AT, verifyAccessToken } from "@/lib/auth";
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
-function getBaseUrl(req: Request) {
-  const url = new URL(req.url);
-  const proto =
-    req.headers.get("x-forwarded-proto") ||
-    url.protocol.replace(":", "") ||
-    "http";
-  const host = req.headers.get("host") || url.host;
-
-  return `${proto}://${host}`;
-}
-
-function getBearerToken(req: Request) {
-  const auth = req.headers.get("authorization") || "";
-  const [type, token] = auth.split(" ");
-  if (type !== "Bearer" || !token) return null;
-  return token.trim();
-}
-
-function normalizeItems(items: any[]) {
-  if (!Array.isArray(items)) return [];
-  return items
-    .map((item) => ({
-      id: item?.id,
-      productId: item?.productId ?? item?.id,
-      slug: item?.slug ?? null,
-      name: item?.name ?? item?.title ?? null,
-      title: item?.title ?? item?.name ?? null,
-      price: item?.price ?? 0,
-      qty: item?.qty ?? item?.quantity ?? item?.qtyInCart ?? 1,
-      quantity: item?.quantity ?? item?.qty ?? item?.qtyInCart ?? 1,
-      image: item?.image ?? null,
-      brand: item?.brand ?? null,
-      size: item?.size ?? null,
-      color: item?.color ?? null,
-    }))
-    .filter((item) => item.productId);
-}
-
-function makeReference() {
-  return `MOB-${Date.now()}`;
-}
-
 export async function POST(req: Request) {
   try {
     const accessToken = getBearerToken(req);
@@ -53,7 +5,7 @@ export async function POST(req: Request) {
     if (!accessToken) {
       return NextResponse.json(
         { ok: false, error: "Missing bearer token" },
-        { status: 401, headers: { "Cache-Control": "no-store" } }
+        { status: 401 }
       );
     }
 
@@ -62,7 +14,7 @@ export async function POST(req: Request) {
     if (!verified?.sub) {
       return NextResponse.json(
         { ok: false, error: "Invalid or expired token" },
-        { status: 401, headers: { "Cache-Control": "no-store" } }
+        { status: 401 }
       );
     }
 
@@ -73,14 +25,24 @@ export async function POST(req: Request) {
     if (!items.length) {
       return NextResponse.json(
         { ok: false, error: "Items requeridos" },
-        { status: 400, headers: { "Cache-Control": "no-store" } }
+        { status: 400 }
+      );
+    }
+
+    const total = Math.round(calculateTotal(items));
+    const amountInCents = total * 100;
+
+    if (!Number.isFinite(amountInCents) || amountInCents <= 0) {
+      return NextResponse.json(
+        { ok: false, error: "amountInCents inválido" },
+        { status: 400 }
       );
     }
 
     const baseUrl = getBaseUrl(req);
 
-    // 1) Reutiliza la lógica real de creación de orden
-    const orderRes = await fetch(`${baseUrl}/api/orders`, {
+    // 🔥 SOLO WOMPI (SIN CREAR ORDEN)
+    const wompiRes = await fetch(`${baseUrl}/api/wompi/checkout-url`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -89,56 +51,25 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         reference,
         items,
-      }),
-      cache: "no-store",
-    });
+        amountInCents,
+        currency: "COP",
+        totals: { total },
 
-    const orderJson = await orderRes.json().catch(() => ({}));
-
-    if (!orderRes.ok) {
-      return NextResponse.json(
-        {
-          ok: false,
-          step: "order",
-          error: orderJson?.error || "No se pudo crear la orden",
-          details: orderJson,
+        // ⚠️ DATOS MÍNIMOS PARA QUE WOMPI FUNCIONE
+        customer: {
+          fullName: verified.name || "Cliente JUSP",
+          email: verified.email,
+          documentType: "CC",
+          documentNumber: "000000000",
+          phone: "3000000000",
         },
-        {
-          status: orderRes.status,
-          headers: { "Cache-Control": "no-store" },
-        }
-      );
-    }
-
-    // Intenta sacar datos útiles de la orden creada
-    const createdOrder =
-      orderJson?.order ||
-      orderJson?.data ||
-      orderJson?.result ||
-      orderJson ||
-      null;
-
-    const orderId =
-      createdOrder?.id ||
-      createdOrder?.order_id ||
-      createdOrder?.orderId ||
-      null;
-
-    const wompiPayload = {
-      orderId,
-      reference,
-      items,
-    };
-
-    // 2) Reutiliza la lógica real de Wompi
-    const wompiRes = await fetch(`${baseUrl}/api/wompi/checkout-url`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: `${COOKIE_AT}=${accessToken}`,
-      },
-      body: JSON.stringify(wompiPayload),
-      cache: "no-store",
+        shipping: {
+          addressLine1: "Por definir",
+          city: "Cali",
+          region: "Valle del Cauca",
+          country: "CO",
+        },
+      }),
     });
 
     const wompiJson = await wompiRes.json().catch(() => ({}));
@@ -148,14 +79,9 @@ export async function POST(req: Request) {
         {
           ok: false,
           step: "wompi",
-          error: wompiJson?.error || "Orden creada pero checkout falló",
-          order: createdOrder,
-          details: wompiJson,
+          error: wompiJson?.error || "Error creando checkout",
         },
-        {
-          status: wompiRes.status,
-          headers: { "Cache-Control": "no-store" },
-        }
+        { status: wompiRes.status }
       );
     }
 
@@ -163,27 +89,20 @@ export async function POST(req: Request) {
       wompiJson?.checkoutUrl ||
       wompiJson?.url ||
       wompiJson?.data?.checkoutUrl ||
-      wompiJson?.data?.url ||
-      null;
+      wompiJson?.data?.url;
 
-    return NextResponse.json(
-      {
-        ok: true,
-        reference,
-        order: createdOrder,
-        checkoutUrl,
-        wompi: wompiJson,
-      },
-      { status: 200, headers: { "Cache-Control": "no-store" } }
-    );
+    return NextResponse.json({
+      ok: true,
+      reference,
+      checkoutUrl,
+    });
   } catch (error) {
     return NextResponse.json(
       {
         ok: false,
         error: "Mobile checkout error",
-        detail: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500, headers: { "Cache-Control": "no-store" } }
+      { status: 500 }
     );
   }
 }

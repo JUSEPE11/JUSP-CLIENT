@@ -253,8 +253,8 @@ export async function POST(req: NextRequest) {
     const orderInsert = {
       order_code: reference,
       wompi_reference: reference,
-      status: "pending",
-      payment_status: "in_progress",
+      status: "pending_payment",
+      payment_status: "pending_payment",
       payment_provider: "wompi",
 
       user_id: userId || null,
