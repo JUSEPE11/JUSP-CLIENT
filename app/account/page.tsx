@@ -4,6 +4,9 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { COOKIE_AT, COOKIE_PROFILE, verifyAccessToken } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { listSavedAddressesForIdentity } from "@/lib/addressBook";
+import { listSavedPaymentMethodsForIdentity } from "@/lib/paymentMethods";
+import AccountClientPanels from "./account-client-panels";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -177,6 +180,16 @@ export default async function AccountPage() {
 
   if (!profile) redirect("/onboarding");
 
+  const savedAddresses = await listSavedAddressesForIdentity({
+    userId: decoded?.sub ? String(decoded.sub).trim() : null,
+    email,
+  }).catch(() => []);
+  const savedPaymentMethods = await listSavedPaymentMethodsForIdentity({
+    userId: decoded?.sub ? String(decoded.sub).trim() : null,
+    email,
+  }).catch(() => []);
+  const primarySavedAddress = savedAddresses[0] || null;
+
   const completion = profileCompletion(profile);
   const tone = completionTone(completion);
 
@@ -192,43 +205,30 @@ export default async function AccountPage() {
       .filter(Boolean)[0] || "Member";
 
   const city =
-    String(profile?.city ?? profile?.location ?? "").trim() || "Por definir";
+    String(profile?.city ?? profile?.location ?? primarySavedAddress?.municipality ?? "").trim() ||
+    "Por definir";
+  const hasSavedAddress = Boolean(primarySavedAddress);
+  const savedAddressText = primarySavedAddress
+    ? [primarySavedAddress.addressLine1, primarySavedAddress.municipality, primarySavedAddress.region]
+        .filter(Boolean)
+        .join(", ")
+    : "";
+  const primarySavedPaymentMethod = savedPaymentMethods.find((item) => item.isDefault) || savedPaymentMethods[0] || null;
+  const paymentLast4 = String(primarySavedPaymentMethod?.last4 ?? "").trim();
+  const paymentBrand = String(primarySavedPaymentMethod?.brand ?? "").trim();
+  const hasPaymentMethod = Boolean(paymentLast4);
 
   const progressWidth = `${Math.max(8, Math.min(completion, 100))}%`;
   const initial = prettyInitial(firstName);
-  const missingItems = getMissingProfileItems(profile);
+  const missingItems = getMissingProfileItems({
+    ...profile,
+    city:
+      String(profile?.city ?? profile?.location ?? "").trim() ||
+      String(primarySavedAddress?.municipality ?? "").trim(),
+  });
 
   const emailValue = niceValue(profile?.email ?? email, "Sin email");
   const phoneValue = niceValue(profile?.phone ?? profile?.phone_number, "Aún no definido");
-
-  const addressLine1 = niceValue(
-    profile?.address_line1 ?? profile?.address ?? profile?.shipping_address,
-    ""
-  );
-  const addressLine2 = niceValue(
-    profile?.address_line2 ?? profile?.apartment ?? profile?.reference,
-    ""
-  );
-  const regionValue = niceValue(
-    profile?.state ?? profile?.region ?? profile?.department,
-    ""
-  );
-  const countryValue = niceValue(profile?.country, "");
-  const hasSavedAddress = Boolean(addressLine1);
-
-  const savedAddressText = [
-    addressLine1,
-    addressLine2,
-    city !== "Por definir" ? city : "",
-    regionValue,
-    countryValue,
-  ]
-    .filter(Boolean)
-    .join(", ");
-
-  const paymentLast4 = String(profile?.payment_last4 ?? "").trim();
-  const paymentBrand = String(profile?.payment_brand ?? "").trim();
-  const hasPaymentMethod = Boolean(paymentLast4);
 
   return (
     <main
@@ -1080,6 +1080,7 @@ export default async function AccountPage() {
           </div>
         </section>
 
+        {false && (
         <section
           className="account-section-grid account-bottom-grid"
           style={{
@@ -1358,6 +1359,13 @@ export default async function AccountPage() {
             </div>
           </div>
         </section>
+        )}
+
+        <AccountClientPanels
+          initialEmail={emailValue}
+          initialAddresses={savedAddresses}
+          initialPaymentMethods={savedPaymentMethods}
+        />
 
         <section
           className="account-section-grid"

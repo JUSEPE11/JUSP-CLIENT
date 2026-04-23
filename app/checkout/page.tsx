@@ -206,6 +206,24 @@ type SavedAddress = Shipping & {
   updatedAt: string;
 };
 
+type SavedPaymentMethod = {
+  id: string;
+  label: string;
+  brand: string;
+  last4: string;
+  cardholderName: string;
+  expMonth: string;
+  expYear: string;
+  provider: string;
+  isDefault: boolean;
+  paymentSourceId: string;
+  sourceStatus: string;
+  tokenizationMode: string;
+  customerEmail: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 type CouponRow = {
   id: string;
   code: string;
@@ -229,6 +247,10 @@ function emptyShipping(): Shipping {
     addressLine1: "",
     notes: "",
   };
+}
+
+function pickPrimaryPaymentMethod(methods: SavedPaymentMethod[]) {
+  return methods.find((method) => method.isDefault) || methods[0] || null;
 }
 
 function normalizeShippingForSave(ship: Shipping): Shipping {
@@ -361,6 +383,8 @@ export default function CheckoutPage() {
 
   const [ship, setShip] = useState<Shipping>(emptyShipping());
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [savedPaymentMethods, setSavedPaymentMethods] = useState<SavedPaymentMethod[]>([]);
+  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string>("new");
   const [availableCoupons, setAvailableCoupons] = useState<CouponRow[]>([]);
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<CouponRow | null>(null);
@@ -423,6 +447,10 @@ export default function CheckoutPage() {
     if (cartCount >= HALF_SHIPPING_MIN_ITEMS) return `Envio 50% OFF - $${moneyCOP(summary.shipping)}`;
     return `$${moneyCOP(summary.shipping)}`;
   }, [summary.shipping, cartCount, expressEligibleOnly]);
+  const selectedPaymentMethod = useMemo(
+    () => savedPaymentMethods.find((method) => method.id === selectedPaymentMethodId) || null,
+    [savedPaymentMethods, selectedPaymentMethodId]
+  );
 
   const orderRef = useMemo(() => `JUSP-${Date.now()}`, []);
 
@@ -518,8 +546,14 @@ export default function CheckoutPage() {
         }
 
         if (res.ok) {
-          const [addressesRes, couponsRes] = await Promise.all([
+          const [addressesRes, paymentMethodsRes, couponsRes] = await Promise.all([
             fetch("/api/account/addresses", {
+              method: "GET",
+              credentials: "include",
+              cache: "no-store",
+              headers: { "cache-control": "no-store" },
+            }).catch(() => null),
+            fetch("/api/account/payment-methods", {
               method: "GET",
               credentials: "include",
               cache: "no-store",
@@ -541,6 +575,33 @@ export default function CheckoutPage() {
             const merged = mergeSavedAddresses(serverAddresses, loadSavedAddresses());
             setSavedAddresses(merged);
             persistSavedAddresses(merged);
+            if (merged[0]) {
+              const primaryAddress = merged[0];
+              setShip((current) => ({
+                fullName: primaryAddress.fullName || current.fullName,
+                email:
+                  current.email ||
+                  primaryAddress.email ||
+                  String(json.user.email || "").trim().toLowerCase(),
+                documentType: (primaryAddress.documentType as DocumentType | "") || current.documentType,
+                documentNumber: primaryAddress.documentNumber || current.documentNumber,
+                phone: primaryAddress.phone || current.phone,
+                municipality: primaryAddress.municipality || current.municipality,
+                region: primaryAddress.region || current.region,
+                addressLine1: primaryAddress.addressLine1 || current.addressLine1,
+                notes: primaryAddress.notes || current.notes,
+              }));
+            }
+          }
+
+          if (paymentMethodsRes?.ok) {
+            const paymentMethodsJson = await paymentMethodsRes.json().catch(() => null);
+            const nextPaymentMethods = Array.isArray(paymentMethodsJson?.paymentMethods)
+              ? (paymentMethodsJson.paymentMethods as SavedPaymentMethod[])
+              : [];
+            setSavedPaymentMethods(nextPaymentMethods);
+            const primaryMethod = pickPrimaryPaymentMethod(nextPaymentMethods);
+            setSelectedPaymentMethodId(primaryMethod?.id || "new");
           }
 
           if (couponsRes?.ok) {
@@ -767,6 +828,18 @@ export default function CheckoutPage() {
               discountValue: appliedCoupon.discount_value,
             }
           : null,
+        paymentSelection: selectedPaymentMethod
+          ? {
+              id: selectedPaymentMethod.id,
+              label: selectedPaymentMethod.label,
+              brand: selectedPaymentMethod.brand,
+              last4: selectedPaymentMethod.last4,
+              provider: selectedPaymentMethod.provider,
+              paymentSourceId: selectedPaymentMethod.paymentSourceId,
+              tokenizationMode: selectedPaymentMethod.tokenizationMode,
+              sourceStatus: selectedPaymentMethod.sourceStatus,
+            }
+          : null,
       };
 
       const createRes = await fetch(CREATE_ORDER_ENDPOINT, {
@@ -789,7 +862,12 @@ export default function CheckoutPage() {
         return;
       }
 
-      const res = await fetch("/api/wompi/checkout-url", {
+      const targetEndpoint =
+        selectedPaymentMethod?.paymentSourceId && selectedPaymentMethod?.tokenizationMode === "real"
+          ? "/api/wompi/direct-charge"
+          : "/api/wompi/checkout-url";
+
+      const res = await fetch(targetEndpoint, {
         method: "POST",
         headers: { "content-type": "application/json" },
         credentials: "include",
@@ -803,14 +881,24 @@ export default function CheckoutPage() {
         return;
       }
 
-      if (!res.ok || !data?.ok || !data?.checkoutUrl) {
-        alert(data?.error || "No se pudo generar el link de pago.");
+      if (!res.ok || !data?.ok) {
+        alert(data?.error || "No se pudo iniciar el pago con Wompi.");
         return;
       }
 
       setReservedUntil(typeof data?.reservedUntil === "string" ? data.reservedUntil : null);
 
-      window.location.href = data.checkoutUrl;
+      if (typeof data?.checkoutUrl === "string" && data.checkoutUrl.trim()) {
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+
+      if (typeof data?.successUrl === "string" && data.successUrl.trim()) {
+        window.location.href = data.successUrl;
+        return;
+      }
+
+      alert("Wompi no devolvió una siguiente acción válida para continuar el pago.");
     } finally {
       setBusy(false);
     }
@@ -1139,6 +1227,58 @@ export default function CheckoutPage() {
                     <span>Total a pagar</span>
                     <b>${moneyCOP(summary.total)}</b>
                   </div>
+                </div>
+
+                <div className="payMethodsBox">
+                  <div className="payMethodsTitle">Metodo guardado</div>
+                  <div className="payMethodsSub">
+                    Si eliges una tarjeta tokenizada de verdad, JUSP crea el cobro directo en Wompi sin pedirte
+                    reescribirla. Si Wompi exige validacion extra, te redirige automaticamente a su paso seguro.
+                  </div>
+
+                  <div className="payMethodsGrid">
+                    <button
+                      type="button"
+                      className={`payMethodCard ${selectedPaymentMethodId === "new" ? "on" : ""}`}
+                      onClick={() => setSelectedPaymentMethodId("new")}
+                    >
+                      <div className="payMethodLabel">Usar otra tarjeta en Wompi</div>
+                      <div className="payMethodMeta">Podras pagar con una tarjeta nueva o con otro metodo dentro de Wompi.</div>
+                    </button>
+
+                    {savedPaymentMethods.map((method) => (
+                      <button
+                        key={method.id}
+                        type="button"
+                        className={`payMethodCard ${selectedPaymentMethodId === method.id ? "on" : ""}`}
+                        onClick={() => setSelectedPaymentMethodId(method.id)}
+                      >
+                        <div className="payMethodLabel">
+                          {method.brand} · **** {method.last4}
+                        </div>
+                        <div className="payMethodMeta">
+                          {method.cardholderName} · {method.expMonth}/{method.expYear}
+                          {method.isDefault ? " · Principal" : ""}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {selectedPaymentMethod ? (
+                    <div className="payMethodsHint">
+                      {selectedPaymentMethod.tokenizationMode === "real" ? (
+                        <>
+                          Checkout cobrara con tu tarjeta guardada <b>{selectedPaymentMethod.label}</b> directamente en
+                          Wompi.
+                        </>
+                      ) : (
+                        <>
+                          Checkout usara como referencia: <b>{selectedPaymentMethod.label}</b>. La confirmacion y el
+                          cobro siguen protegidos dentro de Wompi.
+                        </>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
 
                 {!authLoading && !isAuthed && (
@@ -1750,6 +1890,67 @@ const baseCss = `
   }
   .pRow{ display:flex; justify-content: space-between; gap: 10px; font-weight: 900; color: rgba(0,0,0,0.7); }
   .pRow b{ color:#111; font-weight: 950; text-align:right; }
+  .payMethodsBox{
+    margin-top: 14px;
+    border-radius: 18px;
+    border: 1px solid rgba(0,0,0,0.08);
+    background: linear-gradient(180deg, #fff, #faf7f4);
+    padding: 14px;
+  }
+  .payMethodsTitle{
+    font-size: 13px;
+    font-weight: 950;
+    color: #111;
+  }
+  .payMethodsSub{
+    margin-top: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: rgba(0,0,0,0.62);
+    font-weight: 800;
+  }
+  .payMethodsGrid{
+    margin-top: 12px;
+    display: grid;
+    gap: 10px;
+  }
+  .payMethodCard{
+    width: 100%;
+    text-align: left;
+    border-radius: 16px;
+    border: 1px solid rgba(0,0,0,0.10);
+    background: #fff;
+    padding: 12px 14px;
+    cursor: pointer;
+  }
+  .payMethodCard.on{
+    border-color: rgba(212,165,116,0.5);
+    background: rgba(212,165,116,0.10);
+    box-shadow: 0 10px 24px rgba(212,165,116,0.10);
+  }
+  .payMethodLabel{
+    font-size: 14px;
+    font-weight: 950;
+    color: #111;
+  }
+  .payMethodMeta{
+    margin-top: 6px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: rgba(0,0,0,0.62);
+    font-weight: 800;
+  }
+  .payMethodsHint{
+    margin-top: 12px;
+    border-radius: 14px;
+    padding: 12px 14px;
+    border: 1px solid rgba(0,0,0,0.08);
+    background: rgba(0,0,0,0.025);
+    color: rgba(0,0,0,0.74);
+    font-size: 12px;
+    line-height: 1.5;
+    font-weight: 800;
+  }
 
   .empty{
     margin-top: 18px;
