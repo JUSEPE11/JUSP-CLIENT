@@ -69,15 +69,17 @@ function mergeUniqueAddresses(addresses: any[]) {
       .join("|")
       .toLowerCase();
 
-    if (!map.has(key)) {
-      map.set(key, address);
-    }
+    if (!map.has(key)) map.set(key, address);
   }
 
   return Array.from(map.values());
 }
 
-async function getRegistry(admin: ReturnType<typeof supabaseAdmin>, userId: string, email: string) {
+async function getRegistry(
+  admin: ReturnType<typeof supabaseAdmin>,
+  userId: string,
+  email: string
+) {
   const byUser = await admin
     .from("user_registry")
     .select("profile,name,email,user_id")
@@ -102,26 +104,15 @@ async function safeReadAddresses(params: {
   email: string;
 }) {
   const { admin, table, userId, email } = params;
-
   const results: any[] = [];
 
   try {
-    const byUser = await admin
-      .from(table)
-      .select("*")
-      .eq("user_id", userId)
-      .order("updated_at", { ascending: false });
-
+    const byUser = await admin.from(table).select("*").eq("user_id", userId);
     if (Array.isArray(byUser.data)) results.push(...byUser.data);
   } catch {}
 
   try {
-    const byEmail = await admin
-      .from(table)
-      .select("*")
-      .eq("email", email)
-      .order("updated_at", { ascending: false });
-
+    const byEmail = await admin.from(table).select("*").eq("email", email);
     if (Array.isArray(byEmail.data)) results.push(...byEmail.data);
   } catch {}
 
@@ -129,8 +120,7 @@ async function safeReadAddresses(params: {
     const byCustomerEmail = await admin
       .from(table)
       .select("*")
-      .eq("customer_email", email)
-      .order("updated_at", { ascending: false });
+      .eq("customer_email", email);
 
     if (Array.isArray(byCustomerEmail.data)) results.push(...byCustomerEmail.data);
   } catch {}
@@ -138,10 +128,25 @@ async function safeReadAddresses(params: {
   return results;
 }
 
-function addressFromProfile(profile: any, email: string) {
-  if (!profile || typeof profile !== "object") return null;
+function addressesFromProfile(profile: any, email: string) {
+  if (!profile || typeof profile !== "object") return [];
 
-  const address = normalizeAddress({
+  const rows: any[] = [];
+
+  const possibleArrays = [
+    profile.savedAddresses,
+    profile.saved_addresses,
+    profile.addresses,
+    profile.address_book,
+    profile.shippingAddresses,
+    profile.shipping_addresses,
+  ];
+
+  for (const arr of possibleArrays) {
+    if (Array.isArray(arr)) rows.push(...arr);
+  }
+
+  const directAddress = normalizeAddress({
     ...profile,
     email: profile.email || email,
     fullName: profile.fullName || profile.full_name || profile.name || profile.nombre,
@@ -150,7 +155,16 @@ function addressFromProfile(profile: any, email: string) {
     addressLine1: profile.addressLine1 || profile.address || profile.direccion,
   });
 
-  return isUsableAddress(address) ? address : null;
+  if (isUsableAddress(directAddress)) {
+    rows.unshift({ ...directAddress, is_default: true });
+  }
+
+  const nestedDefault = profile.defaultAddress || profile.default_address;
+  if (nestedDefault && typeof nestedDefault === "object") {
+    rows.unshift({ ...nestedDefault, is_default: true });
+  }
+
+  return rows;
 }
 
 async function getSavedAddresses(params: {
@@ -169,7 +183,7 @@ async function getSavedAddresses(params: {
     "customer_addresses",
   ];
 
-  const rows: any[] = [];
+  const rows: any[] = [...addressesFromProfile(profile, email)];
 
   for (const table of possibleTables) {
     const tableRows = await safeReadAddresses({
@@ -181,9 +195,6 @@ async function getSavedAddresses(params: {
 
     rows.push(...tableRows);
   }
-
-  const profileAddress = addressFromProfile(profile, email);
-  if (profileAddress) rows.unshift({ ...profileAddress, is_default: true });
 
   const merged = mergeUniqueAddresses(rows);
 
@@ -255,12 +266,12 @@ export async function GET(req: NextRequest) {
       dbProfile && typeof dbProfile === "object"
         ? {
             ...dbProfile,
-            defaultAddress,
             savedAddresses,
+            defaultAddress,
           }
         : {
-            defaultAddress,
             savedAddresses,
+            defaultAddress,
           };
 
     return NextResponse.json(
