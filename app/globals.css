@@ -3183,3 +3183,128 @@ html[data-jusp-visit="first"] a {
     scroll-behavior: auto !important;
   }
 }
+/* =========================================================
+   JUSP APP MODE — FIX FINAL PARA EXPO / WEBVIEW
+   Solo se activa cuando <html> tiene .jusp-app-mode
+========================================================= */
+
+html.jusp-app-mode,
+html.jusp-app-mode body {
+  width: 100vw !important;
+  max-width: 100vw !important;
+  min-width: 0 !important;
+  overflow-x: hidden !important;
+}
+
+/* Header móvil obligatorio */
+html.jusp-app-mode .jusp-header {
+  width: 100vw !important;
+  max-width: 100vw !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+html.jusp-app-mode .jusp-header-inner {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: 64px !important;
+  padding: 0 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+}
+
+/* Ocultar navegación desktop en app */
+html.jusp-app-mode .jusp-nav,
+html.jusp-app-mode .jusp-mega,
+html.jusp-app-mode .jusp-actions {
+  display: none !important;
+}
+
+/* Mostrar burger móvil */
+html.jusp-app-mode .jusp-burger {
+  display: inline-grid !important;
+  place-items: center !important;
+}
+
+/* Logo estable */
+html.jusp-app-mode .jusp-logo {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+}
+
+/* Layout general móvil */
+html.jusp-app-mode main,
+html.jusp-app-mode section,
+html.jusp-app-mode .jusp-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow-x: hidden !important;
+}
+
+/* Home / Hero móvil */
+html.jusp-app-mode .jusp-hero-inner {
+  grid-template-columns: 1fr !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+html.jusp-app-mode .jusp-hero-title {
+  font-size: 34px !important;
+  line-height: 1.05 !important;
+}
+
+/* PDP producto móvil */
+html.jusp-app-mode .jusp-pdp-grid {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  gap: 14px !important;
+}
+
+html.jusp-app-mode .jusp-pdp-panel {
+  position: relative !important;
+  top: auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+html.jusp-app-mode .jusp-pdp-main {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 420px !important;
+}
+
+html.jusp-app-mode .jusp-pdp-mainimg {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 420px !important;
+  object-fit: cover !important;
+}
+
+/* Grids móviles */
+html.jusp-app-mode .jusp-grid {
+  grid-template-columns: 1fr !important;
+}
+
+html.jusp-app-mode .jusp-checkout-grid {
+  grid-template-columns: 1fr !important;
+}
+
+/* Evitar desbordes globales */
+html.jusp-app-mode img,
+html.jusp-app-mode video,
+html.jusp-app-mode canvas,
+html.jusp-app-mode svg {
+  max-width: 100% !important;
+}
+
+html.jusp-app-mode * {
+  box-sizing: border-box !important;
+  min-width: 0 !important;
+}
