@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyAccessToken } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import {
+  deleteSavedAddressForIdentity,
   listSavedAddressesForIdentity,
   upsertSavedAddressForIdentity,
 } from "@/lib/addressBook";
@@ -64,6 +65,7 @@ async function requireUser(req: NextRequest) {
 function pickProfile(body: any) {
   const profile = body?.profile && typeof body.profile === "object" ? body.profile : body || {};
 
+  const id = clean(profile.id || profile.addressId || body?.id || body?.addressId);
   const fullName = clean(profile.fullName || profile.full_name || profile.name || profile.nombre);
   const documentType = clean(profile.documentType || profile.document_type || profile.tipoDocumento).toUpperCase();
   const documentNumber = clean(profile.documentNumber || profile.document_number || profile.numeroDocumento || profile.document);
@@ -74,6 +76,7 @@ function pickProfile(body: any) {
   const notes = clean(profile.notes || profile.notas);
 
   return {
+    id,
     fullName,
     name: fullName,
     documentType: documentType || "CC",
@@ -253,6 +256,7 @@ export async function POST(req: NextRequest) {
         email: gate.email,
       },
       {
+        id: profile.id || undefined,
         label: `${profile.fullName} - ${profile.municipality}`,
         fullName: profile.fullName,
         email: gate.email,
@@ -308,6 +312,56 @@ export async function POST(req: NextRequest) {
   } catch (e: any) {
     return NextResponse.json(
       { ok: false, error: e?.message || "Profile save error" },
+      { status: 500, headers: { "Cache-Control": "no-store" } }
+    );
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  const gate = await requireUser(req);
+  if (!gate.ok) return gate.res;
+
+  try {
+    const body = await req.json().catch(() => ({}));
+    const addressId = clean(body?.addressId || body?.id);
+
+    if (!addressId) {
+      return NextResponse.json(
+        { ok: false, error: "addressId requerido." },
+        { status: 400, headers: { "Cache-Control": "no-store" } }
+      );
+    }
+
+    await deleteSavedAddressForIdentity(
+      {
+        userId: gate.userId,
+        email: gate.email,
+      },
+      addressId
+    );
+
+    const admin = supabaseAdmin();
+
+    const { data } = await admin
+      .from("user_registry")
+      .select("user_id,email,name,profile")
+      .eq("user_id", gate.userId)
+      .maybeSingle();
+
+    const user = await buildUserResponse({
+      userId: gate.userId,
+      email: data?.email || gate.email,
+      name: data?.name || null,
+      profile: data?.profile || null,
+    });
+
+    return NextResponse.json(
+      { ok: true, user },
+      { status: 200, headers: { "Cache-Control": "no-store" } }
+    );
+  } catch (e: any) {
+    return NextResponse.json(
+      { ok: false, error: e?.message || "Profile delete error" },
       { status: 500, headers: { "Cache-Control": "no-store" } }
     );
   }
