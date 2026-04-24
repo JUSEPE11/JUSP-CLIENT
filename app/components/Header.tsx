@@ -3684,45 +3684,13 @@ export default function Header() {
           color: rgba(198, 31, 31, 1);
         }
 
-        @media (max-width: 1180px) {
+        @media (max-width: 920px) {
           .jusp-nav {
             display: none;
           }
           .jusp-burger {
             display: inline-grid;
             place-items: center;
-          }
-
-          .jusp-header-inner {
-            max-width: none;
-            width: 100%;
-            grid-template-columns: auto 1fr auto;
-            gap: 10px;
-            padding-left: 24px;
-            padding-right: 16px;
-          }
-
-          .jusp-actions {
-            gap: 8px;
-          }
-        }
-
-        @media (max-width: 520px) {
-          .jusp-header-inner {
-            padding-left: 24px;
-            padding-right: 12px;
-            gap: 8px;
-          }
-
-          .jusp-actions {
-            gap: 8px;
-          }
-
-          .jusp-icon,
-          .jusp-burger {
-            width: 42px;
-            height: 42px;
-            border-radius: 14px;
           }
         }
       `}</style>

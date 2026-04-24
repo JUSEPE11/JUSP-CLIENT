@@ -896,6 +896,10 @@ export default function ProductPage() {
   const searchParams = useSearchParams();
   const gParam = searchParams?.get("g");
   const dropParam = searchParams?.get("drop") === "1";
+  const isAppMode =
+    searchParams?.get("app") === "1" ||
+    searchParams?.get("viewport") === "390" ||
+    searchParams?.get("mode") === "app";
 
   const slug = decodeURIComponent(String(params?.slug || "")).trim().toLowerCase();
 
@@ -1996,7 +2000,7 @@ export default function ProductPage() {
   }
 
   return (
-    <main className="root">
+    <main className={`root ${isAppMode ? "appMode" : ""}`} >
       <div className="wrap">
         <div className="top">
           <Link className="back" href="/products">
@@ -4086,6 +4090,138 @@ export default function ProductPage() {
           box-shadow: none;
         }
 
+
+        /* =========================================================
+           JUSP APP MODE
+           Se activa únicamente cuando la URL llega con ?app=1 o ?viewport=390.
+           No cambia la web normal. Fuerza layout móvil dentro de Expo/WebView.
+        ========================================================= */
+        .root.appMode {
+          width: 100%;
+          max-width: 100%;
+          overflow-x: hidden;
+          padding-left: 12px;
+          padding-right: 12px;
+          padding-bottom: 118px;
+          background: #ffffff;
+        }
+
+        .root.appMode .wrap {
+          width: 100%;
+          max-width: 430px;
+          margin-left: auto;
+          margin-right: auto;
+          overflow-x: hidden;
+        }
+
+        .root.appMode .top {
+          align-items: flex-start;
+          gap: 10px;
+        }
+
+        .root.appMode .topR {
+          display: none;
+        }
+
+        .root.appMode .grid {
+          display: grid;
+          grid-template-columns: 1fr !important;
+          gap: 14px;
+          align-items: stretch;
+        }
+
+        .root.appMode .grid > section,
+        .root.appMode .media,
+        .root.appMode .info,
+        .root.appMode .mediaCard,
+        .root.appMode .card {
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+        }
+
+        .root.appMode .gallery {
+          grid-template-columns: 1fr !important;
+          gap: 10px;
+        }
+
+        .root.appMode .thumbCol {
+          position: relative;
+          top: auto;
+          display: flex;
+          overflow-x: auto;
+          overflow-y: hidden;
+          -webkit-overflow-scrolling: touch;
+          gap: 10px;
+          max-height: none;
+          padding-right: 0;
+          padding-bottom: 4px;
+          mask-image: none;
+          -webkit-mask-image: none;
+          scroll-snap-type: x proximity;
+          cursor: auto;
+        }
+
+        .root.appMode .thBtn {
+          flex: 0 0 auto;
+          scroll-snap-align: start;
+        }
+
+        .root.appMode .th {
+          width: 72px;
+          height: 72px;
+        }
+
+        .root.appMode .imgBox {
+          width: 100%;
+          min-height: 360px;
+          max-height: none;
+          aspect-ratio: 1 / 1;
+        }
+
+        .root.appMode .imgBox img,
+        .root.appMode .imgBox video {
+          max-width: 100%;
+          object-fit: contain;
+        }
+
+        .root.appMode .card {
+          position: relative;
+          top: auto;
+        }
+
+        .root.appMode .recoSection {
+          margin-top: 24px;
+          padding: 18px;
+        }
+
+        .root.appMode .recoHead {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .root.appMode .recoGrid,
+        .root.appMode .gridOps,
+        .root.appMode .colorGrid,
+        .root.appMode .shipTrustRow {
+          grid-template-columns: 1fr !important;
+        }
+
+        .root.appMode .mobileBar {
+          display: flex;
+        }
+
+        .root.appMode .mBtnAlt,
+        .root.appMode .mBtnBlack {
+          min-width: 108px;
+          padding-left: 12px;
+          padding-right: 12px;
+        }
+
+        .root.appMode * {
+          max-width: 100%;
+          box-sizing: border-box;
+        }
         @media (max-width: 980px) {
           .swipeHint {
             display: inline-flex;
