@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { releaseExpiredStockReservations } from "@/lib/stockReservationsCron";
-import { dbInsertLog } from "@/lib/ordersRepo";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,29 +21,11 @@ export async function GET(req: NextRequest) {
   try {
     const result = await releaseExpiredStockReservations();
 
-    await dbInsertLog({
-      level: "info",
-      scope: "orders.release-expired",
-      message: "Reservas expiradas liberadas",
-      meta: result,
-    });
-
     return NextResponse.json(result, {
       status: 200,
       headers: { "Cache-Control": "no-store" },
     });
   } catch (e: any) {
-    try {
-      await dbInsertLog({
-        level: "error",
-        scope: "orders.release-expired",
-        message: e?.message || "Error liberando reservas expiradas",
-        meta: {
-          stack: e?.stack || null,
-        },
-      });
-    } catch {}
-
     return NextResponse.json(
       { ok: false, error: e?.message || "Error liberando reservas expiradas" },
       { status: 500 }
