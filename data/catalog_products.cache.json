@@ -1,8 +1,8 @@
 {
   "version": 10,
-  "generatedAt": "2026-04-23T20:25:14.144Z",
+  "generatedAt": "2026-04-27T01:27:28.704Z",
   "excelPath": "C:\\JUSP\\jusp-app2\\data\\catalogo_jusp.xlsx",
-  "excelMtimeMs": 1776885704400.9941,
+  "excelMtimeMs": 1777252939487.086,
   "products": [
     {
       "id": "nike-hf5407-010",
@@ -112,7 +112,7 @@
       "expressDelivery": false,
       "isFlash24h": true,
       "flashStartsAt": "2026-04-22T04:00:00.000Z",
-      "flashExpiresAt": "2026-04-23T04:00:00.000Z",
+      "flashExpiresAt": "2026-04-24T04:00:00.000Z",
       "flashActive": false,
       "flashUpcoming": false,
       "variants": [
@@ -5221,6 +5221,964 @@
           "size": "S",
           "color": "blue",
           "price": 202990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false,
+      "favoritesCount": 0,
+      "isFavorite": false
+    },
+    {
+      "id": "nike-hj4175-289",
+      "slug": "nike-hj4175-289",
+      "product_code": "nike-hj4175-289",
+      "title": "Nike Dri-Fit Trail Gyorsan Száradó Sokoldalú",
+      "name": "Nike Dri-Fit Trail Gyorsan Száradó Sokoldalú",
+      "brand": "Nike",
+      "price": 151990,
+      "currency": "COP",
+      "description": "Nike Dri-Fit Trail Gyorsan Száradó Sokoldalú. Producto disponible en JUSP.",
+      "image": "/products/nike-hj4175-289/1.jpeg",
+      "images": [
+        "/products/nike-hj4175-289/1.jpeg",
+        "/products/nike-hj4175-289/2.jpg",
+        "/products/nike-hj4175-289/3.jpeg",
+        "/products/nike-hj4175-289/4.jpg",
+        "/products/nike-hj4175-289/5.jpeg",
+        "/products/nike-hj4175-289/6.jpg",
+        "/products/nike-hj4175-289/7.jpeg",
+        "/products/nike-hj4175-289/8.jpg",
+        "/products/nike-hj4175-289/9.jpeg",
+        "/products/nike-hj4175-289/10.jpg",
+        "/products/nike-hj4175-289/11.jpg"
+      ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-hj4175-289/1.jpeg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hj4175-289/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hj4175-289/3.jpeg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hj4175-289/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hj4175-289/5.jpeg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hj4175-289/6.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hj4175-289/7.jpeg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hj4175-289/8.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hj4175-289/9.jpeg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hj4175-289/10.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hj4175-289/11.jpg"
+        }
+      ],
+      "parameters": [],
+      "sizes": [
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "colors": [
+        "grey"
+      ],
+      "category": "men",
+      "gender": "men",
+      "productType": "clothing",
+      "kind": "general",
+      "collections": [
+        "clothing",
+        "gym",
+        "training"
+      ],
+      "sport": [
+        "training"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "clothing",
+        "gym",
+        "training",
+        "dri-fit"
+      ],
+      "isNew": true,
+      "stock": 5,
+      "inventory": 5,
+      "quantity": 5,
+      "qty": 5,
+      "availableStock": 5,
+      "available_quantity": 5,
+      "stockHint": 5,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
+      "variants": [
+        {
+          "key": "nike-hj4175-289-s-grey",
+          "size": "S",
+          "color": "grey",
+          "price": 151990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-hj4175-289-m-grey",
+          "size": "M",
+          "color": "grey",
+          "price": 151990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-hj4175-289-l-grey",
+          "size": "L",
+          "color": "grey",
+          "price": 151990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-hj4175-289-xl-grey",
+          "size": "XL",
+          "color": "grey",
+          "price": 151990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-hj4175-289-xxl-grey",
+          "size": "XXL",
+          "color": "grey",
+          "price": 151990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false,
+      "favoritesCount": 0,
+      "isFavorite": false
+    },
+    {
+      "id": "nike-hj4175-253",
+      "slug": "nike-hj4175-253",
+      "product_code": "nike-hj4175-253",
+      "title": "Men's NIKE AS M NK DF TRAIL AOP 6IN BRF S woven shorts",
+      "name": "Men's NIKE AS M NK DF TRAIL AOP 6IN BRF S woven shorts",
+      "brand": "Nike",
+      "price": 151990,
+      "currency": "COP",
+      "description": "Men's NIKE AS M NK DF TRAIL AOP 6IN BRF S woven shorts. Producto disponible en JUSP.",
+      "image": "/products/nike-hj4175-253/1.jpg",
+      "images": [
+        "/products/nike-hj4175-253/1.jpg",
+        "/products/nike-hj4175-253/2.jpg",
+        "/products/nike-hj4175-253/3.jpg",
+        "/products/nike-hj4175-253/4.jpg",
+        "/products/nike-hj4175-253/5.jpg",
+        "/products/nike-hj4175-253/6.jpg",
+        "/products/nike-hj4175-253/7.jpg",
+        "/products/nike-hj4175-253/8.jpg",
+        "/products/nike-hj4175-253/9.jpg",
+        "/products/nike-hj4175-253/10.jpg",
+        "/products/nike-hj4175-253/11.jpg",
+        "/products/nike-hj4175-253/12.jpg",
+        "/products/nike-hj4175-253/13.jpg",
+        "/products/nike-hj4175-253/14.jpg",
+        "/products/nike-hj4175-253/15.jpg"
+      ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-hj4175-253/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hj4175-253/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hj4175-253/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hj4175-253/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hj4175-253/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hj4175-253/6.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hj4175-253/7.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hj4175-253/8.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hj4175-253/9.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hj4175-253/10.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hj4175-253/11.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hj4175-253/12.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hj4175-253/13.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hj4175-253/14.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hj4175-253/15.jpg"
+        }
+      ],
+      "parameters": [],
+      "sizes": [
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "colors": [
+        "beige"
+      ],
+      "category": "men",
+      "gender": "men",
+      "productType": "clothing",
+      "kind": "shorts",
+      "collections": [
+        "clothing",
+        "bottoms"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "shorts",
+        "clothing",
+        "bottoms"
+      ],
+      "isNew": true,
+      "stock": 5,
+      "inventory": 5,
+      "quantity": 5,
+      "qty": 5,
+      "availableStock": 5,
+      "available_quantity": 5,
+      "stockHint": 5,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
+      "variants": [
+        {
+          "key": "nike-hj4175-253-s-beige",
+          "size": "S",
+          "color": "beige",
+          "price": 151990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-hj4175-253-m-beige",
+          "size": "M",
+          "color": "beige",
+          "price": 151990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-hj4175-253-l-beige",
+          "size": "L",
+          "color": "beige",
+          "price": 151990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-hj4175-253-xl-beige",
+          "size": "XL",
+          "color": "beige",
+          "price": 151990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-hj4175-253-xxl-beige",
+          "size": "XXL",
+          "color": "beige",
+          "price": 151990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false,
+      "favoritesCount": 0,
+      "isFavorite": false
+    },
+    {
+      "id": "nike-fv7839-010",
+      "slug": "nike-fv7839-010",
+      "product_code": "nike-fv7839-010",
+      "title": "Nike PRO Compression Shorts",
+      "name": "Nike PRO Compression Shorts",
+      "brand": "Nike",
+      "price": 119990,
+      "currency": "COP",
+      "description": "Nike PRO Compression Shorts. Producto disponible en JUSP.",
+      "image": "/products/nike-fv7839-010/1.jpg",
+      "images": [
+        "/products/nike-fv7839-010/1.jpg",
+        "/products/nike-fv7839-010/2.jpg",
+        "/products/nike-fv7839-010/3.jpg",
+        "/products/nike-fv7839-010/4.jpg",
+        "/products/nike-fv7839-010/5.jpg",
+        "/products/nike-fv7839-010/6.jpg",
+        "/products/nike-fv7839-010/7.jpg",
+        "/products/nike-fv7839-010/8.jpg",
+        "/products/nike-fv7839-010/9.jpg",
+        "/products/nike-fv7839-010/10.jpg",
+        "/products/nike-fv7839-010/11.jpg",
+        "/products/nike-fv7839-010/12.jpg",
+        "/products/nike-fv7839-010/13.jpg"
+      ],
+      "videos": [
+        "/products/nike-fv7839-010/01.mp4"
+      ],
+      "media": [
+        {
+          "type": "video",
+          "src": "/products/nike-fv7839-010/01.mp4"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fv7839-010/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fv7839-010/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fv7839-010/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fv7839-010/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fv7839-010/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fv7839-010/6.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fv7839-010/7.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fv7839-010/8.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fv7839-010/9.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fv7839-010/10.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fv7839-010/11.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fv7839-010/12.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fv7839-010/13.jpg"
+        }
+      ],
+      "parameters": [],
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "XL"
+      ],
+      "colors": [
+        "black"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "shorts",
+      "collections": [
+        "clothing",
+        "bottoms",
+        "gym",
+        "training"
+      ],
+      "sport": [
+        "training"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "shorts",
+        "clothing",
+        "bottoms",
+        "gym",
+        "training",
+        "compression"
+      ],
+      "isNew": true,
+      "stock": 4,
+      "inventory": 4,
+      "quantity": 4,
+      "qty": 4,
+      "availableStock": 4,
+      "available_quantity": 4,
+      "stockHint": 4,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
+      "variants": [
+        {
+          "key": "nike-fv7839-010-xs-black",
+          "size": "XS",
+          "color": "black",
+          "price": 119990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-fv7839-010-s-black",
+          "size": "S",
+          "color": "black",
+          "price": 210990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-fv7839-010-m-black",
+          "size": "M",
+          "color": "black",
+          "price": 210990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-fv7839-010-xl-black",
+          "size": "XL",
+          "color": "black",
+          "price": 210990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false,
+      "favoritesCount": 0,
+      "isFavorite": false
+    },
+    {
+      "id": "nike-fv7839-464",
+      "slug": "nike-fv7839-464",
+      "product_code": "nike-fv7839-464",
+      "title": "Nike Pro Quick-Drying Slim Fit Yoga Shorts Women's Shorts",
+      "name": "Nike Pro Quick-Drying Slim Fit Yoga Shorts Women's Shorts",
+      "brand": "Nike",
+      "price": 108990,
+      "currency": "COP",
+      "description": "Nike Pro Quick-Drying Slim Fit Yoga Shorts Women's Shorts. Producto disponible en JUSP.",
+      "image": "/products/nike-fv7839-464/2.webp",
+      "images": [
+        "/products/nike-fv7839-464/2.webp",
+        "/products/nike-fv7839-464/3.jpg",
+        "/products/nike-fv7839-464/7.jpg",
+        "/products/nike-fv7839-464/8.jpg",
+        "/products/nike-fv7839-464/9.jpg"
+      ],
+      "videos": [
+        "/products/nike-fv7839-464/1.mp4"
+      ],
+      "media": [
+        {
+          "type": "video",
+          "src": "/products/nike-fv7839-464/1.mp4"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fv7839-464/2.webp"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fv7839-464/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fv7839-464/7.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fv7839-464/8.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fv7839-464/9.jpg"
+        }
+      ],
+      "parameters": [],
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "XL",
+        "XXL"
+      ],
+      "colors": [
+        "light blue"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "shorts",
+      "collections": [
+        "clothing",
+        "bottoms"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "shorts",
+        "clothing",
+        "bottoms"
+      ],
+      "isNew": true,
+      "stock": 5,
+      "inventory": 5,
+      "quantity": 5,
+      "qty": 5,
+      "availableStock": 5,
+      "available_quantity": 5,
+      "stockHint": 5,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
+      "variants": [
+        {
+          "key": "nike-fv7839-464-xs-light-blue",
+          "size": "XS",
+          "color": "light blue",
+          "price": 108990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-fv7839-464-s-light-blue",
+          "size": "S",
+          "color": "light blue",
+          "price": 114990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-fv7839-464-m-light-blue",
+          "size": "M",
+          "color": "light blue",
+          "price": 124990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-fv7839-464-xl-light-blue",
+          "size": "XL",
+          "color": "light blue",
+          "price": 183990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-fv7839-464-xxl-light-blue",
+          "size": "XXL",
+          "color": "light blue",
+          "price": 140990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false,
+      "favoritesCount": 0,
+      "isFavorite": false
+    },
+    {
+      "id": "nike-hm6094-345",
+      "slug": "nike-hm6094-345",
+      "product_code": "nike-hm6094-345",
+      "title": "Nike Pro Comfortable Fashionable Versatile Soft Cycling Pants Women's Bottoms Blue",
+      "name": "Nike Pro Comfortable Fashionable Versatile Soft Cycling Pants Women's Bottoms Blue",
+      "brand": "Nike",
+      "price": 140990,
+      "currency": "COP",
+      "description": "Nike Pro Comfortable Fashionable Versatile Soft Cycling Pants Women's Bottoms Blue. Producto disponible en JUSP.",
+      "image": "/products/nike-hm6094-345/1.jpeg",
+      "images": [
+        "/products/nike-hm6094-345/1.jpeg",
+        "/products/nike-hm6094-345/2.jpg",
+        "/products/nike-hm6094-345/3.jpeg",
+        "/products/nike-hm6094-345/4.jpg",
+        "/products/nike-hm6094-345/5.jpeg",
+        "/products/nike-hm6094-345/7.jpeg",
+        "/products/nike-hm6094-345/8.jpeg"
+      ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-hm6094-345/1.jpeg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hm6094-345/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hm6094-345/3.jpeg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hm6094-345/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hm6094-345/5.jpeg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hm6094-345/7.jpeg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-hm6094-345/8.jpeg"
+        }
+      ],
+      "parameters": [],
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "colors": [
+        "light blue"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "general",
+      "collections": [
+        "clothing",
+        "bottoms"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "clothing",
+        "bottoms"
+      ],
+      "isNew": true,
+      "stock": 6,
+      "inventory": 6,
+      "quantity": 6,
+      "qty": 6,
+      "availableStock": 6,
+      "available_quantity": 6,
+      "stockHint": 6,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
+      "variants": [
+        {
+          "key": "nike-hm6094-345-xs-light-blue",
+          "size": "XS",
+          "color": "light blue",
+          "price": 140990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-hm6094-345-s-light-blue",
+          "size": "S",
+          "color": "light blue",
+          "price": 140990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-hm6094-345-m-light-blue",
+          "size": "M",
+          "color": "light blue",
+          "price": 140990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-hm6094-345-l-light-blue",
+          "size": "L",
+          "color": "light blue",
+          "price": 140990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-hm6094-345-xl-light-blue",
+          "size": "XL",
+          "color": "light blue",
+          "price": 140990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-hm6094-345-xxl-light-blue",
+          "size": "XXL",
+          "color": "light blue",
+          "price": 140990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false,
+      "favoritesCount": 0,
+      "isFavorite": false
+    },
+    {
+      "id": "nike-dv7798-063",
+      "slug": "nike-dv7798-063",
+      "product_code": "nike-dv7798-063",
+      "title": "NIKE Women Sportswear Sportswear Classics High-Waisted",
+      "name": "NIKE Women Sportswear Sportswear Classics High-Waisted",
+      "brand": "Nike",
+      "price": 92990,
+      "currency": "COP",
+      "description": "NIKE Women Sportswear Sportswear Classics High-Waisted. Producto disponible en JUSP.",
+      "image": "/products/nike-dv7798-063/2.webp",
+      "images": [
+        "/products/nike-dv7798-063/2.webp",
+        "/products/nike-dv7798-063/3.webp",
+        "/products/nike-dv7798-063/4.webp",
+        "/products/nike-dv7798-063/5.webp",
+        "/products/nike-dv7798-063/6.jpg",
+        "/products/nike-dv7798-063/7.jpg",
+        "/products/nike-dv7798-063/8.jpg",
+        "/products/nike-dv7798-063/10.jpg",
+        "/products/nike-dv7798-063/11.jpg",
+        "/products/nike-dv7798-063/12.jpg"
+      ],
+      "videos": [
+        "/products/nike-dv7798-063/1.mp4"
+      ],
+      "media": [
+        {
+          "type": "video",
+          "src": "/products/nike-dv7798-063/1.mp4"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dv7798-063/2.webp"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dv7798-063/3.webp"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dv7798-063/4.webp"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dv7798-063/5.webp"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dv7798-063/6.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dv7798-063/7.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dv7798-063/8.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dv7798-063/10.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dv7798-063/11.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-dv7798-063/12.jpg"
+        }
+      ],
+      "parameters": [],
+      "sizes": [
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "colors": [
+        "grey"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "general",
+      "collections": [
+        "clothing",
+        "lifestyle"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "clothing",
+        "lifestyle"
+      ],
+      "isNew": true,
+      "stock": 5,
+      "inventory": 5,
+      "quantity": 5,
+      "qty": 5,
+      "availableStock": 5,
+      "available_quantity": 5,
+      "stockHint": 5,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
+      "variants": [
+        {
+          "key": "nike-dv7798-063-s-grey",
+          "size": "S",
+          "color": "grey",
+          "price": 92990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-dv7798-063-m-grey",
+          "size": "M",
+          "color": "grey",
+          "price": 92990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-dv7798-063-l-grey",
+          "size": "L",
+          "color": "grey",
+          "price": 92990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-dv7798-063-xl-grey",
+          "size": "XL",
+          "color": "grey",
+          "price": 92990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-dv7798-063-xxl-grey",
+          "size": "XXL",
+          "color": "grey",
+          "price": 92990,
           "stock": 1,
           "isAvailable": true
         }
