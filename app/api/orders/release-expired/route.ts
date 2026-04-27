@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { releaseExpiredExcelReservations } from "@/lib/stockExcel";
+import { releaseExpiredStockReservations } from "@/lib/stockReservationsCron";
 import { dbInsertLog } from "@/lib/ordersRepo";
 
 export const runtime = "nodejs";
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const result = await releaseExpiredExcelReservations();
+    const result = await releaseExpiredStockReservations();
 
     await dbInsertLog({
       level: "info",

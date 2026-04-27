@@ -1,8 +1,8 @@
 {
   "version": 10,
-  "generatedAt": "2026-04-27T01:27:28.704Z",
+  "generatedAt": "2026-04-27T04:50:26.563Z",
   "excelPath": "C:\\JUSP\\jusp-app2\\data\\catalogo_jusp.xlsx",
-  "excelMtimeMs": 1777252939487.086,
+  "excelMtimeMs": 1777264818797.6753,
   "products": [
     {
       "id": "nike-hf5407-010",
@@ -6179,6 +6179,143 @@
           "size": "XXL",
           "color": "grey",
           "price": 92990,
+          "stock": 1,
+          "isAvailable": true
+        }
+      ],
+      "isActive": true,
+      "isSoldOut": false,
+      "favoritesCount": 0,
+      "isFavorite": false
+    },
+    {
+      "id": "nike-fz6568-551",
+      "slug": "nike-fz6568-551",
+      "product_code": "nike-fz6568-551",
+      "title": "NIKE Women's AS W NY DF INDY STRPY LL BRA",
+      "name": "NIKE Women's AS W NY DF INDY STRPY LL BRA",
+      "brand": "Nike",
+      "price": 108990,
+      "currency": "COP",
+      "description": "NIKE Women's AS W NY DF INDY STRPY LL BRA. Producto disponible en JUSP.",
+      "image": "/products/nike-fz6568-551/2.webp",
+      "images": [
+        "/products/nike-fz6568-551/2.webp",
+        "/products/nike-fz6568-551/3.webp",
+        "/products/nike-fz6568-551/4.webp",
+        "/products/nike-fz6568-551/5.webp",
+        "/products/nike-fz6568-551/6.webp",
+        "/products/nike-fz6568-551/7.webp",
+        "/products/nike-fz6568-551/10.png",
+        "/products/nike-fz6568-551/11.png"
+      ],
+      "videos": [
+        "/products/nike-fz6568-551/1.mp4"
+      ],
+      "media": [
+        {
+          "type": "video",
+          "src": "/products/nike-fz6568-551/1.mp4"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fz6568-551/2.webp"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fz6568-551/3.webp"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fz6568-551/4.webp"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fz6568-551/5.webp"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fz6568-551/6.webp"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fz6568-551/7.webp"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fz6568-551/10.png"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-fz6568-551/11.png"
+        }
+      ],
+      "parameters": [],
+      "sizes": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "colors": [
+        "white"
+      ],
+      "category": "women",
+      "gender": "women",
+      "productType": "clothing",
+      "kind": "sports-bra",
+      "collections": [
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo",
+        "nike",
+        "sports-bra",
+        "clothing",
+        "tops",
+        "gym",
+        "training"
+      ],
+      "isNew": true,
+      "stock": 3,
+      "inventory": 3,
+      "quantity": 3,
+      "qty": 3,
+      "availableStock": 3,
+      "available_quantity": 3,
+      "stockHint": 3,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
+      "variants": [
+        {
+          "key": "nike-fz6568-551-m-white",
+          "size": "M",
+          "color": "white",
+          "price": 108990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-fz6568-551-l-white",
+          "size": "L",
+          "color": "white",
+          "price": 108990,
+          "stock": 1,
+          "isAvailable": true
+        },
+        {
+          "key": "nike-fz6568-551-xl-white",
+          "size": "XL",
+          "color": "white",
+          "price": 108990,
           "stock": 1,
           "isAvailable": true
         }
