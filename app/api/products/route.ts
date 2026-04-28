@@ -824,37 +824,92 @@ function getProductsFast(): Product[] {
   return [];
 }
 
+function normalizeCachedProducts(products: Product[]): Product[] {
+  return products.map((product) => ({
+    ...product,
+    stock: Number(product.stock ?? product.stockHint ?? 0),
+    inventory: Number(product.inventory ?? product.stockHint ?? 0),
+    quantity: Number(product.quantity ?? product.stockHint ?? 0),
+    qty: Number(product.qty ?? product.stockHint ?? 0),
+    availableStock: Number(product.availableStock ?? product.stockHint ?? 0),
+    available_quantity: Number(product.available_quantity ?? product.stockHint ?? 0),
+    favoritesCount: product.favoritesCount ?? 0,
+    isFavorite: product.isFavorite ?? false,
+  }));
+}
+
+function getProductsFromCacheOnly(): Product[] {
+  try {
+    const cache = readCatalogCache();
+    if (cache?.products?.length) {
+      return normalizeCachedProducts(cache.products);
+    }
+  } catch (error) {
+    console.error("[api/products] cache fallback failed", error);
+  }
+
+  return [];
+}
+
+function getProductsSafe(): Product[] {
+  try {
+    const live = getProductsFast();
+    if (live.length) return live;
+  } catch (error) {
+    console.error("[api/products] getProductsFast failed", error);
+  }
+
+  return getProductsFromCacheOnly();
+}
+
 export async function GET(req: NextRequest) {
   const sessionId = String(req.nextUrl.searchParams.get("session_id") || "").trim();
   const includeFlash24h = String(req.nextUrl.searchParams.get("includeFlash24h") || "").trim() === "1";
-  const products = getProductsFast();
-
-  let countMap: Record<string, number> = {};
-
   try {
-    countMap = await getFavoritesCountMap();
-  } catch {
-    countMap = {};
+    const products = getProductsSafe();
+
+    let countMap: Record<string, number> = {};
+
+    try {
+      countMap = await getFavoritesCountMap();
+    } catch (error) {
+      console.error("[api/products] favorites count failed", error);
+      countMap = {};
+    }
+
+    const enriched = products.map((product) => {
+      const productId = String(product.id || "").trim();
+      const favoritesCount = countMap[productId] || 0;
+
+      return {
+        ...product,
+        favoritesCount,
+        isFavorite: sessionId ? false : false,
+      };
+    });
+
+    const visibleProducts = includeFlash24h
+      ? enriched
+      : enriched.filter((product) => !Boolean(product?.isFlash24h));
+
+    return NextResponse.json(visibleProducts, {
+      headers: {
+        "Cache-Control": "no-store, max-age=0",
+      },
+    });
+  } catch (error) {
+    console.error("[api/products] GET failed", error);
+
+    const fallbackProducts = getProductsFromCacheOnly();
+    const visibleProducts = includeFlash24h
+      ? fallbackProducts
+      : fallbackProducts.filter((product) => !Boolean(product?.isFlash24h));
+
+    return NextResponse.json(visibleProducts, {
+      headers: {
+        "Cache-Control": "no-store, max-age=0",
+        "X-JUSP-Products-Fallback": "1",
+      },
+    });
   }
-
-  const enriched = products.map((product) => {
-    const productId = String(product.id || "").trim();
-    const favoritesCount = countMap[productId] || 0;
-
-    return {
-      ...product,
-      favoritesCount,
-      isFavorite: sessionId ? false : false,
-    };
-  });
-
-  const visibleProducts = includeFlash24h
-    ? enriched
-    : enriched.filter((product) => !Boolean(product?.isFlash24h));
-
-  return NextResponse.json(visibleProducts, {
-    headers: {
-      "Cache-Control": "no-store, max-age=0",
-    },
-  });
 }
