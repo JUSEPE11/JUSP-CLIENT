@@ -738,13 +738,18 @@ function getBundledProducts(options?: GetProductsOptions): Product[] {
 function getProductsFast(options?: GetProductsOptions): Product[] {
   if (!isServer()) return [];
 
-  const bundled = getBundledProducts(options);
-  if (bundled.length) return bundled;
-
   const cachePath = resolveCachePath();
+  const excelPath = resolveExcelPath();
+  const excelMtimeMs = safeStatMtimeMs(excelPath);
   const cached = readCache(cachePath);
+  const cacheIsFresh = Boolean(
+    cached?.products?.length &&
+      excelPath &&
+      cached.excelPath === excelPath &&
+      Number(cached.excelMtimeMs || 0) >= Number(excelMtimeMs || 0)
+  );
 
-  if (cached?.products?.length) {
+  if (cacheIsFresh && cached?.products?.length) {
     return filterVisibleProducts(
       cached.products.map((product) => ({
         ...product,
@@ -755,8 +760,6 @@ function getProductsFast(options?: GetProductsOptions): Product[] {
     );
   }
 
-  const excelPath = resolveExcelPath();
-  const excelMtimeMs = safeStatMtimeMs(excelPath);
   const fresh = buildProductsFromExcel();
 
   if (fresh.length) {
@@ -774,6 +777,9 @@ function getProductsFast(options?: GetProductsOptions): Product[] {
       options
     );
   }
+
+  const bundled = getBundledProducts(options);
+  if (bundled.length) return bundled;
 
   return [];
 }
