@@ -1,4 +1,5 @@
 import { resolveFlashWindow } from "@/lib/flash";
+import bundledCatalogCache from "@/data/catalog_products.cache.json";
 
 export type ProductVariant = {
   key: string;
@@ -84,6 +85,14 @@ type CachePayload = {
 
 type GetProductsOptions = {
   includeFlash24h?: boolean;
+};
+
+type BundledCachePayload = {
+  version: number;
+  generatedAt: string;
+  excelPath: string | null;
+  excelMtimeMs: number;
+  products: Product[];
 };
 
 function isServer(): boolean {
@@ -708,8 +717,29 @@ function filterVisibleProducts(products: Product[], options?: GetProductsOptions
   return products.filter((product) => !Boolean(product?.isFlash24h));
 }
 
+function getBundledProducts(options?: GetProductsOptions): Product[] {
+  try {
+    const payload = bundledCatalogCache as BundledCachePayload | null;
+    const products = Array.isArray(payload?.products) ? payload.products : [];
+
+    return filterVisibleProducts(
+      products.map((product) => ({
+        ...product,
+        favoritesCount: product.favoritesCount ?? 0,
+        isFavorite: product.isFavorite ?? false,
+      })),
+      options
+    );
+  } catch {
+    return [];
+  }
+}
+
 function getProductsFast(options?: GetProductsOptions): Product[] {
   if (!isServer()) return [];
+
+  const bundled = getBundledProducts(options);
+  if (bundled.length) return bundled;
 
   const cachePath = resolveCachePath();
   const cached = readCache(cachePath);
