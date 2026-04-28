@@ -18,6 +18,13 @@ const nextConfig: NextConfig = {
       "tsconfig.tsbuildinfo",
       ".next/**/*",
     ],
+    "/api/products": [
+      "public/**/*",
+      "*.md",
+      "*.zip",
+      "tsconfig.tsbuildinfo",
+      ".next/**/*",
+    ],
   },
 };
 
