@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useStore } from "../../components/store";
 import ProductReviews from "./ProductReviews";
+import bundledCatalogCache from "@/data/catalog_products.cache.json";
 
 type ProductVariant = {
   key: string;
@@ -66,6 +67,29 @@ type Product = {
   favoritesCount?: number;
   isFavorite?: boolean;
 };
+
+type CatalogCachePayload = {
+  products?: Product[];
+};
+
+function getBundledCatalogProducts(): Product[] {
+  const payload = bundledCatalogCache as CatalogCachePayload | null;
+  return Array.isArray(payload?.products) ? payload.products : [];
+}
+
+function findProductInCatalog(products: Product[], slugOrId: string) {
+  const safe = String(slugOrId || "").trim().toLowerCase();
+  if (!safe) return undefined;
+
+  return products.find((p) => {
+    const pid = String(p?.id ?? "").trim().toLowerCase();
+    const pslug = String(p?.slug ?? "").trim().toLowerCase();
+    const pcode = String(p?.product_code ?? "").trim().toLowerCase();
+    return pid === safe || pslug === safe || pcode === safe;
+  });
+}
+
+const BUNDLED_CATALOG_PRODUCTS: Product[] = getBundledCatalogProducts();
 
 function moneyCOP(n: number) {
   return Math.round(n).toLocaleString("es-CO");
@@ -903,8 +927,10 @@ export default function ProductPage() {
 
   const slug = decodeURIComponent(String(params?.slug || "")).trim().toLowerCase();
 
-  const [product, setProduct] = useState<Product | undefined>(undefined);
-  const [catalogProducts, setCatalogProducts] = useState<Product[]>([]);
+  const [product, setProduct] = useState<Product | undefined>(() =>
+    findProductInCatalog(BUNDLED_CATALOG_PRODUCTS, String(slug || ""))
+  );
+  const [catalogProducts, setCatalogProducts] = useState<Product[]>(BUNDLED_CATALOG_PRODUCTS);
   const [loadingProduct, setLoadingProduct] = useState(true);
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
@@ -951,15 +977,8 @@ export default function ProductPage() {
         const res = await fetch(endpoint, { cache: "no-store" });
         const data = await res.json();
 
-        const list = Array.isArray(data) ? data : [];
-        const s = String(slug || "").trim().toLowerCase();
-
-        const found = list.find((p: any) => {
-          const pid = String(p?.id ?? "").trim().toLowerCase();
-          const pslug = String(p?.slug ?? "").trim().toLowerCase();
-          const pcode = String(p?.product_code ?? "").trim().toLowerCase();
-          return pid === s || pslug === s || pcode === s;
-        }) as Product | undefined;
+        const list = Array.isArray(data) && data.length ? data : BUNDLED_CATALOG_PRODUCTS;
+        const found = findProductInCatalog(list, String(slug || ""));
 
         if (!cancelled) {
           setCatalogProducts(list);
@@ -967,8 +986,8 @@ export default function ProductPage() {
         }
       } catch {
         if (!cancelled) {
-          setCatalogProducts([]);
-          setProduct(undefined);
+          setCatalogProducts(BUNDLED_CATALOG_PRODUCTS);
+          setProduct(findProductInCatalog(BUNDLED_CATALOG_PRODUCTS, String(slug || "")));
         }
       } finally {
         if (!cancelled) {

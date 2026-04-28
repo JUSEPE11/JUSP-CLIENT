@@ -4,6 +4,18 @@ import Link from "next/link";
 import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { type Product } from "@/lib/products";
+import bundledCatalogCache from "@/data/catalog_products.cache.json";
+
+type CatalogCachePayload = {
+  products?: Product[];
+};
+
+function getBundledCatalogProducts(): Product[] {
+  const payload = bundledCatalogCache as CatalogCachePayload | null;
+  return Array.isArray(payload?.products) ? payload.products : [];
+}
+
+const HOME_BUNDLED_PRODUCTS: Product[] = getBundledCatalogProducts();
 
 function useIsMobile(breakpoint: number = 768) {
   const [isMobile, setIsMobile] = useState(false);
@@ -465,7 +477,7 @@ const HOME_SURVEY_OPTIONS = [
 
 function HomePageContent() {
   const searchParams = useSearchParams();
-  const [catalogProducts, setCatalogProducts] = useState<Product[]>([]);
+  const [catalogProducts, setCatalogProducts] = useState<Product[]>(HOME_BUNDLED_PRODUCTS);
 
   useEffect(() => {
     let cancelled = false;
@@ -479,9 +491,7 @@ function HomePageContent() {
           setCatalogProducts(Array.isArray(data) ? data : []);
         }
       } catch {
-        if (!cancelled) {
-          setCatalogProducts([]);
-        }
+        // Preserve bundled Excel-backed catalog if the API is unavailable in production.
       }
     };
 
