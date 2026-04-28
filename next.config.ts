@@ -12,7 +12,6 @@ const nextConfig: NextConfig = {
       "*.md",
       "*.zip",
       "tsconfig.tsbuildinfo",
-      ".next/**/*",
     ],
     "/api/orders/release-expired": [
       "data/**/*",

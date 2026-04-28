@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -68,50 +69,48 @@ type Product = {
   isFavorite?: boolean;
 };
 
+type CatalogCacheFile = {
+  products?: Product[];
+};
+
 function normalizeProducts(products: Product[]): Product[] {
   return products.map((product) => ({
     ...product,
     stockHint: Number(product.stockHint ?? 0),
     favoritesCount: Number(product.favoritesCount ?? 0),
-    isFavorite: Boolean(product.isFavorite),
+    isFavorite: false,
   }));
 }
 
-// ⚠️ FIX: eliminar dependencia directa de fs en runtime
-function readBundledCatalogProductsSafe(): Product[] {
-  try {
-    // solo intenta si está en entorno local (DEV)
-    if (process.env.NODE_ENV !== "development") {
-      return [];
+function readCatalogProducts(): Product[] {
+  const candidates = Array.from(
+    new Set([
+      path.join(process.cwd(), "data", "catalog_products.cache.json"),
+      path.join(process.cwd(), "data", "catalogo_jusp.cache.json"),
+      path.resolve(__dirname, "../../../../../data/catalog_products.cache.json"),
+      path.resolve(__dirname, "../../../../../data/catalogo_jusp.cache.json"),
+    ])
+  );
+
+  for (const filePath of candidates) {
+    try {
+      if (!fs.existsSync(filePath)) continue;
+
+      const raw = fs.readFileSync(filePath, "utf8");
+      if (!raw.trim()) continue;
+
+      const payload = JSON.parse(raw) as CatalogCacheFile | null;
+      const products = Array.isArray(payload?.products) ? payload.products : [];
+
+      if (products.length) {
+        return normalizeProducts(products);
+      }
+    } catch (error) {
+      console.error("[api/products] cache read failed", filePath, error);
     }
-
-    const fs = require("node:fs");
-
-    const filePath = path.join(process.cwd(), "data", "catalog_products.cache.json");
-
-    if (!fs.existsSync(filePath)) return [];
-
-    const raw = fs.readFileSync(filePath, "utf8");
-    if (!raw.trim()) return [];
-
-    const payload = JSON.parse(raw);
-    const products = Array.isArray(payload?.products) ? payload.products : [];
-
-    return normalizeProducts(products);
-  } catch (error) {
-    console.error("[api/products] safe read failed", error);
-    return [];
   }
-}
 
-async function getFavoritesCountMapSafe(): Promise<Record<string, number>> {
-  try {
-    const mod = await import("@/lib/favoritesRepo");
-    return await mod.getFavoritesCountMap();
-  } catch (error) {
-    console.error("[api/products] favorites count failed", error);
-    return {};
-  }
+  return [];
 }
 
 export async function GET(req: NextRequest) {
@@ -119,21 +118,13 @@ export async function GET(req: NextRequest) {
     const includeFlash24h =
       String(req.nextUrl.searchParams.get("includeFlash24h") || "").trim() === "1";
 
-    const products = readBundledCatalogProductsSafe();
-    const countMap = await getFavoritesCountMapSafe();
-
-    const visibleProducts = products
-      .map((product) => {
-        const productId = String(product.id || "").trim();
-        return {
-          ...product,
-          favoritesCount: Number(countMap[productId] || 0),
-          isFavorite: false,
-        };
-      })
-      .filter((product) => includeFlash24h || !Boolean(product?.isFlash24h));
+    const products = readCatalogProducts();
+    const visibleProducts = products.filter(
+      (product) => includeFlash24h || !Boolean(product?.isFlash24h)
+    );
 
     return NextResponse.json(visibleProducts, {
+      status: 200,
       headers: {
         "Cache-Control": "no-store, max-age=0",
       },
