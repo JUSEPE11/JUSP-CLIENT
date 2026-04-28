@@ -6,6 +6,7 @@ import * as XLSX from "xlsx";
 import { getActiveReservationSummary } from "@/lib/stockExcel";
 import { getFavoritesCountMap } from "@/lib/favoritesRepo";
 import { resolveFlashWindow } from "@/lib/flash";
+import bundledCatalogCache from "@/data/catalog_products.cache.json";
 
 export const runtime = "nodejs";
 
@@ -838,6 +839,22 @@ function normalizeCachedProducts(products: Product[]): Product[] {
   }));
 }
 
+function getBundledProducts(): Product[] {
+  try {
+    const products = Array.isArray((bundledCatalogCache as CatalogCacheFile | null)?.products)
+      ? (bundledCatalogCache as CatalogCacheFile).products
+      : [];
+
+    if (products.length) {
+      return normalizeCachedProducts(products);
+    }
+  } catch (error) {
+    console.error("[api/products] bundled catalog fallback failed", error);
+  }
+
+  return [];
+}
+
 function getProductsFromCacheOnly(): Product[] {
   try {
     const cache = readCatalogCache();
@@ -848,7 +865,7 @@ function getProductsFromCacheOnly(): Product[] {
     console.error("[api/products] cache fallback failed", error);
   }
 
-  return [];
+  return getBundledProducts();
 }
 
 function getProductsSafe(): Product[] {
