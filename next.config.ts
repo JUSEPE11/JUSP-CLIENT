@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  outputFileTracingIncludes: {
+    "/api/products": [
+      "data/**/*",
+    ],
+  },
   outputFileTracingExcludes: {
     "/api/**": [
       "public/**/*",
