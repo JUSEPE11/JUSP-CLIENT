@@ -1,7 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  outputFileTracingExcludes: {
+    "/api/orders/release-expired": [
+      "public/**/*",
+      "data/**/*",
+      "*.md",
+      "*.zip",
+      "tsconfig.tsbuildinfo",
+      ".next/**/*",
+    ],
+  },
 };
 
 export default nextConfig;
