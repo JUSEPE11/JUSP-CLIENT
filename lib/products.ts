@@ -75,7 +75,7 @@ export type Product = {
 };
 
 type CachePayload = {
-  version: 4;
+  version: number;
   generatedAt: string;
   excelPath: string | null;
   excelMtimeMs: number;
@@ -670,7 +670,6 @@ function readCache(cachePath: string): CachePayload | null {
 
     const parsed = JSON.parse(raw) as CachePayload;
     if (!parsed || !Array.isArray(parsed.products)) return null;
-    if (parsed.version !== 4) return null;
 
     return parsed;
   } catch {
@@ -712,12 +711,10 @@ function filterVisibleProducts(products: Product[], options?: GetProductsOptions
 function getProductsFast(options?: GetProductsOptions): Product[] {
   if (!isServer()) return [];
 
-  const excelPath = resolveExcelPath();
-  const excelMtimeMs = safeStatMtimeMs(excelPath);
   const cachePath = resolveCachePath();
   const cached = readCache(cachePath);
 
-  if (cached && cached.excelMtimeMs >= excelMtimeMs && cached.products.length) {
+  if (cached?.products?.length) {
     return filterVisibleProducts(
       cached.products.map((product) => ({
         ...product,
@@ -728,6 +725,8 @@ function getProductsFast(options?: GetProductsOptions): Product[] {
     );
   }
 
+  const excelPath = resolveExcelPath();
+  const excelMtimeMs = safeStatMtimeMs(excelPath);
   const fresh = buildProductsFromExcel();
 
   if (fresh.length) {

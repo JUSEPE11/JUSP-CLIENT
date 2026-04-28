@@ -786,35 +786,9 @@ function getExcelMtimeMs(excelPath: string): number {
 }
 
 function getProductsFast(): Product[] {
-  const excelPath = resolveExcelPath();
-
-  if (!excelPath) {
-    const cache = readCatalogCache();
-    return (cache?.products ?? []).map((product) => ({
-      ...product,
-      stock: Number(product.stock ?? product.stockHint ?? 0),
-      inventory: Number(product.inventory ?? product.stockHint ?? 0),
-      quantity: Number(product.quantity ?? product.stockHint ?? 0),
-      qty: Number(product.qty ?? product.stockHint ?? 0),
-      availableStock: Number(product.availableStock ?? product.stockHint ?? 0),
-      available_quantity: Number(product.available_quantity ?? product.stockHint ?? 0),
-      favoritesCount: product.favoritesCount ?? 0,
-      isFavorite: product.isFavorite ?? false,
-    }));
-  }
-
-  const excelMtimeMs = getExcelMtimeMs(excelPath);
   const cache = readCatalogCache();
 
-  const cacheIsFresh =
-    !!cache &&
-    cache.version === CACHE_VERSION &&
-    cache.excelPath === excelPath &&
-    cache.excelMtimeMs === excelMtimeMs &&
-    Array.isArray(cache.products) &&
-    cache.products.length > 0;
-
-  if (cacheIsFresh) {
+  if (cache?.products?.length) {
     return cache.products.map((product) => ({
       ...product,
       stock: Number(product.stock ?? product.stockHint ?? 0),
@@ -828,6 +802,12 @@ function getProductsFast(): Product[] {
     }));
   }
 
+  const excelPath = resolveExcelPath();
+
+  if (!excelPath) {
+    return [];
+  }
+
   const excelProducts = loadExcelProducts();
 
   if (excelProducts.length > 0) {
@@ -835,23 +815,13 @@ function getProductsFast(): Product[] {
       version: CACHE_VERSION,
       generatedAt: new Date().toISOString(),
       excelPath,
-      excelMtimeMs,
+      excelMtimeMs: getExcelMtimeMs(excelPath),
       products: excelProducts,
     });
     return excelProducts;
   }
 
-  return (cache?.products ?? []).map((product) => ({
-    ...product,
-    stock: Number(product.stock ?? product.stockHint ?? 0),
-    inventory: Number(product.inventory ?? product.stockHint ?? 0),
-    quantity: Number(product.quantity ?? product.stockHint ?? 0),
-    qty: Number(product.qty ?? product.stockHint ?? 0),
-    availableStock: Number(product.availableStock ?? product.stockHint ?? 0),
-    available_quantity: Number(product.available_quantity ?? product.stockHint ?? 0),
-    favoritesCount: product.favoritesCount ?? 0,
-    isFavorite: product.isFavorite ?? false,
-  }));
+  return [];
 }
 
 export async function GET(req: NextRequest) {
