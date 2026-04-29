@@ -73,6 +73,10 @@ type CachePayload = {
   products: Product[];
 };
 
+type ProductMediaManifest = Record<string, string[]>;
+
+let productMediaManifestCache: ProductMediaManifest | null | undefined;
+
 function getDataDirCandidates(): string[] {
   return Array.from(
     new Set([
@@ -188,6 +192,40 @@ function isImageFile(file: string): boolean {
   return /\.(jpg|jpeg|png|webp|avif)$/i.test(file);
 }
 
+function readProductMediaManifest(): ProductMediaManifest | null {
+  if (productMediaManifestCache !== undefined) return productMediaManifestCache;
+
+  try {
+    const manifestPath = resolveExistingDataFile(["product_media_manifest.json"]);
+    if (!manifestPath || !fs.existsSync(manifestPath)) {
+      productMediaManifestCache = null;
+      return productMediaManifestCache;
+    }
+
+    const raw = fs.readFileSync(manifestPath, "utf8").replace(/^\uFEFF/, "");
+    const parsed = JSON.parse(raw) as ProductMediaManifest;
+    productMediaManifestCache = parsed && typeof parsed === "object" ? parsed : null;
+    return productMediaManifestCache;
+  } catch {
+    productMediaManifestCache = null;
+    return productMediaManifestCache;
+  }
+}
+
+function getManifestMediaFiles(slug: string): { folderSlug: string; files: string[] } | null {
+  const manifest = readProductMediaManifest();
+  if (!manifest) return null;
+
+  const exact = manifest[slug];
+  if (Array.isArray(exact)) return { folderSlug: slug, files: exact };
+
+  const lowerSlug = slug.toLowerCase();
+  const folderSlug = Object.keys(manifest).find((key) => key.toLowerCase() === lowerSlug);
+  const files = folderSlug ? manifest[folderSlug] : null;
+
+  return folderSlug && Array.isArray(files) ? { folderSlug, files } : null;
+}
+
 function mediaSortScore(file: string): number {
   const name = file.toLowerCase();
   const numericMatch = name.match(/\d+/);
@@ -269,7 +307,22 @@ function normalizeExcelGender(value: unknown): "men" | "women" | "kids" | "unise
 function listProductMedia(slug: string): ProductMediaItem[] {
   try {
     const dir = path.join(process.cwd(), "public", "products", slug);
-    if (!fs.existsSync(dir)) return [];
+    if (!fs.existsSync(dir)) {
+      const manifestEntry = getManifestMediaFiles(slug);
+      if (!manifestEntry) return [];
+
+      return manifestEntry.files
+        .filter((file) => isImageFile(file) || isVideoFile(file))
+        .sort((a, b) => {
+          const scoreDiff = mediaSortScore(a) - mediaSortScore(b);
+          if (scoreDiff !== 0) return scoreDiff;
+          return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+        })
+        .map((file) => ({
+          type: isVideoFile(file) ? "video" : "image",
+          src: `/products/${manifestEntry.folderSlug}/${file}`,
+        }));
+    }
 
     const files = fs
       .readdirSync(dir)

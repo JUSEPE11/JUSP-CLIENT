@@ -4,15 +4,12 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/products": [
       "data/**/*",
-      "public/products/**/*",
     ],
     "/products": [
       "data/**/*",
-      "public/products/**/*",
     ],
     "/product/*": [
       "data/**/*",
-      "public/products/**/*",
     ],
   },
   outputFileTracingExcludes: {

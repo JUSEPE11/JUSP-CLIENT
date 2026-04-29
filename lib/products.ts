@@ -82,9 +82,13 @@ type CachePayload = {
   products: Product[];
 };
 
+type ProductMediaManifest = Record<string, string[]>;
+
 type GetProductsOptions = {
   includeFlash24h?: boolean;
 };
+
+let productMediaManifestCache: ProductMediaManifest | null | undefined;
 
 function isServer(): boolean {
   return typeof window === "undefined";
@@ -334,6 +338,59 @@ function resolveParametersExcelPath(): string | null {
   }
 }
 
+function resolveProductMediaManifestPath(): string | null {
+  if (!isServer()) return null;
+
+  try {
+    const fs = getFs();
+    const path = getPath();
+    const dataDir = getDataDir();
+
+    if (!fs || !path || !dataDir) return null;
+
+    const manifestPath = path.join(dataDir, "product_media_manifest.json");
+    return fs.existsSync(manifestPath) ? manifestPath : null;
+  } catch {
+    return null;
+  }
+}
+
+function readProductMediaManifest(): ProductMediaManifest | null {
+  if (!isServer()) return null;
+  if (productMediaManifestCache !== undefined) return productMediaManifestCache;
+
+  try {
+    const fs = getFs();
+    const manifestPath = resolveProductMediaManifestPath();
+    if (!fs || !manifestPath) {
+      productMediaManifestCache = null;
+      return productMediaManifestCache;
+    }
+
+    const raw = fs.readFileSync(manifestPath, "utf8").replace(/^\uFEFF/, "");
+    const parsed = JSON.parse(raw) as ProductMediaManifest;
+    productMediaManifestCache = parsed && typeof parsed === "object" ? parsed : null;
+    return productMediaManifestCache;
+  } catch {
+    productMediaManifestCache = null;
+    return productMediaManifestCache;
+  }
+}
+
+function getManifestMediaFiles(slug: string): { folderSlug: string; files: string[] } | null {
+  const manifest = readProductMediaManifest();
+  if (!manifest) return null;
+
+  const exact = manifest[slug];
+  if (Array.isArray(exact)) return { folderSlug: slug, files: exact };
+
+  const lowerSlug = slug.toLowerCase();
+  const folderSlug = Object.keys(manifest).find((key) => key.toLowerCase() === lowerSlug);
+  const files = folderSlug ? manifest[folderSlug] : null;
+
+  return folderSlug && Array.isArray(files) ? { folderSlug, files } : null;
+}
+
 function safeStatMtimeMs(filePath: string | null): number {
   if (!isServer() || !filePath) return 0;
 
@@ -356,7 +413,24 @@ function listProductMedia(slug: string): ProductMediaItem[] {
 
     const dir = path.join(process.cwd(), "public", "products", slug);
 
-    if (!fs.existsSync(dir)) return [];
+    if (!fs.existsSync(dir)) {
+      const manifestEntry = getManifestMediaFiles(slug);
+      if (!manifestEntry) return [];
+
+      return manifestEntry.files
+        .filter((file: string) => /\.(jpg|jpeg|png|webp|avif|mp4|mov|webm|m4v)$/i.test(file))
+        .sort((a: string, b: string) => {
+          const aNum = Number(a.split(".")[0]);
+          const bNum = Number(b.split(".")[0]);
+
+          if (Number.isFinite(aNum) && Number.isFinite(bNum)) return aNum - bNum;
+          return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+        })
+        .map((file: string) => ({
+          type: /\.(mp4|mov|webm|m4v)$/i.test(file) ? "video" : "image",
+          src: `/products/${manifestEntry.folderSlug}/${file}`,
+        }));
+    }
 
     const files = fs
       .readdirSync(dir)
