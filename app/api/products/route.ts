@@ -185,7 +185,7 @@ function isVideoFile(file: string): boolean {
 }
 
 function isImageFile(file: string): boolean {
-  return /\.(jpg|jpeg|png|webp)$/i.test(file);
+  return /\.(jpg|jpeg|png|webp|avif)$/i.test(file);
 }
 
 function mediaSortScore(file: string): number {

@@ -224,6 +224,10 @@ function getDataDir(): string | null {
   return path.join(process.cwd(), "data");
 }
 
+function isVercelRuntime(): boolean {
+  return String((globalThis as any)?.process?.env?.VERCEL || "").trim() === "1";
+}
+
 function ensureDataDir() {
   if (!isServer()) return;
 
@@ -356,7 +360,7 @@ function listProductMedia(slug: string): ProductMediaItem[] {
 
     const files = fs
       .readdirSync(dir)
-      .filter((file: string) => /\.(jpg|jpeg|png|webp|mp4|mov|webm|m4v)$/i.test(file))
+      .filter((file: string) => /\.(jpg|jpeg|png|webp|avif|mp4|mov|webm|m4v)$/i.test(file))
       .sort((a: string, b: string) => {
         const aNum = Number(a.split(".")[0]);
         const bNum = Number(b.split(".")[0]);
@@ -591,6 +595,10 @@ function buildProductsFromExcel(): Product[] {
         const media = listProductMedia(slug);
         const images = media.filter((item) => item.type === "image").map((item) => item.src);
         const videos = media.filter((item) => item.type === "video").map((item) => item.src);
+        const orderedMedia: ProductMediaItem[] = [
+          ...videos.map((src) => ({ type: "video" as const, src })),
+          ...images.map((src) => ({ type: "image" as const, src })),
+        ];
 
         map.set(slug, {
           id: slug,
@@ -613,7 +621,7 @@ function buildProductsFromExcel(): Product[] {
           image: images[0],
           images,
           videos,
-          media,
+          media: orderedMedia,
           parameters: productParameters.get(slug.toLowerCase()) ?? [],
           variants: [],
           sizes: [],
@@ -701,6 +709,7 @@ function writeCache(
   excelMtimeMs: number
 ) {
   if (!isServer()) return;
+  if (isVercelRuntime()) return;
 
   try {
     const fs = getFs();
