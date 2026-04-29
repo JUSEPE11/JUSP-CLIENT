@@ -2300,10 +2300,10 @@ function HomePageContent() {
                             <div style={{ fontSize: 11, fontWeight: 1000, letterSpacing: "0.08em", opacity: 0.62 }}>
                               ENCUESTA JUSP
                             </div>
-                            <div style={{ marginTop: 10, fontSize: 15, fontWeight: 1000, lineHeight: 1.12, display: "none" }}>
+                            <div style={{ marginTop: 10, fontSize: 15, fontWeight: 1000, lineHeight: 1.12, display: "block" }}>
                               ¿Que te parece esta seleccion?
                             </div>
-                            <div style={{ marginTop: 6, fontSize: 11, lineHeight: 1.45, opacity: 0.68, display: "none" }}>
+                            <div style={{ marginTop: 6, fontSize: 11, lineHeight: 1.45, opacity: 0.68, display: "block" }}>
                               Apenas la respondas, desaparece automaticamente de esta seccion.
                             </div>
                             <div style={{ marginTop: 10, fontSize: 15, fontWeight: 1000, lineHeight: 1.12 }}>
