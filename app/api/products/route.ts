@@ -97,24 +97,6 @@ function resolveExistingDataFile(candidates: string[]): string | null {
   return null;
 }
 
-function resolveWritableDataDir(): string {
-  const existing = getDataDirCandidates().find((candidate) => fs.existsSync(candidate));
-  return existing ?? path.join(process.cwd(), "data");
-}
-
-function ensureDataDir(dirPath: string) {
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true });
-  }
-}
-
-function resolveCachePath(): string {
-  return (
-    resolveExistingDataFile(["catalog_products.cache.json", "catalogo_jusp.cache.json"]) ??
-    path.join(resolveWritableDataDir(), "catalog_products.cache.json")
-  );
-}
-
 function resolveExcelPath(): string | null {
   return resolveExistingDataFile(["catalogo_jusp.xlsx"]);
 }
@@ -130,11 +112,13 @@ function readWorkbook(filePath: string) {
 
 function toSafeNumber(value: unknown, fallback = 0): number {
   if (typeof value === "number" && Number.isFinite(value)) return value;
+
   if (typeof value === "string") {
     const cleaned = value.replace(/[^\d.-]/g, "");
     const parsed = Number(cleaned);
     return Number.isFinite(parsed) ? parsed : fallback;
   }
+
   return fallback;
 }
 
@@ -151,15 +135,15 @@ function normalizeHeaderKey(value: unknown): string {
     .replace(/\s+/g, "_");
 }
 
-function getRowValue(row: Record<string, unknown>, possibleKeys: string[], fallback: unknown = "") {
-  const normalizedMap = new Map<string, unknown>();
+function getRowValue(row: Record<string, unknown>, keys: string[], fallback: unknown = "") {
+  const map = new Map<string, unknown>();
 
-  for (const [key, value] of Object.entries(row)) {
-    normalizedMap.set(normalizeHeaderKey(key), value);
+  for (const [k, v] of Object.entries(row)) {
+    map.set(normalizeHeaderKey(k), v);
   }
 
-  for (const key of possibleKeys) {
-    const hit = normalizedMap.get(normalizeHeaderKey(key));
+  for (const key of keys) {
+    const hit = map.get(normalizeHeaderKey(key));
     if (hit !== undefined) return hit;
   }
 
@@ -168,18 +152,20 @@ function getRowValue(row: Record<string, unknown>, possibleKeys: string[], fallb
 
 function uniqCaseInsensitive(values: string[]): string[] {
   const seen = new Set<string>();
-  const out: string[] = [];
+  const output: string[] = [];
 
   for (const raw of values) {
     const value = String(raw || "").trim();
     if (!value) continue;
+
     const key = value.toLowerCase();
     if (seen.has(key)) continue;
+
     seen.add(key);
-    out.push(value);
+    output.push(value);
   }
 
-  return out;
+  return output;
 }
 
 function normalizeColor(value: unknown): string {
@@ -192,6 +178,45 @@ function sanitizeVariantPart(value?: string): string {
     .toLowerCase()
     .replace(/\s+/g, "-")
     .replace(/[^\w-]/g, "");
+}
+
+function isVideoFile(file: string): boolean {
+  return /\.(mp4|mov|webm|m4v)$/i.test(file);
+}
+
+function isImageFile(file: string): boolean {
+  return /\.(jpg|jpeg|png|webp)$/i.test(file);
+}
+
+function mediaSortScore(file: string): number {
+  const name = file.toLowerCase();
+  const numericMatch = name.match(/\d+/);
+  const numericValue = numericMatch ? Number.parseInt(numericMatch[0], 10) : 999;
+
+  if (isImageFile(name)) return numericValue;
+  if (isVideoFile(name)) return 1000 + numericValue;
+
+  return 9999;
+}
+
+function normalizePublicSrc(value: unknown): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+
+  if (/^https?:\/\//i.test(raw)) return raw;
+
+  const cleaned = raw.replace(/\\/g, "/").replace(/^public\//i, "");
+  return cleaned.startsWith("/") ? cleaned : `/${cleaned}`;
+}
+
+function splitMediaColumn(value: unknown): string[] {
+  const raw = String(value ?? "").trim();
+  if (!raw) return [];
+
+  return raw
+    .split(/[,;\n|]+/g)
+    .map((item) => normalizePublicSrc(item))
+    .filter(Boolean);
 }
 
 function derivePriceFromVariants(variants?: ProductVariant[]): number {
@@ -241,51 +266,6 @@ function normalizeExcelGender(value: unknown): "men" | "women" | "kids" | "unise
   return null;
 }
 
-function isVideoSrc(src: string): boolean {
-  return /\.(mp4|mov|webm|m4v)(\?.*)?$/i.test(src);
-}
-
-function isImageSrc(src: string): boolean {
-  return /\.(jpg|jpeg|png|webp|gif|avif)(\?.*)?$/i.test(src);
-}
-
-function normalizeMediaSrc(value: unknown): string {
-  const raw = String(value ?? "").trim();
-  if (!raw) return "";
-  if (/^https?:\/\//i.test(raw)) return raw;
-  if (raw.startsWith("/")) return raw;
-  return `/${raw.replace(/^\/+/, "")}`;
-}
-
-function splitMediaValues(value: unknown): string[] {
-  return String(value ?? "")
-    .split(/[|,;\n]+/g)
-    .map((item) => normalizeMediaSrc(item))
-    .filter(Boolean);
-}
-
-function uniqMedia(items: ProductMediaItem[]): ProductMediaItem[] {
-  const seen = new Set<string>();
-  const out: ProductMediaItem[] = [];
-
-  for (const item of items) {
-    if (!item.src) continue;
-    const key = item.src.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(item);
-  }
-
-  return out;
-}
-
-function orderProductMedia(items: ProductMediaItem[]): ProductMediaItem[] {
-  const unique = uniqMedia(items);
-  const videos = unique.filter((item) => item.type === "video");
-  const images = unique.filter((item) => item.type === "image");
-  return [...videos, ...images];
-}
-
 function listProductMedia(slug: string): ProductMediaItem[] {
   try {
     const dir = path.join(process.cwd(), "public", "products", slug);
@@ -293,11 +273,15 @@ function listProductMedia(slug: string): ProductMediaItem[] {
 
     const files = fs
       .readdirSync(dir)
-      .filter((file) => /\.(jpg|jpeg|png|webp|gif|avif|mp4|mov|webm|m4v)$/i.test(file))
-      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }));
+      .filter((file) => isImageFile(file) || isVideoFile(file))
+      .sort((a, b) => {
+        const scoreDiff = mediaSortScore(a) - mediaSortScore(b);
+        if (scoreDiff !== 0) return scoreDiff;
+        return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+      });
 
     return files.map((file) => ({
-      type: /\.(mp4|mov|webm|m4v)$/i.test(file) ? "video" : "image",
+      type: isVideoFile(file) ? "video" : "image",
       src: `/products/${slug}/${file}`,
     }));
   } catch {
@@ -305,26 +289,11 @@ function listProductMedia(slug: string): ProductMediaItem[] {
   }
 }
 
-function getMediaFromExcelRow(row: Record<string, unknown>): ProductMediaItem[] {
-  const imageValues = [
-    ...splitMediaValues(getRowValue(row, ["image", "imagen", "main_image", "cover", "portada"], "")),
-    ...splitMediaValues(getRowValue(row, ["images", "imagenes", "galeria", "gallery"], "")),
-  ];
-
-  const videoValues = [
-    ...splitMediaValues(getRowValue(row, ["video", "videos", "media_video"], "")),
-  ];
-
-  return uniqMedia([
-    ...imageValues.filter(isImageSrc).map((src) => ({ type: "image" as const, src })),
-    ...videoValues.filter(isVideoSrc).map((src) => ({ type: "video" as const, src })),
-  ]);
-}
-
 function loadProductParameters(): Map<string, ProductParameter[]> {
   try {
     const parametersPath = resolveParametersPath();
     if (!parametersPath || !fs.existsSync(parametersPath)) return new Map();
+
     const workbook = readWorkbook(parametersPath);
     const firstSheetName = workbook.SheetNames[0];
     if (!firstSheetName) return new Map();
@@ -335,11 +304,13 @@ function loadProductParameters(): Map<string, ProductParameter[]> {
     }) as Record<string, unknown>[];
 
     const map = new Map<string, ProductParameter[]>();
+
     for (const row of rows) {
       const slug = String(getRowValue(row, ["product_slug", "slug"], "")).trim().toLowerCase();
       const label = String(getRowValue(row, ["label", "nombre", "campo", "parametro", "parámetro"], "")).trim();
       const value = String(getRowValue(row, ["value", "valor", "detalle", "descripcion"], "")).trim();
       const order = toSafeNumber(getRowValue(row, ["order", "orden", "display_order"], 0), 0);
+
       if (!slug || !label || !value) continue;
 
       const current = map.get(slug) ?? [];
@@ -355,36 +326,6 @@ function loadProductParameters(): Map<string, ProductParameter[]> {
   } catch {
     return new Map();
   }
-}
-
-function readCache(): CachePayload | null {
-  try {
-    const cachePath = resolveCachePath();
-    if (!fs.existsSync(cachePath)) return null;
-    const raw = fs.readFileSync(cachePath, "utf8");
-    if (!raw.trim()) return null;
-    const parsed = JSON.parse(raw) as CachePayload;
-    return Array.isArray(parsed.products) ? parsed : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeCache(products: Product[]) {
-  const dataDir = resolveWritableDataDir();
-  const cachePath = path.join(dataDir, "catalog_products.cache.json");
-  const excelPath = resolveExcelPath();
-
-  ensureDataDir(dataDir);
-  const payload: CachePayload = {
-    version: 10,
-    generatedAt: new Date().toISOString(),
-    excelPath,
-    excelMtimeMs: excelPath && fs.existsSync(excelPath) ? fs.statSync(excelPath).mtimeMs : 0,
-    products,
-  };
-
-  fs.writeFileSync(cachePath, JSON.stringify(payload, null, 2), "utf8");
 }
 
 function buildProductsFromExcel(): Product[] {
@@ -415,28 +356,44 @@ function buildProductsFromExcel(): Product[] {
     const excelCategory = String(getRowValue(row, ["category", "categoria", "categoría"], "")).trim();
     const pickupToday = toSafeBoolean(getRowValue(row, ["pickup_today", "pickup", "retiro_hoy"], ""));
     const expressDelivery = toSafeBoolean(getRowValue(row, ["express_delivery", "express", "envio_express"], ""));
+    const discountPercent = toSafeNumber(getRowValue(row, ["discount_percent", "discount", "descuento"], 0), 0);
+    const rowIsActive = getRowValue(row, ["is_active", "active", "activo"], "");
+    const isRowActive = String(rowIsActive).trim() ? toSafeBoolean(rowIsActive) : true;
     const flashWindow = resolveFlashWindow({
       isFlash24h: getRowValue(row, ["is_flash_24h", "flash_24h", "flash24h"], ""),
       flashStartsAt: getRowValue(row, ["flash_starts_at", "flash_start", "inicio_flash"], ""),
       flashExpiresAt: getRowValue(row, ["flash_expires_at", "flash_end", "fin_flash"], ""),
     });
-    const discountPercent = toSafeNumber(getRowValue(row, ["discount_percent", "discount", "descuento"], 0), 0);
-    const rowIsActive = getRowValue(row, ["is_active", "active", "activo"], "");
-    const isRowActive = String(rowIsActive).trim() ? toSafeBoolean(rowIsActive) : true;
 
     if (!slug || !title || price <= 0) continue;
 
     if (!map.has(slug)) {
-      const excelMedia = getMediaFromExcelRow(row);
       const folderMedia = listProductMedia(slug);
-      const media = orderProductMedia([...excelMedia, ...folderMedia]);
-      const images = uniqCaseInsensitive(
-        media.filter((item) => item.type === "image").map((item) => item.src)
-      );
-      const videos = uniqCaseInsensitive(
-        media.filter((item) => item.type === "video").map((item) => item.src)
-      );
+
+      const excelImagePaths = splitMediaColumn(
+        getRowValue(row, ["image", "imagen", "main_image", "cover", "portada"], "")
+      ).filter((src) => isImageFile(src) || /^https?:\/\//i.test(src));
+
+      const excelImagesPaths = splitMediaColumn(
+        getRowValue(row, ["images", "imagenes", "gallery", "galeria"], "")
+      ).filter((src) => isImageFile(src) || /^https?:\/\//i.test(src));
+
+      const excelVideoPaths = splitMediaColumn(
+        getRowValue(row, ["video", "videos", "media_video"], "")
+      ).filter((src) => isVideoFile(src) || /^https?:\/\//i.test(src));
+
+      const folderImages = folderMedia.filter((item) => item.type === "image").map((item) => item.src);
+      const folderVideos = folderMedia.filter((item) => item.type === "video").map((item) => item.src);
+
+      const images = uniqCaseInsensitive([...excelImagePaths, ...excelImagesPaths, ...folderImages]);
+      const videos = uniqCaseInsensitive([...excelVideoPaths, ...folderVideos]);
+
       const mainImage = images[0];
+
+      const orderedMedia: ProductMediaItem[] = [
+        ...videos.map((src) => ({ type: "video" as const, src })),
+        ...images.map((src) => ({ type: "image" as const, src })),
+      ];
 
       map.set(slug, {
         id: slug,
@@ -450,7 +407,7 @@ function buildProductsFromExcel(): Product[] {
         image: mainImage,
         images,
         videos,
-        media,
+        media: orderedMedia,
         parameters: parameterMap.get(slug.toLowerCase()) ?? [],
         colors: [],
         sizes: [],
@@ -479,6 +436,7 @@ function buildProductsFromExcel(): Product[] {
     }
 
     const product = map.get(slug)!;
+
     product.variants!.push({
       key: `${slug}-${sanitizeVariantPart(size || color || "one")}`,
       size: size || undefined,
@@ -502,38 +460,13 @@ function buildProductsFromExcel(): Product[] {
     .filter((product) => product.isActive !== false && Number(product.stockHint || 0) > 0);
 }
 
-function getProductsFromExcelOrCache(): Product[] {
-  const isVercel = process.env.VERCEL === "1";
-  const excelPath = resolveExcelPath();
-  const excelMtimeMs = excelPath && fs.existsSync(excelPath) ? fs.statSync(excelPath).mtimeMs : 0;
-  const cached = readCache();
-
-  if (
-    cached?.products?.length &&
-    cached.excelPath === excelPath &&
-    Number(cached.excelMtimeMs || 0) >= Number(excelMtimeMs || 0)
-  ) {
-    return cached.products;
-  }
-
-  const fresh = buildProductsFromExcel();
-
-  if (fresh.length) {
-    if (!isVercel) {
-      writeCache(fresh);
-    }
-
-    return fresh;
-  }
-
-  return cached?.products ?? [];
-}
-
 export async function GET(req: NextRequest) {
   try {
     const includeFlash24h =
       String(req.nextUrl.searchParams.get("includeFlash24h") || "").trim() === "1";
-    const products = getProductsFromExcelOrCache();
+
+    const products = buildProductsFromExcel();
+
     const visibleProducts = includeFlash24h
       ? products
       : products.filter((product) => !Boolean(product?.isFlash24h));
@@ -546,6 +479,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error("[api/products] excel rebuild failed", error);
+
     return NextResponse.json([], {
       status: 200,
       headers: {
