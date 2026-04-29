@@ -241,6 +241,51 @@ function normalizeExcelGender(value: unknown): "men" | "women" | "kids" | "unise
   return null;
 }
 
+function isVideoSrc(src: string): boolean {
+  return /\.(mp4|mov|webm|m4v)(\?.*)?$/i.test(src);
+}
+
+function isImageSrc(src: string): boolean {
+  return /\.(jpg|jpeg|png|webp|gif|avif)(\?.*)?$/i.test(src);
+}
+
+function normalizeMediaSrc(value: unknown): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) return raw;
+  if (raw.startsWith("/")) return raw;
+  return `/${raw.replace(/^\/+/, "")}`;
+}
+
+function splitMediaValues(value: unknown): string[] {
+  return String(value ?? "")
+    .split(/[|,;\n]+/g)
+    .map((item) => normalizeMediaSrc(item))
+    .filter(Boolean);
+}
+
+function uniqMedia(items: ProductMediaItem[]): ProductMediaItem[] {
+  const seen = new Set<string>();
+  const out: ProductMediaItem[] = [];
+
+  for (const item of items) {
+    if (!item.src) continue;
+    const key = item.src.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(item);
+  }
+
+  return out;
+}
+
+function orderProductMedia(items: ProductMediaItem[]): ProductMediaItem[] {
+  const unique = uniqMedia(items);
+  const videos = unique.filter((item) => item.type === "video");
+  const images = unique.filter((item) => item.type === "image");
+  return [...videos, ...images];
+}
+
 function listProductMedia(slug: string): ProductMediaItem[] {
   try {
     const dir = path.join(process.cwd(), "public", "products", slug);
@@ -248,7 +293,7 @@ function listProductMedia(slug: string): ProductMediaItem[] {
 
     const files = fs
       .readdirSync(dir)
-      .filter((file) => /\.(jpg|jpeg|png|webp|mp4|mov|webm|m4v)$/i.test(file))
+      .filter((file) => /\.(jpg|jpeg|png|webp|gif|avif|mp4|mov|webm|m4v)$/i.test(file))
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }));
 
     return files.map((file) => ({
@@ -258,6 +303,22 @@ function listProductMedia(slug: string): ProductMediaItem[] {
   } catch {
     return [];
   }
+}
+
+function getMediaFromExcelRow(row: Record<string, unknown>): ProductMediaItem[] {
+  const imageValues = [
+    ...splitMediaValues(getRowValue(row, ["image", "imagen", "main_image", "cover", "portada"], "")),
+    ...splitMediaValues(getRowValue(row, ["images", "imagenes", "galeria", "gallery"], "")),
+  ];
+
+  const videoValues = [
+    ...splitMediaValues(getRowValue(row, ["video", "videos", "media_video"], "")),
+  ];
+
+  return uniqMedia([
+    ...imageValues.filter(isImageSrc).map((src) => ({ type: "image" as const, src })),
+    ...videoValues.filter(isVideoSrc).map((src) => ({ type: "video" as const, src })),
+  ]);
 }
 
 function loadProductParameters(): Map<string, ProductParameter[]> {
@@ -366,9 +427,16 @@ function buildProductsFromExcel(): Product[] {
     if (!slug || !title || price <= 0) continue;
 
     if (!map.has(slug)) {
-      const media = listProductMedia(slug);
-      const images = media.filter((item) => item.type === "image").map((item) => item.src);
-      const videos = media.filter((item) => item.type === "video").map((item) => item.src);
+      const excelMedia = getMediaFromExcelRow(row);
+      const folderMedia = listProductMedia(slug);
+      const media = orderProductMedia([...excelMedia, ...folderMedia]);
+      const images = uniqCaseInsensitive(
+        media.filter((item) => item.type === "image").map((item) => item.src)
+      );
+      const videos = uniqCaseInsensitive(
+        media.filter((item) => item.type === "video").map((item) => item.src)
+      );
+      const mainImage = images[0];
 
       map.set(slug, {
         id: slug,
@@ -379,7 +447,7 @@ function buildProductsFromExcel(): Product[] {
         price,
         currency: "COP",
         description: `${title}. Producto disponible en JUSP.`,
-        image: images[0],
+        image: mainImage,
         images,
         videos,
         media,
