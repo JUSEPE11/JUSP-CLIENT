@@ -65,18 +65,7 @@ type Product = {
   isFavorite?: boolean;
 };
 
-type CachePayload = {
-  version: number;
-  generatedAt: string;
-  excelPath: string | null;
-  excelMtimeMs: number;
-  products: Product[];
-};
-
 type ProductMediaManifest = Record<string, string[]>;
-
-const CACHE_VERSION = 1;
-const CACHE_FILE_NAME = "catalog_products.cache.json";
 
 let productMediaManifestCache: ProductMediaManifest | null | undefined;
 
@@ -104,20 +93,6 @@ function resolveExistingDataFile(candidates: string[]): string | null {
   return null;
 }
 
-function resolveWritableDataDir(): string {
-  for (const dataDir of getDataDirCandidates()) {
-    if (fs.existsSync(dataDir)) return dataDir;
-  }
-
-  const fallback = path.join(process.cwd(), "data");
-  fs.mkdirSync(fallback, { recursive: true });
-  return fallback;
-}
-
-function resolveCachePath(): string {
-  return path.join(resolveWritableDataDir(), CACHE_FILE_NAME);
-}
-
 function resolveExcelPath(): string | null {
   return resolveExistingDataFile(["catalogo_jusp.xlsx"]);
 }
@@ -129,42 +104,6 @@ function resolveParametersPath(): string | null {
 function readWorkbook(filePath: string) {
   const bytes = fs.readFileSync(filePath);
   return XLSX.read(bytes, { type: "buffer" });
-}
-
-function getExcelMtimeMs(excelPath: string | null): number {
-  if (!excelPath || !fs.existsSync(excelPath)) return 0;
-
-  try {
-    return fs.statSync(excelPath).mtimeMs;
-  } catch {
-    return 0;
-  }
-}
-
-function writeProductCache(payload: CachePayload): void {
-  try {
-    const cachePath = resolveCachePath();
-    fs.mkdirSync(path.dirname(cachePath), { recursive: true });
-    fs.writeFileSync(cachePath, JSON.stringify(payload, null, 2), "utf8");
-  } catch (error) {
-    console.error("[api/products] cache write failed", error);
-  }
-}
-
-function buildProductsAndRefreshCache(): Product[] {
-  const excelPath = resolveExcelPath();
-  const excelMtimeMs = getExcelMtimeMs(excelPath);
-  const products = buildProductsFromExcel();
-
-  writeProductCache({
-    version: CACHE_VERSION,
-    generatedAt: new Date().toISOString(),
-    excelPath,
-    excelMtimeMs,
-    products,
-  });
-
-  return products;
 }
 
 function toSafeNumber(value: unknown, fallback = 0): number {
@@ -279,6 +218,45 @@ function getManifestMediaFiles(slug: string): { folderSlug: string; files: strin
   return folderSlug && Array.isArray(files) ? { folderSlug, files } : null;
 }
 
+function getProductsPublicDir(): string {
+  return path.join(process.cwd(), "public", "products");
+}
+
+function resolveProductMediaFolder(slug: string): { folderSlug: string; dir: string } | null {
+  const productsDir = getProductsPublicDir();
+  if (!fs.existsSync(productsDir)) return null;
+
+  const direct = path.join(productsDir, slug);
+  if (fs.existsSync(direct)) {
+    const actual = fs
+      .readdirSync(productsDir, { withFileTypes: true })
+      .find((entry) => entry.isDirectory() && entry.name === slug)?.name;
+
+    return { folderSlug: actual || slug, dir: path.join(productsDir, actual || slug) };
+  }
+
+  const lowerSlug = slug.toLowerCase();
+  const actual = fs
+    .readdirSync(productsDir, { withFileTypes: true })
+    .find((entry) => entry.isDirectory() && entry.name.toLowerCase() === lowerSlug)?.name;
+
+  return actual ? { folderSlug: actual, dir: path.join(productsDir, actual) } : null;
+}
+
+function publicFileExists(src: string): boolean {
+  if (!src || /^https?:\/\//i.test(src)) return Boolean(src);
+
+  const clean = normalizePublicSrc(src);
+  if (!clean.startsWith("/")) return false;
+
+  try {
+    const fullPath = path.join(process.cwd(), "public", clean.replace(/^\/+/, ""));
+    return fs.existsSync(fullPath) && fs.statSync(fullPath).isFile();
+  } catch {
+    return false;
+  }
+}
+
 function mediaSortScore(file: string): number {
   const name = file.toLowerCase();
   const numericMatch = name.match(/\d+/);
@@ -359,8 +337,8 @@ function normalizeExcelGender(value: unknown): "men" | "women" | "kids" | "unise
 
 function listProductMedia(slug: string): ProductMediaItem[] {
   try {
-    const dir = path.join(process.cwd(), "public", "products", slug);
-    if (!fs.existsSync(dir)) {
+    const folder = resolveProductMediaFolder(slug);
+    if (!folder) {
       const manifestEntry = getManifestMediaFiles(slug);
       if (!manifestEntry) return [];
 
@@ -372,13 +350,14 @@ function listProductMedia(slug: string): ProductMediaItem[] {
           return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
         })
         .map((file) => ({
-          type: isVideoFile(file) ? "video" : "image",
+          type: isVideoFile(file) ? ("video" as const) : ("image" as const),
           src: `/products/${manifestEntry.folderSlug}/${file}`,
-        }));
+        }))
+        .filter((item) => publicFileExists(item.src));
     }
 
     const files = fs
-      .readdirSync(dir)
+      .readdirSync(folder.dir)
       .filter((file) => isImageFile(file) || isVideoFile(file))
       .sort((a, b) => {
         const scoreDiff = mediaSortScore(a) - mediaSortScore(b);
@@ -388,7 +367,7 @@ function listProductMedia(slug: string): ProductMediaItem[] {
 
     return files.map((file) => ({
       type: isVideoFile(file) ? "video" : "image",
-      src: `/products/${slug}/${file}`,
+      src: `/products/${folder.folderSlug}/${file}`,
     }));
   } catch {
     return [];
@@ -478,27 +457,28 @@ function buildProductsFromExcel(): Product[] {
 
       const excelImagePaths = splitMediaColumn(
         getRowValue(row, ["image", "imagen", "main_image", "cover", "portada"], "")
-      ).filter((src) => isImageFile(src) || /^https?:\/\//i.test(src));
+      ).filter((src) => (isImageFile(src) || /^https?:\/\//i.test(src)) && publicFileExists(src));
 
       const excelImagesPaths = splitMediaColumn(
         getRowValue(row, ["images", "imagenes", "gallery", "galeria"], "")
-      ).filter((src) => isImageFile(src) || /^https?:\/\//i.test(src));
+      ).filter((src) => (isImageFile(src) || /^https?:\/\//i.test(src)) && publicFileExists(src));
 
       const excelVideoPaths = splitMediaColumn(
         getRowValue(row, ["video", "videos", "media_video"], "")
-      ).filter((src) => isVideoFile(src) || /^https?:\/\//i.test(src));
+      ).filter((src) => (isVideoFile(src) || /^https?:\/\//i.test(src)) && publicFileExists(src));
 
       const folderImages = folderMedia.filter((item) => item.type === "image").map((item) => item.src);
       const folderVideos = folderMedia.filter((item) => item.type === "video").map((item) => item.src);
 
       const images = uniqCaseInsensitive([...excelImagePaths, ...excelImagesPaths, ...folderImages]);
+      const finalImages = images.length ? images : ["/logo.jpeg"];
       const videos = uniqCaseInsensitive([...excelVideoPaths, ...folderVideos]);
 
-      const mainImage = images[0];
+      const mainImage = finalImages[0];
 
       const orderedMedia: ProductMediaItem[] = [
         ...videos.map((src) => ({ type: "video" as const, src })),
-        ...images.map((src) => ({ type: "image" as const, src })),
+        ...finalImages.map((src) => ({ type: "image" as const, src })),
       ];
 
       map.set(slug, {
@@ -511,7 +491,7 @@ function buildProductsFromExcel(): Product[] {
         currency: "COP",
         description: `${title}. Producto disponible en JUSP.`,
         image: mainImage,
-        images,
+        images: finalImages,
         videos,
         media: orderedMedia,
         parameters: parameterMap.get(slug.toLowerCase()) ?? [],
@@ -571,7 +551,7 @@ export async function GET(req: NextRequest) {
     const includeFlash24h =
       String(req.nextUrl.searchParams.get("includeFlash24h") || "").trim() === "1";
 
-    const products = buildProductsAndRefreshCache();
+    const products = buildProductsFromExcel();
 
     const visibleProducts = includeFlash24h
       ? products

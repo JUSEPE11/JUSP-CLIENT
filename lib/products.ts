@@ -74,14 +74,6 @@ export type Product = {
   isFavorite?: boolean;
 };
 
-type CachePayload = {
-  version: number;
-  generatedAt: string;
-  excelPath: string | null;
-  excelMtimeMs: number;
-  products: Product[];
-};
-
 type ProductMediaManifest = Record<string, string[]>;
 
 type GetProductsOptions = {
@@ -228,55 +220,6 @@ function getDataDir(): string | null {
   return path.join(process.cwd(), "data");
 }
 
-function isVercelRuntime(): boolean {
-  return String((globalThis as any)?.process?.env?.VERCEL || "").trim() === "1";
-}
-
-function ensureDataDir() {
-  if (!isServer()) return;
-
-  try {
-    const fs = getFs();
-    const dataDir = getDataDir();
-    if (!fs || !dataDir) return;
-
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
-    }
-  } catch {}
-}
-
-function getPreferredCachePath(): string {
-  const path = getPath();
-  const dataDir = getDataDir();
-
-  if (!path || !dataDir) return "data/catalog_products.cache.json";
-
-  ensureDataDir();
-  return path.join(dataDir, "catalog_products.cache.json");
-}
-
-function resolveCachePath(): string {
-  if (!isServer()) return getPreferredCachePath();
-
-  try {
-    const fs = getFs();
-    const path = getPath();
-    const dataDir = getDataDir();
-
-    if (!fs || !path || !dataDir) return getPreferredCachePath();
-
-    const basenames = ["catalog_products.cache.json", "catalogo_jusp.cache.json"];
-
-    for (const basename of basenames) {
-      const full = path.join(dataDir, basename);
-      if (fs.existsSync(full)) return full;
-    }
-  } catch {}
-
-  return getPreferredCachePath();
-}
-
 function resolveExcelPath(): string | null {
   if (!isServer()) return null;
 
@@ -391,15 +334,57 @@ function getManifestMediaFiles(slug: string): { folderSlug: string; files: strin
   return folderSlug && Array.isArray(files) ? { folderSlug, files } : null;
 }
 
-function safeStatMtimeMs(filePath: string | null): number {
-  if (!isServer() || !filePath) return 0;
+function getProductsPublicDir(): string | null {
+  const path = getPath();
+  if (!path) return null;
+
+  return path.join(process.cwd(), "public", "products");
+}
+
+function resolveProductMediaFolder(slug: string): { folderSlug: string; dir: string } | null {
+  if (!isServer()) return null;
 
   try {
     const fs = getFs();
-    if (!fs) return 0;
-    return fs.statSync(filePath).mtimeMs || 0;
+    const path = getPath();
+    const productsDir = getProductsPublicDir();
+    if (!fs || !path || !productsDir || !fs.existsSync(productsDir)) return null;
+
+    const direct = path.join(productsDir, slug);
+    if (fs.existsSync(direct)) {
+      const actual = fs
+        .readdirSync(productsDir, { withFileTypes: true })
+        .find((entry: any) => entry.isDirectory() && entry.name === slug)?.name;
+
+      return { folderSlug: actual || slug, dir: path.join(productsDir, actual || slug) };
+    }
+
+    const lowerSlug = slug.toLowerCase();
+    const actual = fs
+      .readdirSync(productsDir, { withFileTypes: true })
+      .find((entry: any) => entry.isDirectory() && entry.name.toLowerCase() === lowerSlug)?.name;
+
+    return actual ? { folderSlug: actual, dir: path.join(productsDir, actual) } : null;
   } catch {
-    return 0;
+    return null;
+  }
+}
+
+function publicFileExists(src: string): boolean {
+  if (!isServer()) return false;
+  if (!src || /^https?:\/\//i.test(src)) return Boolean(src);
+
+  try {
+    const fs = getFs();
+    const path = getPath();
+    if (!fs || !path) return false;
+
+    const clean = String(src || "").replace(/\\/g, "/").replace(/^public\//i, "");
+    const publicPath = clean.startsWith("/") ? clean : `/${clean}`;
+    const fullPath = path.join(process.cwd(), "public", publicPath.replace(/^\/+/, ""));
+    return fs.existsSync(fullPath) && fs.statSync(fullPath).isFile();
+  } catch {
+    return false;
   }
 }
 
@@ -411,9 +396,9 @@ function listProductMedia(slug: string): ProductMediaItem[] {
     const path = getPath();
     if (!fs || !path) return [];
 
-    const dir = path.join(process.cwd(), "public", "products", slug);
+    const folder = resolveProductMediaFolder(slug);
 
-    if (!fs.existsSync(dir)) {
+    if (!folder) {
       const manifestEntry = getManifestMediaFiles(slug);
       if (!manifestEntry) return [];
 
@@ -427,13 +412,14 @@ function listProductMedia(slug: string): ProductMediaItem[] {
           return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
         })
         .map((file: string) => ({
-          type: /\.(mp4|mov|webm|m4v)$/i.test(file) ? "video" : "image",
+          type: /\.(mp4|mov|webm|m4v)$/i.test(file) ? ("video" as const) : ("image" as const),
           src: `/products/${manifestEntry.folderSlug}/${file}`,
-        }));
+        }))
+        .filter((item: ProductMediaItem) => publicFileExists(item.src));
     }
 
     const files = fs
-      .readdirSync(dir)
+      .readdirSync(folder.dir)
       .filter((file: string) => /\.(jpg|jpeg|png|webp|avif|mp4|mov|webm|m4v)$/i.test(file))
       .sort((a: string, b: string) => {
         const aNum = Number(a.split(".")[0]);
@@ -445,7 +431,7 @@ function listProductMedia(slug: string): ProductMediaItem[] {
 
     return files.map((file: string) => ({
       type: /\.(mp4|mov|webm|m4v)$/i.test(file) ? "video" : "image",
-      src: `/products/${slug}/${file}`,
+      src: `/products/${folder.folderSlug}/${file}`,
     }));
   } catch {
     return [];
@@ -667,7 +653,8 @@ function buildProductsFromExcel(): Product[] {
 
       if (!map.has(slug)) {
         const media = listProductMedia(slug);
-        const images = media.filter((item) => item.type === "image").map((item) => item.src);
+        const imagesFromMedia = media.filter((item) => item.type === "image").map((item) => item.src);
+        const images = imagesFromMedia.length ? imagesFromMedia : ["/logo.jpeg"];
         const videos = media.filter((item) => item.type === "video").map((item) => item.src);
         const orderedMedia: ProductMediaItem[] = [
           ...videos.map((src) => ({ type: "video" as const, src })),
@@ -757,121 +744,19 @@ function buildProductsFromExcel(): Product[] {
   }
 }
 
-function readCache(cachePath: string): CachePayload | null {
-  if (!isServer()) return null;
-
-  try {
-    const fs = getFs();
-    if (!fs || !fs.existsSync(cachePath)) return null;
-
-    const raw = fs.readFileSync(cachePath, "utf8");
-    if (!raw.trim()) return null;
-
-    const parsed = JSON.parse(raw) as CachePayload;
-    if (!parsed || !Array.isArray(parsed.products)) return null;
-
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-function writeCache(
-  cachePath: string,
-  products: Product[],
-  excelPath: string | null,
-  excelMtimeMs: number
-) {
-  if (!isServer()) return;
-  if (isVercelRuntime()) return;
-
-  try {
-    const fs = getFs();
-    if (!fs) return;
-
-    ensureDataDir();
-
-    const payload: CachePayload = {
-      version: 4,
-      generatedAt: new Date().toISOString(),
-      excelPath,
-      excelMtimeMs,
-      products,
-    };
-
-    fs.writeFileSync(cachePath, JSON.stringify(payload, null, 2), "utf8");
-  } catch {}
-}
-
 function filterVisibleProducts(products: Product[], options?: GetProductsOptions): Product[] {
   if (options?.includeFlash24h) return products;
   return products.filter((product) => !Boolean(product?.isFlash24h));
 }
 
-function getBundledProducts(options?: GetProductsOptions): Product[] {
-  try {
-    const cachePath = resolveCachePath();
-    const payload = readCache(cachePath);
-    const products = Array.isArray(payload?.products) ? payload.products : [];
-
-    return filterVisibleProducts(
-      products.map((product) => ({
-        ...product,
-        favoritesCount: product.favoritesCount ?? 0,
-        isFavorite: product.isFavorite ?? false,
-      })),
-      options
-    );
-  } catch {
-    return [];
-  }
-}
-
 function getProductsFast(options?: GetProductsOptions): Product[] {
   if (!isServer()) return [];
-
-  const cachePath = resolveCachePath();
-  const excelPath = resolveExcelPath();
-  const excelMtimeMs = safeStatMtimeMs(excelPath);
-  const cached = readCache(cachePath);
-  const cacheIsFresh = Boolean(
-    cached?.products?.length &&
-      excelPath &&
-      cached.excelPath === excelPath &&
-      Number(cached.excelMtimeMs || 0) >= Number(excelMtimeMs || 0)
-  );
-
-  if (cacheIsFresh && cached?.products?.length) {
-    return filterVisibleProducts(
-      cached.products.map((product) => ({
-        ...product,
-        favoritesCount: product.favoritesCount ?? 0,
-        isFavorite: product.isFavorite ?? false,
-      })),
-      options
-    );
-  }
 
   const fresh = buildProductsFromExcel();
 
   if (fresh.length) {
-    writeCache(cachePath, fresh, excelPath, excelMtimeMs);
     return filterVisibleProducts(fresh, options);
   }
-
-  if (cached?.products?.length) {
-    return filterVisibleProducts(
-      cached.products.map((product) => ({
-        ...product,
-        favoritesCount: product.favoritesCount ?? 0,
-        isFavorite: product.isFavorite ?? false,
-      })),
-      options
-    );
-  }
-
-  const bundled = getBundledProducts(options);
-  if (bundled.length) return bundled;
 
   return [];
 }

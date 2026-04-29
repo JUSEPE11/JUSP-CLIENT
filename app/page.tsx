@@ -155,6 +155,8 @@ function SmartImg({
       }
     }
 
+    raw.push("/logo.jpeg");
+
     return Array.from(new Set(raw.filter(Boolean)));
   }, [safeBaseSrc]);
 
@@ -406,7 +408,7 @@ function firstImageFromProduct(p: Product, slug: string): string {
   const imgs = Array.isArray((p as any).images) ? ((p as any).images as unknown[]) : [];
   const main = String((imgs?.[0] as any) || ((p as any).image as any) || (slug ? `/products/${slug}/1.jpg` : "")).trim();
 
-  if (!main) return slug ? `/products/${slug}/1.jpg` : "";
+  if (!main) return slug ? `/products/${slug}/1.jpg` : "/logo.jpeg";
 
   const isAbs = /^https?:\/\//i.test(main);
   const hasSlash = main.startsWith("/");

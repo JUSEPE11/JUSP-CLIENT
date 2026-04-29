@@ -5,19 +5,12 @@ import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-const CACHE_FILE_NAME = "catalog_products.cache";
-const CACHE_VERSION = 1;
-
 function getDataDir() {
   return path.join(process.cwd(), "data");
 }
 
 function getExcelPath() {
   return path.join(getDataDir(), "catalogo_jusp.xlsx");
-}
-
-function getCachePath() {
-  return path.join(getDataDir(), CACHE_FILE_NAME);
 }
 
 function buildProducts() {
@@ -41,22 +34,11 @@ export async function GET() {
       return NextResponse.json({ error: "Excel no existe" });
     }
 
-    const stats = fs.statSync(excelPath);
-
     const products = buildProducts();
-
-    const payload = {
-      version: CACHE_VERSION,
-      generatedAt: new Date().toISOString(),
-      excelMtimeMs: stats.mtimeMs,
-      products,
-    };
-
-    fs.writeFileSync(getCachePath(), JSON.stringify(payload, null, 2));
 
     return NextResponse.json({
       ok: true,
-      regenerated: true,
+      regenerated: false,
       total: products.length,
     });
   } catch (e) {

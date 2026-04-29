@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Product } from "../../lib/products";
 import { useStore } from "./store";
@@ -130,6 +130,39 @@ function resolveProductPrice(product: Product): number | null {
   );
 }
 
+function normalizeImageSrc(value: unknown): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) return raw;
+
+  const clean = raw.replace(/\\/g, "/").replace(/^public\//i, "").replace(/^\/+/, "");
+  return clean ? `/${clean}` : "";
+}
+
+function resolveProductImages(product: Product): string[] {
+  const p = product as any;
+  const raw = [
+    ...(Array.isArray(p?.images) ? p.images : []),
+    p?.image,
+    ...(Array.isArray(p?.media)
+      ? p.media.filter((item: any) => item?.type === "image").map((item: any) => item?.src)
+      : []),
+  ];
+
+  const seen = new Set<string>();
+  const images = raw
+    .map(normalizeImageSrc)
+    .filter(Boolean)
+    .filter((src) => {
+      const key = src.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+  return images.length ? images : ["/logo.jpeg"];
+}
+
 export default function ProductCardClient({
   product,
   variant = "grid",
@@ -150,7 +183,9 @@ export default function ProductCardClient({
   } = useStore();
 
   const fav = isFav(product.id);
-  const img = product.images?.[0];
+  const imageCandidates = useMemo(() => resolveProductImages(product), [product]);
+  const [imageIndex, setImageIndex] = useState(0);
+  const img = imageCandidates[Math.min(imageIndex, imageCandidates.length - 1)];
   const { isNew, discountPct } = deriveBadges(product);
   const cardHeight = variant === "compact" ? 220 : 300;
   const resolvedPrice = resolveProductPrice(product);
@@ -166,6 +201,10 @@ export default function ProductCardClient({
   useEffect(() => {
     hydrateFavCountsFromProducts([product]);
   }, [product, hydrateFavCountsFromProducts]);
+
+  useEffect(() => {
+    setImageIndex(0);
+  }, [imageCandidates]);
 
   return (
     <article className="jusp-card jusp-hover" style={{ overflow: "hidden", position: "relative" }}>
@@ -228,6 +267,12 @@ export default function ProductCardClient({
               src={img}
               alt={product.name || product.title}
               className="jusp-img-zoom"
+              onError={() => {
+                setImageIndex((current) => {
+                  if (current < imageCandidates.length - 1) return current + 1;
+                  return current;
+                });
+              }}
               style={{
                 width: "100%",
                 height: "100%",
