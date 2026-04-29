@@ -141,24 +141,6 @@ function getExcelMtimeMs(excelPath: string | null): number {
   }
 }
 
-function readProductCache(): CachePayload | null {
-  try {
-    const cachePath = resolveCachePath();
-    if (!fs.existsSync(cachePath)) return null;
-
-    const raw = fs.readFileSync(cachePath, "utf8").replace(/^\uFEFF/, "");
-    const parsed = JSON.parse(raw) as CachePayload;
-
-    if (!parsed || typeof parsed !== "object") return null;
-    if (parsed.version !== CACHE_VERSION) return null;
-    if (!Array.isArray(parsed.products)) return null;
-
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
 function writeProductCache(payload: CachePayload): void {
   try {
     const cachePath = resolveCachePath();
@@ -169,21 +151,9 @@ function writeProductCache(payload: CachePayload): void {
   }
 }
 
-function getProductsWithAutoCache(): Product[] {
+function buildProductsAndRefreshCache(): Product[] {
   const excelPath = resolveExcelPath();
   const excelMtimeMs = getExcelMtimeMs(excelPath);
-  const cached = readProductCache();
-
-  if (
-    cached &&
-    cached.version === CACHE_VERSION &&
-    cached.excelPath === excelPath &&
-    cached.excelMtimeMs === excelMtimeMs &&
-    Array.isArray(cached.products)
-  ) {
-    return cached.products;
-  }
-
   const products = buildProductsFromExcel();
 
   writeProductCache({
@@ -601,7 +571,7 @@ export async function GET(req: NextRequest) {
     const includeFlash24h =
       String(req.nextUrl.searchParams.get("includeFlash24h") || "").trim() === "1";
 
-    const products = getProductsWithAutoCache();
+    const products = buildProductsAndRefreshCache();
 
     const visibleProducts = includeFlash24h
       ? products
