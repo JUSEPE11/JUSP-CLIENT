@@ -3324,14 +3324,23 @@ export default function ProductPage() {
           box-shadow: 0 18px 44px rgba(0, 0, 0, 0.08);
         }
         .colorBtn.on {
-          border-color: var(--jusp-gold-mid);
-          box-shadow: 0 0 0 3px var(--jusp-gold-soft), 0 18px 44px rgba(0, 0, 0, 0.1);
+          background: #050505;
+          border-color: #050505;
+          box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.12), 0 18px 44px rgba(0, 0, 0, 0.18);
+        }
+        .colorBtn.on:hover {
+          background: #050505;
+          border-color: #050505;
+          box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.14), 0 20px 48px rgba(0, 0, 0, 0.2);
         }
         .colorName {
           font-weight: 950;
           color: rgba(0, 0, 0, 0.86);
           font-size: 14px;
           letter-spacing: -0.01em;
+        }
+        .colorBtn.on .colorName {
+          color: #fff;
         }
 
         .gridOps {
@@ -3358,14 +3367,23 @@ export default function ProductPage() {
           box-shadow: 0 18px 44px rgba(0, 0, 0, 0.08);
         }
         .op.on {
-          border-color: var(--jusp-gold-mid);
-          box-shadow: 0 0 0 3px var(--jusp-gold-soft), 0 18px 44px rgba(0, 0, 0, 0.1);
+          background: #050505;
+          border-color: #050505;
+          box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.12), 0 18px 44px rgba(0, 0, 0, 0.18);
+        }
+        .op.on:hover {
+          background: #050505;
+          border-color: #050505;
+          box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.14), 0 20px 48px rgba(0, 0, 0, 0.2);
         }
         .opT {
           font-weight: 950;
           color: rgba(0, 0, 0, 0.86);
           font-size: 14px;
           letter-spacing: -0.01em;
+        }
+        .op.on .opT {
+          color: #fff;
         }
 
         .shake {
