@@ -36,6 +36,8 @@ type SearchProduct = {
   price?: number | string;
   compareAt?: number | string;
   href: string;
+  matchLabel?: "Exacto" | "Muy similar" | "Similar";
+  matchScore?: number;
 };
 
 type SearchCatalogProduct = Record<string, any>;
@@ -49,8 +51,14 @@ type ImageFeature = {
   hash: string;
   centerHash: string;
   edgeBalance: number;
+  saturation: number;
+  warmness: number;
+  cropFill: number;
   histogram: number[];
+  colorHistogram: number[];
   centerHistogram: number[];
+  rowProfile: number[];
+  colProfile: number[];
 };
 type VisualIntent = {
   brands: string[];
@@ -208,7 +216,7 @@ function getCatalogProductImages(product: SearchCatalogProduct): string[] {
     }
   }
 
-  return [...new Set(values)].slice(0, 6);
+  return [...new Set(values)].slice(0, 3);
 }
 
 function loadImageElement(src: string): Promise<HTMLImageElement> {
@@ -339,16 +347,34 @@ function computeImageFeatureFromImage(image: CanvasImageSource, width: number, h
   let sumR = 0;
   let sumG = 0;
   let sumB = 0;
+  let sumSaturation = 0;
   const histogram = new Array<number>(16).fill(0);
+  const colorHistogram = new Array<number>(48).fill(0);
+  const rowProfile = new Array<number>(canvas.height).fill(0);
+  const colProfile = new Array<number>(canvas.width).fill(0);
 
   for (let i = 0; i < data.length; i += 4) {
     const alpha = data[i + 3];
     if (alpha < 8) continue;
-    sumR += data[i];
-    sumG += data[i + 1];
-    sumB += data[i + 2];
-    const bucket = Math.max(0, Math.min(15, Math.floor(((data[i] + data[i + 1] + data[i + 2]) / 3) / 16)));
+    const pixelIndex = i / 4;
+    const x = pixelIndex % canvas.width;
+    const y = Math.floor(pixelIndex / canvas.width);
+    const pr = data[i];
+    const pg = data[i + 1];
+    const pb = data[i + 2];
+    sumR += pr;
+    sumG += pg;
+    sumB += pb;
+    const maxChannel = Math.max(pr, pg, pb);
+    const minChannel = Math.min(pr, pg, pb);
+    sumSaturation += maxChannel > 0 ? (maxChannel - minChannel) / maxChannel : 0;
+    const bucket = Math.max(0, Math.min(15, Math.floor(((pr + pg + pb) / 3) / 16)));
     histogram[bucket] += 1;
+    colorHistogram[Math.max(0, Math.min(15, Math.floor(pr / 16)))] += 1;
+    colorHistogram[16 + Math.max(0, Math.min(15, Math.floor(pg / 16)))] += 1;
+    colorHistogram[32 + Math.max(0, Math.min(15, Math.floor(pb / 16)))] += 1;
+    rowProfile[y] += 1;
+    colProfile[x] += 1;
     count += 1;
   }
 
@@ -358,6 +384,9 @@ function computeImageFeatureFromImage(image: CanvasImageSource, width: number, h
   const g = sumG / count;
   const b = sumB / count;
   const brightness = (r + g + b) / 3;
+  const saturation = sumSaturation / count;
+  const warmness = (r - b) / 255;
+  const cropFill = Math.max(0, Math.min(1, count / (canvas.width * canvas.height)));
 
   let varianceAccumulator = 0;
   for (let i = 0; i < data.length; i += 4) {
@@ -454,8 +483,14 @@ function computeImageFeatureFromImage(image: CanvasImageSource, width: number, h
     hash,
     centerHash,
     edgeBalance,
+    saturation,
+    warmness,
+    cropFill,
     histogram: histogram.map((value) => value / count),
+    colorHistogram: colorHistogram.map((value) => value / count),
     centerHistogram: centerHistogram.map((value) => value / (centerCanvas.width * centerCanvas.height)),
+    rowProfile: rowProfile.map((value) => value / canvas.width),
+    colProfile: colProfile.map((value) => value / canvas.height),
   };
 }
 
@@ -563,6 +598,18 @@ function histogramDistance(a: number[], b: number[]): number {
   return total;
 }
 
+function profileDistance(a: number[], b: number[]): number {
+  const length = Math.min(a.length, b.length);
+  if (!length) return 1;
+
+  let total = 0;
+  for (let i = 0; i < length; i += 1) {
+    total += Math.abs((a[i] ?? 0) - (b[i] ?? 0));
+  }
+
+  return total / length;
+}
+
 function scoreIntentMatch(product: SearchCatalogProduct, intent: VisualIntent): number {
   const haystack = buildSearchHaystack(product);
   const brand = normalizeSearchText(product.brand || "");
@@ -625,10 +672,16 @@ function scoreVisualMatch(product: SearchCatalogProduct, source: ImageFeature, c
   const centerHashDistance = hammingDistance(source.centerHash, candidate.centerHash);
   const edgeDistance = Math.abs(source.edgeBalance - candidate.edgeBalance) * 2.4;
   const histogramDelta = histogramDistance(source.histogram, candidate.histogram) * 150;
+  const colorHistogramDelta = histogramDistance(source.colorHistogram, candidate.colorHistogram) * 118;
   const centerHistogramDelta = histogramDistance(source.centerHistogram, candidate.centerHistogram) * 180;
+  const saturationDistance = Math.abs(source.saturation - candidate.saturation) * 72;
+  const warmnessDistance = Math.abs(source.warmness - candidate.warmness) * 58;
+  const fillDistance = Math.abs(source.cropFill - candidate.cropFill) * 56;
+  const rowShapeDistance = profileDistance(source.rowProfile, candidate.rowProfile) * 92;
+  const colShapeDistance = profileDistance(source.colProfile, candidate.colProfile) * 92;
 
   let score =
-    540 -
+    720 -
     colorDistance * 0.66 -
     varianceDistance -
     aspectDistance -
@@ -636,7 +689,13 @@ function scoreVisualMatch(product: SearchCatalogProduct, source: ImageFeature, c
     centerHashDistance * 4.4 -
     edgeDistance -
     histogramDelta -
-    centerHistogramDelta;
+    colorHistogramDelta -
+    centerHistogramDelta -
+    saturationDistance -
+    warmnessDistance -
+    fillDistance -
+    rowShapeDistance -
+    colShapeDistance;
   const haystack = buildSearchHaystack(product);
 
   for (const token of inferVisualTokens(source)) {
@@ -1043,12 +1102,15 @@ export default function Header() {
   const [recents, setRecents] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const imageSearchInputRef = useRef<HTMLInputElement | null>(null);
+  const imageCameraInputRef = useRef<HTMLInputElement | null>(null);
   const imageFeatureCacheRef = useRef<Map<string, ImageFeature | null>>(new Map());
   const [imageSearchLabel, setImageSearchLabel] = useState("");
+  const [imageSearchMode, setImageSearchMode] = useState<"idle" | "gallery" | "camera" | "error">("idle");
 
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState<SearchProduct[]>([]);
   const lastReq = useRef(0);
+  const lastImageReq = useRef(0);
   const searchAbortRef = useRef<AbortController | null>(null);
   const catalogRef = useRef<SearchCatalogProduct[] | null>(null);
 
@@ -1461,6 +1523,7 @@ export default function Header() {
     setQ("");
     setProducts([]);
     setImageSearchLabel("");
+    setImageSearchMode("idle");
     setLoading(false);
     if (searchAbortRef.current) {
       searchAbortRef.current.abort();
@@ -1472,6 +1535,7 @@ export default function Header() {
     const s = text.trim();
     if (!s) return;
     setImageSearchLabel("");
+    setImageSearchMode("idle");
     safeSaveRecent(s);
     setRecents(safeLoadRecents());
     window.location.href = `/products?q=${encodeURIComponent(s)}`;
@@ -1479,6 +1543,10 @@ export default function Header() {
 
   function openImageSearchPicker() {
     imageSearchInputRef.current?.click();
+  }
+
+  function openImageCameraPicker() {
+    imageCameraInputRef.current?.click();
   }
 
   async function loadCatalog(signal?: AbortSignal): Promise<SearchCatalogProduct[]> {
@@ -1496,14 +1564,15 @@ export default function Header() {
 
   async function fetchProducts(query: string) {
     const s = query.trim();
-    if (!s) {
-      if (imageSearchLabel) {
+      if (!s) {
+        if (imageSearchLabel) {
+          setLoading(false);
+          return;
+        }
+        setProducts([]);
+        setImageSearchLabel("");
+        setImageSearchMode("idle");
         setLoading(false);
-        return;
-      }
-      setProducts([]);
-      setImageSearchLabel("");
-      setLoading(false);
       if (searchAbortRef.current) {
         searchAbortRef.current.abort();
         searchAbortRef.current = null;
@@ -1557,16 +1626,28 @@ export default function Header() {
     }
   }
 
-  async function runImageSearch(file: File) {
+  async function runImageSearch(file: File, mode: "gallery" | "camera" = "gallery") {
+    if (!file.type.startsWith("image/")) {
+      setImageSearchLabel("Archivo no compatible");
+      setImageSearchMode("error");
+      setProducts([]);
+      return;
+    }
+
+    const reqId = Date.now();
+    lastImageReq.current = reqId;
     setQ("");
     setImageSearchLabel(file.name);
+    setImageSearchMode(mode);
     setProducts([]);
     setLoading(true);
 
     try {
       const [catalog, sourceFeature] = await Promise.all([loadCatalog(), computeImageFeatureFromFile(file)]);
+      if (lastImageReq.current !== reqId) return;
       if (!sourceFeature) {
         setProducts([]);
+        setImageSearchMode("error");
         return;
       }
       const intent = inferIntentFromImage(file.name, sourceFeature);
@@ -1595,16 +1676,29 @@ export default function Header() {
       );
 
       const matches = ranked
-        .filter((entry): entry is { product: SearchCatalogProduct; score: number } => Boolean(entry && entry.score > 0))
+        .filter((entry): entry is { product: SearchCatalogProduct; score: number } => Boolean(entry && entry.score > 120))
         .sort((a, b) => b.score - a.score)
-        .slice(0, 12)
-        .map((entry) => mapCatalogProductToSearchProduct(entry.product));
+        .slice(0, 16)
+        .map((entry) => {
+          const mapped = mapCatalogProductToSearchProduct(entry.product);
+          const roundedScore = Math.round(entry.score);
+          const matchLabel: SearchProduct["matchLabel"] =
+            roundedScore >= 520 ? "Exacto" : roundedScore >= 390 ? "Muy similar" : "Similar";
+          return {
+            ...mapped,
+            matchScore: roundedScore,
+            matchLabel,
+          };
+        });
 
+      if (lastImageReq.current !== reqId) return;
       setProducts(matches);
     } catch {
+      if (lastImageReq.current !== reqId) return;
       setProducts([]);
+      setImageSearchMode("error");
     } finally {
-      setLoading(false);
+      if (lastImageReq.current === reqId) setLoading(false);
     }
   }
 
@@ -1993,12 +2087,24 @@ export default function Header() {
                 >
                   📷
                 </button>
+                <button
+                  className="jusp-search-camera jusp-search-camera-shot"
+                  type="button"
+                  onClick={openImageCameraPicker}
+                  aria-label="Tomar foto con la camara"
+                  title="Tomar foto con la camara"
+                >
+                  CAM
+                </button>
                 <input
                   ref={inputRef}
                   value={q}
                   onChange={(e) => {
                     setQ(e.target.value);
-                    if (imageSearchLabel) setImageSearchLabel("");
+                    if (imageSearchLabel) {
+                      setImageSearchLabel("");
+                      setImageSearchMode("idle");
+                    }
                   }}
                   placeholder="Buscar productos, marcas, estilos…"
                   className="jusp-search-input"
@@ -2010,12 +2116,23 @@ export default function Header() {
                 <input
                   ref={imageSearchInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/*,.heic,.heif"
+                  className="jusp-search-fileinput"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) void runImageSearch(file, "gallery");
+                    e.currentTarget.value = "";
+                  }}
+                />
+                <input
+                  ref={imageCameraInputRef}
+                  type="file"
+                  accept="image/*,.heic,.heif"
                   capture="environment"
                   className="jusp-search-fileinput"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) void runImageSearch(file);
+                    if (file) void runImageSearch(file, "camera");
                     e.currentTarget.value = "";
                   }}
                 />
@@ -2073,6 +2190,17 @@ export default function Header() {
                     {imageSearchLabel ? `Resultados por imagen: ${imageSearchLabel}` : "Resultados"}
                   </div>
                   <div className="jusp-search-results">
+                    {imageSearchLabel ? (
+                      <div className={`jusp-search-image-status ${imageSearchMode === "error" ? "error" : ""}`}>
+                        {imageSearchMode === "error"
+                          ? "No se pudo leer esa imagen. Prueba otra foto mas clara."
+                          : loading
+                          ? "Analizando forma, color y detalles visuales..."
+                          : products.length
+                          ? "Coincidencias exactas y similares ordenadas por parecido."
+                          : "No encontramos coincidencias fuertes. Prueba una foto del producto mas centrada."}
+                      </div>
+                    ) : null}
                     {loading ? <div className="jusp-search-loading">Buscando…</div> : null}
                     {!loading && q.trim() && products.length === 0 ? (
                       <div className="jusp-search-empty">Sin resultados aún. Presiona Enter para ver todo.</div>
@@ -2083,6 +2211,7 @@ export default function Header() {
                         <Link key={p.id} href={p.href} className="jusp-prod" onClick={() => setSearchOpen(false)}>
                           <div className="jusp-prod-img">
                             {p.image ? <img src={p.image} alt={p.title} loading="lazy" /> : <div className="jusp-prod-ph" />}
+                            {p.matchLabel ? <span className="jusp-prod-match">{p.matchLabel}</span> : null}
                           </div>
                           <div className="jusp-prod-meta">
                             <div className="jusp-prod-title">{p.title}</div>
@@ -2865,7 +2994,7 @@ export default function Header() {
           border: 1px solid rgba(0, 0, 0, 0.12);
           border-radius: 999px;
           background: #f7f7f7;
-          padding: 10px 18px 10px 64px;
+          padding: 10px 18px 10px 104px;
           transition: box-shadow var(--jusp-fast) var(--jusp-ease), border-color var(--jusp-fast) var(--jusp-ease), background var(--jusp-fast) var(--jusp-ease);
         }
 
@@ -2895,6 +3024,13 @@ export default function Header() {
           cursor: pointer;
           box-shadow: 0 8px 20px rgba(17, 17, 17, 0.06);
           transition: transform var(--jusp-fast) var(--jusp-ease), box-shadow var(--jusp-fast) var(--jusp-ease), border-color var(--jusp-fast) var(--jusp-ease);
+          font-size: 10px;
+          font-weight: 900;
+          letter-spacing: 0;
+        }
+
+        .jusp-search-camera-shot {
+          left: 58px;
         }
 
         .jusp-search-camera:hover {
@@ -3042,6 +3178,22 @@ export default function Header() {
           margin-bottom: 14px;
         }
 
+        .jusp-search-image-status {
+          margin-bottom: 14px;
+          padding: 10px 12px;
+          border-radius: 12px;
+          background: #f6f6f6;
+          color: rgba(17, 17, 17, 0.66);
+          font-size: 13px;
+          font-weight: 800;
+          line-height: 1.35;
+        }
+
+        .jusp-search-image-status.error {
+          background: #fff1f1;
+          color: #9f1d1d;
+        }
+
         .jusp-search-grid {
           display: grid;
           grid-template-columns: repeat(3, minmax(220px, 1fr));
@@ -3075,6 +3227,7 @@ export default function Header() {
         }
 
         .jusp-prod-img {
+          position: relative;
           aspect-ratio: 1 / 1;
           background: #f5f5f5;
           border-radius: 18px;
@@ -3088,6 +3241,24 @@ export default function Header() {
           height: 100%;
           object-fit: cover;
           display: block;
+        }
+
+        .jusp-prod-match {
+          position: absolute;
+          left: 10px;
+          bottom: 10px;
+          max-width: calc(100% - 20px);
+          padding: 6px 9px;
+          border-radius: 999px;
+          background: rgba(17, 17, 17, 0.9);
+          color: #fff;
+          font-size: 11px;
+          line-height: 1;
+          font-weight: 900;
+          box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .jusp-prod-ph {
@@ -3334,7 +3505,7 @@ export default function Header() {
 
           .jusp-search-inputwrap {
             min-height: 50px;
-            padding-left: 58px;
+            padding-left: 100px;
           }
 
           .jusp-search-input {
