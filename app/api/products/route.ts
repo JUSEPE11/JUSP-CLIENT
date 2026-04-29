@@ -75,6 +75,9 @@ type CachePayload = {
 
 type ProductMediaManifest = Record<string, string[]>;
 
+const CACHE_VERSION = 1;
+const CACHE_FILE_NAME = "catalog_products.cache";
+
 let productMediaManifestCache: ProductMediaManifest | null | undefined;
 
 function getDataDirCandidates(): string[] {
@@ -101,6 +104,20 @@ function resolveExistingDataFile(candidates: string[]): string | null {
   return null;
 }
 
+function resolveWritableDataDir(): string {
+  for (const dataDir of getDataDirCandidates()) {
+    if (fs.existsSync(dataDir)) return dataDir;
+  }
+
+  const fallback = path.join(process.cwd(), "data");
+  fs.mkdirSync(fallback, { recursive: true });
+  return fallback;
+}
+
+function resolveCachePath(): string {
+  return path.join(resolveWritableDataDir(), CACHE_FILE_NAME);
+}
+
 function resolveExcelPath(): string | null {
   return resolveExistingDataFile(["catalogo_jusp.xlsx"]);
 }
@@ -112,6 +129,72 @@ function resolveParametersPath(): string | null {
 function readWorkbook(filePath: string) {
   const bytes = fs.readFileSync(filePath);
   return XLSX.read(bytes, { type: "buffer" });
+}
+
+function getExcelMtimeMs(excelPath: string | null): number {
+  if (!excelPath || !fs.existsSync(excelPath)) return 0;
+
+  try {
+    return fs.statSync(excelPath).mtimeMs;
+  } catch {
+    return 0;
+  }
+}
+
+function readProductCache(): CachePayload | null {
+  try {
+    const cachePath = resolveCachePath();
+    if (!fs.existsSync(cachePath)) return null;
+
+    const raw = fs.readFileSync(cachePath, "utf8").replace(/^\uFEFF/, "");
+    const parsed = JSON.parse(raw) as CachePayload;
+
+    if (!parsed || typeof parsed !== "object") return null;
+    if (parsed.version !== CACHE_VERSION) return null;
+    if (!Array.isArray(parsed.products)) return null;
+
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeProductCache(payload: CachePayload): void {
+  try {
+    const cachePath = resolveCachePath();
+    fs.mkdirSync(path.dirname(cachePath), { recursive: true });
+    fs.writeFileSync(cachePath, JSON.stringify(payload, null, 2), "utf8");
+  } catch (error) {
+    console.error("[api/products] cache write failed", error);
+  }
+}
+
+function getProductsWithAutoCache(): Product[] {
+  const excelPath = resolveExcelPath();
+  const excelMtimeMs = getExcelMtimeMs(excelPath);
+  const cached = readProductCache();
+
+  if (
+    cached &&
+    cached.version === CACHE_VERSION &&
+    cached.excelPath === excelPath &&
+    cached.excelMtimeMs === excelMtimeMs &&
+    Array.isArray(cached.products)
+  ) {
+    return cached.products;
+  }
+
+  const products = buildProductsFromExcel();
+
+  writeProductCache({
+    version: CACHE_VERSION,
+    generatedAt: new Date().toISOString(),
+    excelPath,
+    excelMtimeMs,
+    products,
+  });
+
+  return products;
 }
 
 function toSafeNumber(value: unknown, fallback = 0): number {
@@ -518,7 +601,7 @@ export async function GET(req: NextRequest) {
     const includeFlash24h =
       String(req.nextUrl.searchParams.get("includeFlash24h") || "").trim() === "1";
 
-    const products = buildProductsFromExcel();
+    const products = getProductsWithAutoCache();
 
     const visibleProducts = includeFlash24h
       ? products
@@ -531,7 +614,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("[api/products] excel rebuild failed", error);
+    console.error("[api/products] excel/cache rebuild failed", error);
 
     return NextResponse.json([], {
       status: 200,
