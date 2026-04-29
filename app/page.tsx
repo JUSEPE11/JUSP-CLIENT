@@ -507,6 +507,14 @@ const HOME_SURVEY_OPTIONS = [
   "Muy insatisfecho",
 ];
 
+type HomeSurveyPayload = {
+  answer: string;
+  answeredAt: number;
+  filter: HomeProductFilter;
+  source: string;
+  dashboardSyncedAt?: number;
+};
+
 function JuspDoorIntro({ closing }: { closing: boolean }) {
   return (
     <div className={`jusp-door-intro${closing ? " is-closing" : ""}`} aria-hidden="true">
@@ -618,7 +626,15 @@ function HomePageContent() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      setSurveyAnswered(Boolean(window.localStorage.getItem(HOME_SURVEY_STORAGE_KEY)));
+      const storedSurvey = window.localStorage.getItem(HOME_SURVEY_STORAGE_KEY);
+      setSurveyAnswered(Boolean(storedSurvey));
+
+      if (storedSurvey) {
+        const parsed = JSON.parse(storedSurvey) as Partial<HomeSurveyPayload> | null;
+        if (parsed?.answer && !parsed.dashboardSyncedAt) {
+          void syncHomeSurveyToDashboard(parsed as HomeSurveyPayload);
+        }
+      }
     } catch {}
   }, []);
 
@@ -1553,19 +1569,45 @@ function HomePageContent() {
 
   const shouldShowSurvey = !surveyAnswered && filteredProducts.length >= 3;
 
+  const syncHomeSurveyToDashboard = async (payload: HomeSurveyPayload) => {
+    try {
+      const res = await fetch("/api/survey", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+        keepalive: true,
+      });
+
+      if (!res.ok || typeof window === "undefined") return;
+
+      try {
+        window.localStorage.setItem(
+          HOME_SURVEY_STORAGE_KEY,
+          JSON.stringify({ ...payload, dashboardSyncedAt: Date.now() })
+        );
+      } catch {}
+    } catch {}
+  };
+
   const answerHomeSurvey = (answer: string) => {
     if (typeof window === "undefined") return;
+
+    const answeredAt = Date.now();
+    const surveyPayload: HomeSurveyPayload = {
+      answer,
+      answeredAt,
+      filter: homeProductFilter,
+      source: "home_recommendations",
+    };
 
     try {
       window.localStorage.setItem(
         HOME_SURVEY_STORAGE_KEY,
-        JSON.stringify({
-          answer,
-          answeredAt: Date.now(),
-          filter: homeProductFilter,
-        })
+        JSON.stringify(surveyPayload)
       );
     } catch {}
+
+    void syncHomeSurveyToDashboard(surveyPayload);
 
     setSurveyAnswered(true);
   };
@@ -2392,16 +2434,23 @@ function HomePageContent() {
                             onClick={() => answerHomeSurvey(option)}
                             style={{
                               width: "100%",
+                              appearance: "none",
                               borderRadius: 14,
                               border: "1px solid rgba(0,0,0,0.08)",
                               background: "#fff",
+                              color: "#111",
                               padding: "10px 12px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
                               textAlign: "center",
                               fontWeight: 900,
                               fontSize: 12,
                               lineHeight: 1.2,
                               cursor: "pointer",
                               minHeight: 44,
+                              whiteSpace: "normal",
+                              overflowWrap: "anywhere",
                               gridColumn: optionIndex === HOME_SURVEY_OPTIONS.length - 1 ? "1 / -1" : undefined,
                             }}
                           >
