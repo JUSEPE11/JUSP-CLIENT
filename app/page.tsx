@@ -511,11 +511,12 @@ function JuspDoorIntro({ closing }: { closing: boolean }) {
   return (
     <div className={`jusp-door-intro${closing ? " is-closing" : ""}`} aria-hidden="true">
       <div className="jusp-cinema-bg" />
+      <div className="jusp-cinema-gold" />
       <div className="jusp-cinema-rays" />
       <div className="jusp-real-logo-stage">
         <div className="jusp-real-logo-shell">
           <img
-            src="/logo-jusp-door.jpeg"
+            src="/logo-jusp-door-clean.png"
             alt=""
             className="jusp-real-logo-img"
             loading="eager"
@@ -523,8 +524,7 @@ function JuspDoorIntro({ closing }: { closing: boolean }) {
             fetchPriority="high"
           />
           <span className="jusp-real-portal-light" />
-          <span className="jusp-real-door-shadow" />
-          <span className="jusp-real-door-panel jusp-real-door-left" />
+          <span className="jusp-door-flash" />
         </div>
         <div className="jusp-real-intro-copy"><span>JUSP</span><strong>Originales.</strong></div>
         <div className="jusp-real-loader" aria-hidden="true"><span /></div>
@@ -1579,32 +1579,32 @@ function HomePageContent() {
         :root {
           --jusp-ease: cubic-bezier(.2,.9,.2,1);
         }
-        .jusp-door-intro { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; overflow: hidden; background: #050505; color: #fff; opacity: 1; pointer-events: none; animation: juspIntroHold 3200ms cubic-bezier(.2,.9,.2,1) both; }
-        .jusp-door-intro.is-closing { animation: juspIntroExit 520ms cubic-bezier(.2,.9,.2,1) forwards; }
-        .jusp-cinema-bg { position: absolute; inset: -20%; background: radial-gradient(circle at 50% 43%, rgba(255,203,94,.28), transparent 21%), radial-gradient(circle at 50% 58%, rgba(255,255,255,.08), transparent 24%), linear-gradient(180deg, #111 0%, #050505 58%, #000 100%); filter: saturate(1.1); }
-        .jusp-cinema-rays { position: absolute; left: 50%; top: 42%; width: min(700px, 130vw); height: min(520px, 100vw); transform: translate(-50%, -35%); background: conic-gradient(from 190deg at 50% 20%, transparent 0deg, rgba(255,208,105,0) 22deg, rgba(255,208,105,.30) 34deg, transparent 45deg, transparent 92deg, rgba(255,208,105,.22) 104deg, transparent 118deg, transparent 360deg); opacity: 0; filter: blur(10px); animation: juspRayReveal 3000ms cubic-bezier(.2,.9,.2,1) forwards; mix-blend-mode: screen; }
-        .jusp-real-logo-stage { position: relative; width: min(560px, 88vw); display: grid; place-items: center; transform: translateY(8px) scale(.94); opacity: 0; animation: juspLogoArrive 3000ms cubic-bezier(.2,.9,.2,1) forwards; }
-        .jusp-real-logo-shell { position: relative; width: 100%; aspect-ratio: 612 / 408; transform-style: preserve-3d; perspective: 900px; filter: drop-shadow(0 34px 70px rgba(0,0,0,.62)); }
-        .jusp-real-logo-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transform: scale(.94); animation: juspLogoImageReveal 3000ms cubic-bezier(.2,.9,.2,1) forwards; user-select: none; }
-        .jusp-real-portal-light { position: absolute; left: 23.2%; top: 5.5%; width: 26%; height: 40%; border-radius: 16% 16% 8% 8%; background: radial-gradient(circle at 54% 42%, rgba(255,255,244,.98) 0%, rgba(255,227,131,.92) 20%, rgba(255,180,40,.45) 46%, transparent 72%); opacity: 0; filter: blur(1px); transform: scale(.55); animation: juspPortalLight 3000ms cubic-bezier(.2,.9,.2,1) forwards; mix-blend-mode: screen; }
-        .jusp-real-door-shadow { position: absolute; left: 24.5%; top: 7.5%; width: 21%; height: 37%; border-radius: 18px 6px 7px 18px; background: linear-gradient(90deg, rgba(5,5,5,.76), rgba(20,14,8,.34)); opacity: .22; transform-origin: left center; transform: rotateY(0deg) skewY(-2deg); animation: juspDoorShadow 3000ms cubic-bezier(.2,.9,.2,1) forwards; }
-        .jusp-real-door-panel { position: absolute; left: 22.9%; top: 5.3%; width: 15.4%; height: 40.8%; border-radius: 18px 6px 9px 18px; background: radial-gradient(circle at 78% 53%, rgba(255,246,220,.72) 0 4%, transparent 5%), linear-gradient(90deg, rgba(255,255,255,.96) 0%, rgba(255,252,241,.86) 36%, rgba(22,22,22,.92) 39%, rgba(7,7,7,.98) 100%); border-left: 3px solid rgba(255,255,255,.76); border-right: 2px solid rgba(0,0,0,.8); box-shadow: 0 0 0 1px rgba(255,215,120,.22), 0 16px 38px rgba(0,0,0,.45); transform-origin: left center; transform: rotateY(0deg) translateZ(2px); animation: juspRealDoorOpen 3000ms cubic-bezier(.2,.9,.2,1) forwards; }
-        .jusp-real-intro-copy { margin-top: -8px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 12px; letter-spacing: 5px; text-transform: uppercase; color: rgba(255,255,255,.72); opacity: 0; animation: juspCopyReveal 3000ms cubic-bezier(.2,.9,.2,1) forwards; }
+        .jusp-door-intro { position: fixed; inset: 0; z-index: 2147483647; display: grid; place-items: center; overflow: hidden; background: #030303; color: #fff; opacity: 1; pointer-events: none; animation: juspIntroHold 3600ms cubic-bezier(.2,.9,.2,1) both; }
+        .jusp-door-intro.is-closing { animation: juspIntroExit 680ms cubic-bezier(.2,.9,.2,1) forwards; }
+        .jusp-cinema-bg { position: absolute; inset: -16%; background: radial-gradient(circle at 50% 44%, rgba(255,198,82,.30), transparent 24%), radial-gradient(circle at 50% 68%, rgba(255,255,255,.07), transparent 28%), linear-gradient(180deg, #121212 0%, #050505 54%, #000 100%); filter: saturate(1.08); }
+        .jusp-cinema-gold { position: absolute; left: 50%; top: 50%; width: min(1120px, 125vw); height: min(820px, 96vh); transform: translate(-50%, -50%); background: radial-gradient(circle at 49% 39%, rgba(255,214,111,.34), transparent 24%), radial-gradient(circle at 50% 55%, rgba(255,177,36,.18), transparent 44%); opacity: .92; filter: blur(24px); }
+        .jusp-cinema-rays { position: absolute; left: 50%; top: 46%; width: min(980px, 130vw); height: min(660px, 94vh); transform: translate(-50%, -50%); background: conic-gradient(from 210deg at 50% 45%, transparent 0deg, rgba(255,208,105,0) 18deg, rgba(255,208,105,.32) 34deg, transparent 50deg, transparent 120deg, rgba(255,208,105,.22) 138deg, transparent 154deg, transparent 360deg); opacity: 0; filter: blur(13px); animation: juspRayReveal 3600ms cubic-bezier(.2,.9,.2,1) forwards; mix-blend-mode: screen; }
+        .jusp-real-logo-stage { position: relative; width: min(1040px, 96vw); max-height: 82vh; display: grid; place-items: center; transform: translateY(8px) scale(.92); opacity: 0; animation: juspLogoArrive 3600ms cubic-bezier(.2,.9,.2,1) forwards; }
+        .jusp-real-logo-shell { position: relative; width: 100%; max-height: 74vh; aspect-ratio: 612 / 408; transform-style: preserve-3d; perspective: 1000px; filter: drop-shadow(0 42px 86px rgba(0,0,0,.72)); }
+        .jusp-real-logo-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transform: scale(.90); animation: juspLogoImageReveal 3600ms cubic-bezier(.2,.9,.2,1) forwards; user-select: none; }
+        .jusp-real-portal-light { position: absolute; left: 31%; top: 5%; width: 44%; height: 56%; border-radius: 999px; background: radial-gradient(circle at 50% 35%, rgba(255,255,244,.98) 0%, rgba(255,227,131,.88) 16%, rgba(255,178,35,.46) 42%, transparent 72%); opacity: 0; filter: blur(8px); transform: scale(.38); animation: juspPortalLight 3600ms cubic-bezier(.2,.9,.2,1) forwards; mix-blend-mode: screen; }
+        .jusp-door-flash { position: absolute; left: 23%; top: 6%; width: 34%; height: 64%; border-radius: 999px; background: linear-gradient(90deg, transparent 0%, rgba(255,242,190,.80) 38%, rgba(255,197,65,.92) 50%, rgba(255,242,190,.60) 62%, transparent 100%); opacity: 0; filter: blur(16px); transform: translateX(-12%) scale(.75); animation: juspDoorFlash 3600ms cubic-bezier(.2,.9,.2,1) forwards; mix-blend-mode: screen; }
+        .jusp-real-intro-copy { margin-top: clamp(8px, 1.3vh, 16px); display: flex; align-items: center; justify-content: center; gap: 10px; font-size: clamp(10px, 1.05vw, 13px); letter-spacing: clamp(3px, .55vw, 6px); text-transform: uppercase; color: rgba(255,255,255,.76); opacity: 0; animation: juspCopyReveal 3600ms cubic-bezier(.2,.9,.2,1) forwards; }
         .jusp-real-intro-copy strong { color: #d6a84f; font-weight: 900; letter-spacing: 3px; }
-        .jusp-real-loader { position: relative; margin-top: 18px; width: min(260px, 58vw); height: 1px; overflow: hidden; background: rgba(255,255,255,.16); }
-        .jusp-real-loader span { position: absolute; inset: 0 auto 0 0; width: 100%; background: linear-gradient(90deg, transparent, rgba(255,212,112,.95), transparent); transform: translateX(-100%); animation: juspLoaderMove 3000ms cubic-bezier(.2,.9,.2,1) forwards; }
-        @keyframes juspLogoArrive { 0% { opacity: 0; transform: translateY(24px) scale(.88); filter: blur(10px); } 18% { opacity: 1; filter: blur(0); } 72% { transform: translateY(0) scale(1); } 100% { opacity: 1; transform: translateY(-4px) scale(1.035); } }
-        @keyframes juspLogoImageReveal { 0% { opacity: 0; transform: scale(.92); filter: blur(8px) brightness(.65); } 18% { opacity: 1; transform: scale(.98); filter: blur(0) brightness(.92); } 48% { filter: brightness(1.04); } 100% { opacity: 1; transform: scale(1.02); filter: brightness(1.12); } }
-        @keyframes juspRealDoorOpen { 0%, 30% { transform: rotateY(0deg) translateZ(2px); filter: brightness(.92); } 52% { transform: rotateY(-28deg) translateZ(12px); filter: brightness(1.1); } 100% { transform: rotateY(-72deg) translateZ(24px) translateX(-2%); filter: brightness(1.22); } }
-        @keyframes juspDoorShadow { 0%, 32% { opacity: .18; transform: rotateY(0deg) scaleX(.9); } 100% { opacity: .48; transform: rotateY(-64deg) scaleX(1.22); } }
-        @keyframes juspPortalLight { 0%, 28% { opacity: 0; transform: scale(.35); filter: blur(8px); } 48% { opacity: .78; transform: scale(.78); filter: blur(5px); } 100% { opacity: 1; transform: scale(1.85); filter: blur(10px); } }
-        @keyframes juspRayReveal { 0%, 36% { opacity: 0; transform: translate(-50%, -35%) scale(.72); } 100% { opacity: .82; transform: translate(-50%, -35%) scale(1.08); } }
-        @keyframes juspCopyReveal { 0%, 18% { opacity: 0; transform: translateY(10px); } 36%, 100% { opacity: 1; transform: translateY(0); } }
+        .jusp-real-loader { position: relative; margin-top: 18px; width: min(360px, 58vw); height: 1px; overflow: hidden; background: rgba(255,255,255,.16); }
+        .jusp-real-loader span { position: absolute; inset: 0 auto 0 0; width: 100%; background: linear-gradient(90deg, transparent, rgba(255,212,112,.95), transparent); transform: translateX(-100%); animation: juspLoaderMove 3600ms cubic-bezier(.2,.9,.2,1) forwards; }
+        @keyframes juspLogoArrive { 0% { opacity: 0; transform: translateY(26px) scale(.82); filter: blur(12px); } 16% { opacity: 1; filter: blur(0); } 66% { transform: translateY(0) scale(1.02); } 100% { opacity: 1; transform: translateY(-3px) scale(1.08); } }
+        @keyframes juspLogoImageReveal { 0% { opacity: 0; transform: scale(.86); filter: blur(9px) brightness(.68); } 18% { opacity: 1; transform: scale(.96); filter: blur(0) brightness(.96); } 58% { filter: brightness(1.08) contrast(1.04); } 100% { opacity: 1; transform: scale(1.04); filter: brightness(1.16) contrast(1.04); } }
+        @keyframes juspPortalLight { 0%, 24% { opacity: 0; transform: scale(.32); filter: blur(16px); } 48% { opacity: .72; transform: scale(.75); filter: blur(11px); } 100% { opacity: .96; transform: scale(1.65); filter: blur(18px); } }
+        @keyframes juspDoorFlash { 0%, 28% { opacity: 0; transform: translateX(-18%) scale(.48); } 46% { opacity: .74; transform: translateX(-6%) scale(.88); } 100% { opacity: .44; transform: translateX(8%) scale(1.48); } }
+        @keyframes juspRayReveal { 0%, 32% { opacity: 0; transform: translate(-50%, -50%) scale(.74); } 100% { opacity: .78; transform: translate(-50%, -50%) scale(1.14); } }
+        @keyframes juspCopyReveal { 0%, 18% { opacity: 0; transform: translateY(10px); } 34%, 100% { opacity: 1; transform: translateY(0); } }
         @keyframes juspLoaderMove { 0% { transform: translateX(-100%); } 70% { transform: translateX(0%); } 100% { transform: translateX(100%); } }
         @keyframes juspIntroHold { 0%, 100% { opacity: 1; } }
-        @keyframes juspIntroExit { 0% { opacity: 1; transform: scale(1); filter: blur(0); } 100% { opacity: 0; transform: scale(1.035); filter: blur(10px); } }
-        @media (max-width: 520px) { .jusp-real-logo-stage { width: min(430px, 96vw); } .jusp-real-intro-copy { font-size: 10px; letter-spacing: 3px; } }
-        @media (prefers-reduced-motion: reduce) { .jusp-door-intro, .jusp-cinema-rays, .jusp-real-logo-stage, .jusp-real-logo-img, .jusp-real-portal-light, .jusp-real-door-shadow, .jusp-real-door-panel, .jusp-real-intro-copy, .jusp-real-loader span { animation: none !important; } .jusp-door-intro { opacity: 1; } .jusp-real-logo-stage, .jusp-real-logo-img, .jusp-real-intro-copy { opacity: 1; transform: none; } .jusp-real-portal-light { opacity: .45; transform: scale(1); } }
+        @keyframes juspIntroExit { 0% { opacity: 1; transform: scale(1); filter: blur(0); } 100% { opacity: 0; transform: scale(1.045); filter: blur(12px); } }
+        @media (max-width: 720px) { .jusp-real-logo-stage { width: min(760px, 108vw); max-height: 78vh; } .jusp-real-logo-shell { max-height: 68vh; } }
+        @media (max-width: 520px) { .jusp-real-logo-stage { width: min(640px, 116vw); } .jusp-real-intro-copy { font-size: 10px; letter-spacing: 3px; } }
+        @media (prefers-reduced-motion: reduce) { .jusp-door-intro, .jusp-cinema-rays, .jusp-real-logo-stage, .jusp-real-logo-img, .jusp-real-portal-light, .jusp-door-flash, .jusp-real-intro-copy, .jusp-real-loader span { animation: none !important; } .jusp-door-intro { opacity: 1; } .jusp-real-logo-stage, .jusp-real-logo-img, .jusp-real-intro-copy { opacity: 1; transform: none; } .jusp-real-portal-light { opacity: .42; transform: scale(1); } }
         .jusp-card {
           transform: translateZ;
           transition: transform 280ms var(--jusp-ease), box-shadow 280ms var(--jusp-ease), filter 280ms var(--jusp-ease);
