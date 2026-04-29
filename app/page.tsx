@@ -507,6 +507,28 @@ const HOME_SURVEY_OPTIONS = [
   "Muy insatisfecho",
 ];
 
+function JuspDoorIntro({ closing }: { closing: boolean }) {
+  return (
+    <div className={`jusp-door-intro${closing ? " is-closing" : ""}`} aria-hidden="true">
+      <div className="jusp-intro-glow" />
+      <div className="jusp-intro-stage">
+        <div className="jusp-intro-logo" aria-label="JUSP">
+          <span className="jusp-intro-letter">J</span>
+          <span className="jusp-intro-door-wrap">
+            <span className="jusp-intro-door-arch" />
+            <span className="jusp-intro-light" />
+            <span className="jusp-intro-door-panel jusp-intro-door-left"><span className="jusp-intro-door-handle" /></span>
+            <span className="jusp-intro-door-panel jusp-intro-door-right"><span className="jusp-intro-door-handle" /></span>
+          </span>
+          <span className="jusp-intro-letter">SP</span>
+        </div>
+        <div className="jusp-intro-claim">Originales.</div>
+        <div className="jusp-intro-loader"><span /></div>
+      </div>
+    </div>
+  );
+}
+
 function HomePageContent() {
   const searchParams = useSearchParams();
   const [catalogProducts, setCatalogProducts] = useState<Product[]>([]);
@@ -552,6 +574,21 @@ function HomePageContent() {
   const isMobile = useIsMobile();
   const reduceMotion = usePrefersReducedMotion();
   useIsCoarsePointer();
+
+  const [showDoorIntro, setShowDoorIntro] = useState(true);
+  const [doorIntroClosing, setDoorIntroClosing] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const closeAt = reduceMotion ? 650 : 2950;
+    const removeAt = reduceMotion ? 900 : 3420;
+    const closeTimer = window.setTimeout(() => setDoorIntroClosing(true), closeAt);
+    const removeTimer = window.setTimeout(() => setShowDoorIntro(false), removeAt);
+    return () => {
+      window.clearTimeout(closeTimer);
+      window.clearTimeout(removeTimer);
+    };
+  }, [reduceMotion]);
 
   useEffect(() => {
     if (urlContextFilter !== "all") {
@@ -1533,6 +1570,7 @@ function HomePageContent() {
 
   return (
     <main style={{ overflowX: "hidden", background: "#fff", color: "#000" }}>
+      {showDoorIntro ? <JuspDoorIntro closing={doorIntroClosing} /> : null}
       <style>{`
         :root {
           --jusp-ease: cubic-bezier(.2,.9,.2,1);
@@ -2264,92 +2302,59 @@ function HomePageContent() {
                       aria-label="Encuesta de satisfaccion"
                       className="jusp-card"
                       style={{
-                        minHeight: isMobile ? 300 : 390,
                         borderRadius: 18,
                         border: "1px solid rgba(0,0,0,0.08)",
-                        background: "linear-gradient(180deg, #fff4e6 0%, #fffdf9 62%, #ffffff 100%)",
+                        background: "#fffdf9",
                         boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
                         overflow: "hidden",
                         display: "flex",
                         flexDirection: "column",
-                        justifyContent: "space-between",
                       }}
                     >
                       <div
                         style={{
-                          padding: isMobile ? "18px 16px 14px" : "24px 20px 18px",
-                          display: "flex",
-                          alignItems: "flex-start",
-                          gap: 12,
+                          padding: "14px 14px 12px",
+                          background: "linear-gradient(180deg, rgba(255,140,0,0.08) 0%, rgba(255,255,255,0) 100%)",
+                          borderBottom: "1px solid rgba(0,0,0,0.05)",
                         }}
                       >
-                        <div
-                          aria-hidden="true"
-                          style={{
-                            width: 30,
-                            height: 30,
-                            minWidth: 30,
-                            borderRadius: 999,
-                            background: "#ffe3bf",
-                            display: "grid",
-                            placeItems: "center",
-                            fontSize: 14,
-                            fontWeight: 1000,
-                            color: "#21170f",
-                            marginTop: 45,
-                          }}
-                        >
-                          ?
-                        </div>
-
-                        <div style={{ minWidth: 0 }}>
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
                           <div
                             style={{
-                              fontSize: 11,
+                              width: 28,
+                              height: 28,
+                              borderRadius: 999,
+                              background: "#ffe7cf",
+                              display: "grid",
+                              placeItems: "center",
+                              fontSize: 14,
                               fontWeight: 1000,
-                              letterSpacing: "0.09em",
-                              color: "rgba(0,0,0,0.52)",
-                              textTransform: "uppercase",
+                              color: "#2b2118",
                             }}
                           >
-                            ENCUESTA JUSP
+                            ?
                           </div>
-
-                          <h3
-                            style={{
-                              margin: "12px 0 0",
-                              fontSize: isMobile ? 16 : 17,
-                              fontWeight: 1000,
-                              lineHeight: 1.08,
-                              letterSpacing: "-0.03em",
-                              color: "#0b0b0b",
-                            }}
-                          >
-                            ¿Qué te parece esta selección?
-                          </h3>
-
-                          <p
-                            style={{
-                              margin: "10px 0 0",
-                              fontSize: isMobile ? 12 : 13,
-                              lineHeight: 1.45,
-                              color: "rgba(0,0,0,0.58)",
-                              fontWeight: 650,
-                            }}
-                          >
-                            Responde una vez y desaparece automáticamente.
-                          </p>
+                          <div>
+                            <div style={{ fontSize: 11, fontWeight: 1000, letterSpacing: "0.08em", opacity: 0.62 }}>
+                              ENCUESTA JUSP
+                            </div>
+                            <div style={{ marginTop: 10, fontSize: 15, fontWeight: 1000, lineHeight: 1.12, display: "none" }}>
+                              ¿Que te parece esta seleccion?
+                            </div>
+                            <div style={{ marginTop: 6, fontSize: 11, lineHeight: 1.45, opacity: 0.68, display: "none" }}>
+                              Apenas la respondas, desaparece automaticamente de esta seccion.
+                            </div>
+                            <div style={{ marginTop: 10, fontSize: 15, fontWeight: 1000, lineHeight: 1.12 }}>
+                              Que te parece esta seleccion?
+                            </div>
+                            <div style={{ marginTop: 6, fontSize: 11, lineHeight: 1.45, opacity: 0.68 }}>
+                              Responde una vez y desaparece automaticamente.
+                            </div>
+                          </div>
                         </div>
                       </div>
 
-                      <div
-                        style={{
-                          padding: isMobile ? "0 0 0" : "0 0 0",
-                          borderTop: "1px solid rgba(0,0,0,0.06)",
-                          display: "grid",
-                          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                        }}
-                      >
+                      <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
                         {HOME_SURVEY_OPTIONS.map((option, optionIndex) => (
                           <button
                             key={option}
@@ -2357,18 +2362,16 @@ function HomePageContent() {
                             onClick={() => answerHomeSurvey(option)}
                             style={{
                               width: "100%",
-                              minHeight: isMobile ? 62 : 58,
-                              border: 0,
-                              borderRight: optionIndex % 2 === 0 && optionIndex !== HOME_SURVEY_OPTIONS.length - 1 ? "1px solid rgba(0,0,0,0.06)" : 0,
-                              borderBottom: optionIndex < HOME_SURVEY_OPTIONS.length - 1 ? "1px solid rgba(0,0,0,0.06)" : 0,
-                              background: "rgba(255,255,255,0.88)",
+                              borderRadius: 14,
+                              border: "1px solid rgba(0,0,0,0.08)",
+                              background: "#fff",
                               padding: "10px 12px",
                               textAlign: "center",
-                              fontWeight: 1000,
-                              fontSize: isMobile ? 12 : 12,
-                              lineHeight: 1.12,
-                              color: "#0b0b0b",
+                              fontWeight: 900,
+                              fontSize: 12,
+                              lineHeight: 1.2,
                               cursor: "pointer",
+                              minHeight: 44,
                               gridColumn: optionIndex === HOME_SURVEY_OPTIONS.length - 1 ? "1 / -1" : undefined,
                             }}
                           >
