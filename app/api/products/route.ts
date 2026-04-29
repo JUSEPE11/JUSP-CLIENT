@@ -76,7 +76,7 @@ type CachePayload = {
 type ProductMediaManifest = Record<string, string[]>;
 
 const CACHE_VERSION = 1;
-const CACHE_FILE_NAME = "catalog_products.json";
+const CACHE_FILE_NAME = "catalog_products.cache.json";
 
 let productMediaManifestCache: ProductMediaManifest | null | undefined;
 
