@@ -282,29 +282,58 @@ export default function LoginPage() {
 
       <style jsx global>{`
         body {
-          background: radial-gradient(1200px 600px at 20% 0%, rgba(0, 0, 0, 0.06), transparent 55%),
-            radial-gradient(900px 520px at 90% 15%, rgba(0, 0, 0, 0.04), transparent 60%),
-            #f7f7f7;
+          background:
+            radial-gradient(900px 420px at 14% 4%, rgba(255, 214, 0, 0.18), transparent 62%),
+            radial-gradient(780px 420px at 92% 0%, rgba(0, 0, 0, 0.055), transparent 58%),
+            linear-gradient(180deg, #ffffff 0%, #f7f7f4 44%, #f1f1ee 100%);
         }
       `}</style>
 
       <style jsx>{`
         .auth-root {
+          position: relative;
+          min-height: calc(100vh - var(--jusp-header-h, 64px));
           padding-top: calc(var(--jusp-header-h, 64px) + 18px);
           padding-left: 16px;
           padding-right: 16px;
-          padding-bottom: 32px;
+          padding-bottom: 42px;
+          overflow: hidden;
+        }
+        .auth-root::before {
+          content: "";
+          position: absolute;
+          inset: 18px auto auto -120px;
+          width: 360px;
+          height: 360px;
+          border-radius: 999px;
+          background: rgba(255, 214, 0, 0.13);
+          filter: blur(28px);
+          pointer-events: none;
+        }
+        .auth-root::after {
+          content: "";
+          position: absolute;
+          right: -160px;
+          bottom: -180px;
+          width: 430px;
+          height: 430px;
+          border-radius: 999px;
+          background: rgba(0, 0, 0, 0.045);
+          filter: blur(34px);
+          pointer-events: none;
         }
         .auth-shell {
-          max-width: 1040px;
+          position: relative;
+          z-index: 1;
+          max-width: 1080px;
           margin: 0 auto;
           display: grid;
-          grid-template-columns: 1.1fr 1fr;
-          gap: 18px;
+          grid-template-columns: 1.08fr 1fr;
+          gap: 28px;
           align-items: start;
         }
         .auth-left {
-          padding: 18px 10px;
+          padding: 30px 10px;
         }
         .auth-brand {
           display: inline-flex;
@@ -313,42 +342,46 @@ export default function LoginPage() {
           margin-bottom: 12px;
         }
         .auth-logo {
-          font-weight: 900;
-          letter-spacing: 0.14em;
+          font-weight: 950;
+          letter-spacing: 0.16em;
           color: #111;
+          text-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
         }
         .auth-title {
-          margin: 8px 0 6px;
-          font-size: 34px;
-          line-height: 1.05;
+          margin: 10px 0 10px;
+          font-size: clamp(38px, 5vw, 64px);
+          line-height: 0.92;
           font-weight: 950;
-          letter-spacing: -0.02em;
-          color: #111;
+          letter-spacing: -0.06em;
+          color: #0b0b0b;
+          text-wrap: balance;
         }
         .auth-sub {
           margin: 0;
-          max-width: 460px;
-          color: rgba(0, 0, 0, 0.72);
-          font-size: 14px;
-          line-height: 1.6;
+          max-width: 500px;
+          color: rgba(0, 0, 0, 0.68);
+          font-size: 15px;
+          line-height: 1.75;
         }
         .auth-perks {
-          margin-top: 18px;
+          margin-top: 26px;
           display: grid;
-          gap: 10px;
-          max-width: 420px;
+          gap: 12px;
+          max-width: 450px;
         }
         .perk {
           display: flex;
           align-items: center;
-          gap: 10px;
-          padding: 10px 12px;
-          border-radius: 14px;
-          background: rgba(255, 255, 255, 0.7);
-          border: 1px solid rgba(0, 0, 0, 0.06);
-          color: rgba(0, 0, 0, 0.8);
+          gap: 12px;
+          padding: 13px 15px;
+          border-radius: 18px;
+          background: rgba(255, 255, 255, 0.74);
+          border: 1px solid rgba(0, 0, 0, 0.075);
+          color: rgba(0, 0, 0, 0.78);
           font-size: 13px;
-          backdrop-filter: blur(10px);
+          font-weight: 750;
+          backdrop-filter: blur(14px);
+          box-shadow: 0 14px 34px rgba(0, 0, 0, 0.045);
         }
         .perk-dot {
           width: 8px;
@@ -359,34 +392,51 @@ export default function LoginPage() {
           flex: 0 0 auto;
         }
         .auth-card {
-          border-radius: 20px;
-          background: rgba(255, 255, 255, 0.92);
-          border: 1px solid rgba(0, 0, 0, 0.08);
-          box-shadow: 0 22px 60px rgba(0, 0, 0, 0.08);
-          padding: 16px;
+          position: relative;
+          border-radius: 30px;
+          background: rgba(255, 255, 255, 0.9);
+          border: 1px solid rgba(255, 255, 255, 0.78);
+          box-shadow:
+            0 34px 90px rgba(0, 0, 0, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.86);
+          padding: 18px;
           overflow: hidden;
+          backdrop-filter: blur(18px);
+        }
+        .auth-card::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          padding: 1px;
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 214, 0, 0.24), rgba(0, 0, 0, 0.08));
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask-composite: exclude;
+          pointer-events: none;
         }
         .auth-card-head {
-          padding: 10px 10px 8px;
+          padding: 14px 12px 10px;
         }
         .auth-card-kicker {
-          font-weight: 900;
+          font-weight: 950;
           font-size: 11px;
-          letter-spacing: 0.12em;
+          letter-spacing: 0.16em;
           text-transform: uppercase;
-          color: rgba(0, 0, 0, 0.55);
+          color: rgba(0, 0, 0, 0.5);
         }
         .auth-card-h {
-          margin-top: 6px;
-          font-size: 18px;
+          margin-top: 7px;
+          font-size: 24px;
+          line-height: 1.05;
           font-weight: 950;
-          color: #111;
+          letter-spacing: -0.035em;
+          color: #0b0b0b;
         }
         .auth-card-p {
-          margin-top: 6px;
-          font-size: 13px;
-          color: rgba(0, 0, 0, 0.7);
-          line-height: 1.5;
+          margin-top: 8px;
+          font-size: 14px;
+          color: rgba(0, 0, 0, 0.62);
+          line-height: 1.55;
         }
         .auth-alert {
           margin: 8px 10px 0;
@@ -410,9 +460,9 @@ export default function LoginPage() {
           flex: 0 0 auto;
         }
         .auth-form {
-          padding: 10px;
+          padding: 12px;
           display: grid;
-          gap: 12px;
+          gap: 14px;
         }
         .field {
           display: grid;
@@ -420,21 +470,45 @@ export default function LoginPage() {
         }
         .field-label {
           font-size: 12px;
-          font-weight: 900;
-          color: rgba(0, 0, 0, 0.78);
+          font-weight: 950;
+          color: rgba(0, 0, 0, 0.76);
         }
         .field-input {
           width: 100%;
-          border-radius: 14px;
-          border: 1px solid rgba(0, 0, 0, 0.14);
-          background: #fff;
-          padding: 12px 12px;
-          font-size: 14px;
+          border-radius: 18px;
+          border: 1px solid rgba(0, 0, 0, 0.12);
+          background: rgba(255, 255, 255, 0.96);
+          padding: 14px 14px;
+          font-size: 15px;
+          font-weight: 700;
+          color: #111;
+          caret-color: #111;
           outline: none;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 10px 24px rgba(0, 0, 0, 0.04);
+          transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease, background 160ms ease;
+        }
+        .field-input::placeholder {
+          color: rgba(0, 0, 0, 0.34);
+          font-weight: 650;
         }
         .field-input:focus {
-          border-color: rgba(0, 0, 0, 0.34);
-          box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.08);
+          border-color: rgba(0, 0, 0, 0.42);
+          background: #fff;
+          box-shadow: 0 0 0 5px rgba(255, 214, 0, 0.22), 0 18px 34px rgba(0, 0, 0, 0.08);
+          transform: translateY(-1px);
+        }
+        .field-input:disabled {
+          opacity: 0.72;
+          cursor: not-allowed;
+        }
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+          -webkit-text-fill-color: #111 !important;
+          caret-color: #111 !important;
+          box-shadow: 0 0 0 1000px #fff inset !important;
+          transition: background-color 9999s ease-in-out 0s;
         }
         .field-input.bad,
         .field-row.bad .field-input {
@@ -456,16 +530,22 @@ export default function LoginPage() {
           align-items: center;
         }
         .pw-toggle {
-          border: 1px solid rgba(0, 0, 0, 0.14);
-          background: rgba(255, 255, 255, 0.9);
-          border-radius: 12px;
-          padding: 10px 12px;
-          font-weight: 900;
+          min-width: 64px;
+          border: 1px solid rgba(0, 0, 0, 0.12);
+          background: rgba(255, 255, 255, 0.92);
+          color: #111;
+          border-radius: 16px;
+          padding: 12px 13px;
+          font-weight: 950;
           font-size: 12px;
           cursor: pointer;
+          box-shadow: 0 10px 22px rgba(0, 0, 0, 0.045);
+          transition: background 160ms ease, transform 160ms ease, box-shadow 160ms ease;
         }
         .pw-toggle:hover {
-          background: rgba(0, 0, 0, 0.03);
+          background: #fff;
+          transform: translateY(-1px);
+          box-shadow: 0 16px 30px rgba(0, 0, 0, 0.075);
         }
         .auth-row {
           display: flex;
@@ -497,25 +577,33 @@ export default function LoginPage() {
         .btn {
           border: 0;
           border-radius: 999px;
-          padding: 12px 14px;
+          padding: 14px 16px;
           font-weight: 950;
           cursor: pointer;
-          background: #111;
+          background: linear-gradient(135deg, #111 0%, #2b2b2b 100%);
           color: #fff;
           font-size: 14px;
+          box-shadow: 0 18px 38px rgba(0, 0, 0, 0.18);
+          transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+        }
+        .btn:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 22px 48px rgba(0, 0, 0, 0.22);
         }
         .btn:disabled {
-          opacity: 0.5;
+          opacity: 0.46;
           cursor: not-allowed;
+          box-shadow: none;
         }
         .btn.ghost {
-          background: rgba(255, 255, 255, 0.9);
+          background: rgba(255, 255, 255, 0.94);
           color: #111;
-          border: 1px solid rgba(0, 0, 0, 0.14);
+          border: 1px solid rgba(0, 0, 0, 0.12);
           text-align: center;
+          box-shadow: 0 14px 30px rgba(0, 0, 0, 0.055);
         }
         .btn.ghost:hover {
-          background: rgba(0, 0, 0, 0.03);
+          background: #fff;
         }
         .btn-inner {
           display: inline-flex;
@@ -558,8 +646,8 @@ export default function LoginPage() {
           opacity: 0.8;
         }
         .link {
-          color: rgba(0, 0, 0, 0.8);
-          font-weight: 900;
+          color: rgba(0, 0, 0, 0.82);
+          font-weight: 950;
           text-decoration: none;
         }
         .link:hover {
@@ -584,7 +672,7 @@ export default function LoginPage() {
             padding: 8px 4px 0;
           }
           .auth-title {
-            font-size: 28px;
+            font-size: 38px;
           }
         }
         @media (max-width: 560px) {
