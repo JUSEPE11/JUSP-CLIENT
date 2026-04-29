@@ -92,29 +92,71 @@ function SmartImg({
   fetchPriority = "auto",
   onLoad,
 }: SmartImgProps) {
-  const safeBaseSrc = String((baseSrc as any) ?? "");
-  const hasExt = useMemo(() => /\.[a-zA-Z0-9]+$/.test(safeBaseSrc), [safeBaseSrc]);
+  const safeBaseSrc = String((baseSrc as any) ?? "").trim();
 
   const candidates = useMemo(() => {
     if (!safeBaseSrc) return [];
-    if (hasExt) return [safeBaseSrc];
 
-    const raw = [
-      safeBaseSrc,
-      `${safeBaseSrc}.jpg`,
-      `${safeBaseSrc}.jpeg`,
-      `${safeBaseSrc}.png`,
-      `${safeBaseSrc}.webp`,
-      `${safeBaseSrc}.avif`,
-      `${safeBaseSrc.toLowerCase()}.jpg`,
-      `${safeBaseSrc.toLowerCase()}.jpeg`,
-      `${safeBaseSrc.toLowerCase()}.png`,
-      `${safeBaseSrc.toLowerCase()}.webp`,
-      `${safeBaseSrc.toLowerCase()}.avif`,
-    ];
+    const clean = safeBaseSrc.replace(/\\/g, "/");
+    const normalized =
+      /^https?:\/\//i.test(clean) || clean.startsWith("/")
+        ? clean
+        : clean.startsWith("products/")
+          ? `/${clean}`
+          : clean;
+
+    const raw: string[] = [normalized];
+
+    const withoutQuery = normalized.split("?")[0] || normalized;
+    const extMatch = withoutQuery.match(/\.(jpg|jpeg|png|webp|avif)$/i);
+    const baseWithoutExt = extMatch ? withoutQuery.slice(0, -extMatch[0].length) : withoutQuery;
+
+    const addExts = (base: string) => {
+      if (!base) return;
+      raw.push(`${base}.jpg`, `${base}.jpeg`, `${base}.png`, `${base}.webp`, `${base}.avif`);
+      raw.push(`${base.toLowerCase()}.jpg`, `${base.toLowerCase()}.jpeg`, `${base.toLowerCase()}.png`, `${base.toLowerCase()}.webp`, `${base.toLowerCase()}.avif`);
+    };
+
+    addExts(baseWithoutExt);
+
+    const productPathMatch = withoutQuery.match(/^(\/products\/[^/]+)\/(\d+)(?:\.(?:jpg|jpeg|png|webp|avif))?$/i);
+    if (productPathMatch) {
+      const dir = productPathMatch[1];
+      const currentNumber = Number.parseInt(productPathMatch[2], 10);
+
+      const numbers = Array.from(
+        new Set([
+          currentNumber,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+        ].filter((n) => Number.isFinite(n) && n > 0))
+      );
+
+      for (const n of numbers) {
+        addExts(`${dir}/${n}`);
+      }
+    }
 
     return Array.from(new Set(raw.filter(Boolean)));
-  }, [safeBaseSrc, hasExt]);
+  }, [safeBaseSrc]);
 
   const [idx, setIdx] = useState(0);
 
@@ -362,9 +404,9 @@ function inferProductGender(p: any): "men" | "women" | "kids" {
 
 function firstImageFromProduct(p: Product, slug: string): string {
   const imgs = Array.isArray((p as any).images) ? ((p as any).images as unknown[]) : [];
-  const main = String((imgs?.[0] as any) || ((p as any).image as any) || (slug ? `/products/${slug}/1` : "")).trim();
+  const main = String((imgs?.[0] as any) || ((p as any).image as any) || (slug ? `/products/${slug}/1.jpg` : "")).trim();
 
-  if (!main) return slug ? `/products/${slug}/1` : "";
+  if (!main) return slug ? `/products/${slug}/1.jpg` : "";
 
   const isAbs = /^https?:\/\//i.test(main);
   const hasSlash = main.startsWith("/");
