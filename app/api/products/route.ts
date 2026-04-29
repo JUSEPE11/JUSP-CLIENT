@@ -250,6 +250,11 @@ function publicFileExists(src: string): boolean {
   if (!clean.startsWith("/")) return false;
 
   try {
+    const publicDir = path.join(process.cwd(), "public");
+    if (!fs.existsSync(publicDir) && clean.startsWith("/products/")) {
+      return true;
+    }
+
     const fullPath = path.join(process.cwd(), "public", clean.replace(/^\/+/, ""));
     return fs.existsSync(fullPath) && fs.statSync(fullPath).isFile();
   } catch {
@@ -352,8 +357,7 @@ function listProductMedia(slug: string): ProductMediaItem[] {
         .map((file) => ({
           type: isVideoFile(file) ? ("video" as const) : ("image" as const),
           src: `/products/${manifestEntry.folderSlug}/${file}`,
-        }))
-        .filter((item) => publicFileExists(item.src));
+        }));
     }
 
     const files = fs
