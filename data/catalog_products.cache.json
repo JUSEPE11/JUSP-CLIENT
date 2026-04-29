@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "generatedAt": "2026-04-29T06:31:35.746Z",
+  "generatedAt": "2026-04-29T06:33:33.709Z",
   "excelPath": "C:\\JUSP\\jusp-app2\\data\\catalogo_jusp.xlsx",
-  "excelMtimeMs": 1777444184773.0823,
+  "excelMtimeMs": 1777444401353.3162,
   "products": [
     {
       "id": "nike-hf5407-010",
@@ -89,7 +89,7 @@
         "nuevo"
       ],
       "isNew": true,
-      "discountPercent": 11,
+      "discountPercent": 19,
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
