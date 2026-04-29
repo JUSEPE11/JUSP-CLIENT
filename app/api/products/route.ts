@@ -435,6 +435,7 @@ function buildProductsFromExcel(): Product[] {
 }
 
 function getProductsFromExcelOrCache(): Product[] {
+  const isVercel = process.env.VERCEL === "1";
   const excelPath = resolveExcelPath();
   const excelMtimeMs = excelPath && fs.existsSync(excelPath) ? fs.statSync(excelPath).mtimeMs : 0;
   const cached = readCache();
@@ -448,8 +449,12 @@ function getProductsFromExcelOrCache(): Product[] {
   }
 
   const fresh = buildProductsFromExcel();
+
   if (fresh.length) {
-    writeCache(fresh);
+    if (!isVercel) {
+      writeCache(fresh);
+    }
+
     return fresh;
   }
 
