@@ -1,5 +1,4 @@
 import { resolveFlashWindow } from "@/lib/flash";
-import bundledCatalogCache from "@/data/catalog_products.cache.json";
 
 export type ProductVariant = {
   key: string;
@@ -87,14 +86,6 @@ type GetProductsOptions = {
   includeFlash24h?: boolean;
 };
 
-type BundledCachePayload = {
-  version: number;
-  generatedAt: string;
-  excelPath: string | null;
-  excelMtimeMs: number;
-  products: Product[];
-};
-
 function isServer(): boolean {
   return typeof window === "undefined";
 }
@@ -103,7 +94,7 @@ function getNodeRequire(): NodeRequire | null {
   if (!isServer()) return null;
 
   try {
-    return Function("return require")() as NodeRequire;
+    return (0, eval)("require") as NodeRequire;
   } catch {
     return null;
   }
@@ -122,6 +113,21 @@ function getPath() {
 function getXlsx() {
   const req = getNodeRequire();
   return req ? req("xlsx") : null;
+}
+
+function readWorkbookFromFile(filePath: string) {
+  if (!isServer()) return null;
+
+  try {
+    const fs = getFs();
+    const XLSX = getXlsx();
+    if (!fs || !XLSX) return null;
+
+    const bytes = fs.readFileSync(filePath);
+    return XLSX.read(bytes, { type: "buffer" });
+  } catch {
+    return null;
+  }
 }
 
 function derivePriceFromVariants(variants?: ProductVariant[]): number {
@@ -378,7 +384,8 @@ function loadProductParameters(): Map<string, ProductParameter[]> {
 
     if (!fs || !XLSX || !filePath || !fs.existsSync(filePath)) return new Map();
 
-    const workbook = XLSX.readFile(filePath);
+    const workbook = readWorkbookFromFile(filePath);
+    if (!workbook) return new Map();
     const firstSheetName =
       workbook.SheetNames.find((sheetName: string) =>
         ["parametros", "Parametros", "parameters", "Parameters"].includes(sheetName)
@@ -533,7 +540,8 @@ function buildProductsFromExcel(): Product[] {
 
     if (!fs || !XLSX || !filePath || !fs.existsSync(filePath)) return [];
 
-    const workbook = XLSX.readFile(filePath);
+    const workbook = readWorkbookFromFile(filePath);
+    if (!workbook) return [];
     const firstSheetName =
       workbook.SheetNames.find((sheetName: string) => ["productos", "Productos"].includes(sheetName)) ??
       workbook.SheetNames[0];
@@ -719,7 +727,8 @@ function filterVisibleProducts(products: Product[], options?: GetProductsOptions
 
 function getBundledProducts(options?: GetProductsOptions): Product[] {
   try {
-    const payload = bundledCatalogCache as BundledCachePayload | null;
+    const cachePath = resolveCachePath();
+    const payload = readCache(cachePath);
     const products = Array.isArray(payload?.products) ? payload.products : [];
 
     return filterVisibleProducts(

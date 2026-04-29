@@ -5,7 +5,6 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useStore } from "../../components/store";
 import ProductReviews from "./ProductReviews";
-import bundledCatalogCache from "@/data/catalog_products.cache.json";
 
 type ProductVariant = {
   key: string;
@@ -68,15 +67,6 @@ type Product = {
   isFavorite?: boolean;
 };
 
-type CatalogCachePayload = {
-  products?: Product[];
-};
-
-function getBundledCatalogProducts(): Product[] {
-  const payload = bundledCatalogCache as CatalogCachePayload | null;
-  return Array.isArray(payload?.products) ? payload.products : [];
-}
-
 function findProductInCatalog(products: Product[], slugOrId: string) {
   const safe = String(slugOrId || "").trim().toLowerCase();
   if (!safe) return undefined;
@@ -88,8 +78,6 @@ function findProductInCatalog(products: Product[], slugOrId: string) {
     return pid === safe || pslug === safe || pcode === safe;
   });
 }
-
-const BUNDLED_CATALOG_PRODUCTS: Product[] = getBundledCatalogProducts();
 
 function moneyCOP(n: number) {
   return Math.round(n).toLocaleString("es-CO");
@@ -927,10 +915,8 @@ export default function ProductPage() {
 
   const slug = decodeURIComponent(String(params?.slug || "")).trim().toLowerCase();
 
-  const [product, setProduct] = useState<Product | undefined>(() =>
-    findProductInCatalog(BUNDLED_CATALOG_PRODUCTS, String(slug || ""))
-  );
-  const [catalogProducts, setCatalogProducts] = useState<Product[]>(BUNDLED_CATALOG_PRODUCTS);
+  const [product, setProduct] = useState<Product | undefined>(undefined);
+  const [catalogProducts, setCatalogProducts] = useState<Product[]>([]);
   const [loadingProduct, setLoadingProduct] = useState(true);
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
@@ -977,7 +963,7 @@ export default function ProductPage() {
         const res = await fetch(endpoint, { cache: "no-store" });
         const data = await res.json();
 
-        const list = Array.isArray(data) && data.length ? data : BUNDLED_CATALOG_PRODUCTS;
+        const list = Array.isArray(data) ? data : [];
         const found = findProductInCatalog(list, String(slug || ""));
 
         if (!cancelled) {
@@ -986,8 +972,8 @@ export default function ProductPage() {
         }
       } catch {
         if (!cancelled) {
-          setCatalogProducts(BUNDLED_CATALOG_PRODUCTS);
-          setProduct(findProductInCatalog(BUNDLED_CATALOG_PRODUCTS, String(slug || "")));
+          setCatalogProducts([]);
+          setProduct(undefined);
         }
       } finally {
         if (!cancelled) {
