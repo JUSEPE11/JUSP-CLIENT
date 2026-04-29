@@ -1,8 +1,8 @@
 {
   "version": 10,
-  "generatedAt": "2026-04-28T04:41:51.502Z",
+  "generatedAt": "2026-04-29T00:09:40.385Z",
   "excelPath": "C:\\JUSP\\jusp-app2\\data\\catalogo_jusp.xlsx",
-  "excelMtimeMs": 1777351102338.9502,
+  "excelMtimeMs": 1777421372176.52,
   "products": [
     {
       "id": "nike-hf5407-010",
@@ -10,7 +10,6 @@
       "product_code": "nike-hf5407-010",
       "title": "Women's Medium-Support Padded Sports Bra Tank Top",
       "name": "Women's Medium-Support Padded Sports Bra Tank Top",
-      "brand": "Nike",
       "price": 135990,
       "currency": "COP",
       "description": "Women's Medium-Support Padded Sports Bra Tank Top. Producto disponible en JUSP.",
@@ -72,61 +71,217 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "XL"
-      ],
       "colors": [
         "black"
       ],
+      "sizes": [
+        "XL"
+      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "sports-bra",
-      "collections": [
-        "clothing",
-        "tops",
-        "gym",
-        "training"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "sports-bra",
-        "clothing",
-        "tops",
-        "gym",
-        "training"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": true,
-      "flashStartsAt": "2026-04-22T04:00:00.000Z",
-      "flashExpiresAt": "2026-04-24T04:00:00.000Z",
+      "flashStartsAt": "2026-05-01T04:00:00.000Z",
+      "flashExpiresAt": "2026-05-02T04:00:00.000Z",
       "flashActive": false,
-      "flashUpcoming": false,
+      "flashUpcoming": true,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-hf5407-010-xl-black",
+          "key": "nike-hf5407-010-xl",
           "size": "XL",
           "color": "black",
           "price": 135990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
+      "favoritesCount": 0,
+      "isFavorite": false
+    },
+    {
+      "id": "nike-ir1526-500",
+      "slug": "nike-ir1526-500",
+      "product_code": "nike-ir1526-500",
+      "title": "Nike Dunk Low Neon Lights",
+      "name": "Nike Dunk Low Neon Lights",
+      "price": 599990,
+      "currency": "COP",
+      "description": "Nike Dunk Low Neon Lights. Producto disponible en JUSP.",
+      "image": "/products/nike-ir1526-500/1.jpg",
+      "images": [
+        "/products/nike-ir1526-500/1.jpg",
+        "/products/nike-ir1526-500/2.jpg",
+        "/products/nike-ir1526-500/3.jpg",
+        "/products/nike-ir1526-500/4.jpg",
+        "/products/nike-ir1526-500/5.jpg",
+        "/products/nike-ir1526-500/6.jpg",
+        "/products/nike-ir1526-500/7.jpg",
+        "/products/nike-ir1526-500/8.jpg",
+        "/products/nike-ir1526-500/9.jpg",
+        "/products/nike-ir1526-500/10.jpg",
+        "/products/nike-ir1526-500/11.jpg",
+        "/products/nike-ir1526-500/12.jpg",
+        "/products/nike-ir1526-500/13.jpg"
+      ],
+      "videos": [],
+      "media": [
+        {
+          "type": "image",
+          "src": "/products/nike-ir1526-500/1.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-ir1526-500/2.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-ir1526-500/3.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-ir1526-500/4.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-ir1526-500/5.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-ir1526-500/6.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-ir1526-500/7.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-ir1526-500/8.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-ir1526-500/9.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-ir1526-500/10.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-ir1526-500/11.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-ir1526-500/12.jpg"
+        },
+        {
+          "type": "image",
+          "src": "/products/nike-ir1526-500/13.jpg"
+        }
+      ],
+      "parameters": [],
+      "colors": [
+        "purple"
+      ],
+      "sizes": [
+        "40",
+        "40.5",
+        "41",
+        "42",
+        "42.5",
+        "43",
+        "44",
+        "45"
+      ],
+      "category": "men",
+      "brand": "Nike",
+      "gender": "men",
+      "productType": "shoes",
+      "kind": "zapatillas",
+      "sport": [
+        "lifestyle"
+      ],
+      "tags": [
+        "nuevo"
+      ],
+      "isNew": true,
+      "discountPercent": 10,
+      "stockHint": 8,
+      "pickupToday": false,
+      "expressDelivery": false,
+      "isFlash24h": false,
+      "flashActive": false,
+      "flashUpcoming": false,
       "isActive": true,
-      "isSoldOut": false,
+      "variants": [
+        {
+          "key": "nike-ir1526-500-40",
+          "size": "40",
+          "color": "purple",
+          "price": 599990,
+          "stock": 1
+        },
+        {
+          "key": "nike-ir1526-500-405",
+          "size": "40.5",
+          "color": "purple",
+          "price": 599990,
+          "stock": 1
+        },
+        {
+          "key": "nike-ir1526-500-41",
+          "size": "41",
+          "color": "purple",
+          "price": 599990,
+          "stock": 1
+        },
+        {
+          "key": "nike-ir1526-500-42",
+          "size": "42",
+          "color": "purple",
+          "price": 599990,
+          "stock": 1
+        },
+        {
+          "key": "nike-ir1526-500-425",
+          "size": "42.5",
+          "color": "purple",
+          "price": 599990,
+          "stock": 1
+        },
+        {
+          "key": "nike-ir1526-500-43",
+          "size": "43",
+          "color": "purple",
+          "price": 599990,
+          "stock": 1
+        },
+        {
+          "key": "nike-ir1526-500-44",
+          "size": "44",
+          "color": "purple",
+          "price": 599990,
+          "stock": 1
+        },
+        {
+          "key": "nike-ir1526-500-45",
+          "size": "45",
+          "color": "purple",
+          "price": 599990,
+          "stock": 1
+        }
+      ],
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -136,7 +291,6 @@
       "product_code": "nike-cn5263-010",
       "title": "Sujetador deportivo de entrenamiento NIKE CLASSIC SWOOSH",
       "name": "Sujetador deportivo de entrenamiento NIKE CLASSIC SWOOSH",
-      "brand": "Nike",
       "price": 99990,
       "currency": "COP",
       "description": "Sujetador deportivo de entrenamiento NIKE CLASSIC SWOOSH. Producto disponible en JUSP.",
@@ -177,60 +331,41 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "L"
-      ],
       "colors": [
         "black"
       ],
+      "sizes": [
+        "L"
+      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "sports-bra",
-      "collections": [
-        "clothing",
-        "tops",
-        "gym",
-        "training"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "sports-bra",
-        "clothing",
-        "tops",
-        "gym",
-        "training"
+        "nuevo"
       ],
       "isNew": true,
       "discountPercent": 30,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": true,
       "expressDelivery": true,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-cn5263-010-l-black",
+          "key": "nike-cn5263-010-l",
           "size": "L",
           "color": "black",
           "price": 99990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -240,7 +375,6 @@
       "product_code": "jordan-cw2427-010",
       "title": "AS WJ JUMPMAN BRA",
       "name": "AS WJ JUMPMAN BRA",
-      "brand": "Jordan",
       "price": 119990,
       "currency": "COP",
       "description": "AS WJ JUMPMAN BRA. Producto disponible en JUSP.",
@@ -276,60 +410,41 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "M"
-      ],
       "colors": [
         "black"
       ],
+      "sizes": [
+        "M"
+      ],
       "category": "women",
+      "brand": "Jordan",
       "gender": "women",
       "productType": "clothing",
       "kind": "sports-bra",
-      "collections": [
-        "clothing",
-        "tops",
-        "gym",
-        "training"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "jordan",
-        "sports-bra",
-        "clothing",
-        "tops",
-        "gym",
-        "training"
+        "nuevo"
       ],
       "isNew": true,
       "discountPercent": 30,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": true,
       "expressDelivery": true,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "jordan-cw2427-010-m-black",
+          "key": "jordan-cw2427-010-m",
           "size": "M",
           "color": "black",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -339,7 +454,6 @@
       "product_code": "nike-dm0672-100",
       "title": "Nike Low Impact Support Padded Letter Sports Bra Women Underwear White",
       "name": "Nike Low Impact Support Padded Letter Sports Bra Women Underwear White",
-      "brand": "Nike",
       "price": 95990,
       "currency": "COP",
       "description": "Nike Low Impact Support Padded Letter Sports Bra Women Underwear White. Producto disponible en JUSP.",
@@ -380,60 +494,41 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "L"
-      ],
       "colors": [
         "white"
       ],
+      "sizes": [
+        "L"
+      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "sports-bra",
-      "collections": [
-        "clothing",
-        "tops",
-        "gym",
-        "training"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "sports-bra",
-        "clothing",
-        "tops",
-        "gym",
-        "training"
+        "nuevo"
       ],
       "isNew": true,
       "discountPercent": 45,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": true,
       "expressDelivery": true,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-dm0672-100-l-white",
+          "key": "nike-dm0672-100-l",
           "size": "L",
           "color": "white",
           "price": 95990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -443,7 +538,6 @@
       "product_code": "nike-fb4125-100",
       "title": "Sujetador deportivo de entrenamiento NIKE DRY BRA",
       "name": "Sujetador deportivo de entrenamiento NIKE DRY BRA",
-      "brand": "Nike",
       "price": 110990,
       "currency": "COP",
       "description": "Sujetador deportivo de entrenamiento NIKE DRY BRA. Producto disponible en JUSP.",
@@ -504,60 +598,41 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "XL"
-      ],
       "colors": [
         "white"
       ],
+      "sizes": [
+        "XL"
+      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "sports-bra",
-      "collections": [
-        "clothing",
-        "tops",
-        "gym",
-        "training"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "sports-bra",
-        "clothing",
-        "tops",
-        "gym",
-        "training"
+        "nuevo"
       ],
       "isNew": true,
       "discountPercent": 20,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": true,
       "expressDelivery": true,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-fb4125-100-xl-white",
+          "key": "nike-fb4125-100-xl",
           "size": "XL",
           "color": "white",
           "price": 110990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -567,7 +642,6 @@
       "product_code": "nike-fb4081-675",
       "title": "Sujetador deportivo Nike Swoosh",
       "name": "Sujetador deportivo Nike Swoosh",
-      "brand": "Nike",
       "price": 195990,
       "currency": "COP",
       "description": "Sujetador deportivo Nike Swoosh. Producto disponible en JUSP.",
@@ -603,68 +677,48 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "pink"
+      ],
       "sizes": [
         "L",
         "XL"
       ],
-      "colors": [
-        "pink"
-      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "sports-bra",
-      "collections": [
-        "clothing",
-        "tops",
-        "gym",
-        "training"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "sports-bra",
-        "clothing",
-        "tops",
-        "gym",
-        "training"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 2,
-      "inventory": 2,
-      "quantity": 2,
-      "qty": 2,
-      "availableStock": 2,
-      "available_quantity": 2,
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-fb4081-675-l-pink",
+          "key": "nike-fb4081-675-l",
           "size": "L",
           "color": "pink",
           "price": 195990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fb4081-675-xl-pink",
+          "key": "nike-fb4081-675-xl",
           "size": "XL",
           "color": "pink",
           "price": 205990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -674,7 +728,6 @@
       "product_code": "nike-fb4081-100",
       "title": "Nike Nk Swsh Med Spt Futura Br",
       "name": "Nike Nk Swsh Med Spt Futura Br",
-      "brand": "Nike",
       "price": 139990,
       "currency": "COP",
       "description": "Nike Nk Swsh Med Spt Futura Br. Producto disponible en JUSP.",
@@ -710,53 +763,41 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "XL"
-      ],
       "colors": [
         "white"
       ],
+      "sizes": [
+        "XL"
+      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "clothing"
+        "nuevo"
       ],
       "isNew": true,
       "discountPercent": 20,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": true,
       "expressDelivery": true,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-fb4081-100-xl-white",
+          "key": "nike-fb4081-100-xl",
           "size": "XL",
           "color": "white",
           "price": 139990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -766,7 +807,6 @@
       "product_code": "jordan-fb6873-633",
       "title": "JORDAN BRAND AS W J SPT JUMPMAN BRA PICANTE RED",
       "name": "JORDAN BRAND AS W J SPT JUMPMAN BRA PICANTE RED",
-      "brand": "Jordan",
       "price": 125990,
       "currency": "COP",
       "description": "JORDAN BRAND AS W J SPT JUMPMAN BRA PICANTE RED. Producto disponible en JUSP.",
@@ -802,60 +842,41 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "M"
-      ],
       "colors": [
         "red"
       ],
+      "sizes": [
+        "M"
+      ],
       "category": "women",
+      "brand": "Jordan",
       "gender": "women",
       "productType": "clothing",
       "kind": "sports-bra",
-      "collections": [
-        "clothing",
-        "tops",
-        "gym",
-        "training"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "jordan",
-        "sports-bra",
-        "clothing",
-        "tops",
-        "gym",
-        "training"
+        "nuevo"
       ],
       "isNew": true,
       "discountPercent": 35,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": true,
       "expressDelivery": true,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "jordan-fb6873-633-m-red",
+          "key": "jordan-fb6873-633-m",
           "size": "M",
           "color": "red",
           "price": 125990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -865,7 +886,6 @@
       "product_code": "nike-dd1459-010",
       "title": "Nike women's sports bra, intensity",
       "name": "Nike women's sports bra, intensity",
-      "brand": "Nike",
       "price": 99990,
       "currency": "COP",
       "description": "Nike women's sports bra, intensity. Producto disponible en JUSP.",
@@ -921,69 +941,49 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "black"
+      ],
       "sizes": [
         "M",
         "L"
       ],
-      "colors": [
-        "black"
-      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "sports-bra",
-      "collections": [
-        "clothing",
-        "tops",
-        "gym",
-        "training"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "sports-bra",
-        "clothing",
-        "tops",
-        "gym",
-        "training"
+        "nuevo"
       ],
       "isNew": true,
       "discountPercent": 25,
-      "stock": 2,
-      "inventory": 2,
-      "quantity": 2,
-      "qty": 2,
-      "availableStock": 2,
-      "available_quantity": 2,
       "stockHint": 2,
       "pickupToday": true,
       "expressDelivery": true,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-dd1459-010-m-black",
+          "key": "nike-dd1459-010-m",
           "size": "M",
           "color": "black",
           "price": 99990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-dd1459-010-l-black",
+          "key": "nike-dd1459-010-l",
           "size": "L",
           "color": "black",
           "price": 99990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -993,7 +993,6 @@
       "product_code": "nike-cz4457-100",
       "title": "Nike DIR-FIT Training Sports Bra",
       "name": "Nike DIR-FIT Training Sports Bra",
-      "brand": "Nike",
       "price": 109990,
       "currency": "COP",
       "description": "Nike DIR-FIT Training Sports Bra. Producto disponible en JUSP.",
@@ -1044,60 +1043,41 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "S"
-      ],
       "colors": [
         "white"
       ],
+      "sizes": [
+        "S"
+      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "sports-bra",
-      "collections": [
-        "clothing",
-        "tops",
-        "gym",
-        "training"
-      ],
       "sport": [
-        "training"
+        "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "sports-bra",
-        "clothing",
-        "tops",
-        "gym",
-        "training"
+        "nuevo"
       ],
       "isNew": true,
       "discountPercent": 30,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-cz4457-100-s-white",
+          "key": "nike-cz4457-100-s",
           "size": "S",
           "color": "white",
           "price": 109990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -1107,7 +1087,6 @@
       "product_code": "nike-dq5135-569",
       "title": "NIKE AS W NK DF SWSH",
       "name": "NIKE AS W NK DF SWSH",
-      "brand": "Nike",
       "price": 119990,
       "currency": "COP",
       "description": "NIKE AS W NK DF SWSH. Producto disponible en JUSP.",
@@ -1149,62 +1128,49 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "light periwinkle blue"
+      ],
       "sizes": [
         "M",
         "L"
       ],
-      "colors": [
-        "light periwinkle blue"
-      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "clothing"
+        "nuevo"
       ],
       "isNew": true,
       "discountPercent": 30,
-      "stock": 2,
-      "inventory": 2,
-      "quantity": 2,
-      "qty": 2,
-      "availableStock": 2,
-      "available_quantity": 2,
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-dq5135-569-m-light-periwinkle-blue",
+          "key": "nike-dq5135-569-m",
           "size": "M",
           "color": "light periwinkle blue",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-dq5135-569-l-light-periwinkle-blue",
+          "key": "nike-dq5135-569-l",
           "size": "L",
           "color": "light periwinkle blue",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -1214,7 +1180,6 @@
       "product_code": "nike-dq5135-043",
       "title": "NIKE AS W NK DF SWSH",
       "name": "NIKE AS W NK DF SWSH",
-      "brand": "Nike",
       "price": 119990,
       "currency": "COP",
       "description": "NIKE AS W NK DF SWSH. Producto disponible en JUSP.",
@@ -1255,53 +1220,41 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "L"
-      ],
       "colors": [
         "grey"
       ],
+      "sizes": [
+        "L"
+      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "clothing"
+        "nuevo"
       ],
       "isNew": true,
       "discountPercent": 30,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": true,
       "expressDelivery": true,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-dq5135-043-l-grey",
+          "key": "nike-dq5135-043-l",
           "size": "L",
           "color": "grey",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -1311,7 +1264,6 @@
       "product_code": "jordan-cw2427-386",
       "title": "JORDAN BRAND AS W J JUMPMAN",
       "name": "JORDAN BRAND AS W J JUMPMAN",
-      "brand": "Jordan",
       "price": 119990,
       "currency": "COP",
       "description": "JORDAN BRAND AS W J JUMPMAN. Producto disponible en JUSP.",
@@ -1352,60 +1304,41 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "M"
-      ],
       "colors": [
         "green"
       ],
+      "sizes": [
+        "M"
+      ],
       "category": "women",
+      "brand": "Jordan",
       "gender": "women",
       "productType": "clothing",
       "kind": "sports-bra",
-      "collections": [
-        "clothing",
-        "tops",
-        "gym",
-        "training"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "jordan",
-        "sports-bra",
-        "clothing",
-        "tops",
-        "gym",
-        "training"
+        "nuevo"
       ],
       "isNew": true,
       "discountPercent": 35,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": true,
       "expressDelivery": true,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "jordan-cw2427-386-m-green",
+          "key": "jordan-cw2427-386-m",
           "size": "M",
           "color": "green",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -1415,7 +1348,6 @@
       "product_code": "nike-bv3637-010",
       "title": "Women's Medium-Support 1-Piece Pad Sports Bra",
       "name": "Women's Medium-Support 1-Piece Pad Sports Bra",
-      "brand": "Nike",
       "price": 99990,
       "currency": "COP",
       "description": "Women's Medium-Support 1-Piece Pad Sports Bra. Producto disponible en JUSP.",
@@ -1451,60 +1383,41 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "M"
-      ],
       "colors": [
         "black"
       ],
+      "sizes": [
+        "M"
+      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "sports-bra",
-      "collections": [
-        "clothing",
-        "tops",
-        "gym",
-        "training"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "sports-bra",
-        "clothing",
-        "tops",
-        "gym",
-        "training"
+        "nuevo"
       ],
       "isNew": true,
       "discountPercent": 25,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": true,
       "expressDelivery": true,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-bv3637-010-m-black",
+          "key": "nike-bv3637-010-m",
           "size": "M",
           "color": "black",
           "price": 99990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -1514,7 +1427,6 @@
       "product_code": "nike-fz2856-010",
       "title": "NIKE AS W NSW SS TEE OC VARZITY BLACK",
       "name": "NIKE AS W NSW SS TEE OC VARZITY BLACK",
-      "brand": "Nike",
       "price": 86990,
       "currency": "COP",
       "description": "NIKE AS W NSW SS TEE OC VARZITY BLACK. Producto disponible en JUSP.",
@@ -1560,63 +1472,49 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "black"
+      ],
       "sizes": [
         "L",
         "XL"
       ],
-      "colors": [
-        "black"
-      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
-      "kind": "tshirts",
-      "collections": [
-        "clothing"
-      ],
+      "kind": "general",
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "tshirts",
-        "clothing"
+        "nuevo"
       ],
       "isNew": true,
       "discountPercent": 30,
-      "stock": 2,
-      "inventory": 2,
-      "quantity": 2,
-      "qty": 2,
-      "availableStock": 2,
-      "available_quantity": 2,
       "stockHint": 2,
       "pickupToday": true,
       "expressDelivery": true,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-fz2856-010-l-black",
+          "key": "nike-fz2856-010-l",
           "size": "L",
           "color": "black",
           "price": 86990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fz2856-010-xl-black",
+          "key": "nike-fz2856-010-xl",
           "size": "XL",
           "color": "black",
           "price": 86990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -1626,7 +1524,6 @@
       "product_code": "puma-521598",
       "title": "Sujetador Puma MID IMPACT STRONG SPORT-BH  W",
       "name": "Sujetador Puma MID IMPACT STRONG SPORT-BH  W",
-      "brand": "Puma",
       "price": 96990,
       "currency": "COP",
       "description": "Sujetador Puma MID IMPACT STRONG SPORT-BH  W. Producto disponible en JUSP.",
@@ -1662,60 +1559,41 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "L"
-      ],
       "colors": [
         "teal"
       ],
+      "sizes": [
+        "L"
+      ],
       "category": "women",
+      "brand": "Puma",
       "gender": "women",
       "productType": "clothing",
       "kind": "sports-bra",
-      "collections": [
-        "clothing",
-        "tops",
-        "gym",
-        "training"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "puma",
-        "sports-bra",
-        "clothing",
-        "tops",
-        "gym",
-        "training"
+        "nuevo"
       ],
       "isNew": true,
       "discountPercent": 25,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": true,
       "expressDelivery": true,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "puma-521598-l-teal",
+          "key": "puma-521598-l",
           "size": "L",
           "color": "teal",
           "price": 96990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -1725,7 +1603,6 @@
       "product_code": "puma-526429",
       "title": "Puma breathable sports bra",
       "name": "Puma breathable sports bra",
-      "brand": "Puma",
       "price": 95990,
       "currency": "COP",
       "description": "Puma breathable sports bra. Producto disponible en JUSP.",
@@ -1761,60 +1638,41 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "L"
-      ],
       "colors": [
         "black"
       ],
+      "sizes": [
+        "L"
+      ],
       "category": "women",
+      "brand": "Puma",
       "gender": "women",
       "productType": "clothing",
       "kind": "sports-bra",
-      "collections": [
-        "clothing",
-        "tops",
-        "gym",
-        "training"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "puma",
-        "sports-bra",
-        "clothing",
-        "tops",
-        "gym",
-        "training"
+        "nuevo"
       ],
       "isNew": true,
       "discountPercent": 25,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": true,
       "expressDelivery": true,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "puma-526429-l-black",
+          "key": "puma-526429-l",
           "size": "L",
           "color": "black",
           "price": 95990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -1824,7 +1682,6 @@
       "product_code": "jordan-JD2213006GS-001",
       "title": "Nike Jordan shoulder bag",
       "name": "Nike Jordan shoulder bag",
-      "brand": "Nike",
       "price": 129990,
       "currency": "COP",
       "description": "Nike Jordan shoulder bag. Producto disponible en JUSP.",
@@ -1860,52 +1717,40 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "Unica"
-      ],
       "colors": [
         "black"
       ],
-      "category": "accessories",
-      "gender": "unisex",
-      "productType": "accessory",
-      "kind": "general",
-      "collections": [
-        "accessories"
+      "sizes": [
+        "Unica"
       ],
+      "category": "accessories",
+      "brand": "Nike",
+      "gender": "unisex",
+      "productType": "clothing",
+      "kind": "general",
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "accessories"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "jordan-JD2213006GS-001-unica-black",
+          "key": "jordan-JD2213006GS-001-unica",
           "size": "Unica",
           "color": "black",
           "price": 129990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -1915,7 +1760,6 @@
       "product_code": "short-nike-kids",
       "title": "Pantalones cortos Nike niños",
       "name": "Pantalones cortos Nike niños",
-      "brand": "Nike",
       "price": 88990,
       "currency": "COP",
       "description": "Pantalones cortos Nike niños. Producto disponible en JUSP.",
@@ -1976,65 +1820,49 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "black"
+      ],
       "sizes": [
         "XS (135)",
         "S (140)"
       ],
-      "colors": [
-        "black"
-      ],
       "category": "kisd",
+      "brand": "Nike",
       "gender": "kids",
       "productType": "clothing",
-      "kind": "shorts",
-      "collections": [
-        "clothing",
-        "bottoms"
-      ],
+      "kind": "general",
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "shorts",
-        "clothing",
-        "bottoms"
+        "nuevo"
       ],
       "isNew": true,
       "discountPercent": 5,
-      "stock": 2,
-      "inventory": 2,
-      "quantity": 2,
-      "qty": 2,
-      "availableStock": 2,
-      "available_quantity": 2,
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "short-nike-kids-xs-135-black",
+          "key": "short-nike-kids-xs-135",
           "size": "XS (135)",
           "color": "black",
           "price": 88990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "short-nike-kids-s-140-black",
+          "key": "short-nike-kids-s-140",
           "size": "S (140)",
           "color": "black",
           "price": 88990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -2044,7 +1872,6 @@
       "product_code": "nike-bra-dri-fit",
       "title": "Sujetador deportivo Nike Dri-FIT",
       "name": "Sujetador deportivo Nike Dri-FIT",
-      "brand": "Nike",
       "price": 89990,
       "currency": "COP",
       "description": "Sujetador deportivo Nike Dri-FIT. Producto disponible en JUSP.",
@@ -2080,69 +1907,48 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "pink"
+      ],
       "sizes": [
         "S",
         "M"
       ],
-      "colors": [
-        "pink"
-      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "sports-bra",
-      "collections": [
-        "clothing",
-        "tops",
-        "gym",
-        "training"
-      ],
       "sport": [
-        "training"
+        "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "sports-bra",
-        "clothing",
-        "tops",
-        "gym",
-        "training",
-        "dri-fit"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 2,
-      "inventory": 2,
-      "quantity": 2,
-      "qty": 2,
-      "availableStock": 2,
-      "available_quantity": 2,
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-bra-dri-fit-s-pink",
+          "key": "nike-bra-dri-fit-s",
           "size": "S",
           "color": "pink",
           "price": 89990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-bra-dri-fit-m-pink",
+          "key": "nike-bra-dri-fit-m",
           "size": "M",
           "color": "pink",
           "price": 89990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -2152,7 +1958,6 @@
       "product_code": "jordan-club-cap",
       "title": "Jordan Club Cap",
       "name": "Jordan Club Cap",
-      "brand": "Jordan",
       "price": 75990,
       "currency": "COP",
       "description": "Jordan Club Cap. Producto disponible en JUSP.",
@@ -2193,74 +1998,56 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "beige"
+      ],
       "sizes": [
         "S/M",
         "M/L",
         "L/XL"
       ],
-      "colors": [
-        "beige"
-      ],
       "category": "men",
+      "brand": "Jordan",
       "gender": "men",
       "productType": "accessory",
       "kind": "gorras",
-      "collections": [
-        "accessories",
-        "lifestyle"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "jordan",
-        "gorras",
-        "accessories",
-        "lifestyle",
-        "club"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 3,
-      "inventory": 3,
-      "quantity": 3,
-      "qty": 3,
-      "availableStock": 3,
-      "available_quantity": 3,
       "stockHint": 3,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "jordan-club-cap-sm-beige",
+          "key": "jordan-club-cap-sm",
           "size": "S/M",
           "color": "beige",
           "price": 75990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "jordan-club-cap-ml-beige",
+          "key": "jordan-club-cap-ml",
           "size": "M/L",
           "color": "beige",
           "price": 79990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "jordan-club-cap-lxl-beige",
+          "key": "jordan-club-cap-lxl",
           "size": "L/XL",
           "color": "beige",
           "price": 78990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -2270,7 +2057,6 @@
       "product_code": "nike-sports-pants-womens-purple",
       "title": "Nike Pants",
       "name": "Nike Pants",
-      "brand": "Nike",
       "price": 69990,
       "currency": "COP",
       "description": "Nike Pants. Producto disponible en JUSP.",
@@ -2311,54 +2097,40 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "M"
-      ],
       "colors": [
         "purple"
       ],
+      "sizes": [
+        "M"
+      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing",
-        "bottoms"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "clothing",
-        "bottoms"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-sports-pants-womens-purple-m-purple",
+          "key": "nike-sports-pants-womens-purple-m",
           "size": "M",
           "color": "purple",
           "price": 69990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -2368,7 +2140,6 @@
       "product_code": "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women",
       "title": "Nike sujetador tops",
       "name": "Nike sujetador tops",
-      "brand": "Nike",
       "price": 139990,
       "currency": "COP",
       "description": "Nike sujetador tops. Producto disponible en JUSP.",
@@ -2404,59 +2175,40 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "XL"
-      ],
       "colors": [
         "white"
       ],
+      "sizes": [
+        "XL"
+      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "sports-bra",
-      "collections": [
-        "clothing",
-        "tops",
-        "gym",
-        "training"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "sports-bra",
-        "clothing",
-        "tops",
-        "gym",
-        "training"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women-xl-white",
+          "key": "nike-dri-fit-quick-dry-running-compression-training-sports-tank-top-women-xl",
           "size": "XL",
           "color": "white",
           "price": 139990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -2466,7 +2218,6 @@
       "product_code": "nike-sport-high",
       "title": "Nike Sport BH High Compression Bra Swoosh Sujetador",
       "name": "Nike Sport BH High Compression Bra Swoosh Sujetador",
-      "brand": "Nike",
       "price": 119990,
       "currency": "COP",
       "description": "Nike Sport BH High Compression Bra Swoosh Sujetador. Producto disponible en JUSP.",
@@ -2497,60 +2248,40 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "L"
-      ],
       "colors": [
         "white"
       ],
+      "sizes": [
+        "L"
+      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "sports-bra",
-      "collections": [
-        "clothing",
-        "tops",
-        "gym",
-        "training"
-      ],
       "sport": [
-        "training"
+        "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "sports-bra",
-        "clothing",
-        "tops",
-        "gym",
-        "training",
-        "compression"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-sport-high-l-white",
+          "key": "nike-sport-high-l",
           "size": "L",
           "color": "white",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -2560,7 +2291,6 @@
       "product_code": "nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap",
       "title": "NIKE Unisex Dri-fit Fly Unstrukturierte Swoosh-Cap",
       "name": "NIKE Unisex Dri-fit Fly Unstrukturierte Swoosh-Cap",
-      "brand": "Nike",
       "price": 65990,
       "currency": "COP",
       "description": "NIKE Unisex Dri-fit Fly Unstrukturierte Swoosh-Cap. Producto disponible en JUSP.",
@@ -2601,76 +2331,56 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "violet"
+      ],
       "sizes": [
         "S/M",
         "M/L",
         "L/XL"
       ],
-      "colors": [
-        "violet"
-      ],
       "category": "men",
+      "brand": "Nike",
       "gender": "men",
       "productType": "accessory",
       "kind": "gorras",
-      "collections": [
-        "accessories",
-        "gym",
-        "training"
-      ],
       "sport": [
-        "training"
+        "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "gorras",
-        "accessories",
-        "gym",
-        "training",
-        "dri-fit"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 3,
-      "inventory": 3,
-      "quantity": 3,
-      "qty": 3,
-      "availableStock": 3,
-      "available_quantity": 3,
       "stockHint": 3,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap-sm-violet",
+          "key": "nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap-sm",
           "size": "S/M",
           "color": "violet",
           "price": 65990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap-ml-violet",
+          "key": "nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap-ml",
           "size": "M/L",
           "color": "violet",
           "price": 75990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap-lxl-violet",
+          "key": "nike-unisex-dri-fit-fly-unstrukturierte-swoosh-cap-lxl",
           "size": "L/XL",
           "color": "violet",
           "price": 85990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -2680,7 +2390,6 @@
       "product_code": "nike-sportswear",
       "title": "Nike Sportswear Women's Ribbed Tank Top",
       "name": "Nike Sportswear Women's Ribbed Tank Top",
-      "brand": "Nike",
       "price": 79990,
       "currency": "COP",
       "description": "Nike Sportswear Women's Ribbed Tank Top. Producto disponible en JUSP.",
@@ -2721,6 +2430,9 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "beige"
+      ],
       "sizes": [
         "XS",
         "S",
@@ -2728,85 +2440,62 @@
         "L",
         "XL"
       ],
-      "colors": [
-        "beige"
-      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "tops",
-      "collections": [
-        "clothing",
-        "tops",
-        "lifestyle"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "tops",
-        "clothing",
-        "lifestyle"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 5,
-      "inventory": 5,
-      "quantity": 5,
-      "qty": 5,
-      "availableStock": 5,
-      "available_quantity": 5,
       "stockHint": 5,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-sportswear-xs-beige",
+          "key": "nike-sportswear-xs",
           "size": "XS",
           "color": "beige",
           "price": 79990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-sportswear-s-beige",
+          "key": "nike-sportswear-s",
           "size": "S",
           "color": "beige",
           "price": 79990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-sportswear-m-beige",
+          "key": "nike-sportswear-m",
           "size": "M",
           "color": "beige",
           "price": 79990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-sportswear-l-beige",
+          "key": "nike-sportswear-l",
           "size": "L",
           "color": "beige",
           "price": 79990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-sportswear-xl-beige",
+          "key": "nike-sportswear-xl",
           "size": "XL",
           "color": "beige",
           "price": 79990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -2816,7 +2505,6 @@
       "product_code": "nike-dri-fit-pro-cropped-printed-women",
       "title": "NIKE Dri-FIT Pro Cropped Printed Women's Training Tank",
       "name": "NIKE Dri-FIT Pro Cropped Printed Women's Training Tank",
-      "brand": "Nike",
       "price": 155990,
       "currency": "COP",
       "description": "NIKE Dri-FIT Pro Cropped Printed Women's Training Tank. Producto disponible en JUSP.",
@@ -2877,86 +2565,64 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "grey"
+      ],
       "sizes": [
         "S",
         "M",
         "L",
         "XL"
       ],
-      "colors": [
-        "grey"
-      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing",
-        "tops",
-        "gym",
-        "training"
-      ],
       "sport": [
-        "training"
+        "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "clothing",
-        "tops",
-        "gym",
-        "training",
-        "dri-fit"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 4,
-      "inventory": 4,
-      "quantity": 4,
-      "qty": 4,
-      "availableStock": 4,
-      "available_quantity": 4,
       "stockHint": 4,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-dri-fit-pro-cropped-printed-women-s-grey",
+          "key": "nike-dri-fit-pro-cropped-printed-women-s",
           "size": "S",
           "color": "grey",
           "price": 155990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-dri-fit-pro-cropped-printed-women-m-grey",
+          "key": "nike-dri-fit-pro-cropped-printed-women-m",
           "size": "M",
           "color": "grey",
           "price": 155990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-dri-fit-pro-cropped-printed-women-l-grey",
+          "key": "nike-dri-fit-pro-cropped-printed-women-l",
           "size": "L",
           "color": "grey",
           "price": 155990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-dri-fit-pro-cropped-printed-women-xl-grey",
+          "key": "nike-dri-fit-pro-cropped-printed-women-xl",
           "size": "XL",
           "color": "grey",
           "price": 155990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -2966,7 +2632,6 @@
       "product_code": "puma-622575-01",
       "title": "Puma Camiseta Deportiva sin Mangas Ajustada con Estampado de Letras para Mujer Negro",
       "name": "Puma Camiseta Deportiva sin Mangas Ajustada con Estampado de Letras para Mujer Negro",
-      "brand": "Puma",
       "price": 49990,
       "currency": "COP",
       "description": "Puma Camiseta Deportiva sin Mangas Ajustada con Estampado de Letras para Mujer Negro. Producto disponible en JUSP.",
@@ -2997,62 +2662,48 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "black"
+      ],
       "sizes": [
         "S",
         "M"
       ],
-      "colors": [
-        "black"
-      ],
       "category": "women",
+      "brand": "Puma",
       "gender": "women",
       "productType": "clothing",
-      "kind": "tshirts",
-      "collections": [
-        "clothing"
-      ],
+      "kind": "general",
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "puma",
-        "tshirts",
-        "clothing"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 2,
-      "inventory": 2,
-      "quantity": 2,
-      "qty": 2,
-      "availableStock": 2,
-      "available_quantity": 2,
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "puma-622575-01-s-black",
+          "key": "puma-622575-01-s",
           "size": "S",
           "color": "black",
           "price": 49990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "puma-622575-01-m-black",
+          "key": "puma-622575-01-m",
           "size": "M",
           "color": "black",
           "price": 49990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -3062,7 +2713,6 @@
       "product_code": "jordan-cw2427-360",
       "title": "Jordan Jumpman",
       "name": "Jordan Jumpman",
-      "brand": "Jordan",
       "price": 135990,
       "currency": "COP",
       "description": "Jordan Jumpman. Producto disponible en JUSP.",
@@ -3123,52 +2773,40 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "M"
-      ],
       "colors": [
         "green"
       ],
+      "sizes": [
+        "M"
+      ],
       "category": "women",
+      "brand": "Jordan",
       "gender": "women",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "jordan",
-        "clothing"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "jordan-cw2427-360-m-green",
+          "key": "jordan-cw2427-360-m",
           "size": "M",
           "color": "green",
           "price": 135990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -3178,7 +2816,6 @@
       "product_code": "nike-hq5684-345",
       "title": "NIKE Dri-FIT Pro Cropped Printed Women",
       "name": "NIKE Dri-FIT Pro Cropped Printed Women",
-      "brand": "Nike",
       "price": 155990,
       "currency": "COP",
       "description": "NIKE Dri-FIT Pro Cropped Printed Women. Producto disponible en JUSP.",
@@ -3234,75 +2871,56 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "blue"
+      ],
       "sizes": [
         "S",
         "L",
         "XL"
       ],
-      "colors": [
-        "blue"
-      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing",
-        "gym",
-        "training"
-      ],
       "sport": [
-        "training"
+        "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "clothing",
-        "gym",
-        "training",
-        "dri-fit"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 3,
-      "inventory": 3,
-      "quantity": 3,
-      "qty": 3,
-      "availableStock": 3,
-      "available_quantity": 3,
       "stockHint": 3,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-hq5684-345-s-blue",
+          "key": "nike-hq5684-345-s",
           "size": "S",
           "color": "blue",
           "price": 155990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hq5684-345-l-blue",
+          "key": "nike-hq5684-345-l",
           "size": "L",
           "color": "blue",
           "price": 155990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hq5684-345-xl-blue",
+          "key": "nike-hq5684-345-xl",
           "size": "XL",
           "color": "blue",
           "price": 155990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -3312,7 +2930,6 @@
       "product_code": "nike-im9607-010",
       "title": "Gorra de golf sin estructura",
       "name": "Gorra de golf sin estructura",
-      "brand": "Nike",
       "price": 129990,
       "currency": "COP",
       "description": "Gorra de golf sin estructura. Producto disponible en JUSP.",
@@ -3353,62 +2970,48 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "black"
+      ],
       "sizes": [
         "M/L",
         "L/XL"
       ],
-      "colors": [
-        "black"
-      ],
       "category": "unisex",
+      "brand": "Nike",
       "gender": "unisex",
       "productType": "accessory",
       "kind": "gorras",
-      "collections": [
-        "accessories"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "gorras",
-        "accessories"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 2,
-      "inventory": 2,
-      "quantity": 2,
-      "qty": 2,
-      "availableStock": 2,
-      "available_quantity": 2,
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-im9607-010-ml-black",
+          "key": "nike-im9607-010-ml",
           "size": "M/L",
           "color": "black",
           "price": 129990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-im9607-010-lxl-black",
+          "key": "nike-im9607-010-lxl",
           "size": "L/XL",
           "color": "black",
           "price": 129990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -3418,7 +3021,6 @@
       "product_code": "lacoste-rk5398",
       "title": "Unisex Microfiber Sport Cap",
       "name": "Unisex Microfiber Sport Cap",
-      "brand": "Lacoste",
       "price": 179990,
       "currency": "COP",
       "description": "Unisex Microfiber Sport Cap. Producto disponible en JUSP.",
@@ -3459,53 +3061,40 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "Ajustable"
-      ],
       "colors": [
         "black"
       ],
+      "sizes": [
+        "Ajustable"
+      ],
       "category": "unisex",
+      "brand": "Lacoste",
       "gender": "unisex",
       "productType": "accessory",
       "kind": "gorras",
-      "collections": [
-        "accessories"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "lacoste",
-        "gorras",
-        "accessories"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "lacoste-rk5398-ajustable-black",
+          "key": "lacoste-rk5398-ajustable",
           "size": "Ajustable",
           "color": "black",
           "price": 179990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -3515,7 +3104,6 @@
       "product_code": "nike-iq4185-010",
       "title": "Nike Fly Unstructured Cap",
       "name": "Nike Fly Unstructured Cap",
-      "brand": "Nike",
       "price": 159990,
       "currency": "COP",
       "description": "Nike Fly Unstructured Cap. Producto disponible en JUSP.",
@@ -3571,53 +3159,40 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "Ajustable"
-      ],
       "colors": [
         "black"
       ],
+      "sizes": [
+        "Ajustable"
+      ],
       "category": "unisex",
+      "brand": "Nike",
       "gender": "unisex",
       "productType": "accessory",
       "kind": "gorras",
-      "collections": [
-        "accessories"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "gorras",
-        "accessories"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-iq4185-010-ajustable-black",
+          "key": "nike-iq4185-010-ajustable",
           "size": "Ajustable",
           "color": "black",
           "price": 159990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -3627,7 +3202,6 @@
       "product_code": "nike-ih9258-010",
       "title": "Nike Club Cap",
       "name": "Nike Club Cap",
-      "brand": "Nike",
       "price": 134990,
       "currency": "COP",
       "description": "Nike Club Cap. Producto disponible en JUSP.",
@@ -3663,74 +3237,56 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "black"
+      ],
       "sizes": [
         "S/M",
         "M/L",
         "L/XL"
       ],
-      "colors": [
-        "black"
-      ],
       "category": "unisex",
+      "brand": "Nike",
       "gender": "unisex",
       "productType": "accessory",
       "kind": "gorras",
-      "collections": [
-        "accessories",
-        "lifestyle"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "gorras",
-        "accessories",
-        "lifestyle",
-        "club"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 3,
-      "inventory": 3,
-      "quantity": 3,
-      "qty": 3,
-      "availableStock": 3,
-      "available_quantity": 3,
       "stockHint": 3,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-ih9258-010-sm-black",
+          "key": "nike-ih9258-010-sm",
           "size": "S/M",
           "color": "black",
           "price": 134990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-ih9258-010-ml-black",
+          "key": "nike-ih9258-010-ml",
           "size": "M/L",
           "color": "black",
           "price": 134990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-ih9258-010-lxl-black",
+          "key": "nike-ih9258-010-lxl",
           "size": "L/XL",
           "color": "black",
           "price": 134990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -3740,7 +3296,6 @@
       "product_code": "nike-fb5061-010",
       "title": "Nike Dri-FIT Ace Kids' Swoosh Visor",
       "name": "Nike Dri-FIT Ace Kids' Swoosh Visor",
-      "brand": "Nike",
       "price": 79990,
       "currency": "COP",
       "description": "Nike Dri-FIT Ace Kids' Swoosh Visor. Producto disponible en JUSP.",
@@ -3781,57 +3336,40 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "Unica"
-      ],
       "colors": [
         "black"
       ],
+      "sizes": [
+        "Unica"
+      ],
       "category": "kids",
+      "brand": "Nike",
       "gender": "kids",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing",
-        "gym",
-        "training"
-      ],
       "sport": [
-        "training"
+        "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "clothing",
-        "gym",
-        "training",
-        "dri-fit"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-fb5061-010-unica-black",
+          "key": "nike-fb5061-010-unica",
           "size": "Unica",
           "color": "black",
           "price": 79990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -3841,7 +3379,6 @@
       "product_code": "nike-if1805-010",
       "title": "NIKE AIR JORDAN OVERSIZED T",
       "name": "NIKE AIR JORDAN OVERSIZED T",
-      "brand": "Nike",
       "price": 134990,
       "currency": "COP",
       "description": "NIKE AIR JORDAN OVERSIZED T. Producto disponible en JUSP.",
@@ -3882,6 +3419,9 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "black"
+      ],
       "sizes": [
         "S",
         "M",
@@ -3889,81 +3429,62 @@
         "XL",
         "XXL"
       ],
-      "colors": [
-        "black"
-      ],
       "category": "men",
+      "brand": "Nike",
       "gender": "men",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "clothing"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 5,
-      "inventory": 5,
-      "quantity": 5,
-      "qty": 5,
-      "availableStock": 5,
-      "available_quantity": 5,
       "stockHint": 5,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-if1805-010-s-black",
+          "key": "nike-if1805-010-s",
           "size": "S",
           "color": "black",
           "price": 134990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-if1805-010-m-black",
+          "key": "nike-if1805-010-m",
           "size": "M",
           "color": "black",
           "price": 134990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-if1805-010-l-black",
+          "key": "nike-if1805-010-l",
           "size": "L",
           "color": "black",
           "price": 134990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-if1805-010-xl-black",
+          "key": "nike-if1805-010-xl",
           "size": "XL",
           "color": "black",
           "price": 134990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-if1805-010-xxl-black",
+          "key": "nike-if1805-010-xxl",
           "size": "XXL",
           "color": "black",
           "price": 134990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -3973,7 +3494,6 @@
       "product_code": "jordan-jd2413048AD-001",
       "title": "Bóxer Nike Jordan Flight",
       "name": "Bóxer Nike Jordan Flight",
-      "brand": "Jordan",
       "price": 119990,
       "currency": "COP",
       "description": "Bóxer Nike Jordan Flight. Producto disponible en JUSP.",
@@ -4009,77 +3529,56 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "black"
+      ],
       "sizes": [
         "S",
         "M",
         "L"
       ],
-      "colors": [
-        "black"
-      ],
       "category": "accessories",
+      "brand": "Jordan",
       "gender": "men",
-      "productType": "accessory",
-      "kind": "boxers",
-      "collections": [
-        "accessories",
-        "clothing",
-        "bottoms",
-        "underwear"
-      ],
+      "productType": "clothing",
+      "kind": "general",
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "jordan",
-        "boxers",
-        "accessories",
-        "clothing",
-        "bottoms",
-        "underwear"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 3,
-      "inventory": 3,
-      "quantity": 3,
-      "qty": 3,
-      "availableStock": 3,
-      "available_quantity": 3,
       "stockHint": 3,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "jordan-jd2413048AD-001-s-black",
+          "key": "jordan-jd2413048AD-001-s",
           "size": "S",
           "color": "black",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "jordan-jd2413048AD-001-m-black",
+          "key": "jordan-jd2413048AD-001-m",
           "size": "M",
           "color": "black",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "jordan-jd2413048AD-001-l-black",
+          "key": "jordan-jd2413048AD-001-l",
           "size": "L",
           "color": "black",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -4089,7 +3588,6 @@
       "product_code": "jordan-jd2413048AD-002",
       "title": "Bóxer Nike Jordan",
       "name": "Bóxer Nike Jordan",
-      "brand": "Jordan",
       "price": 119990,
       "currency": "COP",
       "description": "Bóxer Nike Jordan. Producto disponible en JUSP.",
@@ -4120,68 +3618,48 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "white"
+      ],
       "sizes": [
         "M",
         "L"
       ],
-      "colors": [
-        "white"
-      ],
       "category": "accessories",
+      "brand": "Jordan",
       "gender": "men",
-      "productType": "accessory",
-      "kind": "boxers",
-      "collections": [
-        "accessories",
-        "clothing",
-        "bottoms",
-        "underwear"
-      ],
+      "productType": "clothing",
+      "kind": "general",
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "jordan",
-        "boxers",
-        "accessories",
-        "clothing",
-        "bottoms",
-        "underwear"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 2,
-      "inventory": 2,
-      "quantity": 2,
-      "qty": 2,
-      "availableStock": 2,
-      "available_quantity": 2,
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "jordan-jd2413048AD-002-m-white",
+          "key": "jordan-jd2413048AD-002-m",
           "size": "M",
           "color": "white",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "jordan-jd2413048AD-002-l-white",
+          "key": "jordan-jd2413048AD-002-l",
           "size": "L",
           "color": "white",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -4191,7 +3669,6 @@
       "product_code": "jordan-ac4142-010",
       "title": "Jordan Mangas de baloncesto UV",
       "name": "Jordan Mangas de baloncesto UV",
-      "brand": "Jordan",
       "price": 39990,
       "currency": "COP",
       "description": "Jordan Mangas de baloncesto UV. Producto disponible en JUSP.",
@@ -4237,63 +3714,48 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "black"
+      ],
       "sizes": [
         "S/M",
         "L/XL"
       ],
-      "colors": [
-        "black"
-      ],
       "category": "accessories",
+      "brand": "Jordan",
       "gender": "men",
-      "productType": "accessory",
+      "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "accessories",
-        "basketball"
-      ],
       "sport": [
-        "basketball"
+        "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "jordan",
-        "accessories",
-        "basketball"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 2,
-      "inventory": 2,
-      "quantity": 2,
-      "qty": 2,
-      "availableStock": 2,
-      "available_quantity": 2,
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "jordan-ac4142-010-sm-black",
+          "key": "jordan-ac4142-010-sm",
           "size": "S/M",
           "color": "black",
           "price": 39990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "jordan-ac4142-010-lxl-black",
+          "key": "jordan-ac4142-010-lxl",
           "size": "L/XL",
           "color": "black",
           "price": 39990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -4303,7 +3765,6 @@
       "product_code": "jordan-ac4142-010 W",
       "title": "Jordan Mangas de baloncesto",
       "name": "Jordan Mangas de baloncesto",
-      "brand": "Jordan",
       "price": 39990,
       "currency": "COP",
       "description": "Jordan Mangas de baloncesto. Producto disponible en JUSP.",
@@ -4329,54 +3790,40 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "L/XL"
-      ],
       "colors": [
         "white"
       ],
-      "category": "accessories",
-      "gender": "men",
-      "productType": "accessory",
-      "kind": "general",
-      "collections": [
-        "accessories",
-        "basketball"
+      "sizes": [
+        "L/XL"
       ],
+      "category": "accessories",
+      "brand": "Jordan",
+      "gender": "men",
+      "productType": "clothing",
+      "kind": "general",
       "sport": [
-        "basketball"
+        "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "jordan",
-        "accessories",
-        "basketball"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "jordan-ac4142-010 W-lxl-white",
+          "key": "jordan-ac4142-010 W-lxl",
           "size": "L/XL",
           "color": "white",
           "price": 39990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -4386,7 +3833,6 @@
       "product_code": "lacoste-rk0527",
       "title": "Gorra de béisbol unisex Lacoste de otoño con visera plana",
       "name": "Gorra de béisbol unisex Lacoste de otoño con visera plana",
-      "brand": "Lacoste",
       "price": 140990,
       "currency": "COP",
       "description": "Gorra de béisbol unisex Lacoste de otoño con visera plana. Producto disponible en JUSP.",
@@ -4422,62 +3868,48 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "beige"
+      ],
       "sizes": [
         "M(56-58cm)",
         "L(58-60cm)"
       ],
-      "colors": [
-        "beige"
-      ],
       "category": "accessories",
+      "brand": "Lacoste",
       "gender": "unisex",
       "productType": "accessory",
       "kind": "gorras",
-      "collections": [
-        "accessories"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "lacoste",
-        "gorras",
-        "accessories"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 2,
-      "inventory": 2,
-      "quantity": 2,
-      "qty": 2,
-      "availableStock": 2,
-      "available_quantity": 2,
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "lacoste-rk0527-m56-58cm-beige",
+          "key": "lacoste-rk0527-m56-58cm",
           "size": "M(56-58cm)",
           "color": "beige",
           "price": 140990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "lacoste-rk0527-l58-60cm-beige",
+          "key": "lacoste-rk0527-l58-60cm",
           "size": "L(58-60cm)",
           "color": "beige",
           "price": 145990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -4487,7 +3919,6 @@
       "product_code": "nike-ii0682-121",
       "title": "Nike Sportswear Polera para hombre",
       "name": "Nike Sportswear Polera para hombre",
-      "brand": "Nike",
       "price": 199990,
       "currency": "COP",
       "description": "Nike Sportswear Polera para hombre. Producto disponible en JUSP.",
@@ -4523,6 +3954,9 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "white"
+      ],
       "sizes": [
         "S",
         "M",
@@ -4530,83 +3964,62 @@
         "XL",
         "XXL"
       ],
-      "colors": [
-        "white"
-      ],
       "category": "men",
+      "brand": "Nike",
       "gender": "men",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing",
-        "lifestyle"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "clothing",
-        "lifestyle"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 5,
-      "inventory": 5,
-      "quantity": 5,
-      "qty": 5,
-      "availableStock": 5,
-      "available_quantity": 5,
       "stockHint": 5,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-ii0682-121-s-white",
+          "key": "nike-ii0682-121-s",
           "size": "S",
           "color": "white",
           "price": 199990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-ii0682-121-m-white",
+          "key": "nike-ii0682-121-m",
           "size": "M",
           "color": "white",
           "price": 199990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-ii0682-121-l-white",
+          "key": "nike-ii0682-121-l",
           "size": "L",
           "color": "white",
           "price": 199990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-ii0682-121-xl-white",
+          "key": "nike-ii0682-121-xl",
           "size": "XL",
           "color": "white",
           "price": 199990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-ii0682-121-xxl-white",
+          "key": "nike-ii0682-121-xxl",
           "size": "XXL",
           "color": "white",
           "price": 199990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -4616,7 +4029,6 @@
       "product_code": "nike-if0787-010",
       "title": "NIKE AS M J NC GOAT SS CREW",
       "name": "NIKE AS M J NC GOAT SS CREW",
-      "brand": "Jordan",
       "price": 155990,
       "currency": "COP",
       "description": "NIKE AS M J NC GOAT SS CREW. Producto disponible en JUSP.",
@@ -4652,79 +4064,64 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "black"
+      ],
       "sizes": [
         "S",
         "M",
         "L",
         "XL"
       ],
-      "colors": [
-        "black"
-      ],
       "category": "men",
+      "brand": "Jordan",
       "gender": "men",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "jordan",
-        "clothing"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 4,
-      "inventory": 4,
-      "quantity": 4,
-      "qty": 4,
-      "availableStock": 4,
-      "available_quantity": 4,
       "stockHint": 4,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-if0787-010-s-black",
+          "key": "nike-if0787-010-s",
           "size": "S",
           "color": "black",
           "price": 155990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-if0787-010-m-black",
+          "key": "nike-if0787-010-m",
           "size": "M",
           "color": "black",
           "price": 155990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-if0787-010-l-black",
+          "key": "nike-if0787-010-l",
           "size": "L",
           "color": "black",
           "price": 155990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-if0787-010-xl-black",
+          "key": "nike-if0787-010-xl",
           "size": "XL",
           "color": "black",
           "price": 155990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -4734,7 +4131,6 @@
       "product_code": "nike-hv0885-133",
       "title": "Nike Life Men's Heavyweight Polo",
       "name": "Nike Life Men's Heavyweight Polo",
-      "brand": "Nike",
       "price": 269990,
       "currency": "COP",
       "description": "Nike Life Men's Heavyweight Polo. Producto disponible en JUSP.",
@@ -4790,6 +4186,9 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "khaki"
+      ],
       "sizes": [
         "S",
         "M",
@@ -4797,81 +4196,62 @@
         "XL",
         "XXL"
       ],
-      "colors": [
-        "khaki"
-      ],
       "category": "men",
+      "brand": "Nike",
       "gender": "men",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "clothing"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 5,
-      "inventory": 5,
-      "quantity": 5,
-      "qty": 5,
-      "availableStock": 5,
-      "available_quantity": 5,
       "stockHint": 5,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-hv0885-133-s-khaki",
+          "key": "nike-hv0885-133-s",
           "size": "S",
           "color": "khaki",
           "price": 269990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hv0885-133-m-khaki",
+          "key": "nike-hv0885-133-m",
           "size": "M",
           "color": "khaki",
           "price": 269990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hv0885-133-l-khaki",
+          "key": "nike-hv0885-133-l",
           "size": "L",
           "color": "khaki",
           "price": 269990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hv0885-133-xl-khaki",
+          "key": "nike-hv0885-133-xl",
           "size": "XL",
           "color": "khaki",
           "price": 269990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hv0885-133-xxl-khaki",
+          "key": "nike-hv0885-133-xxl",
           "size": "XXL",
           "color": "khaki",
           "price": 269990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -4881,7 +4261,6 @@
       "product_code": "nike-if5172-100",
       "title": "Nike Kobe Dri-Fit T-Shirt 'All-Star",
       "name": "Nike Kobe Dri-Fit T-Shirt 'All-Star",
-      "brand": "Nike",
       "price": 199990,
       "currency": "COP",
       "description": "Nike Kobe Dri-Fit T-Shirt 'All-Star. Producto disponible en JUSP.",
@@ -4922,85 +4301,64 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "white"
+      ],
       "sizes": [
         "M",
         "L",
         "XL",
         "XXL"
       ],
-      "colors": [
-        "white"
-      ],
       "category": "men",
+      "brand": "Nike",
       "gender": "men",
       "productType": "clothing",
-      "kind": "tshirts",
-      "collections": [
-        "clothing",
-        "gym",
-        "training"
-      ],
+      "kind": "general",
       "sport": [
-        "training"
+        "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "tshirts",
-        "clothing",
-        "gym",
-        "training",
-        "dri-fit"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 4,
-      "inventory": 4,
-      "quantity": 4,
-      "qty": 4,
-      "availableStock": 4,
-      "available_quantity": 4,
       "stockHint": 4,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-if5172-100-m-white",
+          "key": "nike-if5172-100-m",
           "size": "M",
           "color": "white",
           "price": 199990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-if5172-100-l-white",
+          "key": "nike-if5172-100-l",
           "size": "L",
           "color": "white",
           "price": 199990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-if5172-100-xl-white",
+          "key": "nike-if5172-100-xl",
           "size": "XL",
           "color": "white",
           "price": 199990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-if5172-100-xxl-white",
+          "key": "nike-if5172-100-xxl",
           "size": "XXL",
           "color": "white",
           "price": 199990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -5010,7 +4368,6 @@
       "product_code": "jordan-fn5841-010",
       "title": "Nike As M J Df Sprt Woven Pant",
       "name": "Nike As M J Df Sprt Woven Pant",
-      "brand": "Jordan",
       "price": 194990,
       "currency": "COP",
       "description": "Nike As M J Df Sprt Woven Pant. Producto disponible en JUSP.",
@@ -5056,79 +4413,64 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "black"
+      ],
       "sizes": [
         "S",
         "M",
         "L",
         "XL"
       ],
-      "colors": [
-        "black"
-      ],
       "category": "men",
+      "brand": "Jordan",
       "gender": "men",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "jordan",
-        "clothing"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 4,
-      "inventory": 4,
-      "quantity": 4,
-      "qty": 4,
-      "availableStock": 4,
-      "available_quantity": 4,
       "stockHint": 4,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "jordan-fn5841-010-s-black",
+          "key": "jordan-fn5841-010-s",
           "size": "S",
           "color": "black",
           "price": 194990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "jordan-fn5841-010-m-black",
+          "key": "jordan-fn5841-010-m",
           "size": "M",
           "color": "black",
           "price": 194990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "jordan-fn5841-010-l-black",
+          "key": "jordan-fn5841-010-l",
           "size": "L",
           "color": "black",
           "price": 194990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "jordan-fn5841-010-xl-black",
+          "key": "jordan-fn5841-010-xl",
           "size": "XL",
           "color": "black",
           "price": 194990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -5138,7 +4480,6 @@
       "product_code": "nike-dx6822-494",
       "title": "Nike Swoosh Medium Support Women's Padded Sports Bra",
       "name": "Nike Swoosh Medium Support Women's Padded Sports Bra",
-      "brand": "Nike",
       "price": 202990,
       "currency": "COP",
       "description": "Nike Swoosh Medium Support Women's Padded Sports Bra. Producto disponible en JUSP.",
@@ -5174,59 +4515,40 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "S"
-      ],
       "colors": [
         "blue"
       ],
+      "sizes": [
+        "S"
+      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "sports-bra",
-      "collections": [
-        "clothing",
-        "tops",
-        "gym",
-        "training"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "sports-bra",
-        "clothing",
-        "tops",
-        "gym",
-        "training"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-dx6822-494-s-blue",
+          "key": "nike-dx6822-494-s",
           "size": "S",
           "color": "blue",
           "price": 202990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -5236,7 +4558,6 @@
       "product_code": "nike-hj4175-289",
       "title": "Nike Dri-Fit Trail Gyorsan Száradó Sokoldalú",
       "name": "Nike Dri-Fit Trail Gyorsan Száradó Sokoldalú",
-      "brand": "Nike",
       "price": 151990,
       "currency": "COP",
       "description": "Nike Dri-Fit Trail Gyorsan Száradó Sokoldalú. Producto disponible en JUSP.",
@@ -5302,6 +4623,9 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "grey"
+      ],
       "sizes": [
         "S",
         "M",
@@ -5309,86 +4633,62 @@
         "XL",
         "XXL"
       ],
-      "colors": [
-        "grey"
-      ],
       "category": "men",
+      "brand": "Nike",
       "gender": "men",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing",
-        "gym",
-        "training"
-      ],
       "sport": [
-        "training"
+        "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "clothing",
-        "gym",
-        "training",
-        "dri-fit"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 5,
-      "inventory": 5,
-      "quantity": 5,
-      "qty": 5,
-      "availableStock": 5,
-      "available_quantity": 5,
       "stockHint": 5,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-hj4175-289-s-grey",
+          "key": "nike-hj4175-289-s",
           "size": "S",
           "color": "grey",
           "price": 151990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hj4175-289-m-grey",
+          "key": "nike-hj4175-289-m",
           "size": "M",
           "color": "grey",
           "price": 151990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hj4175-289-l-grey",
+          "key": "nike-hj4175-289-l",
           "size": "L",
           "color": "grey",
           "price": 151990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hj4175-289-xl-grey",
+          "key": "nike-hj4175-289-xl",
           "size": "XL",
           "color": "grey",
           "price": 151990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hj4175-289-xxl-grey",
+          "key": "nike-hj4175-289-xxl",
           "size": "XXL",
           "color": "grey",
           "price": 151990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -5398,7 +4698,6 @@
       "product_code": "nike-hj4175-253",
       "title": "Men's NIKE AS M NK DF TRAIL AOP 6IN BRF S woven shorts",
       "name": "Men's NIKE AS M NK DF TRAIL AOP 6IN BRF S woven shorts",
-      "brand": "Nike",
       "price": 151990,
       "currency": "COP",
       "description": "Men's NIKE AS M NK DF TRAIL AOP 6IN BRF S woven shorts. Producto disponible en JUSP.",
@@ -5484,6 +4783,9 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "beige"
+      ],
       "sizes": [
         "S",
         "M",
@@ -5491,84 +4793,62 @@
         "XL",
         "XXL"
       ],
-      "colors": [
-        "beige"
-      ],
       "category": "men",
+      "brand": "Nike",
       "gender": "men",
       "productType": "clothing",
       "kind": "shorts",
-      "collections": [
-        "clothing",
-        "bottoms"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "shorts",
-        "clothing",
-        "bottoms"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 5,
-      "inventory": 5,
-      "quantity": 5,
-      "qty": 5,
-      "availableStock": 5,
-      "available_quantity": 5,
       "stockHint": 5,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-hj4175-253-s-beige",
+          "key": "nike-hj4175-253-s",
           "size": "S",
           "color": "beige",
           "price": 151990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hj4175-253-m-beige",
+          "key": "nike-hj4175-253-m",
           "size": "M",
           "color": "beige",
           "price": 151990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hj4175-253-l-beige",
+          "key": "nike-hj4175-253-l",
           "size": "L",
           "color": "beige",
           "price": 151990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hj4175-253-xl-beige",
+          "key": "nike-hj4175-253-xl",
           "size": "XL",
           "color": "beige",
           "price": 151990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hj4175-253-xxl-beige",
+          "key": "nike-hj4175-253-xxl",
           "size": "XXL",
           "color": "beige",
           "price": 151990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -5578,7 +4858,6 @@
       "product_code": "nike-fv7839-010",
       "title": "Nike PRO Compression Shorts",
       "name": "Nike PRO Compression Shorts",
-      "brand": "Nike",
       "price": 119990,
       "currency": "COP",
       "description": "Nike PRO Compression Shorts. Producto disponible en JUSP.",
@@ -5603,12 +4882,12 @@
       ],
       "media": [
         {
-          "type": "video",
-          "src": "/products/nike-fv7839-010/01.mp4"
-        },
-        {
           "type": "image",
           "src": "/products/nike-fv7839-010/1.jpg"
+        },
+        {
+          "type": "video",
+          "src": "/products/nike-fv7839-010/01.mp4"
         },
         {
           "type": "image",
@@ -5660,87 +4939,64 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "black"
+      ],
       "sizes": [
         "XS",
         "S",
         "M",
         "XL"
       ],
-      "colors": [
-        "black"
-      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "shorts",
-      "collections": [
-        "clothing",
-        "bottoms",
-        "gym",
-        "training"
-      ],
       "sport": [
-        "training"
+        "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "shorts",
-        "clothing",
-        "bottoms",
-        "gym",
-        "training",
-        "compression"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 4,
-      "inventory": 4,
-      "quantity": 4,
-      "qty": 4,
-      "availableStock": 4,
-      "available_quantity": 4,
       "stockHint": 4,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-fv7839-010-xs-black",
+          "key": "nike-fv7839-010-xs",
           "size": "XS",
           "color": "black",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fv7839-010-s-black",
+          "key": "nike-fv7839-010-s",
           "size": "S",
           "color": "black",
           "price": 210990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fv7839-010-m-black",
+          "key": "nike-fv7839-010-m",
           "size": "M",
           "color": "black",
           "price": 210990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fv7839-010-xl-black",
+          "key": "nike-fv7839-010-xl",
           "size": "XL",
           "color": "black",
           "price": 210990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -5750,7 +5006,6 @@
       "product_code": "nike-fv7839-464",
       "title": "Nike Pro Quick-Drying Slim Fit Yoga Shorts Women's Shorts",
       "name": "Nike Pro Quick-Drying Slim Fit Yoga Shorts Women's Shorts",
-      "brand": "Nike",
       "price": 108990,
       "currency": "COP",
       "description": "Nike Pro Quick-Drying Slim Fit Yoga Shorts Women's Shorts. Producto disponible en JUSP.",
@@ -5807,6 +5062,9 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "blue"
+      ],
       "sizes": [
         "XS",
         "S",
@@ -5814,84 +5072,62 @@
         "XL",
         "XXL"
       ],
-      "colors": [
-        "blue"
-      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "shorts",
-      "collections": [
-        "clothing",
-        "bottoms"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "shorts",
-        "clothing",
-        "bottoms"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 5,
-      "inventory": 5,
-      "quantity": 5,
-      "qty": 5,
-      "availableStock": 5,
-      "available_quantity": 5,
       "stockHint": 5,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-fv7839-464-xs-blue",
+          "key": "nike-fv7839-464-xs",
           "size": "XS",
           "color": "blue",
           "price": 108990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fv7839-464-s-blue",
+          "key": "nike-fv7839-464-s",
           "size": "S",
           "color": "blue",
           "price": 114990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fv7839-464-m-blue",
+          "key": "nike-fv7839-464-m",
           "size": "M",
           "color": "blue",
           "price": 124990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fv7839-464-xl-blue",
+          "key": "nike-fv7839-464-xl",
           "size": "XL",
           "color": "blue",
           "price": 183990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fv7839-464-xxl-blue",
+          "key": "nike-fv7839-464-xxl",
           "size": "XXL",
           "color": "blue",
           "price": 140990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -5901,7 +5137,6 @@
       "product_code": "nike-hm6094-345",
       "title": "Nike Pro Comfortable Fashionable Versatile Soft Cycling Pants Women's Bottoms Blue",
       "name": "Nike Pro Comfortable Fashionable Versatile Soft Cycling Pants Women's Bottoms Blue",
-      "brand": "Nike",
       "price": 140990,
       "currency": "COP",
       "description": "Nike Pro Comfortable Fashionable Versatile Soft Cycling Pants Women's Bottoms Blue. Producto disponible en JUSP.",
@@ -5952,6 +5187,9 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "blue"
+      ],
       "sizes": [
         "XS",
         "S",
@@ -5960,91 +5198,69 @@
         "XL",
         "XXL"
       ],
-      "colors": [
-        "blue"
-      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing",
-        "bottoms"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "clothing",
-        "bottoms"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 6,
-      "inventory": 6,
-      "quantity": 6,
-      "qty": 6,
-      "availableStock": 6,
-      "available_quantity": 6,
       "stockHint": 6,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-hm6094-345-xs-blue",
+          "key": "nike-hm6094-345-xs",
           "size": "XS",
           "color": "blue",
           "price": 140990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hm6094-345-s-blue",
+          "key": "nike-hm6094-345-s",
           "size": "S",
           "color": "blue",
           "price": 140990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hm6094-345-m-blue",
+          "key": "nike-hm6094-345-m",
           "size": "M",
           "color": "blue",
           "price": 140990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hm6094-345-l-blue",
+          "key": "nike-hm6094-345-l",
           "size": "L",
           "color": "blue",
           "price": 140990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hm6094-345-xl-blue",
+          "key": "nike-hm6094-345-xl",
           "size": "XL",
           "color": "blue",
           "price": 140990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hm6094-345-xxl-blue",
+          "key": "nike-hm6094-345-xxl",
           "size": "XXL",
           "color": "blue",
           "price": 140990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -6054,7 +5270,6 @@
       "product_code": "nike-dv7798-063",
       "title": "NIKE Women Sportswear Sportswear Classics High-Waisted",
       "name": "NIKE Women Sportswear Sportswear Classics High-Waisted",
-      "brand": "Nike",
       "price": 92990,
       "currency": "COP",
       "description": "NIKE Women Sportswear Sportswear Classics High-Waisted. Producto disponible en JUSP.",
@@ -6126,6 +5341,9 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "grey"
+      ],
       "sizes": [
         "S",
         "M",
@@ -6133,83 +5351,62 @@
         "XL",
         "XXL"
       ],
-      "colors": [
-        "grey"
-      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing",
-        "lifestyle"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "clothing",
-        "lifestyle"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 5,
-      "inventory": 5,
-      "quantity": 5,
-      "qty": 5,
-      "availableStock": 5,
-      "available_quantity": 5,
       "stockHint": 5,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-dv7798-063-s-grey",
+          "key": "nike-dv7798-063-s",
           "size": "S",
           "color": "grey",
           "price": 92990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-dv7798-063-m-grey",
+          "key": "nike-dv7798-063-m",
           "size": "M",
           "color": "grey",
           "price": 92990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-dv7798-063-l-grey",
+          "key": "nike-dv7798-063-l",
           "size": "L",
           "color": "grey",
           "price": 92990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-dv7798-063-xl-grey",
+          "key": "nike-dv7798-063-xl",
           "size": "XL",
           "color": "grey",
           "price": 92990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-dv7798-063-xxl-grey",
+          "key": "nike-dv7798-063-xxl",
           "size": "XXL",
           "color": "grey",
           "price": 92990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -6219,7 +5416,6 @@
       "product_code": "nike-fz6568-551",
       "title": "NIKE Women's AS W NY DF INDY STRPY LL BRA",
       "name": "NIKE Women's AS W NY DF INDY STRPY LL BRA",
-      "brand": "Nike",
       "price": 108990,
       "currency": "COP",
       "description": "NIKE Women's AS W NY DF INDY STRPY LL BRA. Producto disponible en JUSP.",
@@ -6286,77 +5482,56 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "white"
+      ],
       "sizes": [
         "M",
         "L",
         "XL"
       ],
-      "colors": [
-        "white"
-      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "sports-bra",
-      "collections": [
-        "clothing",
-        "tops",
-        "gym",
-        "training"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "sports-bra",
-        "clothing",
-        "tops",
-        "gym",
-        "training"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 3,
-      "inventory": 3,
-      "quantity": 3,
-      "qty": 3,
-      "availableStock": 3,
-      "available_quantity": 3,
       "stockHint": 3,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-fz6568-551-m-white",
+          "key": "nike-fz6568-551-m",
           "size": "M",
           "color": "white",
           "price": 108990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fz6568-551-l-white",
+          "key": "nike-fz6568-551-l",
           "size": "L",
           "color": "white",
           "price": 108990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fz6568-551-xl-white",
+          "key": "nike-fz6568-551-xl",
           "size": "XL",
           "color": "white",
           "price": 108990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -6366,7 +5541,6 @@
       "product_code": "nike-fz0831-844",
       "title": "Gorra de béisbol NIKE auténtica para niños",
       "name": "Gorra de béisbol NIKE auténtica para niños",
-      "brand": "Nike",
       "price": 81990,
       "currency": "COP",
       "description": "Gorra de béisbol NIKE auténtica para niños. Producto disponible en JUSP.",
@@ -6433,62 +5607,48 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "blue"
+      ],
       "sizes": [
         "(única)Azul claro",
         "(única)Naranja rosa"
       ],
-      "colors": [
-        "blue"
-      ],
       "category": "kids",
+      "brand": "Nike",
       "gender": "kids",
       "productType": "accessory",
       "kind": "gorras",
-      "collections": [
-        "accessories"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "gorras",
-        "accessories"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 2,
-      "inventory": 2,
-      "quantity": 2,
-      "qty": 2,
-      "availableStock": 2,
-      "available_quantity": 2,
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-fz0831-844-nicaazul-claro-blue",
+          "key": "nike-fz0831-844-nicaazul-claro",
           "size": "(única)Azul claro",
           "color": "blue",
           "price": 81990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fz0831-844-nicanaranja-rosa-blue",
+          "key": "nike-fz0831-844-nicanaranja-rosa",
           "size": "(única)Naranja rosa",
           "color": "blue",
           "price": 81990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -6498,7 +5658,6 @@
       "product_code": "nike-ib5469-010",
       "title": "Nike As M Nsw Club Fz Hoodie Ft Gce",
       "name": "Nike As M Nsw Club Fz Hoodie Ft Gce",
-      "brand": "Nike",
       "price": 125990,
       "currency": "COP",
       "description": "Nike As M Nsw Club Fz Hoodie Ft Gce. Producto disponible en JUSP.",
@@ -6550,67 +5709,48 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "black"
+      ],
       "sizes": [
         "S",
         "M"
       ],
-      "colors": [
-        "black"
-      ],
       "category": "men",
+      "brand": "Nike",
       "gender": "men",
       "productType": "clothing",
-      "kind": "hoodies",
-      "collections": [
-        "clothing",
-        "outerwear",
-        "lifestyle"
-      ],
+      "kind": "general",
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "hoodies",
-        "clothing",
-        "outerwear",
-        "lifestyle",
-        "club"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 2,
-      "inventory": 2,
-      "quantity": 2,
-      "qty": 2,
-      "availableStock": 2,
-      "available_quantity": 2,
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-ib5469-010-s-black",
+          "key": "nike-ib5469-010-s",
           "size": "S",
           "color": "black",
           "price": 125990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-ib5469-010-m-black",
+          "key": "nike-ib5469-010-m",
           "size": "M",
           "color": "black",
           "price": 125990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -6620,7 +5760,6 @@
       "product_code": "nike-fq7646-104",
       "title": "Nike Offcourt Slides 'Valentines Day",
       "name": "Nike Offcourt Slides 'Valentines Day",
-      "brand": "Nike",
       "price": 125990,
       "currency": "COP",
       "description": "Nike Offcourt Slides 'Valentines Day. Producto disponible en JUSP.",
@@ -6672,79 +5811,64 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "pink"
+      ],
       "sizes": [
         "35.5",
         "38",
         "39",
         "42"
       ],
-      "colors": [
-        "pink"
-      ],
       "category": "accessories",
+      "brand": "Nike",
       "gender": "women",
-      "productType": "accessory",
+      "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "accessories"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "accessories"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 4,
-      "inventory": 4,
-      "quantity": 4,
-      "qty": 4,
-      "availableStock": 4,
-      "available_quantity": 4,
       "stockHint": 4,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-fq7646-104-355-pink",
+          "key": "nike-fq7646-104-355",
           "size": "35.5",
           "color": "pink",
           "price": 125990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fq7646-104-38-pink",
+          "key": "nike-fq7646-104-38",
           "size": "38",
           "color": "pink",
           "price": 125990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fq7646-104-39-pink",
+          "key": "nike-fq7646-104-39",
           "size": "39",
           "color": "pink",
           "price": 125990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fq7646-104-42-pink",
+          "key": "nike-fq7646-104-42",
           "size": "42",
           "color": "pink",
           "price": 125990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -6754,7 +5878,6 @@
       "product_code": "nike-fz1037-010",
       "title": "Nike LeBron Standard Issue Basketball Track Pants",
       "name": "Nike LeBron Standard Issue Basketball Track Pants",
-      "brand": "Nike",
       "price": 145990,
       "currency": "COP",
       "description": "Nike LeBron Standard Issue Basketball Track Pants. Producto disponible en JUSP.",
@@ -6826,83 +5949,64 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "black"
+      ],
       "sizes": [
         "M",
         "L",
         "XL",
         "XXL"
       ],
-      "colors": [
-        "black"
-      ],
       "category": "men",
+      "brand": "Nike",
       "gender": "men",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing",
-        "bottoms",
-        "basketball"
-      ],
       "sport": [
-        "basketball"
+        "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "clothing",
-        "bottoms",
-        "basketball"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 4,
-      "inventory": 4,
-      "quantity": 4,
-      "qty": 4,
-      "availableStock": 4,
-      "available_quantity": 4,
       "stockHint": 4,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-fz1037-010-m-black",
+          "key": "nike-fz1037-010-m",
           "size": "M",
           "color": "black",
           "price": 145990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fz1037-010-l-black",
+          "key": "nike-fz1037-010-l",
           "size": "L",
           "color": "black",
           "price": 145990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fz1037-010-xl-black",
+          "key": "nike-fz1037-010-xl",
           "size": "XL",
           "color": "black",
           "price": 145990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fz1037-010-xxl-black",
+          "key": "nike-fz1037-010-xxl",
           "size": "XXL",
           "color": "black",
           "price": 145990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -6912,7 +6016,6 @@
       "product_code": "nike-hq7990-010",
       "title": "Nike Standard Issue Dri-Fit Casual Pants",
       "name": "Nike Standard Issue Dri-Fit Casual Pants",
-      "brand": "Nike",
       "price": 199990,
       "currency": "COP",
       "description": "Nike Standard Issue Dri-Fit Casual Pants. Producto disponible en JUSP.",
@@ -6958,6 +6061,9 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "black"
+      ],
       "sizes": [
         "S",
         "M",
@@ -6965,90 +6071,62 @@
         "XL",
         "XXL"
       ],
-      "colors": [
-        "black"
-      ],
       "category": "men",
+      "brand": "Nike",
       "gender": "men",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing",
-        "bottoms",
-        "gym",
-        "training",
+      "sport": [
         "lifestyle"
       ],
-      "sport": [
-        "training"
-      ],
       "tags": [
-        "nuevo",
-        "nike",
-        "clothing",
-        "bottoms",
-        "gym",
-        "training",
-        "lifestyle",
-        "dri-fit"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 5,
-      "inventory": 5,
-      "quantity": 5,
-      "qty": 5,
-      "availableStock": 5,
-      "available_quantity": 5,
       "stockHint": 5,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-hq7990-010-s-black",
+          "key": "nike-hq7990-010-s",
           "size": "S",
           "color": "black",
           "price": 199990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hq7990-010-m-black",
+          "key": "nike-hq7990-010-m",
           "size": "M",
           "color": "black",
           "price": 199990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hq7990-010-l-black",
+          "key": "nike-hq7990-010-l",
           "size": "L",
           "color": "black",
           "price": 199990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hq7990-010-xl-black",
+          "key": "nike-hq7990-010-xl",
           "size": "XL",
           "color": "black",
           "price": 199990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hq7990-010-xxl-black",
+          "key": "nike-hq7990-010-xxl",
           "size": "XXL",
           "color": "black",
           "price": 199990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -7058,7 +6136,6 @@
       "product_code": "nike-hq7990-063",
       "title": "Nike Sports Pants",
       "name": "Nike Sports Pants",
-      "brand": "Nike",
       "price": 159990,
       "currency": "COP",
       "description": "Nike Sports Pants. Producto disponible en JUSP.",
@@ -7140,72 +6217,56 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "grey"
+      ],
       "sizes": [
         "XXL",
         "L",
         "XL"
       ],
-      "colors": [
-        "grey"
-      ],
       "category": "men",
+      "brand": "Nike",
       "gender": "men",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing",
-        "bottoms"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "clothing",
-        "bottoms"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 3,
-      "inventory": 3,
-      "quantity": 3,
-      "qty": 3,
-      "availableStock": 3,
-      "available_quantity": 3,
       "stockHint": 3,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-hq7990-063-xxl-grey",
+          "key": "nike-hq7990-063-xxl",
           "size": "XXL",
           "color": "grey",
           "price": 159990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hq7990-063-l-grey",
+          "key": "nike-hq7990-063-l",
           "size": "L",
           "color": "grey",
           "price": 199990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hq7990-063-xl-grey",
+          "key": "nike-hq7990-063-xl",
           "size": "XL",
           "color": "grey",
           "price": 199990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -7215,7 +6276,6 @@
       "product_code": "nike-fd1066-699",
       "title": "Nike INDY Sports Bra",
       "name": "Nike INDY Sports Bra",
-      "brand": "Nike",
       "price": 109990,
       "currency": "COP",
       "description": "Nike INDY Sports Bra. Producto disponible en JUSP.",
@@ -7307,77 +6367,56 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "pink"
+      ],
       "sizes": [
         "M",
         "L",
         "XL"
       ],
-      "colors": [
-        "pink"
-      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "sports-bra",
-      "collections": [
-        "clothing",
-        "tops",
-        "gym",
-        "training"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "sports-bra",
-        "clothing",
-        "tops",
-        "gym",
-        "training"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 3,
-      "inventory": 3,
-      "quantity": 3,
-      "qty": 3,
-      "availableStock": 3,
-      "available_quantity": 3,
       "stockHint": 3,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-fd1066-699-m-pink",
+          "key": "nike-fd1066-699-m",
           "size": "M",
           "color": "pink",
           "price": 109990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fd1066-699-l-pink",
+          "key": "nike-fd1066-699-l",
           "size": "L",
           "color": "pink",
           "price": 109990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fd1066-699-xl-pink",
+          "key": "nike-fd1066-699-xl",
           "size": "XL",
           "color": "pink",
           "price": 109990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -7387,7 +6426,6 @@
       "product_code": "nike-fd1066-100",
       "title": "Nike women's sports bra with adjustable straps",
       "name": "Nike women's sports bra with adjustable straps",
-      "brand": "Nike",
       "price": 115990,
       "currency": "COP",
       "description": "Nike women's sports bra with adjustable straps. Producto disponible en JUSP.",
@@ -7444,68 +6482,48 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "white"
+      ],
       "sizes": [
         "XL",
         "L"
       ],
-      "colors": [
-        "white"
-      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "sports-bra",
-      "collections": [
-        "clothing",
-        "tops",
-        "gym",
-        "training"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "sports-bra",
-        "clothing",
-        "tops",
-        "gym",
-        "training"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 2,
-      "inventory": 2,
-      "quantity": 2,
-      "qty": 2,
-      "availableStock": 2,
-      "available_quantity": 2,
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-fd1066-100-xl-white",
+          "key": "nike-fd1066-100-xl",
           "size": "XL",
           "color": "white",
           "price": 115990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fd1066-100-l-white",
+          "key": "nike-fd1066-100-l",
           "size": "L",
           "color": "white",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -7515,7 +6533,6 @@
       "product_code": "adidas-jn3788",
       "title": "SPORTSWEAR LOUNGE Baseball Cap",
       "name": "SPORTSWEAR LOUNGE Baseball Cap",
-      "brand": "Adidas",
       "price": 85990,
       "currency": "COP",
       "description": "SPORTSWEAR LOUNGE Baseball Cap. Producto disponible en JUSP.",
@@ -7576,55 +6593,40 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "Unica"
-      ],
       "colors": [
         "black"
       ],
+      "sizes": [
+        "Unica"
+      ],
       "category": "accessories",
+      "brand": "Adidas",
       "gender": "men",
       "productType": "accessory",
       "kind": "gorras",
-      "collections": [
-        "accessories",
-        "lifestyle"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "adidas",
-        "gorras",
-        "accessories",
-        "lifestyle"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "adidas-jn3788-unica-black",
+          "key": "adidas-jn3788-unica",
           "size": "Unica",
           "color": "black",
           "price": 85990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -7634,7 +6636,6 @@
       "product_code": "nike-fq3551-207",
       "title": "NIKE ALATE MINIMALIST WOMEN'S LIGHT-SUPPORT PADDED CONVERTIBLE SPORTS BRA",
       "name": "NIKE ALATE MINIMALIST WOMEN'S LIGHT-SUPPORT PADDED CONVERTIBLE SPORTS BRA",
-      "brand": "Nike",
       "price": 105990,
       "currency": "COP",
       "description": "NIKE ALATE MINIMALIST WOMEN'S LIGHT-SUPPORT PADDED CONVERTIBLE SPORTS BRA. Producto disponible en JUSP.",
@@ -7716,86 +6717,64 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "beige"
+      ],
       "sizes": [
         "S",
         "M",
         "L",
         "XL"
       ],
-      "colors": [
-        "beige"
-      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "sports-bra",
-      "collections": [
-        "clothing",
-        "tops",
-        "gym",
-        "training"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "sports-bra",
-        "clothing",
-        "tops",
-        "gym",
-        "training"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 4,
-      "inventory": 4,
-      "quantity": 4,
-      "qty": 4,
-      "availableStock": 4,
-      "available_quantity": 4,
       "stockHint": 4,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-fq3551-207-s-beige",
+          "key": "nike-fq3551-207-s",
           "size": "S",
           "color": "beige",
           "price": 105990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fq3551-207-m-beige",
+          "key": "nike-fq3551-207-m",
           "size": "M",
           "color": "beige",
           "price": 105990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fq3551-207-l-beige",
+          "key": "nike-fq3551-207-l",
           "size": "L",
           "color": "beige",
           "price": 105990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fq3551-207-xl-beige",
+          "key": "nike-fq3551-207-xl",
           "size": "XL",
           "color": "beige",
           "price": 105990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -7805,7 +6784,6 @@
       "product_code": "nike-fd1069-856",
       "title": "NIKE Women's Sports Bra - High Support",
       "name": "NIKE Women's Sports Bra - High Support",
-      "brand": "Nike",
       "price": 119990,
       "currency": "COP",
       "description": "NIKE Women's Sports Bra - High Support. Producto disponible en JUSP.",
@@ -7862,68 +6840,48 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "orange"
+      ],
       "sizes": [
         "S",
         "L"
       ],
-      "colors": [
-        "orange"
-      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "sports-bra",
-      "collections": [
-        "clothing",
-        "tops",
-        "gym",
-        "training"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "sports-bra",
-        "clothing",
-        "tops",
-        "gym",
-        "training"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 2,
-      "inventory": 2,
-      "quantity": 2,
-      "qty": 2,
-      "availableStock": 2,
-      "available_quantity": 2,
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-fd1069-856-s-orange",
+          "key": "nike-fd1069-856-s",
           "size": "S",
           "color": "orange",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fd1069-856-l-orange",
+          "key": "nike-fd1069-856-l",
           "size": "L",
           "color": "orange",
           "price": 189990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -7933,7 +6891,6 @@
       "product_code": "nike-fd1069-017",
       "title": "Nike As W Nk Df Indy Hgh Spt Bra",
       "name": "Nike As W Nk Df Indy Hgh Spt Bra",
-      "brand": "Nike",
       "price": 130990,
       "currency": "COP",
       "description": "Nike As W Nk Df Indy Hgh Spt Bra. Producto disponible en JUSP.",
@@ -7979,77 +6936,56 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "teal"
+      ],
       "sizes": [
         "M",
         "L",
         "XL"
       ],
-      "colors": [
-        "teal"
-      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "sports-bra",
-      "collections": [
-        "clothing",
-        "tops",
-        "gym",
-        "training"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "sports-bra",
-        "clothing",
-        "tops",
-        "gym",
-        "training"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 3,
-      "inventory": 3,
-      "quantity": 3,
-      "qty": 3,
-      "availableStock": 3,
-      "available_quantity": 3,
       "stockHint": 3,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-fd1069-017-m-teal",
+          "key": "nike-fd1069-017-m",
           "size": "M",
           "color": "teal",
           "price": 179990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fd1069-017-l-teal",
+          "key": "nike-fd1069-017-l",
           "size": "L",
           "color": "teal",
           "price": 179990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fd1069-017-xl-teal",
+          "key": "nike-fd1069-017-xl",
           "size": "XL",
           "color": "teal",
           "price": 130990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -8059,7 +6995,6 @@
       "product_code": "nike-dx5470-010",
       "title": "Nike Dri-Fit Academy 23",
       "name": "Nike Dri-Fit Academy 23",
-      "brand": "Nike",
       "price": 109990,
       "currency": "COP",
       "description": "Nike Dri-Fit Academy 23. Producto disponible en JUSP.",
@@ -8116,66 +7051,48 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "black"
+      ],
       "sizes": [
         "L",
         "XL"
       ],
-      "colors": [
-        "black"
-      ],
       "category": "kids",
+      "brand": "Nike",
       "gender": "kids",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing",
-        "gym",
-        "training"
-      ],
       "sport": [
-        "training"
+        "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "clothing",
-        "gym",
-        "training",
-        "dri-fit"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 2,
-      "inventory": 2,
-      "quantity": 2,
-      "qty": 2,
-      "availableStock": 2,
-      "available_quantity": 2,
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-dx5470-010-l-black",
+          "key": "nike-dx5470-010-l",
           "size": "L",
           "color": "black",
           "price": 109990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-dx5470-010-xl-black",
+          "key": "nike-dx5470-010-xl",
           "size": "XL",
           "color": "black",
           "price": 109990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -8185,7 +7102,6 @@
       "product_code": "nike-hv8700-699",
       "title": "Nike unisex Love Heart cap",
       "name": "Nike unisex Love Heart cap",
-      "brand": "Nike",
       "price": 82990,
       "currency": "COP",
       "description": "Nike unisex Love Heart cap. Producto disponible en JUSP.",
@@ -8237,62 +7153,48 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "única"
-      ],
       "colors": [
         "pink",
         "black"
       ],
+      "sizes": [
+        "única"
+      ],
       "category": "kids",
+      "brand": "Nike",
       "gender": "kids",
       "productType": "accessory",
       "kind": "gorras",
-      "collections": [
-        "accessories"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "gorras",
-        "accessories"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 2,
-      "inventory": 2,
-      "quantity": 2,
-      "qty": 2,
-      "availableStock": 2,
-      "available_quantity": 2,
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-hv8700-699-nica-pink",
+          "key": "nike-hv8700-699-nica",
           "size": "única",
           "color": "pink",
           "price": 82990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hv8700-699-nica-black",
+          "key": "nike-hv8700-699-nica",
           "size": "única",
           "color": "black",
           "price": 82990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -8302,7 +7204,6 @@
       "product_code": "nike-ib5450-010",
       "title": "NIKE AS M NSW PREMIUM FLC GCEL",
       "name": "NIKE AS M NSW PREMIUM FLC GCEL",
-      "brand": "Nike",
       "price": 119990,
       "currency": "COP",
       "description": "NIKE AS M NSW PREMIUM FLC GCEL. Producto disponible en JUSP.",
@@ -8384,95 +7285,78 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "black",
+        "red"
+      ],
       "sizes": [
         "M",
         "L",
         "XL"
       ],
-      "colors": [
-        "black",
-        "red"
-      ],
       "category": "men",
+      "brand": "Nike",
       "gender": "men",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "clothing"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 6,
-      "inventory": 6,
-      "quantity": 6,
-      "qty": 6,
-      "availableStock": 6,
-      "available_quantity": 6,
       "stockHint": 6,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-ib5450-010-m-black",
+          "key": "nike-ib5450-010-m",
           "size": "M",
           "color": "black",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-ib5450-010-l-black",
+          "key": "nike-ib5450-010-l",
           "size": "L",
           "color": "black",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-ib5450-010-xl-black",
+          "key": "nike-ib5450-010-xl",
           "size": "XL",
           "color": "black",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-ib5450-010-m-red",
+          "key": "nike-ib5450-010-m",
           "size": "M",
           "color": "red",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-ib5450-010-l-red",
+          "key": "nike-ib5450-010-l",
           "size": "L",
           "color": "red",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-ib5450-010-xl-red",
+          "key": "nike-ib5450-010-xl",
           "size": "XL",
           "color": "red",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -8482,7 +7366,6 @@
       "product_code": "nike-fq2094-237",
       "title": "Nike Court Heritage Dri-Fit Komfortabel Myk Løs Fukttransporterende Genser",
       "name": "Nike Court Heritage Dri-Fit Komfortabel Myk Løs Fukttransporterende Genser",
-      "brand": "Nike",
       "price": 119990,
       "currency": "COP",
       "description": "Nike Court Heritage Dri-Fit Komfortabel Myk Løs Fukttransporterende Genser. Producto disponible en JUSP.",
@@ -8554,6 +7437,10 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "brown",
+        "beige"
+      ],
       "sizes": [
         "S",
         "M",
@@ -8561,119 +7448,90 @@
         "XXL",
         "XL"
       ],
-      "colors": [
-        "brown",
-        "beige"
-      ],
       "category": "men",
+      "brand": "Nike",
       "gender": "men",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing",
-        "gym",
-        "training"
-      ],
       "sport": [
-        "training"
+        "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "clothing",
-        "gym",
-        "training",
-        "dri-fit"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 9,
-      "inventory": 9,
-      "quantity": 9,
-      "qty": 9,
-      "availableStock": 9,
-      "available_quantity": 9,
       "stockHint": 9,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-fq2094-237-s-brown",
+          "key": "nike-fq2094-237-s",
           "size": "S",
           "color": "brown",
           "price": 129990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fq2094-237-m-brown",
+          "key": "nike-fq2094-237-m",
           "size": "M",
           "color": "brown",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fq2094-237-l-brown",
+          "key": "nike-fq2094-237-l",
           "size": "L",
           "color": "brown",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fq2094-237-xxl-brown",
+          "key": "nike-fq2094-237-xxl",
           "size": "XXL",
           "color": "brown",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fq2094-237-s-beige",
+          "key": "nike-fq2094-237-s",
           "size": "S",
           "color": "beige",
           "price": 129990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fq2094-237-m-beige",
+          "key": "nike-fq2094-237-m",
           "size": "M",
           "color": "beige",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fq2094-237-l-beige",
+          "key": "nike-fq2094-237-l",
           "size": "L",
           "color": "beige",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fq2094-237-xl-beige",
+          "key": "nike-fq2094-237-xl",
           "size": "XL",
           "color": "beige",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fq2094-237-xxl-beige",
+          "key": "nike-fq2094-237-xxl",
           "size": "XXL",
           "color": "beige",
           "price": 119990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -8683,7 +7541,6 @@
       "product_code": "nike-fv3738-338",
       "title": "Nike SB KEARNY",
       "name": "Nike SB KEARNY",
-      "brand": "Nike",
       "price": 149990,
       "currency": "COP",
       "description": "Nike SB KEARNY. Producto disponible en JUSP.",
@@ -8745,6 +7602,9 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "green"
+      ],
       "sizes": [
         "XS",
         "M",
@@ -8752,81 +7612,62 @@
         "XL",
         "XXL"
       ],
-      "colors": [
-        "green"
-      ],
       "category": "men",
+      "brand": "Nike",
       "gender": "men",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "clothing"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 5,
-      "inventory": 5,
-      "quantity": 5,
-      "qty": 5,
-      "availableStock": 5,
-      "available_quantity": 5,
       "stockHint": 5,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-fv3738-338-xs-green",
+          "key": "nike-fv3738-338-xs",
           "size": "XS",
           "color": "green",
           "price": 165990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fv3738-338-m-green",
+          "key": "nike-fv3738-338-m",
           "size": "M",
           "color": "green",
           "price": 149990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fv3738-338-l-green",
+          "key": "nike-fv3738-338-l",
           "size": "L",
           "color": "green",
           "price": 149990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fv3738-338-xl-green",
+          "key": "nike-fv3738-338-xl",
           "size": "XL",
           "color": "green",
           "price": 149990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fv3738-338-xxl-green",
+          "key": "nike-fv3738-338-xxl",
           "size": "XXL",
           "color": "green",
           "price": 149990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -8836,7 +7677,6 @@
       "product_code": "nike-hv7111-100",
       "title": "Nike Swim one-piece swimsuit",
       "name": "Nike Swim one-piece swimsuit",
-      "brand": "Nike",
       "price": 189990,
       "currency": "COP",
       "description": "Nike Swim one-piece swimsuit. Producto disponible en JUSP.",
@@ -8877,70 +7717,56 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "white"
+      ],
       "sizes": [
         "XS",
         "M",
         "L"
       ],
-      "colors": [
-        "white"
-      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "clothing"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 3,
-      "inventory": 3,
-      "quantity": 3,
-      "qty": 3,
-      "availableStock": 3,
-      "available_quantity": 3,
       "stockHint": 3,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-hv7111-100-xs-white",
+          "key": "nike-hv7111-100-xs",
           "size": "XS",
           "color": "white",
           "price": 189990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hv7111-100-m-white",
+          "key": "nike-hv7111-100-m",
           "size": "M",
           "color": "white",
           "price": 189990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hv7111-100-l-white",
+          "key": "nike-hv7111-100-l",
           "size": "L",
           "color": "white",
           "price": 189990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -8950,7 +7776,6 @@
       "product_code": "nike-fz6174-010",
       "title": "Nike one-piece swimsuit",
       "name": "Nike one-piece swimsuit",
-      "brand": "Nike",
       "price": 185990,
       "currency": "COP",
       "description": "Nike one-piece swimsuit. Producto disponible en JUSP.",
@@ -8997,70 +7822,56 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "black"
+      ],
       "sizes": [
         "S",
         "L",
         "XL"
       ],
-      "colors": [
-        "black"
-      ],
       "category": "women",
+      "brand": "Nike",
       "gender": "women",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "clothing"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 3,
-      "inventory": 3,
-      "quantity": 3,
-      "qty": 3,
-      "availableStock": 3,
-      "available_quantity": 3,
       "stockHint": 3,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-fz6174-010-s-black",
+          "key": "nike-fz6174-010-s",
           "size": "S",
           "color": "black",
           "price": 185990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fz6174-010-l-black",
+          "key": "nike-fz6174-010-l",
           "size": "L",
           "color": "black",
           "price": 185990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fz6174-010-xl-black",
+          "key": "nike-fz6174-010-xl",
           "size": "XL",
           "color": "black",
           "price": 185990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -9070,7 +7881,6 @@
       "product_code": "nike-hf5983-600",
       "title": "Air Jordan Hydrip 'Digital Pink Racer Pink",
       "name": "Air Jordan Hydrip 'Digital Pink Racer Pink",
-      "brand": "Jordan",
       "price": 125990,
       "currency": "COP",
       "description": "Air Jordan Hydrip 'Digital Pink Racer Pink. Producto disponible en JUSP.",
@@ -9132,79 +7942,64 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "pink"
+      ],
       "sizes": [
         "23,5 7C",
         "25 8C",
         "26 9C",
         "27 10C"
       ],
-      "colors": [
-        "pink"
-      ],
       "category": "kids",
+      "brand": "Jordan",
       "gender": "kids",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "jordan",
-        "clothing"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 4,
-      "inventory": 4,
-      "quantity": 4,
-      "qty": 4,
-      "availableStock": 4,
-      "available_quantity": 4,
       "stockHint": 4,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-hf5983-600-235-7c-pink",
+          "key": "nike-hf5983-600-235-7c",
           "size": "23,5 7C",
           "color": "pink",
           "price": 125990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hf5983-600-25-8c-pink",
+          "key": "nike-hf5983-600-25-8c",
           "size": "25 8C",
           "color": "pink",
           "price": 125990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hf5983-600-26-9c-pink",
+          "key": "nike-hf5983-600-26-9c",
           "size": "26 9C",
           "color": "pink",
           "price": 125990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-hf5983-600-27-10c-pink",
+          "key": "nike-hf5983-600-27-10c",
           "size": "27 10C",
           "color": "pink",
           "price": 125990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -9214,7 +8009,6 @@
       "product_code": "nike-fj5353-901",
       "title": "3-piece set in black, red and white",
       "name": "3-piece set in black, red and white",
-      "brand": "Jordan",
       "price": 129990,
       "currency": "COP",
       "description": "3-piece set in black, red and white. Producto disponible en JUSP.",
@@ -9251,70 +8045,56 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "black"
+      ],
       "sizes": [
         "73 12M",
         "80 18M",
         "90 24M"
       ],
-      "colors": [
-        "black"
-      ],
       "category": "kids",
+      "brand": "Jordan",
       "gender": "kids",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "jordan",
-        "clothing"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 3,
-      "inventory": 3,
-      "quantity": 3,
-      "qty": 3,
-      "availableStock": 3,
-      "available_quantity": 3,
       "stockHint": 3,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-fj5353-901-73-12m-black",
+          "key": "nike-fj5353-901-73-12m",
           "size": "73 12M",
           "color": "black",
           "price": 129990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fj5353-901-80-18m-black",
+          "key": "nike-fj5353-901-80-18m",
           "size": "80 18M",
           "color": "black",
           "price": 129990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fj5353-901-90-24m-black",
+          "key": "nike-fj5353-901-90-24m",
           "size": "90 24M",
           "color": "black",
           "price": 129990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -9324,7 +8104,6 @@
       "product_code": "nike-fz2859-010",
       "title": "Nike Sportswear Chill Knit",
       "name": "Nike Sportswear Chill Knit",
-      "brand": "Nike",
       "price": 125990,
       "currency": "COP",
       "description": "Nike Sportswear Chill Knit. Producto disponible en JUSP.",
@@ -9361,72 +8140,56 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "black"
+      ],
       "sizes": [
         "M",
         "L",
         "XL"
       ],
-      "colors": [
-        "black"
-      ],
       "category": "men",
+      "brand": "Nike",
       "gender": "men",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing",
-        "lifestyle"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "nike",
-        "clothing",
-        "lifestyle"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 3,
-      "inventory": 3,
-      "quantity": 3,
-      "qty": 3,
-      "availableStock": 3,
-      "available_quantity": 3,
       "stockHint": 3,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-fz2859-010-m-black",
+          "key": "nike-fz2859-010-m",
           "size": "M",
           "color": "black",
           "price": 125990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fz2859-010-l-black",
+          "key": "nike-fz2859-010-l",
           "size": "L",
           "color": "black",
           "price": 125990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fz2859-010-xl-black",
+          "key": "nike-fz2859-010-xl",
           "size": "XL",
           "color": "black",
           "price": 125990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -9436,7 +8199,6 @@
       "product_code": "nike-fz7449-652",
       "title": "Nike Victory Dri-Fit Swoosh Comfortable Casual Polo",
       "name": "Nike Victory Dri-Fit Swoosh Comfortable Casual Polo",
-      "brand": "Nike",
       "price": 140990,
       "currency": "COP",
       "description": "Nike Victory Dri-Fit Swoosh Comfortable Casual Polo. Producto disponible en JUSP.",
@@ -9488,86 +8250,64 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "brown"
+      ],
       "sizes": [
         "S",
         "M",
         "XL",
         "XXL"
       ],
-      "colors": [
-        "brown"
-      ],
       "category": "men",
+      "brand": "Nike",
       "gender": "men",
       "productType": "clothing",
       "kind": "general",
-      "collections": [
-        "clothing",
-        "gym",
-        "training",
+      "sport": [
         "lifestyle"
       ],
-      "sport": [
-        "training"
-      ],
       "tags": [
-        "nuevo",
-        "nike",
-        "clothing",
-        "gym",
-        "training",
-        "lifestyle",
-        "dri-fit"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 4,
-      "inventory": 4,
-      "quantity": 4,
-      "qty": 4,
-      "availableStock": 4,
-      "available_quantity": 4,
       "stockHint": 4,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-fz7449-652-s-brown",
+          "key": "nike-fz7449-652-s",
           "size": "S",
           "color": "brown",
           "price": 140990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fz7449-652-m-brown",
+          "key": "nike-fz7449-652-m",
           "size": "M",
           "color": "brown",
           "price": 140990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fz7449-652-xl-brown",
+          "key": "nike-fz7449-652-xl",
           "size": "XL",
           "color": "brown",
           "price": 140990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fz7449-652-xxl-brown",
+          "key": "nike-fz7449-652-xxl",
           "size": "XXL",
           "color": "brown",
           "price": 140990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -9577,7 +8317,6 @@
       "product_code": "nike-fn5849-436",
       "title": "Jordan Sport Jam Men's Warm-Up Jacket",
       "name": "Jordan Sport Jam Men's Warm-Up Jacket",
-      "brand": "Jordan",
       "price": 195990,
       "currency": "COP",
       "description": "Jordan Sport Jam Men's Warm-Up Jacket. Producto disponible en JUSP.",
@@ -9639,64 +8378,48 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "blue"
+      ],
       "sizes": [
         "M",
         "L"
       ],
-      "colors": [
-        "blue"
-      ],
       "category": "men",
+      "brand": "Jordan",
       "gender": "men",
       "productType": "clothing",
-      "kind": "jackets",
-      "collections": [
-        "clothing",
-        "outerwear"
-      ],
+      "kind": "general",
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "jordan",
-        "jackets",
-        "clothing",
-        "outerwear"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 2,
-      "inventory": 2,
-      "quantity": 2,
-      "qty": 2,
-      "availableStock": 2,
-      "available_quantity": 2,
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-fn5849-436-m-blue",
+          "key": "nike-fn5849-436-m",
           "size": "M",
           "color": "blue",
           "price": 195990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fn5849-436-l-blue",
+          "key": "nike-fn5849-436-l",
           "size": "L",
           "color": "blue",
           "price": 195990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -9706,7 +8429,6 @@
       "product_code": "nike-fn5851-436",
       "title": "JORDAN BRAND AS M J SPRT JAM WARM UP PANT",
       "name": "JORDAN BRAND AS M J SPRT JAM WARM UP PANT",
-      "brand": "Jordan",
       "price": 130990,
       "currency": "COP",
       "description": "JORDAN BRAND AS M J SPRT JAM WARM UP PANT. Producto disponible en JUSP.",
@@ -9777,6 +8499,9 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "blue"
+      ],
       "sizes": [
         "S",
         "M",
@@ -9784,88 +8509,62 @@
         "XL",
         "XXL"
       ],
-      "colors": [
-        "blue"
-      ],
       "category": "men",
+      "brand": "Jordan",
       "gender": "men",
       "productType": "clothing",
       "kind": "sports-bra",
-      "collections": [
-        "clothing",
-        "tops",
-        "gym",
-        "training"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "jordan",
-        "sports-bra",
-        "clothing",
-        "tops",
-        "gym",
-        "training"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 5,
-      "inventory": 5,
-      "quantity": 5,
-      "qty": 5,
-      "availableStock": 5,
-      "available_quantity": 5,
       "stockHint": 5,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "nike-fn5851-436-s-blue",
+          "key": "nike-fn5851-436-s",
           "size": "S",
           "color": "blue",
           "price": 140900,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fn5851-436-m-blue",
+          "key": "nike-fn5851-436-m",
           "size": "M",
           "color": "blue",
           "price": 130990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fn5851-436-l-blue",
+          "key": "nike-fn5851-436-l",
           "size": "L",
           "color": "blue",
           "price": 130990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fn5851-436-xl-blue",
+          "key": "nike-fn5851-436-xl",
           "size": "XL",
           "color": "blue",
           "price": 130990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "nike-fn5851-436-xxl-blue",
+          "key": "nike-fn5851-436-xxl",
           "size": "XXL",
           "color": "blue",
           "price": 130990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -9875,7 +8574,6 @@
       "product_code": "lacoste-rk7589-241749",
       "title": "Cap with emblem",
       "name": "Cap with emblem",
-      "brand": "Lacoste",
       "price": 149990,
       "currency": "COP",
       "description": "Cap with emblem. Producto disponible en JUSP.",
@@ -9916,53 +8614,40 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "Ajustable"
-      ],
       "colors": [
         "black"
       ],
+      "sizes": [
+        "Ajustable"
+      ],
       "category": "accessories",
+      "brand": "Lacoste",
       "gender": "unisex",
       "productType": "accessory",
       "kind": "gorras",
-      "collections": [
-        "accessories"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "lacoste",
-        "gorras",
-        "accessories"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "lacoste-rk7589-241749-ajustable-black",
+          "key": "lacoste-rk7589-241749-ajustable",
           "size": "Ajustable",
           "color": "black",
           "price": 149990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -9972,7 +8657,6 @@
       "product_code": "lacoste-rk2509-203016",
       "title": "LACOSTE Oversized Crocodile Cotton Gabardine Cap",
       "name": "LACOSTE Oversized Crocodile Cotton Gabardine Cap",
-      "brand": "Lacoste",
       "price": 145990,
       "currency": "COP",
       "description": "LACOSTE Oversized Crocodile Cotton Gabardine Cap. Producto disponible en JUSP.",
@@ -10013,53 +8697,40 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "S"
-      ],
       "colors": [
         "green"
       ],
+      "sizes": [
+        "S"
+      ],
       "category": "accessories",
+      "brand": "Lacoste",
       "gender": "unisex",
       "productType": "accessory",
       "kind": "gorras",
-      "collections": [
-        "accessories"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "lacoste",
-        "gorras",
-        "accessories"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "lacoste-rk2509-203016-s-green",
+          "key": "lacoste-rk2509-203016-s",
           "size": "S",
           "color": "green",
           "price": 145990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -10069,7 +8740,6 @@
       "product_code": "lacoste-rk3385-252157",
       "title": "Crocodile Graphic Baseball Cap",
       "name": "Crocodile Graphic Baseball Cap",
-      "brand": "Lacoste",
       "price": 279000,
       "currency": "COP",
       "description": "Crocodile Graphic Baseball Cap. Producto disponible en JUSP.",
@@ -10090,53 +8760,40 @@
         }
       ],
       "parameters": [],
-      "sizes": [
-        "Ajustable"
-      ],
       "colors": [
         "white"
       ],
+      "sizes": [
+        "Ajustable"
+      ],
       "category": "accessories",
+      "brand": "Lacoste",
       "gender": "unisex",
       "productType": "accessory",
       "kind": "gorras",
-      "collections": [
-        "accessories"
-      ],
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "lacoste",
-        "gorras",
-        "accessories"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 1,
-      "inventory": 1,
-      "quantity": 1,
-      "qty": 1,
-      "availableStock": 1,
-      "available_quantity": 1,
       "stockHint": 1,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "lacoste-rk3385-252157-ajustable-white",
+          "key": "lacoste-rk3385-252157-ajustable",
           "size": "Ajustable",
           "color": "white",
           "price": 279000,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     },
@@ -10146,7 +8803,6 @@
       "product_code": "lacoste-th2422",
       "title": "Lacoste crew neck sleeveless t-shirt",
       "name": "Lacoste crew neck sleeveless t-shirt",
-      "brand": "Lacoste",
       "price": 169990,
       "currency": "COP",
       "description": "Lacoste crew neck sleeveless t-shirt. Producto disponible en JUSP.",
@@ -10223,62 +8879,48 @@
         }
       ],
       "parameters": [],
+      "colors": [
+        "white"
+      ],
       "sizes": [
         "S",
         "M"
       ],
-      "colors": [
-        "white"
-      ],
       "category": "men",
+      "brand": "Lacoste",
       "gender": "men",
       "productType": "clothing",
-      "kind": "tshirts",
-      "collections": [
-        "clothing"
-      ],
+      "kind": "general",
       "sport": [
         "lifestyle"
       ],
       "tags": [
-        "nuevo",
-        "lacoste",
-        "tshirts",
-        "clothing"
+        "nuevo"
       ],
       "isNew": true,
-      "stock": 2,
-      "inventory": 2,
-      "quantity": 2,
-      "qty": 2,
-      "availableStock": 2,
-      "available_quantity": 2,
       "stockHint": 2,
       "pickupToday": false,
       "expressDelivery": false,
       "isFlash24h": false,
       "flashActive": false,
       "flashUpcoming": false,
+      "isActive": true,
       "variants": [
         {
-          "key": "lacoste-th2422-s-white",
+          "key": "lacoste-th2422-s",
           "size": "S",
           "color": "white",
           "price": 169990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         },
         {
-          "key": "lacoste-th2422-m-white",
+          "key": "lacoste-th2422-m",
           "size": "M",
           "color": "white",
           "price": 169990,
-          "stock": 1,
-          "isAvailable": true
+          "stock": 1
         }
       ],
-      "isActive": true,
-      "isSoldOut": false,
       "favoritesCount": 0,
       "isFavorite": false
     }

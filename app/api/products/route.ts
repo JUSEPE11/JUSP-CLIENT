@@ -73,15 +73,54 @@ type CachePayload = {
   products: Product[];
 };
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const CACHE_PATH = path.join(DATA_DIR, "catalog_products.cache.json");
-const EXCEL_PATH = path.join(DATA_DIR, "catalogo_jusp.xlsx");
-const PARAMETERS_PATH = path.join(DATA_DIR, "product_parameters.xlsx");
+function getDataDirCandidates(): string[] {
+  return Array.from(
+    new Set([
+      path.join(process.cwd(), "data"),
+      path.resolve(__dirname, "../../../../../data"),
+      path.resolve(__dirname, "../../../../data"),
+      path.resolve(__dirname, "../../../data"),
+    ])
+  );
+}
 
-function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+function resolveExistingDataFile(candidates: string[]): string | null {
+  for (const dataDir of getDataDirCandidates()) {
+    for (const basename of candidates) {
+      const fullPath = path.join(dataDir, basename);
+      if (fs.existsSync(fullPath)) {
+        return fullPath;
+      }
+    }
   }
+
+  return null;
+}
+
+function resolveWritableDataDir(): string {
+  const existing = getDataDirCandidates().find((candidate) => fs.existsSync(candidate));
+  return existing ?? path.join(process.cwd(), "data");
+}
+
+function ensureDataDir(dirPath: string) {
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
+  }
+}
+
+function resolveCachePath(): string {
+  return (
+    resolveExistingDataFile(["catalog_products.cache.json", "catalogo_jusp.cache.json"]) ??
+    path.join(resolveWritableDataDir(), "catalog_products.cache.json")
+  );
+}
+
+function resolveExcelPath(): string | null {
+  return resolveExistingDataFile(["catalogo_jusp.xlsx"]);
+}
+
+function resolveParametersPath(): string | null {
+  return resolveExistingDataFile(["product_parameters.xlsx", "parametros_producto.xlsx"]);
 }
 
 function readWorkbook(filePath: string) {
@@ -223,8 +262,9 @@ function listProductMedia(slug: string): ProductMediaItem[] {
 
 function loadProductParameters(): Map<string, ProductParameter[]> {
   try {
-    if (!fs.existsSync(PARAMETERS_PATH)) return new Map();
-    const workbook = readWorkbook(PARAMETERS_PATH);
+    const parametersPath = resolveParametersPath();
+    if (!parametersPath || !fs.existsSync(parametersPath)) return new Map();
+    const workbook = readWorkbook(parametersPath);
     const firstSheetName = workbook.SheetNames[0];
     if (!firstSheetName) return new Map();
 
@@ -258,8 +298,9 @@ function loadProductParameters(): Map<string, ProductParameter[]> {
 
 function readCache(): CachePayload | null {
   try {
-    if (!fs.existsSync(CACHE_PATH)) return null;
-    const raw = fs.readFileSync(CACHE_PATH, "utf8");
+    const cachePath = resolveCachePath();
+    if (!fs.existsSync(cachePath)) return null;
+    const raw = fs.readFileSync(cachePath, "utf8");
     if (!raw.trim()) return null;
     const parsed = JSON.parse(raw) as CachePayload;
     return Array.isArray(parsed.products) ? parsed : null;
@@ -269,22 +310,27 @@ function readCache(): CachePayload | null {
 }
 
 function writeCache(products: Product[]) {
-  ensureDataDir();
+  const dataDir = resolveWritableDataDir();
+  const cachePath = path.join(dataDir, "catalog_products.cache.json");
+  const excelPath = resolveExcelPath();
+
+  ensureDataDir(dataDir);
   const payload: CachePayload = {
     version: 10,
     generatedAt: new Date().toISOString(),
-    excelPath: EXCEL_PATH,
-    excelMtimeMs: fs.existsSync(EXCEL_PATH) ? fs.statSync(EXCEL_PATH).mtimeMs : 0,
+    excelPath,
+    excelMtimeMs: excelPath && fs.existsSync(excelPath) ? fs.statSync(excelPath).mtimeMs : 0,
     products,
   };
 
-  fs.writeFileSync(CACHE_PATH, JSON.stringify(payload, null, 2), "utf8");
+  fs.writeFileSync(cachePath, JSON.stringify(payload, null, 2), "utf8");
 }
 
 function buildProductsFromExcel(): Product[] {
-  if (!fs.existsSync(EXCEL_PATH)) return [];
+  const excelPath = resolveExcelPath();
+  if (!excelPath || !fs.existsSync(excelPath)) return [];
 
-  const workbook = readWorkbook(EXCEL_PATH);
+  const workbook = readWorkbook(excelPath);
   const firstSheetName = workbook.SheetNames[0];
   if (!firstSheetName) return [];
 
@@ -389,12 +435,13 @@ function buildProductsFromExcel(): Product[] {
 }
 
 function getProductsFromExcelOrCache(): Product[] {
-  const excelMtimeMs = fs.existsSync(EXCEL_PATH) ? fs.statSync(EXCEL_PATH).mtimeMs : 0;
+  const excelPath = resolveExcelPath();
+  const excelMtimeMs = excelPath && fs.existsSync(excelPath) ? fs.statSync(excelPath).mtimeMs : 0;
   const cached = readCache();
 
   if (
     cached?.products?.length &&
-    cached.excelPath === EXCEL_PATH &&
+    cached.excelPath === excelPath &&
     Number(cached.excelMtimeMs || 0) >= Number(excelMtimeMs || 0)
   ) {
     return cached.products;
