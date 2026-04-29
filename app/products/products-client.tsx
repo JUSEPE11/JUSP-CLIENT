@@ -46,20 +46,63 @@ function uniqueStringsCaseInsensitive(arr: string[]) {
 
   return out;
 }
-function pickImgs(p: Product): { main: string | null; alt: string | null; fallbacks: string[] } {
-  const imgs = Array.isArray((p as any).images) ? ((p as any).images as string[]) : [];
-  const image = typeof (p as any).image === "string" ? (p as any).image.trim() : "";
-  const slug = String((p as any).slug || "").trim();
+function normalizeImageSrc(value: unknown): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
 
-  const slugMain = slug ? `/products/${slug}/1.jpg` : "";
-  const slugAlt = slug ? `/products/${slug}/2.jpg` : "";
+  if (/^https?:\/\//i.test(raw)) return raw;
+
+  const cleaned = raw
+    .replace(/\\/g, "/")
+    .replace(/^public\//i, "")
+    .replace(/^\/+/, "");
+
+  return cleaned ? `/${cleaned}` : "";
+}
+
+function isImageSrc(value: string): boolean {
+  return /^https?:\/\//i.test(value) || /\.(jpg|jpeg|png|webp|avif)$/i.test(value);
+}
+
+function pickImgs(p: Product): { main: string | null; alt: string | null; fallbacks: string[] } {
+  const rawImages = Array.isArray((p as any).images) ? ((p as any).images as unknown[]) : [];
+  const rawImage = (p as any).image;
+  const rawMedia = Array.isArray((p as any).media) ? ((p as any).media as any[]) : [];
+  const slug = String((p as any).slug || (p as any).id || (p as any).product_code || "").trim();
+
+  const imagesFromArray = rawImages
+    .map(normalizeImageSrc)
+    .filter((src) => src && isImageSrc(src));
+
+  const imageFromField = normalizeImageSrc(rawImage);
+
+  const imagesFromMedia = rawMedia
+    .filter((item) => item?.type === "image" || isImageSrc(String(item?.src || "")))
+    .map((item) => normalizeImageSrc(item?.src))
+    .filter((src) => src && isImageSrc(src));
+
+  const slugFallbacks = slug
+    ? [
+        `/products/${slug}/1.jpg`,
+        `/products/${slug}/1.jpeg`,
+        `/products/${slug}/1.png`,
+        `/products/${slug}/1.webp`,
+        `/products/${slug}/2.jpg`,
+        `/products/${slug}/2.jpeg`,
+        `/products/${slug}/2.png`,
+        `/products/${slug}/2.webp`,
+        `/products/${slug}/3.jpg`,
+        `/products/${slug}/3.jpeg`,
+        `/products/${slug}/3.png`,
+        `/products/${slug}/3.webp`,
+      ]
+    : [];
 
   const fallbacks = uniq([
-    imgs?.[0]?.trim?.() || "",
-    image,
-    slugMain,
-    imgs?.[1]?.trim?.() || "",
-    slugAlt,
+    ...imagesFromArray,
+    imageFromField && isImageSrc(imageFromField) ? imageFromField : "",
+    ...imagesFromMedia,
+    ...slugFallbacks,
   ].filter(Boolean));
 
   return {
