@@ -54,6 +54,9 @@ type ImageFeature = {
   saturation: number;
   warmness: number;
   cropFill: number;
+  foregroundCoverage: number;
+  backgroundRemoved: number;
+  dominantColorPurity: number;
   histogram: number[];
   colorHistogram: number[];
   centerHistogram: number[];
@@ -270,56 +273,155 @@ function loadImageElement(src: string): Promise<HTMLImageElement> {
   });
 }
 
-function extractForegroundBounds(
+type ForegroundExtraction = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  bgR: number;
+  bgG: number;
+  bgB: number;
+  threshold: number;
+  foregroundRatio: number;
+  confidence: number;
+};
+
+function getPixelDistance(r: number, g: number, b: number, bgR: number, bgG: number, bgB: number): number {
+  return Math.sqrt(Math.pow(r - bgR, 2) + Math.pow(g - bgG, 2) + Math.pow(b - bgB, 2));
+}
+
+function getPixelSaturation(r: number, g: number, b: number): number {
+  const maxChannel = Math.max(r, g, b);
+  const minChannel = Math.min(r, g, b);
+  return maxChannel > 0 ? (maxChannel - minChannel) / maxChannel : 0;
+}
+
+function isForegroundPixel(
+  r: number,
+  g: number,
+  b: number,
+  alpha: number,
+  extraction: ForegroundExtraction,
+  localGradient = 0
+): boolean {
+  if (alpha < 8) return false;
+
+  const lum = (r + g + b) / 3;
+  const bgLum = (extraction.bgR + extraction.bgG + extraction.bgB) / 3;
+  const colorDistance = getPixelDistance(r, g, b, extraction.bgR, extraction.bgG, extraction.bgB);
+  const lumDistance = Math.abs(lum - bgLum);
+  const saturation = getPixelSaturation(r, g, b);
+  const bgSaturation = getPixelSaturation(extraction.bgR, extraction.bgG, extraction.bgB);
+  const saturationDistance = Math.abs(saturation - bgSaturation);
+
+  const baseThreshold = extraction.threshold;
+  const strongColor = colorDistance >= baseThreshold;
+  const strongLuma = lumDistance >= Math.max(14, baseThreshold * 0.38);
+  const strongSaturation = saturationDistance >= 0.12 && colorDistance >= Math.max(18, baseThreshold * 0.48);
+  const strongEdge = localGradient >= 24 && colorDistance >= Math.max(14, baseThreshold * 0.34);
+
+  return strongColor || strongLuma || strongSaturation || strongEdge;
+}
+
+function extractForegroundModel(
   image: CanvasImageSource,
   width: number,
   height: number
-): { x: number; y: number; width: number; height: number } {
-  if (typeof document === "undefined") {
-    return { x: 0, y: 0, width, height };
-  }
+): ForegroundExtraction {
+  const fallback: ForegroundExtraction = {
+    x: 0,
+    y: 0,
+    width,
+    height,
+    bgR: 255,
+    bgG: 255,
+    bgB: 255,
+    threshold: 28,
+    foregroundRatio: 1,
+    confidence: 0,
+  };
+
+  if (typeof document === "undefined") return fallback;
 
   const probeCanvas = document.createElement("canvas");
-  probeCanvas.width = 64;
-  probeCanvas.height = 64;
+  probeCanvas.width = 72;
+  probeCanvas.height = 72;
   const probeCtx = probeCanvas.getContext("2d", { willReadFrequently: true });
-  if (!probeCtx) return { x: 0, y: 0, width, height };
+  if (!probeCtx) return fallback;
 
   probeCtx.clearRect(0, 0, probeCanvas.width, probeCanvas.height);
   probeCtx.drawImage(image, 0, 0, probeCanvas.width, probeCanvas.height);
   const data = probeCtx.getImageData(0, 0, probeCanvas.width, probeCanvas.height).data;
 
-  let borderCount = 0;
-  let borderR = 0;
-  let borderG = 0;
-  let borderB = 0;
-
+  const borderPixels: Array<[number, number, number]> = [];
   for (let y = 0; y < probeCanvas.height; y += 1) {
     for (let x = 0; x < probeCanvas.width; x += 1) {
-      const isBorder =
-        x < 4 || y < 4 || x >= probeCanvas.width - 4 || y >= probeCanvas.height - 4;
+      const isBorder = x < 5 || y < 5 || x >= probeCanvas.width - 5 || y >= probeCanvas.height - 5;
       if (!isBorder) continue;
       const idx = (y * probeCanvas.width + x) * 4;
       const alpha = data[idx + 3];
       if (alpha < 8) continue;
-      borderR += data[idx];
-      borderG += data[idx + 1];
-      borderB += data[idx + 2];
-      borderCount += 1;
+      borderPixels.push([data[idx], data[idx + 1], data[idx + 2]]);
     }
   }
 
-  if (!borderCount) return { x: 0, y: 0, width, height };
+  if (!borderPixels.length) return fallback;
 
-  const bgR = borderR / borderCount;
-  const bgG = borderG / borderCount;
-  const bgB = borderB / borderCount;
+  const avg = borderPixels.reduce(
+    (acc, pixel) => {
+      acc[0] += pixel[0];
+      acc[1] += pixel[1];
+      acc[2] += pixel[2];
+      return acc;
+    },
+    [0, 0, 0]
+  );
+
+  let bgR = avg[0] / borderPixels.length;
+  let bgG = avg[1] / borderPixels.length;
+  let bgB = avg[2] / borderPixels.length;
+
+  const stableBorder = borderPixels.filter(([r, g, b]) => getPixelDistance(r, g, b, bgR, bgG, bgB) <= 38);
+
+  if (stableBorder.length >= Math.max(18, borderPixels.length * 0.42)) {
+    const stableAvg = stableBorder.reduce(
+      (acc, pixel) => {
+        acc[0] += pixel[0];
+        acc[1] += pixel[1];
+        acc[2] += pixel[2];
+        return acc;
+      },
+      [0, 0, 0]
+    );
+    bgR = stableAvg[0] / stableBorder.length;
+    bgG = stableAvg[1] / stableBorder.length;
+    bgB = stableAvg[2] / stableBorder.length;
+  }
+
   const bgLum = (bgR + bgG + bgB) / 3;
+  const borderVariance =
+    borderPixels.reduce((acc, [r, g, b]) => acc + getPixelDistance(r, g, b, bgR, bgG, bgB), 0) /
+    borderPixels.length;
+  const brightNeutralBg = bgLum >= 190 && Math.max(bgR, bgG, bgB) - Math.min(bgR, bgG, bgB) <= 42;
+  const threshold = Math.max(22, Math.min(54, (brightNeutralBg ? 26 : 32) + borderVariance * 0.42));
 
   let minX = probeCanvas.width;
   let minY = probeCanvas.height;
   let maxX = -1;
   let maxY = -1;
+  let foregroundCount = 0;
+  const modelForPixel: ForegroundExtraction = {
+    x: 0,
+    y: 0,
+    width,
+    height,
+    bgR,
+    bgG,
+    bgB,
+    threshold,
+    foregroundRatio: 1,
+    confidence: 1,
+  };
 
   for (let y = 0; y < probeCanvas.height; y += 1) {
     for (let x = 0; x < probeCanvas.width; x += 1) {
@@ -330,15 +432,16 @@ function extractForegroundBounds(
       const r = data[idx];
       const g = data[idx + 1];
       const b = data[idx + 2];
+      const rightIdx = (y * probeCanvas.width + Math.min(probeCanvas.width - 1, x + 1)) * 4;
+      const downIdx = (Math.min(probeCanvas.height - 1, y + 1) * probeCanvas.width + x) * 4;
       const lum = (r + g + b) / 3;
-      const colorDistance = Math.sqrt(
-        Math.pow(r - bgR, 2) + Math.pow(g - bgG, 2) + Math.pow(b - bgB, 2)
-      );
-      const lumDistance = Math.abs(lum - bgLum);
-      const isForeground = colorDistance > 28 || lumDistance > 18;
+      const rightLum = (data[rightIdx] + data[rightIdx + 1] + data[rightIdx + 2]) / 3;
+      const downLum = (data[downIdx] + data[downIdx + 1] + data[downIdx + 2]) / 3;
+      const localGradient = Math.abs(lum - rightLum) + Math.abs(lum - downLum);
 
-      if (!isForeground) continue;
+      if (!isForegroundPixel(r, g, b, alpha, modelForPixel, localGradient)) continue;
 
+      foregroundCount += 1;
       if (x < minX) minX = x;
       if (y < minY) minY = y;
       if (x > maxX) maxX = x;
@@ -346,43 +449,111 @@ function extractForegroundBounds(
     }
   }
 
-  if (maxX <= minX || maxY <= minY) return { x: 0, y: 0, width, height };
+  const foregroundRatio = foregroundCount / (probeCanvas.width * probeCanvas.height);
+  if (maxX <= minX || maxY <= minY || foregroundRatio < 0.018) {
+    return {
+      ...fallback,
+      bgR,
+      bgG,
+      bgB,
+      threshold,
+      foregroundRatio,
+      confidence: 0.18,
+    };
+  }
 
-  const padX = Math.max(2, Math.round((maxX - minX) * 0.08));
-  const padY = Math.max(2, Math.round((maxY - minY) * 0.08));
+  const rawW = maxX - minX + 1;
+  const rawH = maxY - minY + 1;
+  const padX = Math.max(3, Math.round(rawW * 0.1));
+  const padY = Math.max(3, Math.round(rawH * 0.1));
 
   minX = Math.max(0, minX - padX);
   minY = Math.max(0, minY - padY);
   maxX = Math.min(probeCanvas.width - 1, maxX + padX);
   maxY = Math.min(probeCanvas.height - 1, maxY + padY);
 
+  const boxArea = ((maxX - minX + 1) * (maxY - minY + 1)) / (probeCanvas.width * probeCanvas.height);
+  const confidence = Math.max(0.2, Math.min(1, foregroundRatio / Math.max(0.08, boxArea) + (brightNeutralBg ? 0.12 : 0)));
+
   return {
     x: (minX / probeCanvas.width) * width,
     y: (minY / probeCanvas.height) * height,
     width: ((maxX - minX + 1) / probeCanvas.width) * width,
     height: ((maxY - minY + 1) / probeCanvas.height) * height,
+    bgR,
+    bgG,
+    bgB,
+    threshold,
+    foregroundRatio,
+    confidence,
   };
 }
 
 function computeImageFeatureFromImage(image: CanvasImageSource, width: number, height: number): ImageFeature | null {
   if (typeof document === "undefined") return null;
 
-  const bounds = extractForegroundBounds(image, width, height);
-  const cropX = Math.max(0, bounds.x);
-  const cropY = Math.max(0, bounds.y);
-  const cropWidth = Math.max(1, bounds.width);
-  const cropHeight = Math.max(1, bounds.height);
+  const extraction = extractForegroundModel(image, width, height);
+  const cropX = Math.max(0, extraction.x);
+  const cropY = Math.max(0, extraction.y);
+  const cropWidth = Math.max(1, extraction.width);
+  const cropHeight = Math.max(1, extraction.height);
 
   const canvas = document.createElement("canvas");
-  canvas.width = 24;
-  canvas.height = 24;
+  canvas.width = 28;
+  canvas.height = 28;
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) return null;
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(image, cropX, cropY, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
 
-  const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  const foregroundMask = new Array<boolean>(canvas.width * canvas.height).fill(false);
+
+  let foregroundPixels = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    const pixelIndex = i / 4;
+    const x = pixelIndex % canvas.width;
+    const y = Math.floor(pixelIndex / canvas.width);
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const alpha = data[i + 3];
+    const rightIndex = (y * canvas.width + Math.min(canvas.width - 1, x + 1)) * 4;
+    const downIndex = (Math.min(canvas.height - 1, y + 1) * canvas.width + x) * 4;
+    const lum = (r + g + b) / 3;
+    const rightLum = (data[rightIndex] + data[rightIndex + 1] + data[rightIndex + 2]) / 3;
+    const downLum = (data[downIndex] + data[downIndex + 1] + data[downIndex + 2]) / 3;
+    const localGradient = Math.abs(lum - rightLum) + Math.abs(lum - downLum);
+    const keep = extraction.confidence >= 0.2 ? isForegroundPixel(r, g, b, alpha, extraction, localGradient) : alpha >= 8;
+
+    if (keep) {
+      foregroundMask[pixelIndex] = true;
+      foregroundPixels += 1;
+    }
+  }
+
+  if (foregroundPixels < 8) {
+    foregroundMask.fill(true);
+    foregroundPixels = canvas.width * canvas.height;
+  } else {
+    const expandedMask = foregroundMask.slice();
+    for (let y = 1; y < canvas.height - 1; y += 1) {
+      for (let x = 1; x < canvas.width - 1; x += 1) {
+        const index = y * canvas.width + x;
+        if (foregroundMask[index]) continue;
+        const neighbors =
+          Number(foregroundMask[index - 1]) +
+          Number(foregroundMask[index + 1]) +
+          Number(foregroundMask[index - canvas.width]) +
+          Number(foregroundMask[index + canvas.width]);
+        if (neighbors >= 3) expandedMask[index] = true;
+      }
+    }
+    for (let i = 0; i < foregroundMask.length; i += 1) foregroundMask[i] = expandedMask[i];
+  }
+
   let count = 0;
   let sumR = 0;
   let sumG = 0;
@@ -395,8 +566,8 @@ function computeImageFeatureFromImage(image: CanvasImageSource, width: number, h
 
   for (let i = 0; i < data.length; i += 4) {
     const alpha = data[i + 3];
-    if (alpha < 8) continue;
     const pixelIndex = i / 4;
+    if (alpha < 8 || !foregroundMask[pixelIndex]) continue;
     const x = pixelIndex % canvas.width;
     const y = Math.floor(pixelIndex / canvas.width);
     const pr = data[i];
@@ -427,16 +598,23 @@ function computeImageFeatureFromImage(image: CanvasImageSource, width: number, h
   const saturation = sumSaturation / count;
   const warmness = (r - b) / 255;
   const cropFill = Math.max(0, Math.min(1, count / (canvas.width * canvas.height)));
+  const foregroundCoverage = Math.max(0, Math.min(1, extraction.foregroundRatio));
+  const backgroundRemoved = Math.max(0, Math.min(1, 1 - cropFill));
 
   let varianceAccumulator = 0;
+  let dominantColorHits = 0;
   for (let i = 0; i < data.length; i += 4) {
     const alpha = data[i + 3];
-    if (alpha < 8) continue;
+    const pixelIndex = i / 4;
+    if (alpha < 8 || !foregroundMask[pixelIndex]) continue;
     const localBrightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
     varianceAccumulator += Math.pow(localBrightness - brightness, 2);
+    const distanceToAverage = getPixelDistance(data[i], data[i + 1], data[i + 2], r, g, b);
+    if (distanceToAverage <= 52) dominantColorHits += 1;
   }
 
   const variance = Math.sqrt(varianceAccumulator / count) / 255;
+  const dominantColorPurity = dominantColorHits / count;
 
   const hashCanvas = document.createElement("canvas");
   hashCanvas.width = 9;
@@ -445,15 +623,21 @@ function computeImageFeatureFromImage(image: CanvasImageSource, width: number, h
   if (!hashCtx) return null;
 
   hashCtx.clearRect(0, 0, hashCanvas.width, hashCanvas.height);
-  hashCtx.drawImage(image, cropX, cropY, cropWidth, cropHeight, 0, 0, hashCanvas.width, hashCanvas.height);
+  hashCtx.drawImage(canvas, 0, 0, hashCanvas.width, hashCanvas.height);
   const hashData = hashCtx.getImageData(0, 0, hashCanvas.width, hashCanvas.height).data;
   const rows: number[][] = [];
 
   for (let y = 0; y < hashCanvas.height; y += 1) {
     const row: number[] = [];
     for (let x = 0; x < hashCanvas.width; x += 1) {
+      const sourceX = Math.max(0, Math.min(canvas.width - 1, Math.round((x / (hashCanvas.width - 1)) * (canvas.width - 1))));
+      const sourceY = Math.max(0, Math.min(canvas.height - 1, Math.round((y / (hashCanvas.height - 1)) * (canvas.height - 1))));
+      const sourceIndex = sourceY * canvas.width + sourceX;
       const idx = (y * hashCanvas.width + x) * 4;
-      row.push((hashData[idx] + hashData[idx + 1] + hashData[idx + 2]) / 3);
+      const lum = foregroundMask[sourceIndex]
+        ? (hashData[idx] + hashData[idx + 1] + hashData[idx + 2]) / 3
+        : brightness;
+      row.push(lum);
     }
     rows.push(row);
   }
@@ -474,17 +658,13 @@ function computeImageFeatureFromImage(image: CanvasImageSource, width: number, h
   const centerCtx = centerCanvas.getContext("2d", { willReadFrequently: true });
   if (!centerCtx) return null;
 
-  const centerCropWidth = Math.max(1, cropWidth * 0.68);
-  const centerCropHeight = Math.max(1, cropHeight * 0.68);
-  const centerCropX = Math.max(0, cropX + (cropWidth - centerCropWidth) / 2);
-  const centerCropY = Math.max(0, cropY + (cropHeight - centerCropHeight) / 2);
   centerCtx.clearRect(0, 0, centerCanvas.width, centerCanvas.height);
   centerCtx.drawImage(
-    image,
-    centerCropX,
-    centerCropY,
-    centerCropWidth,
-    centerCropHeight,
+    canvas,
+    Math.max(0, canvas.width * 0.16),
+    Math.max(0, canvas.height * 0.16),
+    Math.max(1, canvas.width * 0.68),
+    Math.max(1, canvas.height * 0.68),
     0,
     0,
     centerCanvas.width,
@@ -526,6 +706,9 @@ function computeImageFeatureFromImage(image: CanvasImageSource, width: number, h
     saturation,
     warmness,
     cropFill,
+    foregroundCoverage,
+    backgroundRemoved,
+    dominantColorPurity,
     histogram: histogram.map((value) => value / count),
     colorHistogram: colorHistogram.map((value) => value / count),
     centerHistogram: centerHistogram.map((value) => value / (centerCanvas.width * centerCanvas.height)),
@@ -882,6 +1065,9 @@ function scoreVisualMatch(product: SearchCatalogProduct, source: ImageFeature, c
   const saturationDistance = Math.abs(source.saturation - candidate.saturation);
   const fillDistance = Math.abs(source.cropFill - candidate.cropFill);
   const varianceDistance = Math.abs(source.variance - candidate.variance);
+  const foregroundDistance = Math.abs(source.foregroundCoverage - candidate.foregroundCoverage);
+  const backgroundRemovalDistance = Math.abs(source.backgroundRemoved - candidate.backgroundRemoved);
+  const colorPurityDistance = Math.abs(source.dominantColorPurity - candidate.dominantColorPurity);
   const edgeDistance = Math.abs(source.edgeBalance - candidate.edgeBalance) / 64;
 
   let score =
@@ -897,6 +1083,9 @@ function scoreVisualMatch(product: SearchCatalogProduct, source: ImageFeature, c
     saturationDistance * 96 -
     fillDistance * 120 -
     varianceDistance * 180 -
+    foregroundDistance * 85 -
+    backgroundRemovalDistance * 70 -
+    colorPurityDistance * 62 -
     edgeDistance * 120;
 
   const sourceFamily = getVisualFamily(source);
@@ -930,6 +1119,7 @@ function scoreVisualMatch(product: SearchCatalogProduct, source: ImageFeature, c
 
   if (aspectRatioDistance > 0.48) score -= 125;
   if (shapeProfileDistance > 0.34) score -= 115;
+  if (foregroundDistance > 0.32) score -= 70;
   if (hashDistance > 27 && centerHashDistance > 23) score -= 90;
 
   return Math.max(0, Math.min(1000, score));
