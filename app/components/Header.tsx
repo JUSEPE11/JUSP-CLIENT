@@ -302,18 +302,50 @@ function scoreCatalogProduct(product: SearchCatalogProduct, query: string): numb
 function getCatalogProductImages(product: SearchCatalogProduct): string[] {
   const values: string[] = [];
   const seen = new Set<string>();
-  const imageUrlPattern = /(?:^data:image\/|\.(?:png|jpe?g|webp|gif|avif)(?:[?#].*)?$|\/image\/|\/images\/|\/media\/|cdn|cloudinary|shopify|supabase)/i;
+  const imageUrlPattern = /(?:^data:image\/|\.(?:png|jpe?g|webp|gif|avif)(?:[?#].*)?$|\/image\/|\/images\/|\/media\/|cdn|cloudinary|shopify|supabase|storage|firebasestorage|imgur|alicdn|amazonaws|googleusercontent)/i;
+
+  function cleanImageCandidate(value: string): string {
+    return value
+      .trim()
+      .replace(/^['"\s]+|['"\s]+$/g, "")
+      .replace(/&amp;/g, "&");
+  }
 
   function pushUrl(value: unknown) {
-    const url = String(value ?? "").trim();
-    if (!url || seen.has(url)) return;
-    if (!imageUrlPattern.test(url)) return;
-    seen.add(url);
-    values.push(url);
+    const raw = String(value ?? "").trim();
+    if (!raw) return;
+
+    const candidates: string[] = [];
+
+    // Excel cells often store images as JSON arrays or comma/pipe separated strings.
+    // Treat each URL independently so one bad item never hides the rest.
+    if ((raw.startsWith("[") && raw.endsWith("]")) || (raw.startsWith("{") && raw.endsWith("}"))) {
+      try {
+        const parsed = JSON.parse(raw);
+        pushSearchValues(candidates, parsed);
+      } catch {
+        candidates.push(raw);
+      }
+    } else {
+      candidates.push(
+        ...raw
+          .split(/\s*(?:,|\||;|\n|\r)\s*/g)
+          .map(cleanImageCandidate)
+          .filter(Boolean)
+      );
+    }
+
+    for (const candidate of candidates) {
+      const url = cleanImageCandidate(candidate);
+      if (!url || seen.has(url)) continue;
+      if (!imageUrlPattern.test(url)) continue;
+      seen.add(url);
+      values.push(url);
+    }
   }
 
   function walk(value: unknown, depth = 0, imageContext = false) {
-    if (depth > 7 || value == null) return;
+    if (depth > 8 || value == null) return;
 
     if (typeof value === "string") {
       if (imageContext || imageUrlPattern.test(value)) pushUrl(value);
@@ -350,12 +382,12 @@ function getCatalogProductImages(product: SearchCatalogProduct): string[] {
       ];
 
       for (const key of priorityKeys) {
-        if (key in record) walk(record[key], depth + 1, /image|img|photo|picture|media|gallery|thumbnail|thumb/i.test(key));
+        if (key in record) walk(record[key], depth + 1, /image|img|photo|picture|media|gallery|thumbnail|thumb|src|url/i.test(key));
       }
 
       for (const [key, nested] of Object.entries(record)) {
         if (priorityKeys.includes(key)) continue;
-        if (/image|img|photo|picture|media|gallery|variant|thumbnail|thumb/i.test(key)) {
+        if (/^(image|img|photo|picture|media|gallery|variant|thumbnail|thumb|url|src)(_|-|\d|$)/i.test(key) || /(_image|_img|_photo|_url|_src)$/i.test(key)) {
           walk(nested, depth + 1, true);
         }
       }
@@ -363,8 +395,9 @@ function getCatalogProductImages(product: SearchCatalogProduct): string[] {
   }
 
   walk(product);
-  return values.slice(0, 36);
+  return values.slice(0, 48);
 }
+
 function loadImageElement(src: string, crossOrigin: "anonymous" | "none" = "anonymous"): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -1049,6 +1082,31 @@ function histogramDistance(a: number[], b: number[]): number {
   return total;
 }
 
+function histogramIntersection(a: number[], b: number[]): number {
+  const length = Math.min(a.length, b.length);
+  if (!length) return 0;
+  let total = 0;
+  for (let i = 0; i < length; i += 1) {
+    total += Math.min(a[i] ?? 0, b[i] ?? 0);
+  }
+  return Math.max(0, Math.min(1, total));
+}
+
+function featureCompatibilityScore(source: ImageFeature, candidate: ImageFeature): number {
+  const colorOverlap = histogramIntersection(source.colorHistogram, candidate.colorHistogram);
+  const centerOverlap = histogramIntersection(source.centerHistogram, candidate.centerHistogram);
+  const lumOverlap = histogramIntersection(source.histogram, candidate.histogram);
+  const sourceTokens = inferVisualTokens(source);
+  const candidateTokens = inferVisualTokens(candidate);
+  const colorAgreement = sourceTokens.length && candidateTokens.length
+    ? sourceTokens.some((token) => candidateTokens.includes(token))
+      ? 1
+      : 0
+    : 0.45;
+
+  return Math.max(0, Math.min(1, colorOverlap * 0.34 + centerOverlap * 0.34 + lumOverlap * 0.16 + colorAgreement * 0.16));
+}
+
 function profileDistance(a: number[], b: number[]): number {
   const length = Math.min(a.length, b.length);
   if (!length) return 1;
@@ -1356,6 +1414,14 @@ function scoreVisualMatch(product: SearchCatalogProduct, source: ImageFeature, c
   if (shapeProfileDistance > 0.38) score -= 70;   // was 0.34 / 115
   if (foregroundDistance > 0.38) score -= 45;     // was 0.32 / 70
   if (hashDistance > 30 && centerHashDistance > 26) score -= 60; // was 27/23/90
+
+  // Final precision gate: a true exact/similar product should agree in at least
+  // two strong visual channels. This avoids ranking visually different products
+  // high just because one weak metric happened to match.
+  const compatibility = featureCompatibilityScore(source, candidate);
+  if (compatibility >= 0.82 && centerHashDistance <= 18 && colorHistogramDelta <= 0.22) score += 90;
+  else if (compatibility >= 0.68) score += 38;
+  else if (compatibility < 0.42) score -= 95;
 
   return Math.max(0, Math.min(1000, score));
 }
@@ -2480,8 +2546,8 @@ export default function Header() {
       .map((product) => ({ product, images: getCatalogProductImages(product) }))
       .filter((entry) => entry.images.length > 0);
 
-    const imageLimit = deep ? 10 : 2;
-    const entries = await mapWithConcurrency(productsWithImages, deep ? 6 : 14, async (entry) => {
+    const imageLimit = deep ? 12 : 3;
+    const entries = await mapWithConcurrency(productsWithImages, deep ? 5 : 10, async (entry) => {
       const uniqueImages = entry.images.slice(0, imageLimit);
       const features: CatalogVisualIndexEntry["features"] = [];
 
@@ -2499,7 +2565,10 @@ export default function Header() {
       };
     });
 
-    const validEntries = entries.filter((entry) => entry.features.length > 0);
+    // Keep products even when pixels cannot be read because some provider images
+    // are CORS-protected. Those entries still participate through semantic/class
+    // fallback, so the search never silently ignores part of the catalog.
+    const validEntries = entries.filter((entry) => entry.images.length > 0);
     visualIndexRef.current = { signature, entries: validEntries, deep };
     setImageSearchIndexedCount(validEntries.reduce((count, entry) => count + entry.features.length, 0));
     return validEntries;
@@ -2533,6 +2602,16 @@ export default function Header() {
             bestImageIndex = item.imageIndex;
             bestFeature = item.feature;
           }
+        }
+
+        if (!entry.features.length) {
+          // CORS-safe fallback: if we could not read pixels from any catalog image,
+          // still rank the product using visual class + catalog metadata. Keep this
+          // score below true pixel matches so real visual matches always win.
+          const classCompatible = productMatchesSourceClass(entry.product, sourceVisualClass);
+          const metadataIntentScore = options.intent ? scoreIntentMatch(entry.product, options.intent) : 0;
+          const metadataAffinity = options.intent ? scoreTextAffinity(entry.product, options.intent, sourceFeature) : 0;
+          bestScore = Math.max(0, Math.min(430, 160 + (classCompatible ? 165 : -95) + metadataIntentScore * 0.72 + metadataAffinity * 0.55));
         }
 
         const catalogClasses = getCatalogProductVisualClasses(entry.product);
