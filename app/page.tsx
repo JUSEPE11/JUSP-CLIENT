@@ -1895,7 +1895,7 @@ function HomePageContent() {
         <div className="jusp-hero-content">
           <div className="jusp-hero-badge"><span /> JUSP · ORIGINALES.</div>
           <h1 className="jusp-hero-title">
-            DO MORE.      Elegancia que<em>se siente.</em>
+            Elegancia que <em>se siente.</em>
           </h1>
           <p className="jusp-hero-subtitle">
             Productos originales, selección precisa y una experiencia elevada de principio a fin.
