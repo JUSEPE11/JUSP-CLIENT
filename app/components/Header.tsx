@@ -112,48 +112,7 @@ async function analyzeImageWithAI(file: File, timeoutMs = 3200): Promise<VisualA
   }
 }
 
-/*
-JSON schema:
 
-JSON schema:
-{
-  "brands": string[],      // brand names in lowercase, e.g. ["nike"], ["adidas"], [] if unknown
-  "categories": string[],  // from: ["shoes","shirt","pants","shorts","jacket","sports-bra","hoodie","cap","bag","socks","dress","leggings"]
-  "genders": string[],     // from: ["women","men","kids","unisex"]
-  "colors": string[],      // dominant colors in lowercase e.g. ["black","white"]
-  "keywords": string[],    // 2-5 specific descriptors e.g. ["swoosh","racerback","compression","dri-fit","logo"]
-  "confidence": number     // 0.0–1.0, how clearly visible the item is
-}`,
-        messages: [{
-          role: "user",
-          content: [
-            { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
-            { type: "text", text: "Classify this sportswear item." }
-          ]
-        }]
-      })
-    });
-
-    if (!response.ok) return null;
-    const data = await response.json();
-    const text = data?.content?.find((b: any) => b.type === "text")?.text ?? "";
-    const clean = text.replace(/```json|```/g, "").trim();
-    const parsed = JSON.parse(clean) as VisualAIDescription;
-    if (!parsed || typeof parsed !== "object") return null;
-    return {
-      brands: Array.isArray(parsed.brands) ? parsed.brands.map((s: any) => String(s).toLowerCase()) : [],
-      categories: Array.isArray(parsed.categories) ? parsed.categories.map((s: any) => String(s).toLowerCase()) : [],
-      genders: Array.isArray(parsed.genders) ? parsed.genders.map((s: any) => String(s).toLowerCase()) : [],
-      colors: Array.isArray(parsed.colors) ? parsed.colors.map((s: any) => String(s).toLowerCase()) : [],
-      keywords: Array.isArray(parsed.keywords) ? parsed.keywords.map((s: any) => String(s).toLowerCase()) : [],
-      confidence: typeof parsed.confidence === "number" ? Math.max(0, Math.min(1, parsed.confidence)) : 0.5,
-    };
-  } catch {
-    return null;
-  }
-}
-
-*/
 
 type ProductVisualClass = "shoe" | "top" | "bottom" | "outerwear" | "accessory" | "garment" | "unknown";
 
@@ -1004,64 +963,127 @@ function mergeAIIntoIntent(base: VisualIntent, ai: VisualAIDescription | null): 
   return { brands, categories, genders, colors, shapes };
 }
 
-// Score how well a catalog product matches AI-derived intent (strong signal)
+// Bilingual color map: AI returns English, catalog may be Spanish
+const COLOR_ES: Record<string, string> = {
+  black: "negro", white: "blanco", red: "rojo", blue: "azul",
+  green: "verde", yellow: "amarillo", orange: "naranja", pink: "rosa",
+  grey: "gris", gray: "gris", brown: "cafe", purple: "morado",
+  beige: "beige", cream: "crema", navy: "marino", gold: "dorado",
+};
+
+// Category → catalog terms (bilingual, broad)
+const CAT_TERMS: Record<string, string[]> = {
+  "sports-bra": ["bra", "sport bra", "sujetador", "top deportivo", "top mujer", "brassiere", "support", "tank", "bustier"],
+  shoes:        ["shoe", "shoes", "zapatilla", "zapatillas", "sneaker", "sneakers", "tenis", "trainer", "runners", "calzado"],
+  shirt:        ["shirt", "camiseta", "tee", "polo", "playera", "jersey", "blusa", "top"],
+  pants:        ["pants", "pantalon", "pantalones", "trouser", "trousers", "chino"],
+  leggings:     ["legging", "leggings", "tight", "tights", "malla"],
+  shorts:       ["short", "shorts"],
+  jacket:       ["jacket", "chaqueta", "cortaviento", "windrunner", "anorak", "parka"],
+  hoodie:       ["hoodie", "sudadera", "sweatshirt", "buzo"],
+  cap:          ["cap", "gorra", "hat", "sombrero", "beanie"],
+  bag:          ["bag", "bolso", "mochila", "backpack", "tote"],
+  socks:        ["sock", "socks", "media", "medias", "calcetin", "calcetines"],
+  dress:        ["dress", "vestido", "falda", "skirt"],
+};
+
+// Mutually exclusive category groups — if AI says "shoes", penalize garments hard
+const CAT_EXCLUSION: Record<string, string[]> = {
+  "sports-bra": ["shoes", "cap", "bag", "socks"],
+  shoes:        ["sports-bra", "shirt", "pants", "leggings", "shorts", "jacket", "hoodie", "dress"],
+  shirt:        ["shoes", "cap", "bag", "socks"],
+  pants:        ["shoes", "cap", "bag", "socks"],
+  leggings:     ["shoes", "cap", "bag", "socks"],
+  shorts:       ["shoes", "cap", "bag", "socks"],
+  jacket:       ["shoes", "cap", "bag", "socks"],
+  hoodie:       ["shoes", "cap", "bag", "socks"],
+};
+
 function scoreAIIntent(product: SearchCatalogProduct, ai: VisualAIDescription): number {
-  if (!ai || ai.confidence < 0.25) return 0;
+  if (!ai || ai.confidence < 0.3) return 0;
+
   const haystack = buildSearchHaystack(product);
-  const title = normalizeSearchText(product.title || product.name || "");
-  const brand = normalizeSearchText(product.brand || "");
-  let score = 0;
+  const title    = normalizeSearchText(product.title || product.name || "");
+  const brand    = normalizeSearchText(product.brand || "");
+  const w        = ai.confidence; // confidence weight, 0.3–1.0
+  let score      = 0;
 
-  // Brand match: highest signal — if AI sees "NIKE" on the item, that's definitive
+  // ── 1. BRAND (strongest signal: logo text is unambiguous) ─────────────────
   if (ai.brands.length) {
-    const matchesBrand = ai.brands.some((b) => brand.includes(b) || haystack.includes(b));
-    // Confidence-scaled: at 0.9 confidence a brand mismatch is very penalizing
-    const weight = ai.confidence;
-    score += matchesBrand ? Math.round(120 * weight) : Math.round(-80 * weight);
+    const hit = ai.brands.some((b) => brand.includes(b) || haystack.includes(b));
+    score += hit ? Math.round(200 * w) : Math.round(-120 * w);
   }
 
-  // Category match
-  const catMap: Record<string, string[]> = {
-    "sports-bra": ["bra", "sujetador", "top sport", "top mujer", "support", "tank"],
-    shoes:        ["shoe", "zapatilla", "sneaker", "tenis", "trainer", "running"],
-    shirt:        ["shirt", "camiseta", "tee", "polo", "playera"],
-    pants:        ["pants", "pantalon", "legging", "jogger", "trouser"],
-    shorts:       ["short"],
-    jacket:       ["jacket", "chaqueta", "hoodie", "sudadera", "windrunner"],
-    leggings:     ["legging", "pantalon", "tight"],
-    hoodie:       ["hoodie", "sudadera"],
-    cap:          ["cap", "gorra", "hat"],
-    bag:          ["bag", "bolso", "mochila", "backpack"],
-    socks:        ["sock", "media", "calcetin"],
-  };
+  // ── 2. CATEGORY — match gives big bonus, WRONG category gives big penalty ──
+  // We determine whether the product's catalog class matches ANY of the AI categories,
+  // and whether it belongs to a mutually exclusive class (e.g. shoe vs bra).
+  const productClasses = getCatalogProductVisualClasses(product);
+  let catBonus = 0;
+  let catPenalty = 0;
 
-  for (const cat of ai.categories) {
-    const terms = catMap[cat] || [cat];
-    const match = terms.some((t) => title.includes(normalizeSearchText(t)) || haystack.includes(normalizeSearchText(t)));
-    score += match ? Math.round(90 * ai.confidence) : Math.round(-50 * ai.confidence);
-  }
+  for (const aiCat of ai.categories) {
+    const terms = CAT_TERMS[aiCat] ?? [aiCat];
+    const catHit = terms.some((t) => title.includes(normalizeSearchText(t)) || haystack.includes(normalizeSearchText(t)));
+    if (catHit) {
+      catBonus = Math.max(catBonus, Math.round(180 * w));
+    } else {
+      // Check if product is in an explicitly excluded category for this AI cat
+      const excluded = CAT_EXCLUSION[aiCat] ?? [];
+      const isExcluded = excluded.some((excl) => {
+        const exclTerms = CAT_TERMS[excl] ?? [excl];
+        return exclTerms.some((t) => title.includes(normalizeSearchText(t)) || haystack.includes(normalizeSearchText(t)));
+      });
+      // Also check visual class exclusion (e.g. product tagged as "shoe" when AI says "sports-bra")
+      const classExcluded =
+        (aiCat === "shoes" && productClasses.some((c) => c === "top" || c === "bottom" || c === "outerwear")) ||
+        (aiCat !== "shoes" && aiCat !== "cap" && aiCat !== "bag" && aiCat !== "socks" && productClasses.includes("shoe"));
 
-  // Gender match
-  for (const g of ai.genders) {
-    if (g === "unisex") continue;
-    if (haystack.includes(g) || haystack.includes(g === "women" ? "mujer" : g === "men" ? "hombre" : "nino")) {
-      score += 28;
+      if (isExcluded || classExcluded) {
+        catPenalty = Math.min(catPenalty, Math.round(-200 * w)); // hard penalty
+      } else {
+        catPenalty = Math.min(catPenalty, Math.round(-60 * w));  // soft penalty
+      }
     }
   }
+  score += catBonus || catPenalty; // catBonus wins if any category matched
 
-  // Color match
+  // ── 3. GENDER ─────────────────────────────────────────────────────────────
+  for (const g of ai.genders) {
+    if (g === "unisex") continue;
+    const esWord = g === "women" ? "mujer" : g === "men" ? "hombre" : "nino";
+    if (haystack.includes(g) || haystack.includes(esWord)) score += Math.round(40 * w);
+  }
+
+  // ── 4. COLOR (bilingual) ───────────────────────────────────────────────────
   let colorHits = 0;
   for (const c of ai.colors.slice(0, 3)) {
-    if (haystack.includes(c) || haystack.includes(c === "black" ? "negro" : c === "white" ? "blanco" : c === "red" ? "rojo" : c === "blue" ? "azul" : c)) colorHits++;
+    const es = COLOR_ES[c] ?? c;
+    if (haystack.includes(c) || haystack.includes(es)) colorHits++;
   }
-  score += colorHits * 18;
+  score += colorHits * Math.round(22 * w);
 
-  // Keyword boost: e.g. "swoosh", "racerback", "dri-fit"
-  for (const kw of ai.keywords.slice(0, 4)) {
-    if (haystack.includes(normalizeSearchText(kw))) score += 14;
+  // ── 5. KEYWORDS (dri-fit, swoosh, racerback…) ─────────────────────────────
+  for (const kw of ai.keywords.slice(0, 5)) {
+    if (haystack.includes(normalizeSearchText(kw))) score += Math.round(18 * w);
   }
 
   return score;
+}
+
+// Build a ranked list of catalog products via pure AI text search.
+// This is the primary result path when AI confidence >= 0.5.
+function buildAITextResults(
+  catalog: SearchCatalogProduct[],
+  ai: VisualAIDescription,
+  limit = 24
+): Array<{ product: SearchCatalogProduct; aiScore: number }> {
+  if (!ai || ai.confidence < 0.3) return [];
+
+  return catalog
+    .map((product) => ({ product, aiScore: scoreAIIntent(product, ai) }))
+    .filter((e) => e.aiScore > 0)
+    .sort((a, b) => b.aiScore - a.aiScore)
+    .slice(0, limit);
 }
 
 function hammingDistance(a: string, b: string): number {
@@ -2667,148 +2689,142 @@ export default function Header() {
     setLoading(true);
 
     try {
-      const [catalog, sourceFeature, aiDescription] = await Promise.all([
+      // ── FASE 1: Todo en paralelo ───────────────────────────────────────────
+      // AI Vision lee logos, colores, tipo de prenda en la imagen real.
+      // Pixel features se computan en paralelo para usarse como desempate.
+      const [catalog, sourceFeature, ai] = await Promise.all([
         loadCatalog(),
         computeImageFeatureFromFile(file),
-        analyzeImageWithAI(file, deep ? 4200 : 2600),
+        analyzeImageWithAI(file, deep ? 5000 : 3500),
       ]);
       if (lastImageReq.current !== reqId) return;
-      if (!sourceFeature) {
-        setProducts([]);
-        setImageSearchMode("error");
-        return;
+      if (!catalog.length) { setImageSearchMode("error"); return; }
+
+      const hasAI        = !!ai && ai.confidence >= 0.35;
+      const highConfAI   = !!ai && ai.confidence >= 0.6;
+      const pixelIntent  = sourceFeature ? inferIntentFromImage(file.name, sourceFeature) : { brands: [], categories: [], genders: [], colors: [], shapes: [] };
+      const intent       = mergeAIIntoIntent(pixelIntent, ai);
+      const sourceClass  = sourceFeature ? inferImageVisualClass(sourceFeature) : "unknown";
+
+      // ── FASE 2: Búsqueda AI semántica (ruta principal) ────────────────────
+      // scoreAIIntent aplica: +200 brand match, +180 category match, -200 wrong category.
+      // Esto es mucho más preciso que comparar histogramas de pixels.
+      let aiRanked: Array<{ product: SearchCatalogProduct; aiScore: number }> = [];
+      if (hasAI) {
+        aiRanked = buildAITextResults(catalog, ai!, deep ? 36 : 24);
       }
 
-      const pixelIntent = inferIntentFromImage(file.name, sourceFeature);
-      const intent = mergeAIIntoIntent(pixelIntent, aiDescription);
-      const semanticCandidates = buildSemanticVisualCandidates(catalog, sourceFeature, intent, deep ? 80 : 48);
+      // ── FASE 3: Búsqueda visual pixel (enriquecimiento) ───────────────────
+      // Siempre corremos el índice visual, pero su peso varía según confianza AI.
+      // Cuando AI es confiable, visual solo reordena dentro del conjunto AI.
+      // Cuando AI falla, visual es la única señal.
+      let visualRanked: RankedVisualProduct[] = [];
 
-      const sourceVisualClass = inferImageVisualClass(sourceFeature);
-      const quickIndex = await buildCatalogVisualIndex(catalog, false);
-      if (lastImageReq.current !== reqId) return;
+      if (sourceFeature) {
+        // Catálogo a indexar: si AI tiene resultados, solo indexamos ese subconjunto
+        // para el paso visual (más rápido y preciso).
+        const visualCatalog = aiRanked.length >= 6
+          ? catalog.filter((p) => aiRanked.some((e) => getStableProductKey(e.product) === getStableProductKey(p)))
+          : catalog;
 
-      if (!quickIndex.length) {
-        const fallbackMatches = getVisualSearchFallbackResults(catalog, sourceFeature, 12);
-        setProducts(fallbackMatches);
-        setImageSearchCanDeep(false);
-        if (!fallbackMatches.length) setImageSearchMode("error");
-        return;
-      }
-
-      const quickRank = rankIndexedProducts(quickIndex, sourceFeature, { deep: false, intent, ai: aiDescription });
-      const quickPool = quickRank
-        .filter((entry) => entry.score >= 180)
-        .slice(0, deep ? Math.min(72, Math.max(24, Math.ceil(quickIndex.length * 0.34))) : Math.min(36, Math.max(16, Math.ceil(quickIndex.length * 0.22))));
-
-      let rankSource = quickPool;
-
-      if (deep) {
-        const deepSeed = new Set([
-          ...quickPool.map((entry) => getStableProductKey(entry.product)),
-          ...semanticCandidates.slice(0, 32).map((product) => getStableProductKey(product)),
-        ]);
-        const deepCatalog = catalog.filter((product) => deepSeed.has(getStableProductKey(product)));
-        const deepIndex = await buildCatalogVisualIndex(deepCatalog, true);
+        const quickIndex = await buildCatalogVisualIndex(visualCatalog, false);
         if (lastImageReq.current !== reqId) return;
-        rankSource = rankIndexedProducts(deepIndex, sourceFeature, { deep: true, intent, ai: aiDescription }).slice(0, 36);
-      } else {
-        const candidateProducts = new Set(quickPool.map((entry) => getStableProductKey(entry.product)));
-        const candidateEntries = quickIndex.filter((entry) => candidateProducts.has(getStableProductKey(entry.product)));
-        rankSource = rankIndexedProducts(candidateEntries, sourceFeature, { deep: false, intent, ai: aiDescription }).slice(0, 24);
-      }
 
-      const threshold = getScoreThreshold(sourceVisualClass, deep);
-      const rankedAll = [...rankSource].sort((a, b) => b.score - a.score);
+        if (quickIndex.length) {
+          let rankSource: RankedVisualProduct[];
 
-      const exactThreshold = Math.max(660, threshold + 80);
-      const verySimilarThreshold = Math.max(470, threshold - 10);
-      const similarThreshold = Math.max(280, threshold - 150);
+          if (deep) {
+            const seedKeys = new Set([
+              ...aiRanked.slice(0, 40).map((e) => getStableProductKey(e.product)),
+              ...buildSemanticVisualCandidates(catalog, sourceFeature, intent, 40)
+                .map((p) => getStableProductKey(p)),
+            ]);
+            const deepCatalog = catalog.filter((p) => seedKeys.has(getStableProductKey(p)));
+            const deepIndex   = await buildCatalogVisualIndex(deepCatalog, true);
+            if (lastImageReq.current !== reqId) return;
+            rankSource = rankIndexedProducts(deepIndex, sourceFeature, { deep: true, intent, ai }).slice(0, 36);
+          } else {
+            rankSource = rankIndexedProducts(quickIndex, sourceFeature, { deep: false, intent, ai }).slice(0, 24);
+          }
 
-      const exactMatches = rankedAll.filter((entry) => entry.score >= exactThreshold);
-      const verySimilarMatches = rankedAll.filter(
-        (entry) => entry.score >= verySimilarThreshold && entry.score < exactThreshold
-      );
-      const similarMatches = rankedAll.filter(
-        (entry) => entry.score >= similarThreshold && entry.score < verySimilarThreshold
-      );
-
-      const softMatches = rankedAll.filter((entry) => entry.score >= threshold - 90 && entry.score < exactThreshold);
-      const honestFallback = rankedAll.filter((entry) => entry.score >= 260 && entry.score < exactThreshold);
-
-      const selectionTarget = deep ? 18 : 16;
-      const exactLimit = deep ? 4 : 3;
-      const selected: RankedVisualProduct[] = [];
-      const selectedKeys = new Set<string>();
-      const pushUnique = (items: RankedVisualProduct[], limit?: number) => {
-        let added = 0;
-        for (const item of items) {
-          const key = getStableProductKey(item.product);
-          if (selectedKeys.has(key)) continue;
-          selected.push(item);
-          selectedKeys.add(key);
-          added += 1;
-          if (typeof limit === "number" && added >= limit) break;
-          if (selected.length >= selectionTarget) break;
+          visualRanked = rankSource.filter((e) => e.score >= 180);
         }
-      };
-
-      // Maximo 3 exactos en busqueda normal y 4 en busqueda profunda.
-      // El resto del grid se reserva para Muy similares / Similares.
-      pushUnique(exactMatches, Math.min(exactLimit, exactMatches.length));
-      pushUnique(verySimilarMatches, Math.max(8, selectionTarget - selected.length));
-      pushUnique(similarMatches, selectionTarget - selected.length);
-
-      if (selected.length < Math.min(10, selectionTarget)) {
-        pushUnique(softMatches, selectionTarget - selected.length);
       }
 
-      if (selected.length < Math.min(12, selectionTarget)) {
-        pushUnique(honestFallback, selectionTarget - selected.length);
+      // ── FASE 4: Fusión inteligente AI + Visual ────────────────────────────
+      // Puntuación combinada: AI semántico es el señal principal,
+      // visual enriquece desempatando entre productos con mismo aiScore.
+      //
+      // combined = aiScore * aiWeight + visualScore * visualWeight
+      //   highConfAI  → aiWeight=0.80, visualWeight=0.20
+      //   lowConfAI   → aiWeight=0.55, visualWeight=0.45
+      //   noAI        → aiWeight=0.00, visualWeight=1.00
+
+      const aiWeight     = highConfAI ? 0.80 : hasAI ? 0.55 : 0.0;
+      const visualWeight = 1 - aiWeight;
+
+      // Index visual scores by product key for O(1) lookup
+      const visualScoreMap = new Map<string, number>();
+      for (const v of visualRanked) {
+        visualScoreMap.set(getStableProductKey(v.product), v.score);
       }
 
-      if (semanticCandidates.length && selected.length < selectionTarget) {
-        const boostEntries = quickIndex.filter((e) => {
-          const key = getStableProductKey(e.product);
-          return semanticCandidates.some((p) => getStableProductKey(p) === key) && !selectedKeys.has(key);
-        });
-        const boostRanked = rankIndexedProducts(boostEntries, sourceFeature, { deep: false, intent, ai: aiDescription }).filter(
-          (e) => e.score >= 180 && e.score < exactThreshold
-        );
-        pushUnique(boostRanked, selectionTarget - selected.length);
+      // Build unified candidate pool
+      const candidateMap = new Map<string, {
+        product: SearchCatalogProduct;
+        aiScore: number;
+        visualScore: number;
+        combined: number;
+      }>();
+
+      // From AI results
+      for (const { product, aiScore } of aiRanked) {
+        const key         = getStableProductKey(product);
+        const visualScore = visualScoreMap.get(key) ?? 0;
+        const combined    = aiScore * aiWeight + visualScore * visualWeight;
+        candidateMap.set(key, { product, aiScore, visualScore, combined });
       }
 
-      // Emergencia: si no hay suficientes similares, permite pocos exactos extra al final.
-      if (selected.length < Math.min(8, selectionTarget)) {
-        pushUnique(exactMatches.slice(exactLimit), Math.min(2, selectionTarget - selected.length));
+      // From visual results (may add products AI missed)
+      for (const { product, score: visualScore } of visualRanked) {
+        const key = getStableProductKey(product);
+        if (candidateMap.has(key)) continue; // already in map
+        const aiScore  = hasAI ? scoreAIIntent(product, ai!) : 0;
+        const combined = aiScore * aiWeight + visualScore * visualWeight;
+        if (combined > 0) candidateMap.set(key, { product, aiScore, visualScore, combined });
       }
 
-      const exactAllowedKeys = new Set(
-        selected
-          .filter((entry) => entry.score >= exactThreshold)
-          .slice(0, exactLimit)
-          .map((entry) => getStableProductKey(entry.product))
-      );
+      const sorted = [...candidateMap.values()].sort((a, b) => b.combined - a.combined);
 
-      let finalMatches: SearchProduct[] = selected.slice(0, selectionTarget).map((entry) => {
+      // ── FASE 5: Filtrado y etiquetado final ───────────────────────────────
+      // Si AI tiene alta confianza, forzamos que los productos con aiScore negativo
+      // (categoría incorrecta) no aparezcan aunque su score visual sea alto.
+      const filtered = highConfAI
+        ? sorted.filter((e) => e.aiScore >= 0)   // descartar categoría equivocada
+        : sorted;
+
+      const selectionTarget = deep ? 16 : 12;
+      const finalMatches: SearchProduct[] = filtered.slice(0, selectionTarget).map((entry) => {
         const mapped = mapCatalogProductToSearchProduct(entry.product);
-        const roundedScore = Math.round(entry.score);
-        const productKey = getStableProductKey(entry.product);
-        let matchLabel: SearchProduct["matchLabel"] = getMatchLabel(roundedScore);
-
-        if (!exactAllowedKeys.has(productKey) && matchLabel === "Exacto") {
-          matchLabel = "Muy similar";
-        }
-
-        return { ...mapped, matchScore: roundedScore, matchLabel };
+        // Normalizar combined a rango 0-1000 para getMatchLabel
+        const normalizedScore = Math.round(Math.min(1000, Math.max(0, entry.combined * 2.2)));
+        return {
+          ...mapped,
+          matchScore: normalizedScore,
+          matchLabel: getMatchLabel(normalizedScore),
+        };
       });
 
-      if (!finalMatches.length) {
-        finalMatches = getVisualSearchFallbackResults(semanticCandidates.length ? semanticCandidates : catalog, sourceFeature, 12);
-      }
+      // Fallback de emergencia
+      const results = finalMatches.length
+        ? finalMatches
+        : sourceFeature
+          ? getVisualSearchFallbackResults(catalog, sourceFeature, 12)
+          : [];
 
       if (lastImageReq.current !== reqId) return;
-      setProducts(finalMatches);
-      setImageSearchCanDeep(!deep && finalMatches.length > 0 && quickIndex.length > 0);
+      setProducts(results);
+      setImageSearchCanDeep(!deep && results.length > 0);
     } catch {
       if (lastImageReq.current !== reqId) return;
       setProducts([]);
