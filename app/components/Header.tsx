@@ -73,6 +73,21 @@ type VisualIntent = {
 
 type ProductVisualClass = "shoe" | "top" | "bottom" | "outerwear" | "accessory" | "garment" | "unknown";
 
+type CatalogVisualIndexEntry = {
+  product: SearchCatalogProduct;
+  images: string[];
+  features: { src: string; feature: ImageFeature; imageIndex: number }[];
+  primaryFeature: ImageFeature | null;
+};
+
+type RankedVisualProduct = {
+  product: SearchCatalogProduct;
+  images: string[];
+  score: number;
+  bestImageIndex: number;
+  bestFeature: ImageFeature | null;
+};
+
 function normalizeSearchText(value: unknown): string {
   let text = String(value ?? "")
     .toLowerCase()
@@ -1158,6 +1173,98 @@ type SessionUser = {
 };
 
 const RECENTS_KEY = "jusp_search_recents_v1";
+const IMAGE_FEATURE_CACHE_PREFIX = "jusp_visual_feature_v5:";
+const IMAGE_FEATURE_CACHE_LIMIT = 420;
+const VISUAL_INDEX_VERSION = "v5-bg-clean-product-id";
+
+
+function getStableProductKey(product: SearchCatalogProduct): string {
+  return String(product.id || product.slug || product.sku || product.title || product.name || "product").trim();
+}
+
+function getCatalogVisualSignature(catalog: SearchCatalogProduct[]): string {
+  const compact = catalog
+    .map((product) => getStableProductKey(product) + ":" + getCatalogProductImages(product).slice(0, 4).join("|"))
+    .join("//");
+  let hash = 0;
+  for (let i = 0; i < compact.length; i += 1) {
+    hash = (hash * 31 + compact.charCodeAt(i)) >>> 0;
+  }
+  return VISUAL_INDEX_VERSION + ":" + catalog.length + ":" + hash.toString(36);
+}
+
+function isImageFeatureLike(value: unknown): value is ImageFeature {
+  if (!value || typeof value !== "object") return false;
+  const feature = value as ImageFeature;
+  return (
+    typeof feature.r === "number" &&
+    typeof feature.g === "number" &&
+    typeof feature.b === "number" &&
+    typeof feature.hash === "string" &&
+    typeof feature.centerHash === "string" &&
+    Array.isArray(feature.histogram) &&
+    Array.isArray(feature.colorHistogram) &&
+    Array.isArray(feature.rowProfile) &&
+    Array.isArray(feature.colProfile)
+  );
+}
+
+function getImageFeatureStorageKey(src: string): string {
+  let hash = 0;
+  for (let i = 0; i < src.length; i += 1) {
+    hash = (hash * 33 + src.charCodeAt(i)) >>> 0;
+  }
+  return IMAGE_FEATURE_CACHE_PREFIX + hash.toString(36);
+}
+
+function readStoredImageFeature(src: string): ImageFeature | null | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const raw = window.localStorage.getItem(getImageFeatureStorageKey(src));
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw) as { version?: string; feature?: unknown };
+    if (parsed?.version !== VISUAL_INDEX_VERSION || !isImageFeatureLike(parsed.feature)) return undefined;
+    return parsed.feature;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeStoredImageFeature(src: string, feature: ImageFeature | null) {
+  if (typeof window === "undefined" || !feature) return;
+  try {
+    window.localStorage.setItem(
+      getImageFeatureStorageKey(src),
+      JSON.stringify({ version: VISUAL_INDEX_VERSION, savedAt: Date.now(), feature })
+    );
+  } catch {
+    try {
+      const keys = Object.keys(window.localStorage).filter((key) => key.startsWith(IMAGE_FEATURE_CACHE_PREFIX));
+      keys.slice(0, Math.max(1, keys.length - IMAGE_FEATURE_CACHE_LIMIT + 24)).forEach((key) => {
+        try {
+          window.localStorage.removeItem(key);
+        } catch {}
+      });
+      window.localStorage.setItem(
+        getImageFeatureStorageKey(src),
+        JSON.stringify({ version: VISUAL_INDEX_VERSION, savedAt: Date.now(), feature })
+      );
+    } catch {}
+  }
+}
+
+function getScoreThreshold(sourceClass: ProductVisualClass, deep: boolean) {
+  if (sourceClass === "shoe") return deep ? 500 : 535;
+  if (sourceClass === "top" || sourceClass === "bottom" || sourceClass === "outerwear") return deep ? 455 : 495;
+  if (sourceClass === "accessory") return deep ? 430 : 470;
+  return deep ? 420 : 460;
+}
+
+function getMatchLabel(score: number): SearchProduct["matchLabel"] {
+  if (score >= 835) return "Exacto";
+  if (score >= 645) return "Muy similar";
+  return "Similar";
+}
 
 function safeLoadRecents(): string[] {
   try {
@@ -1523,8 +1630,12 @@ export default function Header() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const imageSearchInputRef = useRef<HTMLInputElement | null>(null);
   const imageFeatureCacheRef = useRef<Map<string, ImageFeature | null>>(new Map());
+  const visualIndexRef = useRef<{ signature: string; entries: CatalogVisualIndexEntry[]; deep: boolean } | null>(null);
+  const lastImageFileRef = useRef<File | null>(null);
   const [imageSearchLabel, setImageSearchLabel] = useState("");
   const [imageSearchMode, setImageSearchMode] = useState<"idle" | "image" | "error">("idle");
+  const [imageSearchCanDeep, setImageSearchCanDeep] = useState(false);
+  const [imageSearchIndexedCount, setImageSearchIndexedCount] = useState(0);
 
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState<SearchProduct[]>([]);
@@ -2030,10 +2141,17 @@ export default function Header() {
     const cached = imageFeatureCacheRef.current.get(src);
     if (cached !== undefined) return cached;
 
+    const stored = readStoredImageFeature(src);
+    if (stored !== undefined) {
+      imageFeatureCacheRef.current.set(src, stored);
+      return stored;
+    }
+
     try {
       const img = await loadImageElement(src);
       const feature = computeImageFeatureFromImage(img, img.naturalWidth || img.width, img.naturalHeight || img.height);
       imageFeatureCacheRef.current.set(src, feature);
+      writeStoredImageFeature(src, feature);
       return feature;
     } catch {
       imageFeatureCacheRef.current.set(src, null);
@@ -2041,19 +2159,111 @@ export default function Header() {
     }
   }
 
-  async function runImageSearch(file: File) {
+  async function buildCatalogVisualIndex(catalog: SearchCatalogProduct[], deep: boolean): Promise<CatalogVisualIndexEntry[]> {
+    const signature = getCatalogVisualSignature(catalog);
+    const cachedIndex = visualIndexRef.current;
+    if (cachedIndex && cachedIndex.signature === signature && (cachedIndex.deep || !deep)) {
+      setImageSearchIndexedCount(cachedIndex.entries.reduce((count, entry) => count + entry.features.length, 0));
+      return cachedIndex.entries;
+    }
+
+    const productsWithImages = catalog
+      .map((product) => ({ product, images: getCatalogProductImages(product) }))
+      .filter((entry) => entry.images.length > 0);
+
+    const imageLimit = deep ? 12 : 4;
+    const entries = await mapWithConcurrency(productsWithImages, deep ? 4 : 7, async (entry) => {
+      const uniqueImages = entry.images.slice(0, imageLimit);
+      const features: CatalogVisualIndexEntry["features"] = [];
+
+      for (let imageIndex = 0; imageIndex < uniqueImages.length; imageIndex += 1) {
+        const src = uniqueImages[imageIndex];
+        const feature = await getCachedImageFeature(src);
+        if (feature) features.push({ src, feature, imageIndex });
+      }
+
+      return {
+        product: entry.product,
+        images: entry.images,
+        features,
+        primaryFeature: features[0]?.feature ?? null,
+      };
+    });
+
+    const validEntries = entries.filter((entry) => entry.features.length > 0);
+    visualIndexRef.current = { signature, entries: validEntries, deep };
+    setImageSearchIndexedCount(validEntries.reduce((count, entry) => count + entry.features.length, 0));
+    return validEntries;
+  }
+
+  function rankIndexedProducts(
+    entries: CatalogVisualIndexEntry[],
+    sourceFeature: ImageFeature,
+    options: { deep: boolean; limit?: number }
+  ): RankedVisualProduct[] {
+    const sourceVisualClass = inferImageVisualClass(sourceFeature);
+    const threshold = getScoreThreshold(sourceVisualClass, options.deep);
+
+    return entries
+      .map((entry) => {
+        let bestScore = 0;
+        let bestImageIndex = 0;
+        let bestFeature: ImageFeature | null = null;
+        let confirmationHits = 0;
+
+        for (const item of entry.features) {
+          const rawScore = scoreVisualMatch(entry.product, sourceFeature, item.feature);
+          const classCompatible = productMatchesSourceClass(entry.product, sourceVisualClass);
+          const primaryBoost = item.imageIndex === 0 ? 20 : item.imageIndex <= 2 ? 10 : 0;
+          const classBoost = classCompatible ? 48 : -220;
+          const score = Math.max(0, Math.min(1000, rawScore + primaryBoost + classBoost));
+
+          if (score >= threshold - 70) confirmationHits += 1;
+          if (score > bestScore) {
+            bestScore = score;
+            bestImageIndex = item.imageIndex;
+            bestFeature = item.feature;
+          }
+        }
+
+        const catalogClasses = getCatalogProductVisualClasses(entry.product);
+        if (!catalogClasses.includes("unknown") && !productMatchesSourceClass(entry.product, sourceVisualClass)) {
+          bestScore -= sourceVisualClass === "shoe" || catalogClasses.includes("shoe") ? 260 : 150;
+        }
+
+        if (confirmationHits >= 2) bestScore += options.deep ? 30 : 18;
+        if (bestImageIndex === 0) bestScore += 10;
+
+        return {
+          product: entry.product,
+          images: entry.images,
+          score: Math.max(0, Math.min(1000, bestScore)),
+          bestImageIndex,
+          bestFeature,
+        };
+      })
+      .filter((entry) => entry.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, options.limit ?? entries.length);
+  }
+
+  async function runImageSearch(file: File, options: { deep?: boolean } = {}) {
     if (!file.type.startsWith("image/")) {
       setImageSearchLabel("Archivo no compatible");
       setImageSearchMode("error");
+      setImageSearchCanDeep(false);
       setProducts([]);
       return;
     }
 
+    const deep = !!options.deep;
     const reqId = Date.now();
     lastImageReq.current = reqId;
+    lastImageFileRef.current = file;
     setQ("");
-    setImageSearchLabel(file.name);
+    setImageSearchLabel(deep ? file.name + " · precisión alta" : file.name);
     setImageSearchMode("image");
+    setImageSearchCanDeep(false);
     setProducts([]);
     setLoading(true);
 
@@ -2066,104 +2276,63 @@ export default function Header() {
         return;
       }
 
-      const catalogWithImages = catalog
-        .map((product) => ({ product, images: getCatalogProductImages(product) }))
-        .filter((entry) => entry.images.length > 0);
-
       const sourceVisualClass = inferImageVisualClass(sourceFeature);
-
-      const quickRank = await mapWithConcurrency(catalogWithImages, 6, async (entry) => {
-        let bestScore = 0;
-        let bestImageIndex = 0;
-        const fastImages = entry.images.slice(0, 3);
-
-        for (let index = 0; index < fastImages.length; index += 1) {
-          const feature = await getCachedImageFeature(fastImages[index]);
-          if (!feature) continue;
-          const visualScore = scoreVisualMatch(entry.product, sourceFeature, feature);
-          if (visualScore > bestScore) {
-            bestScore = visualScore;
-            bestImageIndex = index;
-          }
-        }
-
-        if (!productMatchesSourceClass(entry.product, sourceVisualClass)) {
-          bestScore = Math.max(0, bestScore - 160);
-        }
-
-        return {
-          product: entry.product,
-          images: entry.images,
-          score: bestScore,
-          bestImageIndex,
-        };
-      });
-
+      const quickIndex = await buildCatalogVisualIndex(catalog, false);
       if (lastImageReq.current !== reqId) return;
 
-      const sameFamilyCandidates = quickRank.filter((entry) =>
-        productMatchesSourceClass(entry.product, sourceVisualClass) || entry.score >= 620
-      );
+      const quickRank = rankIndexedProducts(quickIndex, sourceFeature, { deep: false });
+      const sameFamilyQuick = quickRank.filter((entry) => productMatchesSourceClass(entry.product, sourceVisualClass));
+      const quickPool = (sameFamilyQuick.length >= 10 ? sameFamilyQuick : quickRank)
+        .filter((entry) => entry.score >= 280)
+        .slice(0, deep ? Math.min(54, Math.max(18, Math.ceil(quickIndex.length * 0.24))) : Math.min(32, Math.max(12, Math.ceil(quickIndex.length * 0.16))));
 
-      const deepCandidates = (sameFamilyCandidates.length >= 10 ? sameFamilyCandidates : quickRank)
-        .filter((entry) => entry.score > 0)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, Math.min(28, Math.max(12, Math.ceil(catalogWithImages.length * 0.18))));
+      let rankSource = quickPool;
 
-      const deepRank = await mapWithConcurrency(deepCandidates, 5, async (entry) => {
-        let bestScore = entry.score;
-        let bestImageIndex = entry.bestImageIndex;
-        const orderedImages = [
-          ...entry.images.slice(0, 8),
-          ...entry.images.slice(8, 12),
-        ].filter((url, index, arr) => arr.indexOf(url) === index);
+      if (deep) {
+        const deepProducts = new Set(quickPool.map((entry) => getStableProductKey(entry.product)));
+        const deepCatalog = catalog.filter((product) => deepProducts.has(getStableProductKey(product)));
+        const deepIndex = await buildCatalogVisualIndex(deepCatalog.length ? deepCatalog : catalog, true);
+        if (lastImageReq.current !== reqId) return;
+        rankSource = rankIndexedProducts(deepIndex, sourceFeature, { deep: true }).slice(0, 36);
+      } else {
+        const candidateProducts = new Set(quickPool.map((entry) => getStableProductKey(entry.product)));
+        const candidateEntries = quickIndex.filter((entry) => candidateProducts.has(getStableProductKey(entry.product)));
+        rankSource = rankIndexedProducts(candidateEntries, sourceFeature, { deep: false }).slice(0, 24);
+      }
 
-        for (let index = 0; index < orderedImages.length; index += 1) {
-          const feature = await getCachedImageFeature(orderedImages[index]);
-          if (!feature) continue;
-          const visualScore = scoreVisualMatch(entry.product, sourceFeature, feature);
-          if (visualScore > bestScore) {
-            bestScore = visualScore;
-            bestImageIndex = index;
-          }
-        }
+      const threshold = getScoreThreshold(sourceVisualClass, deep);
+      const strictMatches = rankSource
+        .filter((entry) => entry.score >= threshold && productMatchesSourceClass(entry.product, sourceVisualClass))
+        .sort((a, b) => b.score - a.score);
 
-        const primaryImageBonus = bestImageIndex === 0 ? 18 : 0;
-        const classBonus = productMatchesSourceClass(entry.product, sourceVisualClass) ? 34 : -120;
+      const softMatches = rankSource
+        .filter((entry) => entry.score >= threshold - 95 && productMatchesSourceClass(entry.product, sourceVisualClass))
+        .sort((a, b) => b.score - a.score);
+
+      const honestFallback = rankSource
+        .filter((entry) => entry.score >= 330)
+        .sort((a, b) => b.score - a.score);
+
+      const selected = strictMatches.length >= 4 ? strictMatches : softMatches.length >= 4 ? softMatches : honestFallback;
+
+      const finalMatches = selected.slice(0, 12).map((entry) => {
+        const mapped = mapCatalogProductToSearchProduct(entry.product);
+        const roundedScore = Math.round(entry.score);
         return {
-          product: entry.product,
-          score: Math.min(1000, Math.max(0, bestScore + primaryImageBonus + classBonus)),
+          ...mapped,
+          matchScore: roundedScore,
+          matchLabel: getMatchLabel(roundedScore),
         };
       });
-
-      const strictMatches = deepRank
-        .filter((entry) => entry.score >= 430)
-        .sort((a, b) => b.score - a.score);
-
-      const fallbackMatches = deepRank
-        .filter((entry) => entry.score > 0 && productMatchesSourceClass(entry.product, sourceVisualClass))
-        .sort((a, b) => b.score - a.score);
-
-      const finalMatches = (strictMatches.length >= 4 ? strictMatches : fallbackMatches.length ? fallbackMatches : deepRank.sort((a, b) => b.score - a.score))
-        .slice(0, 12)
-        .map((entry) => {
-          const mapped = mapCatalogProductToSearchProduct(entry.product);
-          const roundedScore = Math.round(entry.score);
-          const matchLabel: SearchProduct["matchLabel"] =
-            roundedScore >= 820 ? "Exacto" : roundedScore >= 640 ? "Muy similar" : "Similar";
-          return {
-            ...mapped,
-            matchScore: roundedScore,
-            matchLabel,
-          };
-        });
 
       if (lastImageReq.current !== reqId) return;
       setProducts(finalMatches);
+      setImageSearchCanDeep(!deep && finalMatches.length > 0);
     } catch {
       if (lastImageReq.current !== reqId) return;
       setProducts([]);
       setImageSearchMode("error");
+      setImageSearchCanDeep(false);
     } finally {
       if (lastImageReq.current === reqId) setLoading(false);
     }
@@ -2640,13 +2809,25 @@ export default function Header() {
                         {imageSearchMode === "error"
                           ? "No se pudo leer esa imagen. Prueba otra foto mas clara."
                           : loading
-                          ? "Analizando silueta, colores, recorte, textura y productos similares..."
+                          ? "Limpiando fondo, creando índice visual y comparando producto contra catálogo..."
                           : products.length
-                          ? "Resultados ordenados por parecido visual, tipo de producto, color y marca."
-                          : "No encontramos coincidencias fuertes. Sube una imagen centrada, sin fondos cargados."}
+                          ? `Resultados por similitud visual real${imageSearchIndexedCount ? ` · ${imageSearchIndexedCount} imágenes analizadas/cacheadas` : ""}.`
+                          : "No encontramos coincidencias fuertes. Sube una imagen centrada, con el producto completo."}
                       </div>
                     ) : null}
                     {loading ? <div className="jusp-search-loading">Buscando…</div> : null}
+                    {!loading && imageSearchCanDeep && lastImageFileRef.current ? (
+                      <button
+                        className="jusp-search-deep"
+                        type="button"
+                        onClick={() => {
+                          const file = lastImageFileRef.current;
+                          if (file) void runImageSearch(file, { deep: true });
+                        }}
+                      >
+                        Buscar otra vez con más precisión
+                      </button>
+                    ) : null}
                     {!loading && q.trim() && products.length === 0 ? (
                       <div className="jusp-search-empty">Sin resultados aún. Presiona Enter para ver todo.</div>
                     ) : null}
@@ -3780,6 +3961,23 @@ export default function Header() {
           font-weight: 900;
           font-size: 16px;
           cursor: pointer;
+        }
+
+        .jusp-search-deep {
+          margin: 0 0 16px;
+          border: 1px solid rgba(17, 17, 17, 0.16);
+          background: #111;
+          color: #fff;
+          border-radius: 999px;
+          padding: 10px 14px;
+          font-size: 13px;
+          font-weight: 900;
+          cursor: pointer;
+          box-shadow: 0 14px 28px rgba(17, 17, 17, 0.12);
+        }
+
+        .jusp-search-deep:hover {
+          transform: translateY(-1px);
         }
 
         .jusp-search-quickrow {
