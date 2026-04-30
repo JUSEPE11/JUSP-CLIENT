@@ -1377,9 +1377,9 @@ type SessionUser = {
 };
 
 const RECENTS_KEY = "jusp_search_recents_v1";
-const IMAGE_FEATURE_CACHE_PREFIX = "jusp_visual_feature_v6:";
+const IMAGE_FEATURE_CACHE_PREFIX = "jusp_visual_feature_v7:";
 const IMAGE_FEATURE_CACHE_LIMIT = 420;
-const VISUAL_INDEX_VERSION = "v6-full-catalog-images";
+const VISUAL_INDEX_VERSION = "v7-fast-visual";
 
 
 function getStableProductKey(product: SearchCatalogProduct): string {
@@ -1511,6 +1511,44 @@ function getVisualSearchFallbackResults(
         matchLabel: "Similar" as const,
       };
     });
+}
+
+function buildSemanticVisualCandidates(
+  catalog: SearchCatalogProduct[],
+  sourceFeature: ImageFeature,
+  intent: VisualIntent,
+  limit = 48
+): SearchCatalogProduct[] {
+  const sourceClass = inferImageVisualClass(sourceFeature);
+  const sourceColors = new Set([...inferVisualTokens(sourceFeature), ...intent.colors]);
+
+  return catalog
+    .map((product) => {
+      const images = getCatalogProductImages(product);
+      if (!images.length) return { product, score: -999 };
+
+      const haystack = buildSearchHaystack(product);
+      let score = 0;
+
+      if (productMatchesSourceClass(product, sourceClass)) score += 260;
+      else score -= 70;
+
+      score += Math.max(-40, Math.min(120, scoreIntentMatch(product, intent)));
+      score += Math.max(-40, Math.min(110, scoreTextAffinity(product, intent, sourceFeature)));
+
+      for (const color of sourceColors) {
+        if (haystack.includes(normalizeSearchText(color))) score += 38;
+      }
+
+      score += Math.min(images.length, 6) * 10;
+      if (hasPositiveMoney(product.price)) score += 12;
+
+      return { product, score };
+    })
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((entry) => entry.product);
 }
 
 function safeLoadRecents(): string[] {
@@ -2428,8 +2466,8 @@ export default function Header() {
       .map((product) => ({ product, images: getCatalogProductImages(product) }))
       .filter((entry) => entry.images.length > 0);
 
-    const imageLimit = deep ? 36 : 8;
-    const entries = await mapWithConcurrency(productsWithImages, deep ? 3 : 6, async (entry) => {
+    const imageLimit = deep ? 16 : 5;
+    const entries = await mapWithConcurrency(productsWithImages, deep ? 5 : 10, async (entry) => {
       const uniqueImages = entry.images.slice(0, imageLimit);
       const features: CatalogVisualIndexEntry["features"] = [];
 
@@ -2524,7 +2562,7 @@ export default function Header() {
       return;
     }
 
-    const deep = options.deep ?? true;
+    const deep = !!options.deep;
     const reqId = Date.now();
     lastImageReq.current = reqId;
     lastImageFileRef.current = file;
@@ -2536,12 +2574,11 @@ export default function Header() {
     setLoading(true);
 
     try {
-      // Run AI vision analysis + pixel features + catalog in parallel
-      const [catalog, sourceFeature, aiDescription] = await Promise.all([
+      const [catalog, sourceFeature] = await Promise.all([
         loadCatalog(),
         computeImageFeatureFromFile(file),
-        analyzeImageWithAI(file),
       ]);
+      const aiDescription: VisualAIDescription | null = null;
       if (lastImageReq.current !== reqId) return;
       if (!sourceFeature) {
         setProducts([]);
@@ -2549,32 +2586,13 @@ export default function Header() {
         return;
       }
 
-      // Merge AI semantic description with pixel-based intent (AI wins when confident)
       const pixelIntent = inferIntentFromImage(file.name, sourceFeature);
       const intent = mergeAIIntoIntent(pixelIntent, aiDescription);
-
-      // If AI detected brand+category with high confidence, also run a text search
-      // to catch products the visual index might miss (e.g. reads "NIKE" logo in photo)
-      let aiTextBoost: SearchCatalogProduct[] | null = null;
-      if (aiDescription && aiDescription.confidence >= 0.6 && (aiDescription.brands.length || aiDescription.categories.length)) {
-        const aiQuery = [
-          ...aiDescription.brands,
-          ...aiDescription.categories.map(c => c === "sports-bra" ? "bra" : c),
-          ...aiDescription.colors.slice(0, 1),
-          ...aiDescription.keywords.slice(0, 2),
-        ].join(" ").trim();
-        if (aiQuery) {
-          aiTextBoost = catalog
-            .map(p => ({ product: p, score: scoreCatalogProduct(p, aiQuery) }))
-            .filter(e => e.score > 0)
-            .sort((a, b) => b.score - a.score)
-            .slice(0, 40)
-            .map(e => e.product);
-        }
-      }
+      const semanticCandidates = buildSemanticVisualCandidates(catalog, sourceFeature, intent, deep ? 80 : 48);
 
       const sourceVisualClass = inferImageVisualClass(sourceFeature);
-      const quickIndex = await buildCatalogVisualIndex(catalog, false);
+      const quickCatalog = deep ? catalog : semanticCandidates.length >= 12 ? semanticCandidates : catalog;
+      const quickIndex = await buildCatalogVisualIndex(quickCatalog, false);
       if (lastImageReq.current !== reqId) return;
 
       if (!quickIndex.length) {
@@ -2589,14 +2607,15 @@ export default function Header() {
       const sameFamilyQuick = quickRank.filter((entry) => productMatchesSourceClass(entry.product, sourceVisualClass));
       const quickPool = (sameFamilyQuick.length >= 10 ? sameFamilyQuick : quickRank)
         .filter((entry) => entry.score >= 240)
-        .slice(0, deep ? Math.min(80, Math.max(24, Math.ceil(quickIndex.length * 0.42))) : Math.min(32, Math.max(12, Math.ceil(quickIndex.length * 0.16))));
+        .slice(0, deep ? Math.min(72, Math.max(24, Math.ceil(quickIndex.length * 0.36))) : Math.min(28, Math.max(12, Math.ceil(quickIndex.length * 0.32))));
 
       let rankSource = quickPool;
 
       if (deep) {
-        const deepIndex = await buildCatalogVisualIndex(catalog, true);
+        const deepCatalog = semanticCandidates.length >= 16 ? semanticCandidates : catalog;
+        const deepIndex = await buildCatalogVisualIndex(deepCatalog, true);
         if (lastImageReq.current !== reqId) return;
-        rankSource = rankIndexedProducts(deepIndex, sourceFeature, { deep: true, intent, ai: aiDescription }).slice(0, 48);
+        rankSource = rankIndexedProducts(deepIndex, sourceFeature, { deep: true, intent, ai: aiDescription }).slice(0, 36);
       } else {
         const candidateProducts = new Set(quickPool.map((entry) => getStableProductKey(entry.product)));
         const candidateEntries = quickIndex.filter((entry) => candidateProducts.has(getStableProductKey(entry.product)));
@@ -2618,16 +2637,15 @@ export default function Header() {
 
       let selected = strictMatches.length >= 4 ? strictMatches : softMatches.length >= 4 ? softMatches : honestFallback;
 
-      // Merge AI text-boost candidates when visual ranking alone gives few results
-      if (aiTextBoost && aiTextBoost.length && selected.length < 6) {
+      if (semanticCandidates.length && selected.length < 8) {
         const existingIds = new Set(selected.map(e => getStableProductKey(e.product)));
         const boostEntries = quickIndex.filter(e => {
           const key = getStableProductKey(e.product);
-          return aiTextBoost!.some(p => getStableProductKey(p) === key) && !existingIds.has(key);
+          return semanticCandidates.some(p => getStableProductKey(p) === key) && !existingIds.has(key);
         });
         const boostRanked = rankIndexedProducts(boostEntries, sourceFeature, { deep: false, intent, ai: aiDescription })
-          .filter(e => e.score >= 200);
-        selected = [...selected, ...boostRanked].slice(0, 12);
+          .filter(e => e.score >= 180);
+        selected = [...selected, ...boostRanked].slice(0, 16);
       }
 
       let finalMatches: SearchProduct[] = selected.slice(0, 16).map((entry) => {
@@ -2637,12 +2655,7 @@ export default function Header() {
       });
 
       if (!finalMatches.length) {
-        // Last resort: use AI text search results directly
-        if (aiTextBoost && aiTextBoost.length) {
-          finalMatches = aiTextBoost.slice(0, 12).map(p => mapCatalogProductToSearchProduct(p));
-        } else {
-          finalMatches = getVisualSearchFallbackResults(catalog, sourceFeature, 12);
-        }
+        finalMatches = getVisualSearchFallbackResults(semanticCandidates.length ? semanticCandidates : catalog, sourceFeature, 12);
       }
 
       if (lastImageReq.current !== reqId) return;
