@@ -295,16 +295,16 @@ function getCatalogProductImages(product: SearchCatalogProduct): string[] {
     values.push(url);
   }
 
-  function walk(value: unknown, depth = 0) {
-    if (depth > 4 || value == null) return;
+  function walk(value: unknown, depth = 0, imageContext = false) {
+    if (depth > 7 || value == null) return;
 
     if (typeof value === "string") {
-      pushUrl(value);
+      if (imageContext || imageUrlPattern.test(value)) pushUrl(value);
       return;
     }
 
     if (Array.isArray(value)) {
-      for (const item of value) walk(item, depth + 1);
+      for (const item of value) walk(item, depth + 1, imageContext);
       return;
     }
 
@@ -312,6 +312,10 @@ function getCatalogProductImages(product: SearchCatalogProduct): string[] {
       const record = value as Record<string, unknown>;
       const priorityKeys = [
         "image",
+        "imageUrl",
+        "image_url",
+        "imageSrc",
+        "image_src",
         "src",
         "url",
         "thumbnail",
@@ -329,20 +333,20 @@ function getCatalogProductImages(product: SearchCatalogProduct): string[] {
       ];
 
       for (const key of priorityKeys) {
-        if (key in record) walk(record[key], depth + 1);
+        if (key in record) walk(record[key], depth + 1, /image|img|photo|picture|media|gallery|thumbnail|thumb/i.test(key));
       }
 
       for (const [key, nested] of Object.entries(record)) {
         if (priorityKeys.includes(key)) continue;
         if (/image|img|photo|picture|media|gallery|variant|thumbnail|thumb/i.test(key)) {
-          walk(nested, depth + 1);
+          walk(nested, depth + 1, true);
         }
       }
     }
   }
 
   walk(product);
-  return values.slice(0, 12);
+  return values.slice(0, 36);
 }
 function loadImageElement(src: string, crossOrigin: "anonymous" | "none" = "anonymous"): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -378,6 +382,17 @@ function getImageAnalysisSources(src: string): string[] {
   const proxied = getNextImageProxyUrl(clean);
   if (proxied && !sources.includes(proxied)) sources.unshift(proxied);
   return sources;
+}
+
+function isSameOriginImageSource(src: string): boolean {
+  if (typeof window === "undefined") return false;
+  const clean = String(src || "").trim();
+  if (!clean || clean.startsWith("data:") || clean.startsWith("blob:") || clean.startsWith("/")) return true;
+  try {
+    return new URL(clean, window.location.origin).origin === window.location.origin;
+  } catch {
+    return false;
+  }
 }
 
 type ForegroundExtraction = {
@@ -1296,23 +1311,23 @@ function scoreVisualMatch(product: SearchCatalogProduct, source: ImageFeature, c
   const sourceClass = inferImageVisualClass(source);
   const candidateClass = inferImageVisualClass(candidate);
 
-  if (sourceFamily !== "unknown" && candidateFamily !== "unknown" && sourceFamily !== candidateFamily) {
+    if (sourceFamily !== "unknown" && candidateFamily !== "unknown" && sourceFamily !== candidateFamily) {
     // Only penalize hard for shoe vs non-shoe, not for other family mismatches
-    score -= sourceFamily === "shoe" || candidateFamily === "shoe" ? 200 : 80;
+    score -= sourceFamily === "shoe" || candidateFamily === "shoe" ? 120 : 45;
   }
 
   if (!areVisualClassesCompatible(sourceClass, candidateClass)) {
-    score -= sourceClass === "shoe" || candidateClass === "shoe" ? 240 : 130;
+    score -= sourceClass === "shoe" || candidateClass === "shoe" ? 140 : 75;
   } else if (sourceClass !== "unknown" && candidateClass !== "unknown") {
     score += sourceClass === candidateClass ? 65 : 28;
   }
 
   if (!productMatchesSourceClass(product, sourceClass)) {
-    score -= sourceClass === "shoe" ? 280 : 160;
+    score -= sourceClass === "shoe" ? 120 : 70;
   }
 
-  if (sourceFamily === "shoe" && productFamily === "garment") score -= 220;
-  if (sourceFamily === "garment" && productFamily === "shoe") score -= 220;
+  if (sourceFamily === "shoe" && productFamily === "garment") score -= 120;
+  if (sourceFamily === "garment" && productFamily === "shoe") score -= 120;
 
   const sourceTokens = inferVisualTokens(source);
   const candidateTokens = inferVisualTokens(candidate);
@@ -1362,9 +1377,9 @@ type SessionUser = {
 };
 
 const RECENTS_KEY = "jusp_search_recents_v1";
-const IMAGE_FEATURE_CACHE_PREFIX = "jusp_visual_feature_v5:";
+const IMAGE_FEATURE_CACHE_PREFIX = "jusp_visual_feature_v6:";
 const IMAGE_FEATURE_CACHE_LIMIT = 420;
-const VISUAL_INDEX_VERSION = "v5-bg-clean-product-id";
+const VISUAL_INDEX_VERSION = "v6-full-catalog-images";
 
 
 function getStableProductKey(product: SearchCatalogProduct): string {
@@ -1373,7 +1388,7 @@ function getStableProductKey(product: SearchCatalogProduct): string {
 
 function getCatalogVisualSignature(catalog: SearchCatalogProduct[]): string {
   const compact = catalog
-    .map((product) => getStableProductKey(product) + ":" + getCatalogProductImages(product).slice(0, 4).join("|"))
+    .map((product) => getStableProductKey(product) + ":" + getCatalogProductImages(product).join("|"))
     .join("//");
   let hash = 0;
   for (let i = 0; i < compact.length; i += 1) {
@@ -2380,8 +2395,13 @@ export default function Header() {
     }
 
     for (const source of getImageAnalysisSources(src)) {
+      const loadModes: Array<"anonymous" | "none"> = isSameOriginImageSource(source)
+        ? ["none", "anonymous"]
+        : ["anonymous", "none"];
+
+      for (const mode of loadModes) {
       try {
-        const img = await loadImageElement(source, "anonymous");
+        const img = await loadImageElement(source, mode);
         const feature = computeImageFeatureFromImage(img, img.naturalWidth || img.width, img.naturalHeight || img.height);
         if (feature) {
           imageFeatureCacheRef.current.set(src, feature);
@@ -2389,6 +2409,7 @@ export default function Header() {
           return feature;
         }
       } catch {}
+      }
     }
 
     imageFeatureCacheRef.current.set(src, null);
@@ -2407,8 +2428,8 @@ export default function Header() {
       .map((product) => ({ product, images: getCatalogProductImages(product) }))
       .filter((entry) => entry.images.length > 0);
 
-    const imageLimit = deep ? 12 : 4;
-    const entries = await mapWithConcurrency(productsWithImages, deep ? 4 : 7, async (entry) => {
+    const imageLimit = deep ? 36 : 8;
+    const entries = await mapWithConcurrency(productsWithImages, deep ? 3 : 6, async (entry) => {
       const uniqueImages = entry.images.slice(0, imageLimit);
       const features: CatalogVisualIndexEntry["features"] = [];
 
@@ -2451,7 +2472,7 @@ export default function Header() {
           const rawScore = scoreVisualMatch(entry.product, sourceFeature, item.feature);
           const classCompatible = productMatchesSourceClass(entry.product, sourceVisualClass);
           const primaryBoost = item.imageIndex === 0 ? 22 : item.imageIndex <= 2 ? 12 : 0;
-          const classBoost = classCompatible ? 52 : -180;
+          const classBoost = classCompatible ? 42 : -70;
           const score = Math.max(0, Math.min(1000, rawScore + primaryBoost + classBoost));
 
           if (score >= threshold - 60) confirmationHits += 1;
@@ -2464,7 +2485,7 @@ export default function Header() {
 
         const catalogClasses = getCatalogProductVisualClasses(entry.product);
         if (!catalogClasses.includes("unknown") && !productMatchesSourceClass(entry.product, sourceVisualClass)) {
-          bestScore -= sourceVisualClass === "shoe" || catalogClasses.includes("shoe") ? 200 : 110;
+          bestScore -= sourceVisualClass === "shoe" || catalogClasses.includes("shoe") ? 90 : 55;
         }
 
         // AI semantic scoring: strongest signal, applied with high weight
@@ -2503,7 +2524,7 @@ export default function Header() {
       return;
     }
 
-    const deep = !!options.deep;
+    const deep = options.deep ?? true;
     const reqId = Date.now();
     lastImageReq.current = reqId;
     lastImageFileRef.current = file;
@@ -2568,16 +2589,14 @@ export default function Header() {
       const sameFamilyQuick = quickRank.filter((entry) => productMatchesSourceClass(entry.product, sourceVisualClass));
       const quickPool = (sameFamilyQuick.length >= 10 ? sameFamilyQuick : quickRank)
         .filter((entry) => entry.score >= 240)
-        .slice(0, deep ? Math.min(54, Math.max(18, Math.ceil(quickIndex.length * 0.24))) : Math.min(32, Math.max(12, Math.ceil(quickIndex.length * 0.16))));
+        .slice(0, deep ? Math.min(80, Math.max(24, Math.ceil(quickIndex.length * 0.42))) : Math.min(32, Math.max(12, Math.ceil(quickIndex.length * 0.16))));
 
       let rankSource = quickPool;
 
       if (deep) {
-        const deepProducts = new Set(quickPool.map((entry) => getStableProductKey(entry.product)));
-        const deepCatalog = catalog.filter((product) => deepProducts.has(getStableProductKey(product)));
-        const deepIndex = await buildCatalogVisualIndex(deepCatalog.length ? deepCatalog : catalog, true);
+        const deepIndex = await buildCatalogVisualIndex(catalog, true);
         if (lastImageReq.current !== reqId) return;
-        rankSource = rankIndexedProducts(deepIndex, sourceFeature, { deep: true, intent, ai: aiDescription }).slice(0, 36);
+        rankSource = rankIndexedProducts(deepIndex, sourceFeature, { deep: true, intent, ai: aiDescription }).slice(0, 48);
       } else {
         const candidateProducts = new Set(quickPool.map((entry) => getStableProductKey(entry.product)));
         const candidateEntries = quickIndex.filter((entry) => candidateProducts.has(getStableProductKey(entry.product)));
@@ -2611,7 +2630,7 @@ export default function Header() {
         selected = [...selected, ...boostRanked].slice(0, 12);
       }
 
-      let finalMatches: SearchProduct[] = selected.slice(0, 12).map((entry) => {
+      let finalMatches: SearchProduct[] = selected.slice(0, 16).map((entry) => {
         const mapped = mapCatalogProductToSearchProduct(entry.product);
         const roundedScore = Math.round(entry.score);
         return { ...mapped, matchScore: roundedScore, matchLabel: getMatchLabel(roundedScore) };
