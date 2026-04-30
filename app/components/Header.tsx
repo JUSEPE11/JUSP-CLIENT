@@ -928,86 +928,105 @@ function scoreTextAffinity(product: SearchCatalogProduct, intent: VisualIntent, 
   return score;
 }
 
+function normalizedSimilarity(distance: number, maxUsefulDistance: number): number {
+  if (!Number.isFinite(distance) || maxUsefulDistance <= 0) return 0;
+  return Math.max(0, Math.min(1, 1 - distance / maxUsefulDistance));
+}
+
+function imageShapeClass(feature: ImageFeature): "shoe" | "tall" | "square" | "wide" | "unknown" {
+  const aspect = Math.max(0.1, feature.aspect || 1);
+  const fill = feature.cropFill || 0;
+
+  if (aspect >= 1.55 && fill <= 0.86) return "shoe";
+  if (aspect <= 0.78) return "tall";
+  if (aspect >= 0.82 && aspect <= 1.24) return "square";
+  if (aspect > 1.24 && aspect < 1.55) return "wide";
+  return "unknown";
+}
+
+function imageShapePenalty(source: ImageFeature, candidate: ImageFeature): number {
+  const sourceClass = imageShapeClass(source);
+  const candidateClass = imageShapeClass(candidate);
+  if (sourceClass === "unknown" || candidateClass === "unknown" || sourceClass === candidateClass) return 0;
+
+  const hardMismatch =
+    (sourceClass === "shoe" && candidateClass !== "shoe") ||
+    (candidateClass === "shoe" && sourceClass !== "shoe") ||
+    (sourceClass === "tall" && candidateClass === "wide") ||
+    (sourceClass === "wide" && candidateClass === "tall");
+
+  return hardMismatch ? 155 : 78;
+}
+
 function scoreVisualMatch(product: SearchCatalogProduct, source: ImageFeature, candidate: ImageFeature): number {
   const colorDistance = Math.sqrt(
     Math.pow(source.r - candidate.r, 2) +
       Math.pow(source.g - candidate.g, 2) +
       Math.pow(source.b - candidate.b, 2)
   );
-  const varianceDistance = Math.abs(source.variance - candidate.variance) * 180;
-  const aspectDistance = Math.abs(source.aspect - candidate.aspect) * 42;
   const hashDistance = hammingDistance(source.hash, candidate.hash);
   const centerHashDistance = hammingDistance(source.centerHash, candidate.centerHash);
-  const edgeDistance = Math.abs(source.edgeBalance - candidate.edgeBalance) * 2.4;
-  const histogramDelta = histogramDistance(source.histogram, candidate.histogram) * 150;
-  const colorHistogramDelta = histogramDistance(source.colorHistogram, candidate.colorHistogram) * 118;
-  const centerHistogramDelta = histogramDistance(source.centerHistogram, candidate.centerHistogram) * 180;
-  const saturationDistance = Math.abs(source.saturation - candidate.saturation) * 72;
-  const warmnessDistance = Math.abs(source.warmness - candidate.warmness) * 58;
-  const fillDistance = Math.abs(source.cropFill - candidate.cropFill) * 56;
-  const rowShapeDistance = profileDistance(source.rowProfile, candidate.rowProfile) * 92;
-  const colShapeDistance = profileDistance(source.colProfile, candidate.colProfile) * 92;
-  const aspectRatioDistance = Math.abs(Math.log(Math.max(0.1, source.aspect) / Math.max(0.1, candidate.aspect))) * 120;
-  const dominantColorDelta =
-    Math.abs(source.r - candidate.r) * 0.18 +
-    Math.abs(source.g - candidate.g) * 0.18 +
-    Math.abs(source.b - candidate.b) * 0.18;
-  const hsvDelta = histogramDistance(source.hsvHistogram, candidate.hsvHistogram) * 170;
-  const edgeHistogramDelta = histogramDistance(source.edgeHistogram, candidate.edgeHistogram) * 92;
-  const gridColorDelta = vectorDistance(source.gridColors, candidate.gridColors) * 190;
-  const dominantPaletteDelta = dominantColorDistance(source.dominantColors, candidate.dominantColors) * 130;
-  const textureDistance = Math.abs(source.texture - candidate.texture) * 96;
+  const edgeDistance = Math.abs(source.edgeBalance - candidate.edgeBalance);
+  const colorHistogramDelta = histogramDistance(source.colorHistogram, candidate.colorHistogram);
+  const centerHistogramDelta = histogramDistance(source.centerHistogram, candidate.centerHistogram);
+  const hsvDelta = histogramDistance(source.hsvHistogram, candidate.hsvHistogram);
+  const edgeHistogramDelta = histogramDistance(source.edgeHistogram, candidate.edgeHistogram);
+  const gridColorDelta = vectorDistance(source.gridColors, candidate.gridColors);
+  const dominantPaletteDelta = dominantColorDistance(source.dominantColors, candidate.dominantColors);
+  const rowShapeDistance = profileDistance(source.rowProfile, candidate.rowProfile);
+  const colShapeDistance = profileDistance(source.colProfile, candidate.colProfile);
+  const aspectRatioDistance = Math.abs(Math.log(Math.max(0.1, source.aspect) / Math.max(0.1, candidate.aspect)));
+  const textureDistance = Math.abs(source.texture - candidate.texture);
+  const fillDistance = Math.abs(source.cropFill - candidate.cropFill);
+  const warmnessDistance = Math.abs(source.warmness - candidate.warmness);
+  const varianceDistance = Math.abs(source.variance - candidate.variance);
 
-  let score =
-    820 -
-    colorDistance * 0.66 -
-    varianceDistance -
-    aspectDistance -
-    aspectRatioDistance -
-    hashDistance * 2.9 -
-    centerHashDistance * 4.4 -
-    edgeDistance -
-    histogramDelta -
-    colorHistogramDelta -
-    centerHistogramDelta -
-    saturationDistance -
-    warmnessDistance -
-    dominantColorDelta -
-    hsvDelta -
-    edgeHistogramDelta -
-    gridColorDelta -
-    dominantPaletteDelta -
-    textureDistance -
-    fillDistance -
-    rowShapeDistance -
-    colShapeDistance;
+  const hashSimilarity = normalizedSimilarity(hashDistance, 42);
+  const centerHashSimilarity = normalizedSimilarity(centerHashDistance, 38);
+  const colorSimilarity = normalizedSimilarity(colorDistance, 185);
+  const colorHistogramSimilarity = normalizedSimilarity(colorHistogramDelta, 2.2);
+  const centerHistogramSimilarity = normalizedSimilarity(centerHistogramDelta, 1.75);
+  const hsvSimilarity = normalizedSimilarity(hsvDelta, 2.35);
+  const edgeSimilarity = normalizedSimilarity(edgeHistogramDelta + edgeDistance / 64, 1.65);
+  const gridSimilarity = normalizedSimilarity(gridColorDelta, 0.58);
+  const paletteSimilarity = normalizedSimilarity(dominantPaletteDelta, 0.62);
+  const rowSimilarity = normalizedSimilarity(rowShapeDistance, 0.34);
+  const colSimilarity = normalizedSimilarity(colShapeDistance, 0.34);
+  const aspectSimilarity = normalizedSimilarity(aspectRatioDistance, 0.82);
+  const textureSimilarity = normalizedSimilarity(textureDistance, 0.36);
+  const fillSimilarity = normalizedSimilarity(fillDistance, 0.42);
+  const warmnessSimilarity = normalizedSimilarity(warmnessDistance, 0.54);
+  const varianceSimilarity = normalizedSimilarity(varianceDistance, 0.38);
+
+  const shapeSimilarity = aspectSimilarity * 0.34 + rowSimilarity * 0.24 + colSimilarity * 0.24 + fillSimilarity * 0.18;
+  const colorBlockSimilarity = colorSimilarity * 0.2 + hsvSimilarity * 0.28 + colorHistogramSimilarity * 0.18 + paletteSimilarity * 0.22 + warmnessSimilarity * 0.12;
+  const structureSimilarity = hashSimilarity * 0.24 + centerHashSimilarity * 0.28 + centerHistogramSimilarity * 0.16 + edgeSimilarity * 0.16 + textureSimilarity * 0.1 + varianceSimilarity * 0.06;
+
+  let score = shapeSimilarity * 310 + colorBlockSimilarity * 320 + structureSimilarity * 300 + gridSimilarity * 70 - imageShapePenalty(source, candidate);
+
   const haystack = buildSearchHaystack(product);
-
+  let colorTokenHits = 0;
   for (const token of inferVisualTokens(source)) {
-    if (haystack.includes(token)) score += 26;
+    if (haystack.includes(normalizeSearchText(token))) colorTokenHits += 1;
   }
+  score += Math.min(colorTokenHits * 12, 36);
 
   const normalizedCategory = normalizeSearchText(`${product.kind || ""} ${product.category || ""} ${product.title || ""}`);
-  if (
-    normalizedCategory.includes("bra") ||
-    normalizedCategory.includes("top") ||
-    normalizedCategory.includes("tank") ||
-    normalizedCategory.includes("support") ||
-    normalizedCategory.includes("sujetador")
-  ) {
-    if (source.aspect > 0.78 && source.aspect < 1.35) score += 16;
+  const sourceClass = imageShapeClass(source);
+  if (sourceClass === "shoe") {
+    if (/\b(shoe|shoes|sneaker|sneakers|zapatilla|zapatillas|tenis|dunk|force|jordan|air max)\b/.test(normalizedCategory)) score += 34;
+    if (/\b(bra|sujetador|top|shirt|camiseta|pantalon|pants|legging|hoodie|chaqueta)\b/.test(normalizedCategory)) score -= 72;
+  }
+  if (sourceClass === "tall") {
+    if (/\b(pants|pantalon|legging|jogger|shirt|camiseta|hoodie|chaqueta)\b/.test(normalizedCategory)) score += 22;
+    if (/\b(shoe|sneaker|zapatilla|tenis|dunk|force)\b/.test(normalizedCategory)) score -= 70;
+  }
+  if (sourceClass === "square") {
+    if (/\b(bra|sujetador|top|tank|shirt|camiseta|tee)\b/.test(normalizedCategory)) score += 22;
+    if (/\b(shoe|sneaker|zapatilla|tenis|dunk|force)\b/.test(normalizedCategory)) score -= 58;
   }
 
-  if (
-    normalizedCategory.includes("shirt") ||
-    normalizedCategory.includes("camiseta") ||
-    normalizedCategory.includes("tee") ||
-    normalizedCategory.includes("polo")
-  ) {
-    if (source.aspect > 0.62 && source.aspect < 1.08) score += 10;
-  }
-
-  return score;
+  return Math.round(Math.max(0, Math.min(1000, score)));
 }
 
 function mapCatalogProductToSearchProduct(product: SearchCatalogProduct): SearchProduct {
@@ -1936,11 +1955,12 @@ export default function Header() {
         const images = getCatalogProductImages(product);
         const intentScore = scoreIntentMatch(product, intent);
         const textScore = scoreTextAffinity(product, intent, sourceFeature);
+        const textTieBreaker = Math.max(-55, Math.min(55, intentScore * 0.28 + textScore * 0.22));
 
         if (!images.length) {
           return {
             product,
-            score: intentScore + textScore - 42,
+            score: Math.max(0, 180 + textTieBreaker),
             analyzedImages: 0,
           };
         }
@@ -1964,11 +1984,10 @@ export default function Header() {
           }
         }
 
-        const multiImageConsistency = Number.isFinite(secondBestScore) ? Math.max(0, secondBestScore) * 0.08 : 0;
-        const fallbackScore = intentScore + textScore - 42;
+        const consistencyBonus = Number.isFinite(secondBestScore) && secondBestScore > 520 ? Math.min(34, (secondBestScore - 520) * 0.08) : 0;
         const finalScore = Number.isFinite(bestScore)
-          ? imageScoreConfidence(bestScore + multiImageConsistency + intentScore + textScore, analyzedImages)
-          : fallbackScore;
+          ? imageScoreConfidence(bestScore + consistencyBonus + textTieBreaker, analyzedImages)
+          : Math.max(0, 180 + textTieBreaker);
 
         return {
           product,
@@ -1978,9 +1997,9 @@ export default function Header() {
       });
 
       const seenProducts = new Set<string>();
-      const matches = ranked
+      const sortedMatches = ranked
         .filter((entry): entry is { product: SearchCatalogProduct; score: number; analyzedImages: number } =>
-          Boolean(entry && Number.isFinite(entry.score))
+          Boolean(entry && Number.isFinite(entry.score) && entry.analyzedImages > 0)
         )
         .sort((a, b) => b.score - a.score)
         .filter((entry) => {
@@ -1989,20 +2008,26 @@ export default function Header() {
           if (seenProducts.has(key)) return false;
           seenProducts.add(key);
           return true;
-        })
-        .slice(0, 24)
-        .filter((entry, index) => index < 10 || entry.score > 145)
-        .map((entry) => {
-          const mapped = mapCatalogProductToSearchProduct(entry.product);
-          const roundedScore = Math.round(entry.score);
-          const matchLabel: SearchProduct["matchLabel"] =
-            roundedScore >= 650 ? "Exacto" : roundedScore >= 455 ? "Muy similar" : "Similar";
-          return {
-            ...mapped,
-            matchScore: roundedScore,
-            matchLabel,
-          };
         });
+
+      const topScore = sortedMatches[0]?.score ?? 0;
+      const minRelevantScore = topScore >= 720 ? Math.max(560, topScore - 190) : topScore >= 560 ? Math.max(470, topScore - 170) : 410;
+      const selectedMatches = sortedMatches
+        .filter((entry, index) => index < 6 || entry.score >= minRelevantScore)
+        .filter((entry) => entry.score >= 390)
+        .slice(0, 16);
+
+      const matches = selectedMatches.map((entry) => {
+        const mapped = mapCatalogProductToSearchProduct(entry.product);
+        const roundedScore = Math.round(entry.score);
+        const matchLabel: SearchProduct["matchLabel"] =
+          roundedScore >= 760 ? "Exacto" : roundedScore >= 610 ? "Muy similar" : "Similar";
+        return {
+          ...mapped,
+          matchScore: roundedScore,
+          matchLabel,
+        };
+      });
 
       if (lastImageReq.current !== reqId) return;
       setProducts(matches);
