@@ -1377,9 +1377,9 @@ type SessionUser = {
 };
 
 const RECENTS_KEY = "jusp_search_recents_v1";
-const IMAGE_FEATURE_CACHE_PREFIX = "jusp_visual_feature_v7:";
+const IMAGE_FEATURE_CACHE_PREFIX = "jusp_visual_feature_v8:";
 const IMAGE_FEATURE_CACHE_LIMIT = 420;
-const VISUAL_INDEX_VERSION = "v7-fast-visual";
+const VISUAL_INDEX_VERSION = "v8-fast-all-products";
 
 
 function getStableProductKey(product: SearchCatalogProduct): string {
@@ -1458,18 +1458,15 @@ function writeStoredImageFeature(src: string, feature: ImageFeature | null) {
 }
 
 function getScoreThreshold(sourceClass: ProductVisualClass, deep: boolean) {
-  // Thresholds lowered — original values were filtering too many valid matches
-  // because scoreVisualMatch with the old weights rarely reached 535+
-  if (sourceClass === "shoe") return deep ? 420 : 460;
-  if (sourceClass === "top" || sourceClass === "bottom" || sourceClass === "outerwear") return deep ? 380 : 420;
-  if (sourceClass === "accessory") return deep ? 360 : 400;
-  return deep ? 350 : 385;
+  if (sourceClass === "shoe") return deep ? 360 : 390;
+  if (sourceClass === "top" || sourceClass === "bottom" || sourceClass === "outerwear") return deep ? 330 : 360;
+  if (sourceClass === "accessory") return deep ? 310 : 340;
+  return deep ? 300 : 330;
 }
 
 function getMatchLabel(score: number): SearchProduct["matchLabel"] {
-  // Adjusted to match recalibrated score ranges (max ~850 instead of 1000)
-  if (score >= 700) return "Exacto";
-  if (score >= 520) return "Muy similar";
+  if (score >= 660) return "Exacto";
+  if (score >= 470) return "Muy similar";
   return "Similar";
 }
 
@@ -2466,8 +2463,8 @@ export default function Header() {
       .map((product) => ({ product, images: getCatalogProductImages(product) }))
       .filter((entry) => entry.images.length > 0);
 
-    const imageLimit = deep ? 16 : 5;
-    const entries = await mapWithConcurrency(productsWithImages, deep ? 5 : 10, async (entry) => {
+    const imageLimit = deep ? 10 : 2;
+    const entries = await mapWithConcurrency(productsWithImages, deep ? 6 : 14, async (entry) => {
       const uniqueImages = entry.images.slice(0, imageLimit);
       const features: CatalogVisualIndexEntry["features"] = [];
 
@@ -2510,7 +2507,7 @@ export default function Header() {
           const rawScore = scoreVisualMatch(entry.product, sourceFeature, item.feature);
           const classCompatible = productMatchesSourceClass(entry.product, sourceVisualClass);
           const primaryBoost = item.imageIndex === 0 ? 22 : item.imageIndex <= 2 ? 12 : 0;
-          const classBoost = classCompatible ? 42 : -70;
+          const classBoost = classCompatible ? 36 : -25;
           const score = Math.max(0, Math.min(1000, rawScore + primaryBoost + classBoost));
 
           if (score >= threshold - 60) confirmationHits += 1;
@@ -2523,7 +2520,7 @@ export default function Header() {
 
         const catalogClasses = getCatalogProductVisualClasses(entry.product);
         if (!catalogClasses.includes("unknown") && !productMatchesSourceClass(entry.product, sourceVisualClass)) {
-          bestScore -= sourceVisualClass === "shoe" || catalogClasses.includes("shoe") ? 90 : 55;
+          bestScore -= sourceVisualClass === "shoe" || catalogClasses.includes("shoe") ? 45 : 25;
         }
 
         // AI semantic scoring: strongest signal, applied with high weight
@@ -2534,7 +2531,7 @@ export default function Header() {
         } else if (options.intent) {
           // Fallback to pixel-only intent when AI is unavailable
           const intentScore = scoreIntentMatch(entry.product, options.intent);
-          bestScore += Math.max(-40, Math.min(80, intentScore * 0.55));
+          bestScore += Math.max(-20, Math.min(70, intentScore * 0.45));
         }
 
         if (confirmationHits >= 2) bestScore += options.deep ? 35 : 22;
@@ -2591,8 +2588,7 @@ export default function Header() {
       const semanticCandidates = buildSemanticVisualCandidates(catalog, sourceFeature, intent, deep ? 80 : 48);
 
       const sourceVisualClass = inferImageVisualClass(sourceFeature);
-      const quickCatalog = deep ? catalog : semanticCandidates.length >= 12 ? semanticCandidates : catalog;
-      const quickIndex = await buildCatalogVisualIndex(quickCatalog, false);
+      const quickIndex = await buildCatalogVisualIndex(catalog, false);
       if (lastImageReq.current !== reqId) return;
 
       if (!quickIndex.length) {
@@ -2604,15 +2600,18 @@ export default function Header() {
       }
 
       const quickRank = rankIndexedProducts(quickIndex, sourceFeature, { deep: false, intent, ai: aiDescription });
-      const sameFamilyQuick = quickRank.filter((entry) => productMatchesSourceClass(entry.product, sourceVisualClass));
-      const quickPool = (sameFamilyQuick.length >= 10 ? sameFamilyQuick : quickRank)
-        .filter((entry) => entry.score >= 240)
-        .slice(0, deep ? Math.min(72, Math.max(24, Math.ceil(quickIndex.length * 0.36))) : Math.min(28, Math.max(12, Math.ceil(quickIndex.length * 0.32))));
+      const quickPool = quickRank
+        .filter((entry) => entry.score >= 180)
+        .slice(0, deep ? Math.min(72, Math.max(24, Math.ceil(quickIndex.length * 0.34))) : Math.min(36, Math.max(16, Math.ceil(quickIndex.length * 0.22))));
 
       let rankSource = quickPool;
 
       if (deep) {
-        const deepCatalog = semanticCandidates.length >= 16 ? semanticCandidates : catalog;
+        const deepSeed = new Set([
+          ...quickPool.map((entry) => getStableProductKey(entry.product)),
+          ...semanticCandidates.slice(0, 32).map((product) => getStableProductKey(product)),
+        ]);
+        const deepCatalog = catalog.filter((product) => deepSeed.has(getStableProductKey(product)));
         const deepIndex = await buildCatalogVisualIndex(deepCatalog, true);
         if (lastImageReq.current !== reqId) return;
         rankSource = rankIndexedProducts(deepIndex, sourceFeature, { deep: true, intent, ai: aiDescription }).slice(0, 36);
@@ -2624,11 +2623,11 @@ export default function Header() {
 
       const threshold = getScoreThreshold(sourceVisualClass, deep);
       const strictMatches = rankSource
-        .filter((entry) => entry.score >= threshold && productMatchesSourceClass(entry.product, sourceVisualClass))
+        .filter((entry) => entry.score >= threshold)
         .sort((a, b) => b.score - a.score);
 
       const softMatches = rankSource
-        .filter((entry) => entry.score >= threshold - 70 && productMatchesSourceClass(entry.product, sourceVisualClass))
+        .filter((entry) => entry.score >= threshold - 90)
         .sort((a, b) => b.score - a.score);
 
       const honestFallback = rankSource
