@@ -195,29 +195,70 @@ function scoreCatalogProduct(product: SearchCatalogProduct, query: string): numb
   return score;
 }
 
+function looksLikeCatalogImageUrl(value: string): boolean {
+  const src = value.trim();
+  if (!src) return false;
+  if (src.startsWith("data:image/")) return true;
+  if (src.startsWith("blob:")) return false;
+
+  const clean = src.split("?")[0]?.split("#")[0]?.toLowerCase() || src.toLowerCase();
+  const hasImageExtension = /\.(png|jpe?g|webp|avif|gif|heic|heif)$/i.test(clean);
+  const looksRemoteImage = /^https?:\/\//i.test(src) && /(image|img|photo|photos|product|products|cdn|media|assets|static|upload|uploads)/i.test(src);
+  const looksLocalImage = src.startsWith("/") && /(image|img|photo|photos|product|products|media|assets|upload|uploads)/i.test(src);
+
+  return hasImageExtension || looksRemoteImage || looksLocalImage;
+}
+
+function normalizeCatalogImageSrc(value: string): string | null {
+  const src = value.trim();
+  if (!src) return null;
+
+  if (src.startsWith("//")) return `https:${src}`;
+  if (src.startsWith("http://") || src.startsWith("https://") || src.startsWith("/") || src.startsWith("data:image/")) {
+    return src;
+  }
+
+  if (looksLikeCatalogImageUrl(src)) return src;
+  return null;
+}
+
 function getCatalogProductImages(product: SearchCatalogProduct): string[] {
   const values: string[] = [];
+  const seenObjects = new WeakSet<object>();
+  const imageKeyPattern = /(image|images|img|src|url|photo|photos|picture|pictures|thumbnail|thumb|gallery|media|variant|variants)/i;
 
-  if (typeof product.image === "string" && product.image.trim()) {
-    values.push(product.image.trim());
-  }
+  const visit = (value: unknown, key = "", depth = 0) => {
+    if (depth > 7 || value == null) return;
 
-  if (Array.isArray(product.images)) {
-    for (const item of product.images) {
-      if (typeof item === "string" && item.trim()) values.push(item.trim());
+    if (typeof value === "string") {
+      if (!imageKeyPattern.test(key) && !looksLikeCatalogImageUrl(value)) return;
+      const normalized = normalizeCatalogImageSrc(value);
+      if (normalized && looksLikeCatalogImageUrl(normalized)) values.push(normalized);
+      return;
     }
-  }
 
-  if (Array.isArray(product.media)) {
-    for (const item of product.media) {
-      if (!item || typeof item !== "object") continue;
-      if (item.type === "image" && typeof item.src === "string" && item.src.trim()) {
-        values.push(item.src.trim());
+    if (Array.isArray(value)) {
+      for (const item of value) visit(item, key, depth + 1);
+      return;
+    }
+
+    if (typeof value === "object") {
+      if (seenObjects.has(value)) return;
+      seenObjects.add(value);
+
+      for (const [childKey, childValue] of Object.entries(value as Record<string, unknown>)) {
+        const nextKey = key ? `${key}.${childKey}` : childKey;
+        if (imageKeyPattern.test(nextKey) || typeof childValue === "object") {
+          visit(childValue, nextKey, depth + 1);
+        } else if (typeof childValue === "string" && looksLikeCatalogImageUrl(childValue)) {
+          visit(childValue, nextKey, depth + 1);
+        }
       }
     }
-  }
+  };
 
-  return [...new Set(values)].slice(0, 6);
+  visit(product);
+  return [...new Set(values)];
 }
 
 function loadImageElement(src: string): Promise<HTMLImageElement> {
@@ -1743,24 +1784,26 @@ export default function Header() {
             );
           }
 
-          if (!Number.isFinite(bestScore)) return null;
-          bestScore += Math.min(analyzedImages, 4) * 8;
+          const fallbackScore = scoreIntentMatch(product, intent) + scoreTextAffinity(product, intent, sourceFeature) - 24;
+          const finalScore = Number.isFinite(bestScore) ? bestScore + Math.min(analyzedImages, 8) * 10 : fallbackScore;
+
           return {
             product,
-            score: bestScore,
+            score: finalScore,
           };
         })
       );
 
       const matches = ranked
-        .filter((entry): entry is { product: SearchCatalogProduct; score: number } => Boolean(entry && entry.score > 170))
+        .filter((entry): entry is { product: SearchCatalogProduct; score: number } => Boolean(entry && Number.isFinite(entry.score)))
         .sort((a, b) => b.score - a.score)
-        .slice(0, 16)
+        .slice(0, 20)
+        .filter((entry, index) => index < 8 || entry.score > 120)
         .map((entry) => {
           const mapped = mapCatalogProductToSearchProduct(entry.product);
           const roundedScore = Math.round(entry.score);
           const matchLabel: SearchProduct["matchLabel"] =
-            roundedScore >= 620 ? "Exacto" : roundedScore >= 470 ? "Muy similar" : "Similar";
+            roundedScore >= 620 ? "Exacto" : roundedScore >= 430 ? "Muy similar" : "Similar";
           return {
             ...mapped,
             matchScore: roundedScore,
@@ -2254,7 +2297,7 @@ export default function Header() {
                           ? "Analizando silueta, colores, recorte, textura y productos similares..."
                           : products.length
                           ? "Resultados ordenados por parecido visual, tipo de producto, color y marca."
-                          : "No encontramos coincidencias fuertes. Sube una imagen centrada, sin fondos cargados."}
+                          : "No encontramos coincidencias fuertes, pero te mostramos las opciones mas cercanas del catalogo."}
                       </div>
                     ) : null}
                     {loading ? <div className="jusp-search-loading">Buscando…</div> : null}
