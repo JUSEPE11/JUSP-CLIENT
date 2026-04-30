@@ -59,11 +59,6 @@ type ImageFeature = {
   centerHistogram: number[];
   rowProfile: number[];
   colProfile: number[];
-  hsvHistogram: number[];
-  edgeHistogram: number[];
-  gridColors: number[];
-  dominantColors: number[][];
-  texture: number;
 };
 type VisualIntent = {
   brands: string[];
@@ -200,72 +195,68 @@ function scoreCatalogProduct(product: SearchCatalogProduct, query: string): numb
   return score;
 }
 
-function looksLikeCatalogImageUrl(value: string): boolean {
-  const src = value.trim();
-  if (!src) return false;
-  if (src.startsWith("data:image/")) return true;
-  if (src.startsWith("blob:")) return false;
-
-  const clean = src.split("?")[0]?.split("#")[0]?.toLowerCase() || src.toLowerCase();
-  const hasImageExtension = /\.(png|jpe?g|webp|avif|gif|heic|heif)$/i.test(clean);
-  const looksRemoteImage = /^https?:\/\//i.test(src) && /(image|img|photo|photos|product|products|cdn|media|assets|static|upload|uploads)/i.test(src);
-  const looksLocalImage = src.startsWith("/") && /(image|img|photo|photos|product|products|media|assets|upload|uploads)/i.test(src);
-
-  return hasImageExtension || looksRemoteImage || looksLocalImage;
-}
-
-function normalizeCatalogImageSrc(value: string): string | null {
-  const src = value.trim();
-  if (!src) return null;
-
-  if (src.startsWith("//")) return `https:${src}`;
-  if (src.startsWith("http://") || src.startsWith("https://") || src.startsWith("/") || src.startsWith("data:image/")) {
-    return src;
-  }
-
-  if (looksLikeCatalogImageUrl(src)) return src;
-  return null;
-}
-
 function getCatalogProductImages(product: SearchCatalogProduct): string[] {
   const values: string[] = [];
-  const seenObjects = new WeakSet<object>();
-  const imageKeyPattern = /(image|images|img|src|url|photo|photos|picture|pictures|thumbnail|thumb|gallery|media|variant|variants)/i;
+  const seen = new Set<string>();
+  const imageUrlPattern = /(?:^data:image\/|\.(?:png|jpe?g|webp|gif|avif)(?:[?#].*)?$|\/image\/|\/images\/|\/media\/|cdn|cloudinary|shopify|supabase)/i;
 
-  const visit = (value: unknown, key = "", depth = 0) => {
-    if (depth > 7 || value == null) return;
+  function pushUrl(value: unknown) {
+    const url = String(value ?? "").trim();
+    if (!url || seen.has(url)) return;
+    if (!imageUrlPattern.test(url)) return;
+    seen.add(url);
+    values.push(url);
+  }
+
+  function walk(value: unknown, depth = 0) {
+    if (depth > 4 || value == null) return;
 
     if (typeof value === "string") {
-      if (!imageKeyPattern.test(key) && !looksLikeCatalogImageUrl(value)) return;
-      const normalized = normalizeCatalogImageSrc(value);
-      if (normalized && looksLikeCatalogImageUrl(normalized)) values.push(normalized);
+      pushUrl(value);
       return;
     }
 
     if (Array.isArray(value)) {
-      for (const item of value) visit(item, key, depth + 1);
+      for (const item of value) walk(item, depth + 1);
       return;
     }
 
     if (typeof value === "object") {
-      if (seenObjects.has(value)) return;
-      seenObjects.add(value);
+      const record = value as Record<string, unknown>;
+      const priorityKeys = [
+        "image",
+        "src",
+        "url",
+        "thumbnail",
+        "thumb",
+        "mainImage",
+        "main_image",
+        "featuredImage",
+        "featured_image",
+        "images",
+        "gallery",
+        "media",
+        "photos",
+        "pictures",
+        "variants",
+      ];
 
-      for (const [childKey, childValue] of Object.entries(value as Record<string, unknown>)) {
-        const nextKey = key ? `${key}.${childKey}` : childKey;
-        if (imageKeyPattern.test(nextKey) || typeof childValue === "object") {
-          visit(childValue, nextKey, depth + 1);
-        } else if (typeof childValue === "string" && looksLikeCatalogImageUrl(childValue)) {
-          visit(childValue, nextKey, depth + 1);
+      for (const key of priorityKeys) {
+        if (key in record) walk(record[key], depth + 1);
+      }
+
+      for (const [key, nested] of Object.entries(record)) {
+        if (priorityKeys.includes(key)) continue;
+        if (/image|img|photo|picture|media|gallery|variant|thumbnail|thumb/i.test(key)) {
+          walk(nested, depth + 1);
         }
       }
     }
-  };
+  }
 
-  visit(product);
-  return [...new Set(values)];
+  walk(product);
+  return values.slice(0, 12);
 }
-
 function loadImageElement(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -371,26 +362,6 @@ function extractForegroundBounds(
   };
 }
 
-function rgbToHsv(r: number, g: number, b: number): { h: number; s: number; v: number } {
-  const nr = r / 255;
-  const ng = g / 255;
-  const nb = b / 255;
-  const max = Math.max(nr, ng, nb);
-  const min = Math.min(nr, ng, nb);
-  const delta = max - min;
-  let h = 0;
-
-  if (delta !== 0) {
-    if (max === nr) h = ((ng - nb) / delta) % 6;
-    else if (max === ng) h = (nb - nr) / delta + 2;
-    else h = (nr - ng) / delta + 4;
-    h *= 60;
-    if (h < 0) h += 360;
-  }
-
-  return { h, s: max === 0 ? 0 : delta / max, v: max };
-}
-
 function computeImageFeatureFromImage(image: CanvasImageSource, width: number, height: number): ImageFeature | null {
   if (typeof document === "undefined") return null;
 
@@ -417,13 +388,8 @@ function computeImageFeatureFromImage(image: CanvasImageSource, width: number, h
   let sumSaturation = 0;
   const histogram = new Array<number>(16).fill(0);
   const colorHistogram = new Array<number>(48).fill(0);
-  const hsvHistogram = new Array<number>(128).fill(0);
-  const edgeHistogram = new Array<number>(8).fill(0);
   const rowProfile = new Array<number>(canvas.height).fill(0);
   const colProfile = new Array<number>(canvas.width).fill(0);
-  const gridSums = new Array<number>(4 * 4 * 3).fill(0);
-  const gridCounts = new Array<number>(4 * 4).fill(0);
-  const dominantBuckets = new Map<string, { count: number; r: number; g: number; b: number }>();
 
   for (let i = 0; i < data.length; i += 4) {
     const alpha = data[i + 3];
@@ -445,62 +411,12 @@ function computeImageFeatureFromImage(image: CanvasImageSource, width: number, h
     colorHistogram[Math.max(0, Math.min(15, Math.floor(pr / 16)))] += 1;
     colorHistogram[16 + Math.max(0, Math.min(15, Math.floor(pg / 16)))] += 1;
     colorHistogram[32 + Math.max(0, Math.min(15, Math.floor(pb / 16)))] += 1;
-
-    const hsv = rgbToHsv(pr, pg, pb);
-    const hBucket = Math.max(0, Math.min(7, Math.floor(hsv.h / 45)));
-    const sBucket = Math.max(0, Math.min(3, Math.floor(hsv.s * 4)));
-    const vBucket = Math.max(0, Math.min(3, Math.floor(hsv.v * 4)));
-    hsvHistogram[hBucket * 16 + sBucket * 4 + vBucket] += 1;
-
-    const gridX = Math.max(0, Math.min(3, Math.floor((x / canvas.width) * 4)));
-    const gridY = Math.max(0, Math.min(3, Math.floor((y / canvas.height) * 4)));
-    const gridIndex = gridY * 4 + gridX;
-    gridSums[gridIndex * 3] += pr;
-    gridSums[gridIndex * 3 + 1] += pg;
-    gridSums[gridIndex * 3 + 2] += pb;
-    gridCounts[gridIndex] += 1;
-
-    const dominantKey = `${Math.floor(pr / 32)}-${Math.floor(pg / 32)}-${Math.floor(pb / 32)}`;
-    const dominant = dominantBuckets.get(dominantKey) || { count: 0, r: 0, g: 0, b: 0 };
-    dominant.count += 1;
-    dominant.r += pr;
-    dominant.g += pg;
-    dominant.b += pb;
-    dominantBuckets.set(dominantKey, dominant);
-
     rowProfile[y] += 1;
     colProfile[x] += 1;
     count += 1;
   }
 
   if (!count) return null;
-
-  let textureAccumulator = 0;
-  let textureCount = 0;
-  for (let y = 1; y < canvas.height - 1; y += 1) {
-    for (let x = 1; x < canvas.width - 1; x += 1) {
-      const centerIdx = (y * canvas.width + x) * 4;
-      if (data[centerIdx + 3] < 8) continue;
-      const leftIdx = (y * canvas.width + x - 1) * 4;
-      const rightIdx = (y * canvas.width + x + 1) * 4;
-      const topIdx = ((y - 1) * canvas.width + x) * 4;
-      const bottomIdx = ((y + 1) * canvas.width + x) * 4;
-      const leftLum = (data[leftIdx] + data[leftIdx + 1] + data[leftIdx + 2]) / 3;
-      const rightLum = (data[rightIdx] + data[rightIdx + 1] + data[rightIdx + 2]) / 3;
-      const topLum = (data[topIdx] + data[topIdx + 1] + data[topIdx + 2]) / 3;
-      const bottomLum = (data[bottomIdx] + data[bottomIdx + 1] + data[bottomIdx + 2]) / 3;
-      const dx = rightLum - leftLum;
-      const dy = bottomLum - topLum;
-      const magnitude = Math.sqrt(dx * dx + dy * dy);
-      if (magnitude < 8) continue;
-      let angle = Math.atan2(dy, dx);
-      if (angle < 0) angle += Math.PI * 2;
-      const edgeBucket = Math.max(0, Math.min(7, Math.floor((angle / (Math.PI * 2)) * 8)));
-      edgeHistogram[edgeBucket] += magnitude;
-      textureAccumulator += magnitude;
-      textureCount += 1;
-    }
-  }
 
   const r = sumR / count;
   const g = sumG / count;
@@ -595,19 +511,6 @@ function computeImageFeatureFromImage(image: CanvasImageSource, width: number, h
     }
   }
 
-  const gridColors = gridCounts.flatMap((value, index) => {
-    if (!value) return [r / 255, g / 255, b / 255];
-    return [gridSums[index * 3] / value / 255, gridSums[index * 3 + 1] / value / 255, gridSums[index * 3 + 2] / value / 255];
-  });
-
-  const dominantColors = [...dominantBuckets.values()]
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5)
-    .map((item) => [item.r / item.count, item.g / item.count, item.b / item.count, item.count / count]);
-
-  const edgeTotal = edgeHistogram.reduce((sum, value) => sum + value, 0) || 1;
-  const texture = textureCount ? textureAccumulator / textureCount / 255 : 0;
-
   return {
     r,
     g,
@@ -626,11 +529,6 @@ function computeImageFeatureFromImage(image: CanvasImageSource, width: number, h
     centerHistogram: centerHistogram.map((value) => value / (centerCanvas.width * centerCanvas.height)),
     rowProfile: rowProfile.map((value) => value / canvas.width),
     colProfile: colProfile.map((value) => value / canvas.height),
-    hsvHistogram: hsvHistogram.map((value) => value / count),
-    edgeHistogram: edgeHistogram.map((value) => value / edgeTotal),
-    gridColors,
-    dominantColors,
-    texture,
   };
 }
 
@@ -763,65 +661,6 @@ function profileDistance(a: number[], b: number[]): number {
   return total / length;
 }
 
-function vectorDistance(a: number[], b: number[]): number {
-  const length = Math.min(a.length, b.length);
-  if (!length) return 1;
-  let total = 0;
-  for (let i = 0; i < length; i += 1) {
-    const diff = (a[i] ?? 0) - (b[i] ?? 0);
-    total += diff * diff;
-  }
-  return Math.sqrt(total / length);
-}
-
-function dominantColorDistance(a: number[][], b: number[][]): number {
-  if (!a.length || !b.length) return 1;
-  let total = 0;
-  let weight = 0;
-
-  for (const sourceColor of a) {
-    const sourceWeight = Number(sourceColor[3] ?? 0.2);
-    let best = Number.POSITIVE_INFINITY;
-    for (const candidateColor of b) {
-      const distance = Math.sqrt(
-        Math.pow((sourceColor[0] ?? 0) - (candidateColor[0] ?? 0), 2) +
-          Math.pow((sourceColor[1] ?? 0) - (candidateColor[1] ?? 0), 2) +
-          Math.pow((sourceColor[2] ?? 0) - (candidateColor[2] ?? 0), 2)
-      );
-      best = Math.min(best, distance);
-    }
-    total += best * sourceWeight;
-    weight += sourceWeight;
-  }
-
-  return weight ? total / weight / 255 : 1;
-}
-
-function imageScoreConfidence(score: number, analyzedImages: number): number {
-  const imageBonus = Math.min(1, analyzedImages / 4) * 24;
-  return Math.round(score + imageBonus);
-}
-
-async function mapWithConcurrency<T, R>(
-  items: T[],
-  limit: number,
-  mapper: (item: T, index: number) => Promise<R>
-): Promise<R[]> {
-  const results = new Array<R>(items.length);
-  let nextIndex = 0;
-
-  async function worker() {
-    while (nextIndex < items.length) {
-      const currentIndex = nextIndex;
-      nextIndex += 1;
-      results[currentIndex] = await mapper(items[currentIndex], currentIndex);
-    }
-  }
-
-  await Promise.all(Array.from({ length: Math.min(limit, items.length || 1) }, () => worker()));
-  return results;
-}
-
 function scoreIntentMatch(product: SearchCatalogProduct, intent: VisualIntent): number {
   const haystack = buildSearchHaystack(product);
   const brand = normalizeSearchText(product.brand || "");
@@ -928,34 +767,36 @@ function scoreTextAffinity(product: SearchCatalogProduct, intent: VisualIntent, 
   return score;
 }
 
-function normalizedSimilarity(distance: number, maxUsefulDistance: number): number {
-  if (!Number.isFinite(distance) || maxUsefulDistance <= 0) return 0;
-  return Math.max(0, Math.min(1, 1 - distance / maxUsefulDistance));
-}
-
-function imageShapeClass(feature: ImageFeature): "shoe" | "tall" | "square" | "wide" | "unknown" {
-  const aspect = Math.max(0.1, feature.aspect || 1);
-  const fill = feature.cropFill || 0;
-
-  if (aspect >= 1.55 && fill <= 0.86) return "shoe";
-  if (aspect <= 0.78) return "tall";
-  if (aspect >= 0.82 && aspect <= 1.24) return "square";
-  if (aspect > 1.24 && aspect < 1.55) return "wide";
+function getVisualFamily(feature: ImageFeature): "shoe" | "garment" | "compact" | "wide" | "unknown" {
+  if (feature.aspect >= 1.58 && feature.cropFill <= 0.82) return "shoe";
+  if (feature.aspect >= 0.58 && feature.aspect <= 1.45) return "garment";
+  if (feature.aspect > 1.45) return "wide";
+  if (feature.aspect < 0.58) return "compact";
   return "unknown";
 }
 
-function imageShapePenalty(source: ImageFeature, candidate: ImageFeature): number {
-  const sourceClass = imageShapeClass(source);
-  const candidateClass = imageShapeClass(candidate);
-  if (sourceClass === "unknown" || candidateClass === "unknown" || sourceClass === candidateClass) return 0;
+function getCatalogProductFamily(product: SearchCatalogProduct): "shoe" | "garment" | "accessory" | "unknown" {
+  const text = normalizeSearchText(
+    String(product.title || "") + " " +
+      String(product.name || "") + " " +
+      String(product.kind || "") + " " +
+      String(product.category || "") + " " +
+      String(product.tags || "")
+  );
 
-  const hardMismatch =
-    (sourceClass === "shoe" && candidateClass !== "shoe") ||
-    (candidateClass === "shoe" && sourceClass !== "shoe") ||
-    (sourceClass === "tall" && candidateClass === "wide") ||
-    (sourceClass === "wide" && candidateClass === "tall");
+  if (/\b(shoe|shoes|sneaker|sneakers|zapatilla|zapatillas|tenis|dunk|jordan|air force|air max)\b/.test(text)) {
+    return "shoe";
+  }
 
-  return hardMismatch ? 155 : 78;
+  if (/\b(bra|top|tank|shirt|camiseta|tee|polo|pants|pantalon|legging|leggings|jogger|short|shorts|hoodie|jacket|chaqueta|sudadera)\b/.test(text)) {
+    return "garment";
+  }
+
+  if (/\b(cap|gorra|hat|bag|bolso|mochila|accessory|accesorio)\b/.test(text)) {
+    return "accessory";
+  }
+
+  return "unknown";
 }
 
 function scoreVisualMatch(product: SearchCatalogProduct, source: ImageFeature, candidate: ImageFeature): number {
@@ -966,69 +807,52 @@ function scoreVisualMatch(product: SearchCatalogProduct, source: ImageFeature, c
   );
   const hashDistance = hammingDistance(source.hash, candidate.hash);
   const centerHashDistance = hammingDistance(source.centerHash, candidate.centerHash);
-  const edgeDistance = Math.abs(source.edgeBalance - candidate.edgeBalance);
   const colorHistogramDelta = histogramDistance(source.colorHistogram, candidate.colorHistogram);
   const centerHistogramDelta = histogramDistance(source.centerHistogram, candidate.centerHistogram);
-  const hsvDelta = histogramDistance(source.hsvHistogram, candidate.hsvHistogram);
-  const edgeHistogramDelta = histogramDistance(source.edgeHistogram, candidate.edgeHistogram);
-  const gridColorDelta = vectorDistance(source.gridColors, candidate.gridColors);
-  const dominantPaletteDelta = dominantColorDistance(source.dominantColors, candidate.dominantColors);
+  const luminanceHistogramDelta = histogramDistance(source.histogram, candidate.histogram);
   const rowShapeDistance = profileDistance(source.rowProfile, candidate.rowProfile);
   const colShapeDistance = profileDistance(source.colProfile, candidate.colProfile);
-  const aspectRatioDistance = Math.abs(Math.log(Math.max(0.1, source.aspect) / Math.max(0.1, candidate.aspect)));
-  const textureDistance = Math.abs(source.texture - candidate.texture);
+  const aspectRatioDistance = Math.abs(Math.log(Math.max(0.12, source.aspect) / Math.max(0.12, candidate.aspect)));
+  const saturationDistance = Math.abs(source.saturation - candidate.saturation);
   const fillDistance = Math.abs(source.cropFill - candidate.cropFill);
-  const warmnessDistance = Math.abs(source.warmness - candidate.warmness);
   const varianceDistance = Math.abs(source.variance - candidate.variance);
+  const edgeDistance = Math.abs(source.edgeBalance - candidate.edgeBalance) / 64;
 
-  const hashSimilarity = normalizedSimilarity(hashDistance, 42);
-  const centerHashSimilarity = normalizedSimilarity(centerHashDistance, 38);
-  const colorSimilarity = normalizedSimilarity(colorDistance, 185);
-  const colorHistogramSimilarity = normalizedSimilarity(colorHistogramDelta, 2.2);
-  const centerHistogramSimilarity = normalizedSimilarity(centerHistogramDelta, 1.75);
-  const hsvSimilarity = normalizedSimilarity(hsvDelta, 2.35);
-  const edgeSimilarity = normalizedSimilarity(edgeHistogramDelta + edgeDistance / 64, 1.65);
-  const gridSimilarity = normalizedSimilarity(gridColorDelta, 0.58);
-  const paletteSimilarity = normalizedSimilarity(dominantPaletteDelta, 0.62);
-  const rowSimilarity = normalizedSimilarity(rowShapeDistance, 0.34);
-  const colSimilarity = normalizedSimilarity(colShapeDistance, 0.34);
-  const aspectSimilarity = normalizedSimilarity(aspectRatioDistance, 0.82);
-  const textureSimilarity = normalizedSimilarity(textureDistance, 0.36);
-  const fillSimilarity = normalizedSimilarity(fillDistance, 0.42);
-  const warmnessSimilarity = normalizedSimilarity(warmnessDistance, 0.54);
-  const varianceSimilarity = normalizedSimilarity(varianceDistance, 0.38);
+  let score =
+    1000 -
+    colorDistance * 1.08 -
+    hashDistance * 5.6 -
+    centerHashDistance * 7.2 -
+    colorHistogramDelta * 260 -
+    centerHistogramDelta * 215 -
+    luminanceHistogramDelta * 130 -
+    rowShapeDistance * 155 -
+    colShapeDistance * 155 -
+    aspectRatioDistance * 190 -
+    saturationDistance * 115 -
+    fillDistance * 85 -
+    varianceDistance * 210 -
+    edgeDistance * 95;
 
-  const shapeSimilarity = aspectSimilarity * 0.34 + rowSimilarity * 0.24 + colSimilarity * 0.24 + fillSimilarity * 0.18;
-  const colorBlockSimilarity = colorSimilarity * 0.2 + hsvSimilarity * 0.28 + colorHistogramSimilarity * 0.18 + paletteSimilarity * 0.22 + warmnessSimilarity * 0.12;
-  const structureSimilarity = hashSimilarity * 0.24 + centerHashSimilarity * 0.28 + centerHistogramSimilarity * 0.16 + edgeSimilarity * 0.16 + textureSimilarity * 0.1 + varianceSimilarity * 0.06;
+  const sourceFamily = getVisualFamily(source);
+  const candidateFamily = getVisualFamily(candidate);
+  const productFamily = getCatalogProductFamily(product);
 
-  let score = shapeSimilarity * 310 + colorBlockSimilarity * 320 + structureSimilarity * 300 + gridSimilarity * 70 - imageShapePenalty(source, candidate);
-
-  const haystack = buildSearchHaystack(product);
-  let colorTokenHits = 0;
-  for (const token of inferVisualTokens(source)) {
-    if (haystack.includes(normalizeSearchText(token))) colorTokenHits += 1;
-  }
-  score += Math.min(colorTokenHits * 12, 36);
-
-  const normalizedCategory = normalizeSearchText(`${product.kind || ""} ${product.category || ""} ${product.title || ""}`);
-  const sourceClass = imageShapeClass(source);
-  if (sourceClass === "shoe") {
-    if (/\b(shoe|shoes|sneaker|sneakers|zapatilla|zapatillas|tenis|dunk|force|jordan|air max)\b/.test(normalizedCategory)) score += 34;
-    if (/\b(bra|sujetador|top|shirt|camiseta|pantalon|pants|legging|hoodie|chaqueta)\b/.test(normalizedCategory)) score -= 72;
-  }
-  if (sourceClass === "tall") {
-    if (/\b(pants|pantalon|legging|jogger|shirt|camiseta|hoodie|chaqueta)\b/.test(normalizedCategory)) score += 22;
-    if (/\b(shoe|sneaker|zapatilla|tenis|dunk|force)\b/.test(normalizedCategory)) score -= 70;
-  }
-  if (sourceClass === "square") {
-    if (/\b(bra|sujetador|top|tank|shirt|camiseta|tee)\b/.test(normalizedCategory)) score += 22;
-    if (/\b(shoe|sneaker|zapatilla|tenis|dunk|force)\b/.test(normalizedCategory)) score -= 58;
+  if (sourceFamily !== "unknown" && candidateFamily !== "unknown" && sourceFamily !== candidateFamily) {
+    score -= 180;
   }
 
-  return Math.round(Math.max(0, Math.min(1000, score)));
+  if (sourceFamily === "shoe" && productFamily === "garment") score -= 230;
+  if (sourceFamily === "garment" && productFamily === "shoe") score -= 230;
+
+  const sourceTokens = inferVisualTokens(source);
+  const candidateTokens = inferVisualTokens(candidate);
+  const sharedColor = sourceTokens.some((token) => candidateTokens.includes(token));
+  if (sourceTokens.length && candidateTokens.length && !sharedColor) score -= 70;
+  if (sharedColor) score += 22;
+
+  return Math.max(0, Math.min(1000, score));
 }
-
 function mapCatalogProductToSearchProduct(product: SearchCatalogProduct): SearchProduct {
   const subtitleParts = [product.brand, product.gender, product.kind || product.category]
     .map((value) => String(value ?? "").trim())
@@ -1088,6 +912,27 @@ function safeSaveRecent(q: string) {
 
 function clamp(n: number, a: number, b: number) {
   return Math.max(a, Math.min(b, n));
+}
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  mapper: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      results[currentIndex] = await mapper(items[currentIndex], currentIndex);
+    }
+  }
+
+  const workerCount = Math.max(1, Math.min(limit, items.length));
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+  return results;
 }
 
 async function safeJson(res: Response) {
@@ -1949,88 +1794,74 @@ export default function Header() {
         setImageSearchMode("error");
         return;
       }
-      const intent = inferIntentFromImage(file.name, sourceFeature);
 
-      const ranked = await mapWithConcurrency(catalog, 6, async (product) => {
-        const images = getCatalogProductImages(product);
-        const intentScore = scoreIntentMatch(product, intent);
-        const textScore = scoreTextAffinity(product, intent, sourceFeature);
-        const textTieBreaker = Math.max(-55, Math.min(55, intentScore * 0.28 + textScore * 0.22));
+      const catalogWithImages = catalog
+        .map((product) => ({ product, images: getCatalogProductImages(product) }))
+        .filter((entry) => entry.images.length > 0);
 
-        if (!images.length) {
-          return {
-            product,
-            score: Math.max(0, 180 + textTieBreaker),
-            analyzedImages: 0,
-          };
-        }
-
-        let bestScore = Number.NEGATIVE_INFINITY;
-        let secondBestScore = Number.NEGATIVE_INFINITY;
-        let analyzedImages = 0;
-
-        for (const image of images) {
-          if (lastImageReq.current !== reqId) break;
-          const feature = await getCachedImageFeature(image);
-          if (!feature) continue;
-          analyzedImages += 1;
-
-          const imageScore = scoreVisualMatch(product, sourceFeature, feature);
-          if (imageScore > bestScore) {
-            secondBestScore = bestScore;
-            bestScore = imageScore;
-          } else if (imageScore > secondBestScore) {
-            secondBestScore = imageScore;
-          }
-        }
-
-        const consistencyBonus = Number.isFinite(secondBestScore) && secondBestScore > 520 ? Math.min(34, (secondBestScore - 520) * 0.08) : 0;
-        const finalScore = Number.isFinite(bestScore)
-          ? imageScoreConfidence(bestScore + consistencyBonus + textTieBreaker, analyzedImages)
-          : Math.max(0, 180 + textTieBreaker);
-
+      const quickRank = await mapWithConcurrency(catalogWithImages, 5, async (entry) => {
+        const primaryFeature = await getCachedImageFeature(entry.images[0]);
+        const score = primaryFeature ? scoreVisualMatch(entry.product, sourceFeature, primaryFeature) : 0;
         return {
-          product,
-          score: finalScore,
-          analyzedImages,
-        };
-      });
-
-      const seenProducts = new Set<string>();
-      const sortedMatches = ranked
-        .filter((entry): entry is { product: SearchCatalogProduct; score: number; analyzedImages: number } =>
-          Boolean(entry && Number.isFinite(entry.score) && entry.analyzedImages > 0)
-        )
-        .sort((a, b) => b.score - a.score)
-        .filter((entry) => {
-          const key = String(entry.product.id || entry.product.slug || entry.product.title || entry.product.name || "");
-          if (!key) return true;
-          if (seenProducts.has(key)) return false;
-          seenProducts.add(key);
-          return true;
-        });
-
-      const topScore = sortedMatches[0]?.score ?? 0;
-      const minRelevantScore = topScore >= 720 ? Math.max(560, topScore - 190) : topScore >= 560 ? Math.max(470, topScore - 170) : 410;
-      const selectedMatches = sortedMatches
-        .filter((entry, index) => index < 6 || entry.score >= minRelevantScore)
-        .filter((entry) => entry.score >= 390)
-        .slice(0, 16);
-
-      const matches = selectedMatches.map((entry) => {
-        const mapped = mapCatalogProductToSearchProduct(entry.product);
-        const roundedScore = Math.round(entry.score);
-        const matchLabel: SearchProduct["matchLabel"] =
-          roundedScore >= 760 ? "Exacto" : roundedScore >= 610 ? "Muy similar" : "Similar";
-        return {
-          ...mapped,
-          matchScore: roundedScore,
-          matchLabel,
+          product: entry.product,
+          images: entry.images,
+          score,
         };
       });
 
       if (lastImageReq.current !== reqId) return;
-      setProducts(matches);
+
+      const deepCandidates = quickRank
+        .filter((entry) => entry.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, Math.min(36, Math.max(16, Math.ceil(catalogWithImages.length * 0.28))));
+
+      const deepRank = await mapWithConcurrency(deepCandidates, 4, async (entry) => {
+        let bestScore = entry.score;
+        let bestImageIndex = 0;
+        const imagesToAnalyze = entry.images.slice(0, 12);
+
+        for (let index = 0; index < imagesToAnalyze.length; index += 1) {
+          const feature = await getCachedImageFeature(imagesToAnalyze[index]);
+          if (!feature) continue;
+          const visualScore = scoreVisualMatch(entry.product, sourceFeature, feature);
+          if (visualScore > bestScore) {
+            bestScore = visualScore;
+            bestImageIndex = index;
+          }
+        }
+
+        const primaryImageBonus = bestImageIndex === 0 ? 12 : 0;
+        return {
+          product: entry.product,
+          score: Math.min(1000, bestScore + primaryImageBonus),
+        };
+      });
+
+      const strictMatches = deepRank
+        .filter((entry) => entry.score >= 360)
+        .sort((a, b) => b.score - a.score);
+
+      const fallbackMatches = deepRank
+        .filter((entry) => entry.score > 0)
+        .sort((a, b) => b.score - a.score);
+
+      const finalMatches = (strictMatches.length >= 4 ? strictMatches : fallbackMatches)
+        .slice(0, 12)
+        .map((entry) => {
+          const mapped = mapCatalogProductToSearchProduct(entry.product);
+          const roundedScore = Math.round(entry.score);
+          const matchLabel: SearchProduct["matchLabel"] =
+            roundedScore >= 780 ? "Exacto" : roundedScore >= 590 ? "Muy similar" : "Similar";
+          return {
+            ...mapped,
+            matchScore: roundedScore,
+            matchLabel,
+          };
+        });
+
+      if (lastImageReq.current !== reqId) return;
+      setProducts(finalMatches);
     } catch {
       if (lastImageReq.current !== reqId) return;
       setProducts([]);
@@ -2039,7 +1870,6 @@ export default function Header() {
       if (lastImageReq.current === reqId) setLoading(false);
     }
   }
-
 
   useEffect(() => {
     let alive = true;
@@ -2512,10 +2342,10 @@ export default function Header() {
                         {imageSearchMode === "error"
                           ? "No se pudo leer esa imagen. Prueba otra foto mas clara."
                           : loading
-                          ? "Analizando todas las imágenes del catálogo: silueta, color, textura, proporción y detalles..."
+                          ? "Analizando silueta, colores, recorte, textura y productos similares..."
                           : products.length
-                          ? "Resultados ordenados por coincidencia visual real entre todas las fotos del catálogo."
-                          : "No encontramos coincidencias fuertes, pero te mostramos las opciones mas cercanas del catalogo."}
+                          ? "Resultados ordenados por parecido visual, tipo de producto, color y marca."
+                          : "No encontramos coincidencias fuertes. Sube una imagen centrada, sin fondos cargados."}
                       </div>
                     ) : null}
                     {loading ? <div className="jusp-search-loading">Buscando…</div> : null}
