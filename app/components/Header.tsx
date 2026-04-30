@@ -65,6 +65,7 @@ type VisualIntent = {
   categories: string[];
   genders: string[];
   colors: string[];
+  shapes: string[];
 };
 
 function normalizeSearchText(value: unknown): string {
@@ -216,7 +217,7 @@ function getCatalogProductImages(product: SearchCatalogProduct): string[] {
     }
   }
 
-  return [...new Set(values)].slice(0, 3);
+  return [...new Set(values)].slice(0, 6);
 }
 
 function loadImageElement(src: string): Promise<HTMLImageElement> {
@@ -520,6 +521,8 @@ function inferVisualTokens(feature: ImageFeature): string[] {
   if (g > r + 18 && g > b + 12) tokens.push("green", "verde");
   if (r > 150 && g > 120 && b < 110) tokens.push("orange", "naranja");
   if (r > 155 && g > 145 && b < 90) tokens.push("yellow", "amarillo");
+  if (r > 118 && g > 82 && b < 72 && feature.warmness > 0.18) tokens.push("brown", "cafe", "marron");
+  if (r > 118 && g > 92 && b > 70 && Math.abs(r - g) < 46 && Math.abs(g - b) < 46) tokens.push("beige", "cream", "crema");
   if (Math.abs(r - g) < 16 && Math.abs(g - b) < 16 && brightness >= 90 && brightness <= 190) {
     tokens.push("grey", "gray", "gris");
   }
@@ -533,6 +536,7 @@ function inferIntentFromImage(fileName: string, feature: ImageFeature): VisualIn
   const categories = new Set<string>();
   const genders = new Set<string>();
   const colors = new Set<string>(inferVisualTokens(feature));
+  const shapes = new Set<string>();
 
   const brandMatchers = [
     ["nike", ["nike", "jordan", "jumpman"]],
@@ -564,19 +568,29 @@ function inferIntentFromImage(fileName: string, feature: ImageFeature): VisualIn
   if (/\bhombre\b|\bmen\b|\bmale\b/.test(text)) genders.add("men");
   if (/\bninos\b|\bnino\b|\bkids\b|\bgirls\b|\bboys\b/.test(text)) genders.add("kids");
 
-  if (feature.aspect > 0.78 && feature.aspect < 1.36) {
+  if (feature.aspect > 1.75 && feature.cropFill < 0.76) {
+    categories.add("shoes");
+    shapes.add("wide-low");
+  } else if (feature.aspect > 0.78 && feature.aspect < 1.36) {
     categories.add("sports-bra");
+    shapes.add("square-garment");
   } else if (feature.aspect > 0.56 && feature.aspect < 1.1) {
     categories.add("shirt");
+    shapes.add("tall-garment");
   } else if (feature.aspect >= 1.36) {
     categories.add("pants");
+    shapes.add("wide-garment");
   }
+
+  if (feature.saturation < 0.12) shapes.add("neutral-color");
+  if (feature.cropFill > 0.82) shapes.add("full-frame");
 
   return {
     brands: [...brands],
     categories: [...categories],
     genders: [...genders],
     colors: [...colors],
+    shapes: [...shapes],
   };
 }
 
@@ -615,6 +629,7 @@ function scoreIntentMatch(product: SearchCatalogProduct, intent: VisualIntent): 
   const brand = normalizeSearchText(product.brand || "");
   const gender = normalizeSearchText(product.gender || "");
   const category = normalizeSearchText(`${product.kind || ""} ${product.category || ""} ${product.title || ""}`);
+  const title = normalizeSearchText(product.title || product.name || "");
   let score = 0;
 
   if (intent.brands.length) {
@@ -638,12 +653,12 @@ function scoreIntentMatch(product: SearchCatalogProduct, intent: VisualIntent): 
       shoes: ["shoe", "shoes", "zapatilla", "zapatillas", "sneaker", "tenis"],
     };
 
-    let bestCategoryScore = -18;
+    let bestCategoryScore = -30;
     for (const token of intent.categories) {
       const terms = categoryMap[token] || [token];
       const match = terms.some((term) => category.includes(normalizeSearchText(term)) || haystack.includes(normalizeSearchText(term)));
       if (match) {
-        bestCategoryScore = Math.max(bestCategoryScore, 42);
+        bestCategoryScore = Math.max(bestCategoryScore, 64);
       }
     }
     score += bestCategoryScore;
@@ -654,8 +669,63 @@ function scoreIntentMatch(product: SearchCatalogProduct, intent: VisualIntent): 
     for (const token of intent.colors.slice(0, 3)) {
       if (haystack.includes(normalizeSearchText(token))) colorHits += 1;
     }
-    score += colorHits * 8;
+    score += colorHits * 16;
   }
+
+  if (intent.shapes.includes("wide-low")) {
+    const looksLikeShoe =
+      title.includes("dunk") ||
+      title.includes("air force") ||
+      title.includes("air max") ||
+      title.includes("shoe") ||
+      title.includes("sneaker") ||
+      title.includes("zapatilla") ||
+      title.includes("tenis") ||
+      category.includes("shoes");
+    score += looksLikeShoe ? 28 : -22;
+  }
+
+  if (intent.shapes.includes("square-garment")) {
+    const looksLikeBra =
+      title.includes("bra") ||
+      title.includes("sujetador") ||
+      title.includes("top") ||
+      title.includes("tank") ||
+      title.includes("support");
+    score += looksLikeBra ? 34 : 0;
+  }
+
+  return score;
+}
+
+function scoreTextAffinity(product: SearchCatalogProduct, intent: VisualIntent, source: ImageFeature) {
+  const haystack = buildSearchHaystack(product);
+  const title = normalizeSearchText(product.title || product.name || "");
+  let score = 0;
+
+  const visualTokens = new Set([...intent.colors, ...inferVisualTokens(source)]);
+  for (const token of visualTokens) {
+    if (haystack.includes(normalizeSearchText(token))) score += 14;
+  }
+
+  if (intent.categories.includes("sports-bra")) {
+    if (/\b(bra|sujetador|top|tank|support)\b/.test(title)) score += 54;
+    if (/\b(shoe|sneaker|zapatilla|dunk|force|max)\b/.test(title)) score -= 58;
+  }
+
+  if (intent.categories.includes("shoes")) {
+    if (/\b(shoe|sneaker|zapatilla|tenis|dunk|force|max|jordan)\b/.test(title)) score += 54;
+    if (/\b(bra|sujetador|top|shirt|camiseta|pants|legging)\b/.test(title)) score -= 48;
+  }
+
+  if (intent.categories.includes("pants")) {
+    if (/\b(pants|pantalon|legging|jogger|trouser)\b/.test(title)) score += 46;
+    if (/\b(shoe|sneaker|zapatilla|bra|sujetador)\b/.test(title)) score -= 38;
+  }
+
+  if (intent.genders.includes("women") && /\b(women|woman|mujer|female|dama)\b/.test(haystack)) score += 18;
+  if (intent.genders.includes("men") && /\b(men|hombre|male|caballero)\b/.test(haystack)) score += 18;
+  if (intent.genders.includes("kids") && /\b(kids|ninos|nino|infantil|boys|girls)\b/.test(haystack)) score += 18;
 
   return score;
 }
@@ -679,12 +749,18 @@ function scoreVisualMatch(product: SearchCatalogProduct, source: ImageFeature, c
   const fillDistance = Math.abs(source.cropFill - candidate.cropFill) * 56;
   const rowShapeDistance = profileDistance(source.rowProfile, candidate.rowProfile) * 92;
   const colShapeDistance = profileDistance(source.colProfile, candidate.colProfile) * 92;
+  const aspectRatioDistance = Math.abs(Math.log(Math.max(0.1, source.aspect) / Math.max(0.1, candidate.aspect))) * 120;
+  const dominantColorDelta =
+    Math.abs(source.r - candidate.r) * 0.18 +
+    Math.abs(source.g - candidate.g) * 0.18 +
+    Math.abs(source.b - candidate.b) * 0.18;
 
   let score =
-    720 -
+    820 -
     colorDistance * 0.66 -
     varianceDistance -
     aspectDistance -
+    aspectRatioDistance -
     hashDistance * 2.9 -
     centerHashDistance * 4.4 -
     edgeDistance -
@@ -693,13 +769,14 @@ function scoreVisualMatch(product: SearchCatalogProduct, source: ImageFeature, c
     centerHistogramDelta -
     saturationDistance -
     warmnessDistance -
+    dominantColorDelta -
     fillDistance -
     rowShapeDistance -
     colShapeDistance;
   const haystack = buildSearchHaystack(product);
 
   for (const token of inferVisualTokens(source)) {
-    if (haystack.includes(token)) score += 20;
+    if (haystack.includes(token)) score += 26;
   }
 
   const normalizedCategory = normalizeSearchText(`${product.kind || ""} ${product.category || ""} ${product.title || ""}`);
@@ -1102,10 +1179,9 @@ export default function Header() {
   const [recents, setRecents] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const imageSearchInputRef = useRef<HTMLInputElement | null>(null);
-  const imageCameraInputRef = useRef<HTMLInputElement | null>(null);
   const imageFeatureCacheRef = useRef<Map<string, ImageFeature | null>>(new Map());
   const [imageSearchLabel, setImageSearchLabel] = useState("");
-  const [imageSearchMode, setImageSearchMode] = useState<"idle" | "gallery" | "camera" | "error">("idle");
+  const [imageSearchMode, setImageSearchMode] = useState<"idle" | "image" | "error">("idle");
 
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState<SearchProduct[]>([]);
@@ -1545,10 +1621,6 @@ export default function Header() {
     imageSearchInputRef.current?.click();
   }
 
-  function openImageCameraPicker() {
-    imageCameraInputRef.current?.click();
-  }
-
   async function loadCatalog(signal?: AbortSignal): Promise<SearchCatalogProduct[]> {
     if (catalogRef.current) return catalogRef.current;
     const res = await fetch(`/api/products?__search=${Date.now()}`, {
@@ -1626,7 +1698,7 @@ export default function Header() {
     }
   }
 
-  async function runImageSearch(file: File, mode: "gallery" | "camera" = "gallery") {
+  async function runImageSearch(file: File) {
     if (!file.type.startsWith("image/")) {
       setImageSearchLabel("Archivo no compatible");
       setImageSearchMode("error");
@@ -1638,7 +1710,7 @@ export default function Header() {
     lastImageReq.current = reqId;
     setQ("");
     setImageSearchLabel(file.name);
-    setImageSearchMode(mode);
+    setImageSearchMode("image");
     setProducts([]);
     setLoading(true);
 
@@ -1658,16 +1730,21 @@ export default function Header() {
           if (!images.length) return null;
 
           let bestScore = Number.NEGATIVE_INFINITY;
+          let analyzedImages = 0;
           for (const image of images) {
             const feature = await getCachedImageFeature(image);
             if (!feature) continue;
+            analyzedImages += 1;
             bestScore = Math.max(
               bestScore,
-              scoreVisualMatch(product, sourceFeature, feature) + scoreIntentMatch(product, intent)
+              scoreVisualMatch(product, sourceFeature, feature) +
+                scoreIntentMatch(product, intent) +
+                scoreTextAffinity(product, intent, sourceFeature)
             );
           }
 
           if (!Number.isFinite(bestScore)) return null;
+          bestScore += Math.min(analyzedImages, 4) * 8;
           return {
             product,
             score: bestScore,
@@ -1676,14 +1753,14 @@ export default function Header() {
       );
 
       const matches = ranked
-        .filter((entry): entry is { product: SearchCatalogProduct; score: number } => Boolean(entry && entry.score > 120))
+        .filter((entry): entry is { product: SearchCatalogProduct; score: number } => Boolean(entry && entry.score > 170))
         .sort((a, b) => b.score - a.score)
         .slice(0, 16)
         .map((entry) => {
           const mapped = mapCatalogProductToSearchProduct(entry.product);
           const roundedScore = Math.round(entry.score);
           const matchLabel: SearchProduct["matchLabel"] =
-            roundedScore >= 520 ? "Exacto" : roundedScore >= 390 ? "Muy similar" : "Similar";
+            roundedScore >= 620 ? "Exacto" : roundedScore >= 470 ? "Muy similar" : "Similar";
           return {
             ...mapped,
             matchScore: roundedScore,
@@ -2087,15 +2164,6 @@ export default function Header() {
                 >
                   📷
                 </button>
-                <button
-                  className="jusp-search-camera jusp-search-camera-shot"
-                  type="button"
-                  onClick={openImageCameraPicker}
-                  aria-label="Tomar foto con la camara"
-                  title="Tomar foto con la camara"
-                >
-                  CAM
-                </button>
                 <input
                   ref={inputRef}
                   value={q}
@@ -2120,19 +2188,7 @@ export default function Header() {
                   className="jusp-search-fileinput"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) void runImageSearch(file, "gallery");
-                    e.currentTarget.value = "";
-                  }}
-                />
-                <input
-                  ref={imageCameraInputRef}
-                  type="file"
-                  accept="image/*,.heic,.heif"
-                  capture="environment"
-                  className="jusp-search-fileinput"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) void runImageSearch(file, "camera");
+                    if (file) void runImageSearch(file);
                     e.currentTarget.value = "";
                   }}
                 />
@@ -2195,10 +2251,10 @@ export default function Header() {
                         {imageSearchMode === "error"
                           ? "No se pudo leer esa imagen. Prueba otra foto mas clara."
                           : loading
-                          ? "Analizando forma, color y detalles visuales..."
+                          ? "Analizando silueta, colores, recorte, textura y productos similares..."
                           : products.length
-                          ? "Coincidencias exactas y similares ordenadas por parecido."
-                          : "No encontramos coincidencias fuertes. Prueba una foto del producto mas centrada."}
+                          ? "Resultados ordenados por parecido visual, tipo de producto, color y marca."
+                          : "No encontramos coincidencias fuertes. Sube una imagen centrada, sin fondos cargados."}
                       </div>
                     ) : null}
                     {loading ? <div className="jusp-search-loading">Buscando…</div> : null}
@@ -2994,7 +3050,7 @@ export default function Header() {
           border: 1px solid rgba(0, 0, 0, 0.12);
           border-radius: 999px;
           background: #f7f7f7;
-          padding: 10px 18px 10px 104px;
+          padding: 10px 18px 10px 64px;
           transition: box-shadow var(--jusp-fast) var(--jusp-ease), border-color var(--jusp-fast) var(--jusp-ease), background var(--jusp-fast) var(--jusp-ease);
         }
 
@@ -3027,10 +3083,6 @@ export default function Header() {
           font-size: 10px;
           font-weight: 900;
           letter-spacing: 0;
-        }
-
-        .jusp-search-camera-shot {
-          left: 58px;
         }
 
         .jusp-search-camera:hover {
@@ -3505,7 +3557,7 @@ export default function Header() {
 
           .jusp-search-inputwrap {
             min-height: 50px;
-            padding-left: 100px;
+            padding-left: 62px;
           }
 
           .jusp-search-input {
