@@ -1903,7 +1903,7 @@ function HomePageContent() {
           <div className="jusp-hero-proof" aria-label="Beneficios JUSP">
             <span>Autenticidad</span>
             <span>Protección</span>
-            <span>Drop-hype</span>
+            <span>Exclusivo</span>
           </div>
         </div>
 
