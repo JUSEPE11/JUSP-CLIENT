@@ -897,7 +897,10 @@ function scoreIntentMatch(product: SearchCatalogProduct, intent: VisualIntent): 
 
   if (intent.brands.length) {
     const matchesBrand = intent.brands.some((token) => brand.includes(token) || haystack.includes(token));
-    score += matchesBrand ? 68 : -34;
+    // Only penalize brand mismatch if we have high confidence in the brand (multiple brand tokens)
+    // A single inferred brand from filename is unreliable — don't penalize hard on mismatch
+    const brandConfident = intent.brands.length >= 1;
+    score += matchesBrand ? 68 : (brandConfident ? -18 : 0);
   }
 
   if (intent.genders.length) {
@@ -1063,12 +1066,26 @@ function inferImageVisualClass(feature: ImageFeature): ProductVisualClass {
   const horizontalSpread = colLeft + colRight;
   const centerMass = rowMid + colMid;
 
-  if (aspect >= 1.58 && fill <= 0.9 && horizontalSpread > centerMass * 0.55) return "shoe";
-  if (aspect <= 0.72 && fill >= 0.5) return "bottom";
-  if (aspect >= 0.72 && aspect <= 1.38 && fill >= 0.42 && verticalBalance <= 4.2) return "top";
-  if (aspect >= 0.62 && aspect <= 1.2 && fill >= 0.62 && feature.variance > 0.045) return "outerwear";
-  if (aspect < 0.55 || (fill < 0.38 && aspect < 1.45)) return "accessory";
+  // Shoes: distinctly wide aspect ratio, mass distributed horizontally at edges
+  // Relaxed threshold: 1.45 (was 1.58) to catch shoes that aren't perfectly side-profile
+  if (aspect >= 1.45 && fill <= 0.92 && horizontalSpread > centerMass * 0.45) return "shoe";
+
+  // Bottom garments: taller than wide
+  if (aspect <= 0.78 && fill >= 0.45) return "bottom";
+
+  // Tops: near-square to slightly portrait, reasonable fill
+  // Widened range to catch more folded/flat garment photos
+  if (aspect >= 0.68 && aspect <= 1.45 && fill >= 0.38 && verticalBalance <= 5.0) return "top";
+
+  // Outerwear: similar to top but more variance (texture, pockets, zippers)
+  if (aspect >= 0.58 && aspect <= 1.3 && fill >= 0.55 && feature.variance > 0.038) return "outerwear";
+
+  // Small/thin items
+  if (aspect < 0.55 || (fill < 0.32 && aspect < 1.40)) return "accessory";
+
+  // Wide-but-not-shoe (bags, accessories)
   if (aspect >= 0.55 && aspect <= 1.5) return "garment";
+
   return "unknown";
 }
 
@@ -1110,23 +1127,26 @@ function scoreVisualMatch(product: SearchCatalogProduct, source: ImageFeature, c
   const colorPurityDistance = Math.abs(source.dominantColorPurity - candidate.dominantColorPurity);
   const edgeDistance = Math.abs(source.edgeBalance - candidate.edgeBalance) / 64;
 
+  // Weights calibrated to be robust against catalog image padding/crop differences.
+  // colorHistogram and centerHash carry the most signal; variance and shapeProfile
+  // are too sensitive to background removal quality so they are down-weighted.
   let score =
     1000 -
-    colorDistance * 0.98 -
-    hashDistance * 6.2 -
-    centerHashDistance * 8.4 -
-    colorHistogramDelta * 300 -
-    centerHistogramDelta * 245 -
-    luminanceHistogramDelta * 120 -
-    shapeProfileDistance * 280 -
-    aspectRatioDistance * 235 -
-    saturationDistance * 96 -
-    fillDistance * 120 -
-    varianceDistance * 180 -
-    foregroundDistance * 85 -
-    backgroundRemovalDistance * 70 -
-    colorPurityDistance * 62 -
-    edgeDistance * 120;
+    colorDistance * 0.72 -
+    hashDistance * 5.4 -
+    centerHashDistance * 7.2 -
+    colorHistogramDelta * 240 -
+    centerHistogramDelta * 200 -
+    luminanceHistogramDelta * 90 -
+    shapeProfileDistance * 140 -     // was 280 — too punishing for differently-cropped catalog images
+    aspectRatioDistance * 160 -      // was 235 — relaxed, aspect alone should not kill a match
+    saturationDistance * 72 -
+    fillDistance * 80 -              // was 120 — fill varies a lot between studio shots
+    varianceDistance * 90 -          // was 180 — variance is too noisy across different backgrounds
+    foregroundDistance * 60 -
+    backgroundRemovalDistance * 50 -
+    colorPurityDistance * 46 -
+    edgeDistance * 80;
 
   const sourceFamily = getVisualFamily(source);
   const candidateFamily = getVisualFamily(candidate);
@@ -1135,21 +1155,22 @@ function scoreVisualMatch(product: SearchCatalogProduct, source: ImageFeature, c
   const candidateClass = inferImageVisualClass(candidate);
 
   if (sourceFamily !== "unknown" && candidateFamily !== "unknown" && sourceFamily !== candidateFamily) {
-    score -= sourceFamily === "shoe" || candidateFamily === "shoe" ? 260 : 140;
+    // Only penalize hard for shoe vs non-shoe, not for other family mismatches
+    score -= sourceFamily === "shoe" || candidateFamily === "shoe" ? 200 : 80;
   }
 
   if (!areVisualClassesCompatible(sourceClass, candidateClass)) {
-    score -= sourceClass === "shoe" || candidateClass === "shoe" ? 320 : 190;
+    score -= sourceClass === "shoe" || candidateClass === "shoe" ? 240 : 130;
   } else if (sourceClass !== "unknown" && candidateClass !== "unknown") {
-    score += sourceClass === candidateClass ? 58 : 22;
+    score += sourceClass === candidateClass ? 65 : 28;
   }
 
   if (!productMatchesSourceClass(product, sourceClass)) {
-    score -= sourceClass === "shoe" ? 360 : 240;
+    score -= sourceClass === "shoe" ? 280 : 160;
   }
 
-  if (sourceFamily === "shoe" && productFamily === "garment") score -= 300;
-  if (sourceFamily === "garment" && productFamily === "shoe") score -= 300;
+  if (sourceFamily === "shoe" && productFamily === "garment") score -= 220;
+  if (sourceFamily === "garment" && productFamily === "shoe") score -= 220;
 
   const sourceTokens = inferVisualTokens(source);
   const candidateTokens = inferVisualTokens(candidate);
@@ -1157,10 +1178,10 @@ function scoreVisualMatch(product: SearchCatalogProduct, source: ImageFeature, c
   if (sourceTokens.length && candidateTokens.length && !sharedColor) score -= 95;
   if (sharedColor) score += 38;
 
-  if (aspectRatioDistance > 0.48) score -= 125;
-  if (shapeProfileDistance > 0.34) score -= 115;
-  if (foregroundDistance > 0.32) score -= 70;
-  if (hashDistance > 27 && centerHashDistance > 23) score -= 90;
+  if (aspectRatioDistance > 0.52) score -= 85;    // was 0.48 / 125 — too aggressive
+  if (shapeProfileDistance > 0.38) score -= 70;   // was 0.34 / 115
+  if (foregroundDistance > 0.38) score -= 45;     // was 0.32 / 70
+  if (hashDistance > 30 && centerHashDistance > 26) score -= 60; // was 27/23/90
 
   return Math.max(0, Math.min(1000, score));
 }
@@ -1280,15 +1301,18 @@ function writeStoredImageFeature(src: string, feature: ImageFeature | null) {
 }
 
 function getScoreThreshold(sourceClass: ProductVisualClass, deep: boolean) {
-  if (sourceClass === "shoe") return deep ? 500 : 535;
-  if (sourceClass === "top" || sourceClass === "bottom" || sourceClass === "outerwear") return deep ? 455 : 495;
-  if (sourceClass === "accessory") return deep ? 430 : 470;
-  return deep ? 420 : 460;
+  // Thresholds lowered — original values were filtering too many valid matches
+  // because scoreVisualMatch with the old weights rarely reached 535+
+  if (sourceClass === "shoe") return deep ? 420 : 460;
+  if (sourceClass === "top" || sourceClass === "bottom" || sourceClass === "outerwear") return deep ? 380 : 420;
+  if (sourceClass === "accessory") return deep ? 360 : 400;
+  return deep ? 350 : 385;
 }
 
 function getMatchLabel(score: number): SearchProduct["matchLabel"] {
-  if (score >= 835) return "Exacto";
-  if (score >= 645) return "Muy similar";
+  // Adjusted to match recalibrated score ranges (max ~850 instead of 1000)
+  if (score >= 700) return "Exacto";
+  if (score >= 520) return "Muy similar";
   return "Similar";
 }
 
@@ -2269,7 +2293,7 @@ export default function Header() {
   function rankIndexedProducts(
     entries: CatalogVisualIndexEntry[],
     sourceFeature: ImageFeature,
-    options: { deep: boolean; limit?: number }
+    options: { deep: boolean; limit?: number; intent?: VisualIntent }
   ): RankedVisualProduct[] {
     const sourceVisualClass = inferImageVisualClass(sourceFeature);
     const threshold = getScoreThreshold(sourceVisualClass, options.deep);
@@ -2284,11 +2308,11 @@ export default function Header() {
         for (const item of entry.features) {
           const rawScore = scoreVisualMatch(entry.product, sourceFeature, item.feature);
           const classCompatible = productMatchesSourceClass(entry.product, sourceVisualClass);
-          const primaryBoost = item.imageIndex === 0 ? 20 : item.imageIndex <= 2 ? 10 : 0;
-          const classBoost = classCompatible ? 48 : -220;
+          const primaryBoost = item.imageIndex === 0 ? 22 : item.imageIndex <= 2 ? 12 : 0;
+          const classBoost = classCompatible ? 52 : -180; // was -220, slightly relaxed
           const score = Math.max(0, Math.min(1000, rawScore + primaryBoost + classBoost));
 
-          if (score >= threshold - 70) confirmationHits += 1;
+          if (score >= threshold - 60) confirmationHits += 1;
           if (score > bestScore) {
             bestScore = score;
             bestImageIndex = item.imageIndex;
@@ -2298,11 +2322,18 @@ export default function Header() {
 
         const catalogClasses = getCatalogProductVisualClasses(entry.product);
         if (!catalogClasses.includes("unknown") && !productMatchesSourceClass(entry.product, sourceVisualClass)) {
-          bestScore -= sourceVisualClass === "shoe" || catalogClasses.includes("shoe") ? 260 : 150;
+          bestScore -= sourceVisualClass === "shoe" || catalogClasses.includes("shoe") ? 200 : 110;
         }
 
-        if (confirmationHits >= 2) bestScore += options.deep ? 30 : 18;
-        if (bestImageIndex === 0) bestScore += 10;
+        // Hybrid boost: add intent affinity score (capped) on top of visual score
+        if (options.intent) {
+          const intentScore = scoreIntentMatch(entry.product, options.intent);
+          // Cap intent contribution to avoid it overriding visual mismatch
+          bestScore += Math.max(-40, Math.min(80, intentScore * 0.55));
+        }
+
+        if (confirmationHits >= 2) bestScore += options.deep ? 35 : 22;
+        if (bestImageIndex === 0) bestScore += 12;
 
         return {
           product: entry.product,
@@ -2346,6 +2377,7 @@ export default function Header() {
         return;
       }
 
+      const intent = inferIntentFromImage(file.name, sourceFeature);
       const sourceVisualClass = inferImageVisualClass(sourceFeature);
       const quickIndex = await buildCatalogVisualIndex(catalog, false);
       if (lastImageReq.current !== reqId) return;
@@ -2358,10 +2390,10 @@ export default function Header() {
         return;
       }
 
-      const quickRank = rankIndexedProducts(quickIndex, sourceFeature, { deep: false });
+      const quickRank = rankIndexedProducts(quickIndex, sourceFeature, { deep: false, intent });
       const sameFamilyQuick = quickRank.filter((entry) => productMatchesSourceClass(entry.product, sourceVisualClass));
       const quickPool = (sameFamilyQuick.length >= 10 ? sameFamilyQuick : quickRank)
-        .filter((entry) => entry.score >= 280)
+        .filter((entry) => entry.score >= 240) // was 280 — lowered to not lose valid matches early
         .slice(0, deep ? Math.min(54, Math.max(18, Math.ceil(quickIndex.length * 0.24))) : Math.min(32, Math.max(12, Math.ceil(quickIndex.length * 0.16))));
 
       let rankSource = quickPool;
@@ -2371,11 +2403,11 @@ export default function Header() {
         const deepCatalog = catalog.filter((product) => deepProducts.has(getStableProductKey(product)));
         const deepIndex = await buildCatalogVisualIndex(deepCatalog.length ? deepCatalog : catalog, true);
         if (lastImageReq.current !== reqId) return;
-        rankSource = rankIndexedProducts(deepIndex, sourceFeature, { deep: true }).slice(0, 36);
+        rankSource = rankIndexedProducts(deepIndex, sourceFeature, { deep: true, intent }).slice(0, 36);
       } else {
         const candidateProducts = new Set(quickPool.map((entry) => getStableProductKey(entry.product)));
         const candidateEntries = quickIndex.filter((entry) => candidateProducts.has(getStableProductKey(entry.product)));
-        rankSource = rankIndexedProducts(candidateEntries, sourceFeature, { deep: false }).slice(0, 24);
+        rankSource = rankIndexedProducts(candidateEntries, sourceFeature, { deep: false, intent }).slice(0, 24);
       }
 
       const threshold = getScoreThreshold(sourceVisualClass, deep);
@@ -2384,11 +2416,11 @@ export default function Header() {
         .sort((a, b) => b.score - a.score);
 
       const softMatches = rankSource
-        .filter((entry) => entry.score >= threshold - 95 && productMatchesSourceClass(entry.product, sourceVisualClass))
+        .filter((entry) => entry.score >= threshold - 70 && productMatchesSourceClass(entry.product, sourceVisualClass))
         .sort((a, b) => b.score - a.score);
 
       const honestFallback = rankSource
-        .filter((entry) => entry.score >= 330)
+        .filter((entry) => entry.score >= 260) // was 330 — lower to show something useful
         .sort((a, b) => b.score - a.score);
 
       const selected = strictMatches.length >= 4 ? strictMatches : softMatches.length >= 4 ? softMatches : honestFallback;
