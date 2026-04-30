@@ -519,9 +519,14 @@ function JuspDoorIntro({ closing }: { closing: boolean }) {
   return (
     <div className={`jusp-door-intro${closing ? " is-closing" : ""}`} aria-hidden="true">
       <div className="jusp-cinema-bg" />
+      <div className="jusp-cinema-aurora" />
       <div className="jusp-cinema-gold" />
       <div className="jusp-cinema-rays" />
+      <div className="jusp-cinema-grain" />
+      <div className="jusp-cinema-vignette" />
+
       <div className="jusp-real-logo-stage">
+        <div className="jusp-intro-kicker">ORIGINAL PRODUCT SYSTEM</div>
         <div className="jusp-real-logo-shell">
           <img
             src="/logo-jusp-door-clean.png"
@@ -533,8 +538,14 @@ function JuspDoorIntro({ closing }: { closing: boolean }) {
           />
           <span className="jusp-real-portal-light" />
           <span className="jusp-door-flash" />
+          <span className="jusp-door-shine" />
         </div>
-        <div className="jusp-real-intro-copy"><span>JUSP</span><strong>Originales.</strong></div>
+        <div className="jusp-real-intro-copy">
+          <span>JUSP</span>
+          <i />
+          <strong>Originales.</strong>
+        </div>
+        <div className="jusp-intro-microcopy">Compra internacional con acceso premium.</div>
         <div className="jusp-real-loader" aria-hidden="true"><span /></div>
       </div>
     </div>
@@ -592,8 +603,8 @@ function HomePageContent() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const closeAt = reduceMotion ? 650 : 2950;
-    const removeAt = reduceMotion ? 900 : 3420;
+    const closeAt = reduceMotion ? 650 : 3300;
+    const removeAt = reduceMotion ? 900 : 3920;
     const closeTimer = window.setTimeout(() => setDoorIntroClosing(true), closeAt);
     const removeTimer = window.setTimeout(() => setShowDoorIntro(false), removeAt);
     return () => {
@@ -1621,32 +1632,74 @@ function HomePageContent() {
         :root {
           --jusp-ease: cubic-bezier(.2,.9,.2,1);
         }
-        .jusp-door-intro { position: fixed; inset: 0; z-index: 2147483647; display: grid; place-items: center; overflow: hidden; background: #030303; color: #fff; opacity: 1; pointer-events: none; animation: juspIntroHold 3600ms cubic-bezier(.2,.9,.2,1) both; }
-        .jusp-door-intro.is-closing { animation: juspIntroExit 680ms cubic-bezier(.2,.9,.2,1) forwards; }
-        .jusp-cinema-bg { position: absolute; inset: -16%; background: radial-gradient(circle at 50% 44%, rgba(255,198,82,.30), transparent 24%), radial-gradient(circle at 50% 68%, rgba(255,255,255,.07), transparent 28%), linear-gradient(180deg, #121212 0%, #050505 54%, #000 100%); filter: saturate(1.08); }
-        .jusp-cinema-gold { position: absolute; left: 50%; top: 50%; width: min(1120px, 125vw); height: min(820px, 96vh); transform: translate(-50%, -50%); background: radial-gradient(circle at 49% 39%, rgba(255,214,111,.34), transparent 24%), radial-gradient(circle at 50% 55%, rgba(255,177,36,.18), transparent 44%); opacity: .92; filter: blur(24px); }
-        .jusp-cinema-rays { position: absolute; left: 50%; top: 46%; width: min(980px, 130vw); height: min(660px, 94vh); transform: translate(-50%, -50%); background: conic-gradient(from 210deg at 50% 45%, transparent 0deg, rgba(255,208,105,0) 18deg, rgba(255,208,105,.32) 34deg, transparent 50deg, transparent 120deg, rgba(255,208,105,.22) 138deg, transparent 154deg, transparent 360deg); opacity: 0; filter: blur(13px); animation: juspRayReveal 3600ms cubic-bezier(.2,.9,.2,1) forwards; mix-blend-mode: screen; }
-        .jusp-real-logo-stage { position: relative; width: min(1040px, 96vw); max-height: 82vh; display: grid; place-items: center; transform: translateY(8px) scale(.92); opacity: 0; animation: juspLogoArrive 3600ms cubic-bezier(.2,.9,.2,1) forwards; }
-        .jusp-real-logo-shell { position: relative; width: 100%; max-height: 74vh; aspect-ratio: 612 / 408; transform-style: preserve-3d; perspective: 1000px; filter: drop-shadow(0 42px 86px rgba(0,0,0,.72)); }
-        .jusp-real-logo-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transform: scale(.90); animation: juspLogoImageReveal 3600ms cubic-bezier(.2,.9,.2,1) forwards; user-select: none; }
-        .jusp-real-portal-light { position: absolute; left: 31%; top: 5%; width: 44%; height: 56%; border-radius: 999px; background: radial-gradient(circle at 50% 35%, rgba(255,255,244,.98) 0%, rgba(255,227,131,.88) 16%, rgba(255,178,35,.46) 42%, transparent 72%); opacity: 0; filter: blur(8px); transform: scale(.38); animation: juspPortalLight 3600ms cubic-bezier(.2,.9,.2,1) forwards; mix-blend-mode: screen; }
-        .jusp-door-flash { position: absolute; left: 23%; top: 6%; width: 34%; height: 64%; border-radius: 999px; background: linear-gradient(90deg, transparent 0%, rgba(255,242,190,.80) 38%, rgba(255,197,65,.92) 50%, rgba(255,242,190,.60) 62%, transparent 100%); opacity: 0; filter: blur(16px); transform: translateX(-12%) scale(.75); animation: juspDoorFlash 3600ms cubic-bezier(.2,.9,.2,1) forwards; mix-blend-mode: screen; }
-        .jusp-real-intro-copy { margin-top: clamp(8px, 1.3vh, 16px); display: flex; align-items: center; justify-content: center; gap: 10px; font-size: clamp(10px, 1.05vw, 13px); letter-spacing: clamp(3px, .55vw, 6px); text-transform: uppercase; color: rgba(255,255,255,.76); opacity: 0; animation: juspCopyReveal 3600ms cubic-bezier(.2,.9,.2,1) forwards; }
-        .jusp-real-intro-copy strong { color: #d6a84f; font-weight: 900; letter-spacing: 3px; }
-        .jusp-real-loader { position: relative; margin-top: 18px; width: min(360px, 58vw); height: 1px; overflow: hidden; background: rgba(255,255,255,.16); }
-        .jusp-real-loader span { position: absolute; inset: 0 auto 0 0; width: 100%; background: linear-gradient(90deg, transparent, rgba(255,212,112,.95), transparent); transform: translateX(-100%); animation: juspLoaderMove 3600ms cubic-bezier(.2,.9,.2,1) forwards; }
-        @keyframes juspLogoArrive { 0% { opacity: 0; transform: translateY(26px) scale(.82); filter: blur(12px); } 16% { opacity: 1; filter: blur(0); } 66% { transform: translateY(0) scale(1.02); } 100% { opacity: 1; transform: translateY(-3px) scale(1.08); } }
-        @keyframes juspLogoImageReveal { 0% { opacity: 0; transform: scale(.86); filter: blur(9px) brightness(.68); } 18% { opacity: 1; transform: scale(.96); filter: blur(0) brightness(.96); } 58% { filter: brightness(1.08) contrast(1.04); } 100% { opacity: 1; transform: scale(1.04); filter: brightness(1.16) contrast(1.04); } }
-        @keyframes juspPortalLight { 0%, 24% { opacity: 0; transform: scale(.32); filter: blur(16px); } 48% { opacity: .72; transform: scale(.75); filter: blur(11px); } 100% { opacity: .96; transform: scale(1.65); filter: blur(18px); } }
-        @keyframes juspDoorFlash { 0%, 28% { opacity: 0; transform: translateX(-18%) scale(.48); } 46% { opacity: .74; transform: translateX(-6%) scale(.88); } 100% { opacity: .44; transform: translateX(8%) scale(1.48); } }
-        @keyframes juspRayReveal { 0%, 32% { opacity: 0; transform: translate(-50%, -50%) scale(.74); } 100% { opacity: .78; transform: translate(-50%, -50%) scale(1.14); } }
-        @keyframes juspCopyReveal { 0%, 18% { opacity: 0; transform: translateY(10px); } 34%, 100% { opacity: 1; transform: translateY(0); } }
-        @keyframes juspLoaderMove { 0% { transform: translateX(-100%); } 70% { transform: translateX(0%); } 100% { transform: translateX(100%); } }
+        .jusp-door-intro { position: fixed; inset: 0; z-index: 2147483647; display: grid; place-items: center; overflow: hidden; background: #020202; color: #fff; opacity: 1; pointer-events: none; isolation: isolate; animation: juspIntroHold 3920ms cubic-bezier(.2,.9,.2,1) both; }
+        .jusp-door-intro.is-closing { animation: juspIntroExit 620ms cubic-bezier(.2,.9,.2,1) forwards; }
+        .jusp-cinema-bg { position: absolute; inset: -18%; background: radial-gradient(circle at 50% 42%, rgba(255,255,255,.16), transparent 18%), radial-gradient(circle at 50% 55%, rgba(216,166,65,.30), transparent 34%), radial-gradient(circle at 50% 100%, rgba(255,197,71,.16), transparent 36%), linear-gradient(180deg, #171717 0%, #050505 52%, #000 100%); filter: saturate(1.08) contrast(1.06); transform: scale(1.02); animation: juspBgPush 3920ms cubic-bezier(.2,.9,.2,1) forwards; }
+        .jusp-cinema-aurora { position: absolute; left: 50%; top: 46%; width: min(980px, 132vw); height: min(760px, 96vh); transform: translate(-50%, -50%) rotate(-7deg); background: radial-gradient(ellipse at 50% 50%, rgba(255,226,158,.26), transparent 34%), radial-gradient(ellipse at 30% 42%, rgba(255,255,255,.12), transparent 26%), radial-gradient(ellipse at 72% 55%, rgba(214,168,79,.18), transparent 34%); filter: blur(28px); opacity: 0; mix-blend-mode: screen; animation: juspAuroraReveal 3920ms cubic-bezier(.2,.9,.2,1) forwards; }
+        .jusp-cinema-gold { position: absolute; left: 50%; top: 52%; width: min(1180px, 142vw); height: min(860px, 108vh); transform: translate(-50%, -50%); background: radial-gradient(circle at 49% 39%, rgba(255,226,146,.38), transparent 24%), radial-gradient(circle at 50% 56%, rgba(255,177,36,.22), transparent 45%); opacity: .95; filter: blur(25px); }
+        .jusp-cinema-rays { position: absolute; left: 50%; top: 46%; width: min(1080px, 142vw); height: min(740px, 100vh); transform: translate(-50%, -50%); background: conic-gradient(from 210deg at 50% 45%, transparent 0deg, rgba(255,208,105,0) 16deg, rgba(255,226,156,.34) 33deg, transparent 50deg, transparent 120deg, rgba(255,208,105,.24) 138deg, transparent 156deg, transparent 222deg, rgba(255,255,255,.13) 237deg, transparent 252deg, transparent 360deg); opacity: 0; filter: blur(12px); animation: juspRayReveal 3920ms cubic-bezier(.2,.9,.2,1) forwards; mix-blend-mode: screen; }
+        .jusp-cinema-grain { position: absolute; inset: 0; opacity: .16; mix-blend-mode: overlay; background-image: radial-gradient(circle at 20% 30%, rgba(255,255,255,.28) 0 1px, transparent 1px), radial-gradient(circle at 70% 60%, rgba(255,255,255,.18) 0 1px, transparent 1px); background-size: 38px 38px, 54px 54px; animation: juspGrainDrift 1200ms steps(2,end) infinite; }
+        .jusp-cinema-vignette { position: absolute; inset: 0; background: radial-gradient(circle at 50% 45%, transparent 0%, rgba(0,0,0,.08) 34%, rgba(0,0,0,.78) 100%), linear-gradient(90deg, rgba(0,0,0,.62), transparent 22%, transparent 78%, rgba(0,0,0,.62)); }
+        .jusp-real-logo-stage { position: relative; z-index: 2; width: min(1060px, 96vw); max-height: 84vh; display: grid; place-items: center; transform: translateY(14px) scale(.90); opacity: 0; animation: juspLogoArrive 3920ms cubic-bezier(.2,.9,.2,1) forwards; }
+        .jusp-intro-kicker { margin-bottom: clamp(10px, 1.4vh, 18px); font-size: clamp(9px, .9vw, 12px); font-weight: 1000; letter-spacing: clamp(2.6px, .48vw, 6px); color: rgba(255,255,255,.72); text-transform: uppercase; opacity: 0; animation: juspKickerReveal 3920ms cubic-bezier(.2,.9,.2,1) forwards; }
+        .jusp-real-logo-shell { position: relative; width: 100%; max-height: 74vh; aspect-ratio: 612 / 408; transform-style: preserve-3d; perspective: 1100px; filter: drop-shadow(0 44px 92px rgba(0,0,0,.76)); }
+        .jusp-real-logo-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transform: scale(.88); animation: juspLogoImageReveal 3920ms cubic-bezier(.2,.9,.2,1) forwards; user-select: none; }
+        .jusp-real-portal-light { position: absolute; left: 31%; top: 5%; width: 44%; height: 56%; border-radius: 999px; background: radial-gradient(circle at 50% 35%, rgba(255,255,244,.98) 0%, rgba(255,235,166,.90) 16%, rgba(255,178,35,.50) 43%, transparent 72%); opacity: 0; filter: blur(8px); transform: scale(.34); animation: juspPortalLight 3920ms cubic-bezier(.2,.9,.2,1) forwards; mix-blend-mode: screen; }
+        .jusp-door-flash { position: absolute; left: 21%; top: 6%; width: 38%; height: 66%; border-radius: 999px; background: linear-gradient(90deg, transparent 0%, rgba(255,242,190,.82) 38%, rgba(255,197,65,.96) 50%, rgba(255,242,190,.62) 62%, transparent 100%); opacity: 0; filter: blur(15px); transform: translateX(-16%) scale(.70); animation: juspDoorFlash 3920ms cubic-bezier(.2,.9,.2,1) forwards; mix-blend-mode: screen; }
+        .jusp-door-shine { position: absolute; inset: 10% 19% 13%; border-radius: 999px; border: 1px solid rgba(255,221,145,.20); box-shadow: inset 0 0 42px rgba(255,215,122,.14), 0 0 70px rgba(255,195,76,.16); opacity: 0; transform: scale(.72); animation: juspDoorShine 3920ms cubic-bezier(.2,.9,.2,1) forwards; }
+        .jusp-real-intro-copy { margin-top: clamp(8px, 1.3vh, 16px); display: flex; align-items: center; justify-content: center; gap: 12px; font-size: clamp(10px, 1.05vw, 13px); letter-spacing: clamp(3px, .55vw, 6px); text-transform: uppercase; color: rgba(255,255,255,.80); opacity: 0; animation: juspCopyReveal 3920ms cubic-bezier(.2,.9,.2,1) forwards; }
+        .jusp-real-intro-copy i { display: block; width: 34px; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,.56), transparent); }
+        .jusp-real-intro-copy strong { color: #e0b869; font-weight: 1000; letter-spacing: 3px; text-shadow: 0 0 24px rgba(224,184,105,.28); }
+        .jusp-intro-microcopy { margin-top: 10px; font-size: clamp(11px, 1.05vw, 14px); font-weight: 800; letter-spacing: .18px; color: rgba(255,255,255,.64); opacity: 0; animation: juspMicroReveal 3920ms cubic-bezier(.2,.9,.2,1) forwards; }
+        .jusp-real-loader { position: relative; margin-top: 18px; width: min(420px, 62vw); height: 1px; overflow: hidden; background: rgba(255,255,255,.16); box-shadow: 0 0 28px rgba(255,202,93,.18); }
+        .jusp-real-loader span { position: absolute; inset: 0 auto 0 0; width: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.72), rgba(255,212,112,.98), rgba(255,255,255,.72), transparent); transform: translateX(-100%); animation: juspLoaderMove 3920ms cubic-bezier(.2,.9,.2,1) forwards; }
+        @keyframes juspBgPush { 0% { transform: scale(1.08); filter: saturate(.92) contrast(.98) blur(2px); } 100% { transform: scale(1.0); filter: saturate(1.08) contrast(1.06) blur(0); } }
+        @keyframes juspAuroraReveal { 0%, 24% { opacity: 0; transform: translate(-50%, -50%) rotate(-10deg) scale(.78); } 64% { opacity: .88; } 100% { opacity: .68; transform: translate(-50%, -50%) rotate(-2deg) scale(1.08); } }
+        @keyframes juspLogoArrive { 0% { opacity: 0; transform: translateY(30px) scale(.80); filter: blur(13px); } 15% { opacity: 1; filter: blur(0); } 64% { transform: translateY(0) scale(1.015); } 100% { opacity: 1; transform: translateY(-5px) scale(1.07); } }
+        @keyframes juspLogoImageReveal { 0% { opacity: 0; transform: scale(.84) rotateX(4deg); filter: blur(10px) brightness(.62); } 18% { opacity: 1; transform: scale(.95) rotateX(0deg); filter: blur(0) brightness(.96); } 58% { filter: brightness(1.10) contrast(1.05); } 100% { opacity: 1; transform: scale(1.035); filter: brightness(1.17) contrast(1.05); } }
+        @keyframes juspPortalLight { 0%, 22% { opacity: 0; transform: scale(.30); filter: blur(16px); } 48% { opacity: .76; transform: scale(.78); filter: blur(10px); } 100% { opacity: .98; transform: scale(1.72); filter: blur(18px); } }
+        @keyframes juspDoorFlash { 0%, 26% { opacity: 0; transform: translateX(-20%) scale(.44); } 46% { opacity: .82; transform: translateX(-5%) scale(.88); } 100% { opacity: .40; transform: translateX(9%) scale(1.52); } }
+        @keyframes juspDoorShine { 0%, 30% { opacity: 0; transform: scale(.72); } 58% { opacity: .72; } 100% { opacity: .36; transform: scale(1.15); } }
+        @keyframes juspRayReveal { 0%, 30% { opacity: 0; transform: translate(-50%, -50%) scale(.72); } 100% { opacity: .78; transform: translate(-50%, -50%) scale(1.16); } }
+        @keyframes juspKickerReveal { 0%, 20% { opacity: 0; transform: translateY(8px); } 38%, 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes juspCopyReveal { 0%, 20% { opacity: 0; transform: translateY(10px); } 38%, 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes juspMicroReveal { 0%, 34% { opacity: 0; transform: translateY(8px); } 54%, 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes juspLoaderMove { 0% { transform: translateX(-100%); } 72% { transform: translateX(0%); } 100% { transform: translateX(100%); } }
+        @keyframes juspGrainDrift { 0% { transform: translate(0,0); } 100% { transform: translate(-2%, 2%); } }
         @keyframes juspIntroHold { 0%, 100% { opacity: 1; } }
-        @keyframes juspIntroExit { 0% { opacity: 1; transform: scale(1); filter: blur(0); } 100% { opacity: 0; transform: scale(1.045); filter: blur(12px); } }
-        @media (max-width: 720px) { .jusp-real-logo-stage { width: min(760px, 108vw); max-height: 78vh; } .jusp-real-logo-shell { max-height: 68vh; } }
-        @media (max-width: 520px) { .jusp-real-logo-stage { width: min(640px, 116vw); } .jusp-real-intro-copy { font-size: 10px; letter-spacing: 3px; } }
-        @media (prefers-reduced-motion: reduce) { .jusp-door-intro, .jusp-cinema-rays, .jusp-real-logo-stage, .jusp-real-logo-img, .jusp-real-portal-light, .jusp-door-flash, .jusp-real-intro-copy, .jusp-real-loader span { animation: none !important; } .jusp-door-intro { opacity: 1; } .jusp-real-logo-stage, .jusp-real-logo-img, .jusp-real-intro-copy { opacity: 1; transform: none; } .jusp-real-portal-light { opacity: .42; transform: scale(1); } }
+        @keyframes juspIntroExit { 0% { opacity: 1; transform: scale(1); filter: blur(0); } 100% { opacity: 0; transform: scale(1.045); filter: blur(14px); } }
+        .jusp-hero-cinema { width: 100vw; min-height: calc(100vh - 64px + 52px); min-height: calc(100svh - 64px + 52px); position: relative; overflow: hidden; background: #000; color: #fff; isolation: isolate; display: flex; align-items: stretch; margin-bottom: -3px; box-shadow: inset 0 -120px 160px rgba(0,0,0,.54); }
+        .jusp-hero-cinema::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 190px; background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.42) 52%, rgba(0,0,0,.92) 100%); z-index: 2; pointer-events: none; }
+        .jusp-hero-cinema::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 14px; background: #000; z-index: 5; pointer-events: none; }
+        .jusp-hero-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scale(1.055); filter: saturate(1.04) contrast(1.12) brightness(.72); animation: juspHeroVideoPush 14000ms cubic-bezier(.2,.9,.2,1) forwards; }
+        .jusp-hero-overlay { position: absolute; inset: 0; background: radial-gradient(circle at 74% 24%, rgba(255,255,255,.10), transparent 20%), radial-gradient(circle at 24% 58%, rgba(224,184,105,.16), transparent 28%), linear-gradient(92deg, rgba(0,0,0,.94) 0%, rgba(0,0,0,.70) 36%, rgba(0,0,0,.22) 64%, rgba(0,0,0,.78) 100%), linear-gradient(180deg, rgba(0,0,0,.82) 0%, rgba(0,0,0,.24) 44%, rgba(0,0,0,.97) 100%); z-index: 1; }
+        .jusp-hero-letterbox { position: absolute; left: 0; right: 0; height: clamp(44px, 7vh, 90px); background: rgba(0,0,0,.78); z-index: 3; pointer-events: none; }
+        .jusp-hero-letterbox.top { top: 0; }
+        .jusp-hero-letterbox.bottom { bottom: 0; }
+        .jusp-hero-light { position: absolute; left: -16%; top: 8%; width: min(820px, 82vw); height: min(820px, 82vw); border-radius: 999px; background: radial-gradient(circle, rgba(255,213,118,.26), rgba(255,213,118,.08) 32%, transparent 70%); filter: blur(26px); opacity: .92; z-index: 1; animation: juspHeroLight 7200ms cubic-bezier(.2,.9,.2,1) infinite alternate; }
+        .jusp-hero-grid { position: absolute; inset: 0; z-index: 2; opacity: .10; background-image: linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px); background-size: 120px 120px; mask-image: radial-gradient(circle at 30% 54%, black 0%, transparent 68%); pointer-events: none; }
+        .jusp-hero-content { position: relative; z-index: 4; width: 100%; max-width: 1280px; margin: 0 auto; padding: clamp(142px, 18vh, 196px) 22px clamp(124px, 16vh, 184px); display: flex; flex-direction: column; justify-content: center; min-height: calc(100vh - 64px + 52px); min-height: calc(100svh - 64px + 52px); }
+        .jusp-hero-badge { width: fit-content; display: inline-flex; align-items: center; gap: 10px; padding: 9px 14px; border-radius: 999px; background: rgba(255,255,255,.065); border: 1px solid rgba(255,255,255,.14); color: rgba(255,255,255,.90); font-size: 11px; font-weight: 1000; letter-spacing: 1.8px; text-transform: uppercase; backdrop-filter: blur(18px); box-shadow: 0 24px 60px rgba(0,0,0,.38); opacity: 0; animation: juspHeroRise 860ms cubic-bezier(.2,.9,.2,1) 120ms forwards; }
+        .jusp-hero-badge span { width: 7px; height: 7px; border-radius: 999px; background: #e0b869; box-shadow: 0 0 20px rgba(224,184,105,.95); }
+        .jusp-hero-title { max-width: 920px; margin: 18px 0 0; color: #fff; font-size: clamp(46px, 8.7vw, 112px); line-height: .88; letter-spacing: -0.075em; font-weight: 1000; text-wrap: balance; text-shadow: 0 38px 112px rgba(0,0,0,.68); opacity: 0; transform: translateY(22px); animation: juspHeroRise 950ms cubic-bezier(.2,.9,.2,1) 240ms forwards; }
+        .jusp-hero-title em { display: inline-block; font-style: normal; color: #e0b869; letter-spacing: -0.065em; text-shadow: 0 0 52px rgba(224,184,105,.26), 0 30px 90px rgba(0,0,0,.55); }
+        .jusp-hero-subtitle { max-width: 540px; margin: 20px 0 0; color: rgba(255,255,255,.80); font-size: clamp(15px, 1.55vw, 20px); line-height: 1.5; font-weight: 720; letter-spacing: -.012em; text-shadow: 0 18px 44px rgba(0,0,0,.34); opacity: 0; transform: translateY(18px); animation: juspHeroRise 900ms cubic-bezier(.2,.9,.2,1) 370ms forwards; }
+        .jusp-hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; opacity: 0; transform: translateY(16px); animation: juspHeroRise 880ms cubic-bezier(.2,.9,.2,1) 500ms forwards; }
+        .jusp-hero-cta { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 22px; border-radius: 999px; font-size: 14px; font-weight: 1000; text-decoration: none; transition: transform 220ms var(--jusp-ease), filter 220ms var(--jusp-ease), background 220ms var(--jusp-ease); }
+        .jusp-hero-cta.primary { color: #000; background: #fff; box-shadow: 0 22px 60px rgba(255,255,255,.16); }
+        .jusp-hero-cta.secondary { color: #fff; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.20); backdrop-filter: blur(14px); }
+        .jusp-hero-proof { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; opacity: 0; transform: translateY(14px); animation: juspHeroRise 840ms cubic-bezier(.2,.9,.2,1) 630ms forwards; }
+        .jusp-hero-proof span { display: inline-flex; align-items: center; min-height: 30px; padding: 0 11px; border-radius: 999px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.11); color: rgba(255,255,255,.72); font-size: 11px; font-weight: 900; letter-spacing: .9px; text-transform: uppercase; backdrop-filter: blur(14px); box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 14px 32px rgba(0,0,0,.18); }
+        .jusp-hero-scroll { position: absolute; left: 50%; bottom: clamp(18px, 3vh, 32px); z-index: 4; transform: translateX(-50%); display: grid; place-items: center; gap: 8px; color: rgba(255,255,255,.58); font-size: 10px; font-weight: 1000; letter-spacing: 2px; text-transform: uppercase; }
+        .jusp-hero-scroll i { width: 1px; height: 34px; display: block; background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.82), rgba(224,184,105,.18)); transform-origin: top; animation: juspScrollLine 1500ms cubic-bezier(.2,.9,.2,1) infinite; }
+        @media (hover:hover) and (pointer:fine) { .jusp-hero-cta:hover { transform: translateY(-2px) scale(1.015); filter: brightness(1.04); } }
+        @keyframes juspHeroVideoPush { 0% { transform: scale(1.09); filter: saturate(.96) contrast(1.02) brightness(.62) blur(1.2px); } 100% { transform: scale(1.03); filter: saturate(1.04) contrast(1.12) brightness(.74) blur(0); } }
+        @keyframes juspHeroRise { to { opacity: 1; transform: translateY(0); } }
+        @keyframes juspHeroLight { 0% { transform: translate3d(0,0,0) scale(.92); opacity: .52; } 100% { transform: translate3d(18vw, 10vh, 0) scale(1.12); opacity: .94; } }
+        @keyframes juspScrollLine { 0% { transform: scaleY(.2); opacity: .35; } 50% { transform: scaleY(1); opacity: 1; } 100% { transform: scaleY(.2); opacity: .35; } }
+        @media (max-width: 820px) { .jusp-hero-cinema { min-height: calc(100svh - 64px + 34px); } .jusp-hero-content { padding: 132px 16px 118px; justify-content: flex-end; min-height: calc(100svh - 64px + 34px); } .jusp-hero-title { font-size: clamp(46px, 14vw, 78px); line-height: .92; letter-spacing: -0.066em; } .jusp-hero-subtitle { max-width: 96%; font-size: 15px; } .jusp-hero-actions { margin-top: 24px; } .jusp-hero-cta { flex: 1 1 150px; } .jusp-hero-letterbox { height: 38px; } .jusp-hero-scroll { display: none; } }
+        @media (max-width: 520px) { .jusp-real-logo-stage { width: min(640px, 116vw); } .jusp-real-intro-copy { font-size: 10px; letter-spacing: 3px; } .jusp-intro-microcopy { width: min(300px, 82vw); text-align: center; } .jusp-hero-proof span { font-size: 10px; min-height: 30px; letter-spacing: .7px; } }
+        @media (prefers-reduced-motion: reduce) { .jusp-door-intro, .jusp-cinema-bg, .jusp-cinema-aurora, .jusp-cinema-rays, .jusp-cinema-grain, .jusp-real-logo-stage, .jusp-intro-kicker, .jusp-real-logo-img, .jusp-real-portal-light, .jusp-door-flash, .jusp-door-shine, .jusp-real-intro-copy, .jusp-intro-microcopy, .jusp-real-loader span, .jusp-hero-video, .jusp-hero-light, .jusp-hero-badge, .jusp-hero-title, .jusp-hero-subtitle, .jusp-hero-actions, .jusp-hero-proof, .jusp-hero-scroll i { animation: none !important; } .jusp-door-intro { opacity: 1; } .jusp-real-logo-stage, .jusp-real-logo-img, .jusp-real-intro-copy, .jusp-intro-kicker, .jusp-intro-microcopy, .jusp-hero-badge, .jusp-hero-title, .jusp-hero-subtitle, .jusp-hero-actions, .jusp-hero-proof { opacity: 1; transform: none; } .jusp-real-portal-light { opacity: .42; transform: scale(1); } }
         .jusp-card {
           transform: translateZ;
           transition: transform 280ms var(--jusp-ease), box-shadow 280ms var(--jusp-ease), filter 280ms var(--jusp-ease);
@@ -1819,7 +1872,7 @@ function HomePageContent() {
         </div>
       ) : null}
 
-      <section id="hero" style={{ width: "100vw", minHeight: "calc(100vh - 64px)", position: "relative", background: "#000" }}>
+      <section id="hero" className="jusp-hero-cinema">
         <video
           ref={videoRef}
           key={videos[videoIndex]}
@@ -1828,22 +1881,35 @@ function HomePageContent() {
           autoPlay
           preload="auto"
           onEnded={onHeroEnded}
-          style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", inset: 0 }}
+          className="jusp-hero-video"
         >
           <source src={videos[videoIndex]} type="video/mp4" />
         </video>
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: "linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.18) 35%, rgba(0,0,0,0.55) 100%)",
-          }}
-        />
-        <div style={{ position: "relative", zIndex: 2, padding: "120px 18px 56px", maxWidth: 1180, margin: "0 auto" }}>
-          <div style={{ color: "#fff", opacity: 0.92, fontSize: 12, letterSpacing: 1.6, fontWeight: 800 }}>
-            JUSP · ORIGINALES.
+
+        <div className="jusp-hero-overlay" />
+        <div className="jusp-hero-light" />
+        <div className="jusp-hero-grid" />
+        <div className="jusp-hero-letterbox top" />
+        <div className="jusp-hero-letterbox bottom" />
+
+        <div className="jusp-hero-content">
+          <div className="jusp-hero-badge"><span /> JUSP · ORIGINALES.</div>
+          <h1 className="jusp-hero-title">
+            DO MORE.      Elegancia que<em>se siente.</em>
+          </h1>
+          <p className="jusp-hero-subtitle">
+            Productos originales, selección precisa y una experiencia elevada de principio a fin.
+          </p>
+          <div className="jusp-hero-proof" aria-label="Beneficios JUSP">
+            <span>Autenticidad</span>
+            <span>Protección</span>
+            <span>Drop-hype</span>
           </div>
-          <h1 style={{ color: "#fff", margin: "10px 0 0", fontSize: 46, lineHeight: 1.05 }}>JUSP · DO MORE</h1>
+        </div>
+
+        <div className="jusp-hero-scroll" aria-hidden="true">
+          <i />
+          <span>Scroll</span>
         </div>
       </section>
 
