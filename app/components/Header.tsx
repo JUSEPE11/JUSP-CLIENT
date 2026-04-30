@@ -81,24 +81,39 @@ type VisualAIDescription = {
   confidence: number;      // 0–1
 };
 
-async function analyzeImageWithAI(file: File): Promise<VisualAIDescription | null> {
+async function analyzeImageWithAI(file: File, timeoutMs = 3200): Promise<VisualAIDescription | null> {
+  const ctrl = new AbortController();
+  const timer = window.setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const base64 = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve((reader.result as string).split(",")[1]);
-      reader.onerror = () => reject(new Error("read_failed"));
-      reader.readAsDataURL(file);
+    const form = new FormData();
+    form.append("image", file);
+
+    const response = await fetch("/api/visual-search", {
+      method: "POST",
+      body: form,
+      signal: ctrl.signal,
     });
 
-    const mediaType = file.type.startsWith("image/") ? file.type : "image/jpeg";
+    if (!response.ok) return null;
+    const parsed = (await response.json()) as VisualAIDescription;
+    if (!parsed || typeof parsed !== "object") return null;
+    return {
+      brands: Array.isArray(parsed.brands) ? parsed.brands.map((s: any) => String(s).toLowerCase()) : [],
+      categories: Array.isArray(parsed.categories) ? parsed.categories.map((s: any) => String(s).toLowerCase()) : [],
+      genders: Array.isArray(parsed.genders) ? parsed.genders.map((s: any) => String(s).toLowerCase()) : [],
+      colors: Array.isArray(parsed.colors) ? parsed.colors.map((s: any) => String(s).toLowerCase()) : [],
+      keywords: Array.isArray(parsed.keywords) ? parsed.keywords.map((s: any) => String(s).toLowerCase()) : [],
+      confidence: typeof parsed.confidence === "number" ? Math.max(0, Math.min(1, parsed.confidence)) : 0.5,
+    };
+  } catch {
+    return null;
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 400,
-        system: `You are a sportswear product classifier. Analyze the clothing/shoe item in the image and return ONLY a JSON object. No preamble, no markdown, no explanation.
+/*
+JSON schema:
 
 JSON schema:
 {
@@ -137,6 +152,8 @@ JSON schema:
     return null;
   }
 }
+
+*/
 
 type ProductVisualClass = "shoe" | "top" | "bottom" | "outerwear" | "accessory" | "garment" | "unknown";
 
@@ -2571,11 +2588,11 @@ export default function Header() {
     setLoading(true);
 
     try {
-      const [catalog, sourceFeature] = await Promise.all([
+      const [catalog, sourceFeature, aiDescription] = await Promise.all([
         loadCatalog(),
         computeImageFeatureFromFile(file),
+        analyzeImageWithAI(file, deep ? 4200 : 2600),
       ]);
-      const aiDescription: VisualAIDescription | null = null;
       if (lastImageReq.current !== reqId) return;
       if (!sourceFeature) {
         setProducts([]);
