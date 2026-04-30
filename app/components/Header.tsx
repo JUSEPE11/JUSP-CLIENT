@@ -68,6 +68,8 @@ type VisualIntent = {
   shapes: string[];
 };
 
+type ProductVisualClass = "shoe" | "top" | "bottom" | "outerwear" | "accessory" | "garment" | "unknown";
+
 function normalizeSearchText(value: unknown): string {
   let text = String(value ?? "")
     .toLowerCase()
@@ -605,18 +607,19 @@ function inferIntentFromImage(fileName: string, feature: ImageFeature): VisualIn
   if (/\bhombre\b|\bmen\b|\bmale\b/.test(text)) genders.add("men");
   if (/\bninos\b|\bnino\b|\bkids\b|\bgirls\b|\bboys\b/.test(text)) genders.add("kids");
 
-  if (feature.aspect > 1.75 && feature.cropFill < 0.76) {
+  const visualClass = inferImageVisualClass(feature);
+  if (visualClass === "shoe") {
     categories.add("shoes");
     shapes.add("wide-low");
-  } else if (feature.aspect > 0.78 && feature.aspect < 1.36) {
-    categories.add("sports-bra");
-    shapes.add("square-garment");
-  } else if (feature.aspect > 0.56 && feature.aspect < 1.1) {
+  } else if (visualClass === "top") {
     categories.add("shirt");
-    shapes.add("tall-garment");
-  } else if (feature.aspect >= 1.36) {
+    shapes.add("upper-garment");
+  } else if (visualClass === "bottom") {
     categories.add("pants");
-    shapes.add("wide-garment");
+    shapes.add("lower-garment");
+  } else if (visualClass === "outerwear") {
+    categories.add("jacket");
+    shapes.add("outerwear");
   }
 
   if (feature.saturation < 0.12) shapes.add("neutral-color");
@@ -768,35 +771,97 @@ function scoreTextAffinity(product: SearchCatalogProduct, intent: VisualIntent, 
 }
 
 function getVisualFamily(feature: ImageFeature): "shoe" | "garment" | "compact" | "wide" | "unknown" {
-  if (feature.aspect >= 1.58 && feature.cropFill <= 0.82) return "shoe";
-  if (feature.aspect >= 0.58 && feature.aspect <= 1.45) return "garment";
-  if (feature.aspect > 1.45) return "wide";
-  if (feature.aspect < 0.58) return "compact";
+  if (feature.aspect >= 1.62 && feature.cropFill <= 0.86) return "shoe";
+  if (feature.aspect >= 0.52 && feature.aspect <= 1.48) return "garment";
+  if (feature.aspect > 1.48) return "wide";
+  if (feature.aspect < 0.52) return "compact";
   return "unknown";
 }
 
 function getCatalogProductFamily(product: SearchCatalogProduct): "shoe" | "garment" | "accessory" | "unknown" {
+  const classes = getCatalogProductVisualClasses(product);
+  if (classes.includes("shoe")) return "shoe";
+  if (classes.some((item) => item === "top" || item === "bottom" || item === "outerwear" || item === "garment")) return "garment";
+  if (classes.includes("accessory")) return "accessory";
+  return "unknown";
+}
+
+function getCatalogProductVisualClasses(product: SearchCatalogProduct): ProductVisualClass[] {
   const text = normalizeSearchText(
     String(product.title || "") + " " +
       String(product.name || "") + " " +
+      String(product.brand || "") + " " +
+      String(product.gender || "") + " " +
       String(product.kind || "") + " " +
       String(product.category || "") + " " +
+      String(product.subcategory || "") + " " +
       String(product.tags || "")
   );
 
-  if (/\b(shoe|shoes|sneaker|sneakers|zapatilla|zapatillas|tenis|dunk|jordan|air force|air max)\b/.test(text)) {
-    return "shoe";
+  const classes = new Set<ProductVisualClass>();
+
+  if (/\b(shoe|shoes|sneaker|sneakers|zapatilla|zapatillas|tenis|dunk|jordan|air force|air max|trainer|running)\b/.test(text)) {
+    classes.add("shoe");
   }
 
-  if (/\b(bra|top|tank|shirt|camiseta|tee|polo|pants|pantalon|legging|leggings|jogger|short|shorts|hoodie|jacket|chaqueta|sudadera)\b/.test(text)) {
-    return "garment";
+  if (/\b(bra|sports bra|sujetador|top|tank|shirt|camiseta|tee|t shirt|polo|playera|blusa|jersey)\b/.test(text)) {
+    classes.add("top");
   }
 
-  if (/\b(cap|gorra|hat|bag|bolso|mochila|accessory|accesorio)\b/.test(text)) {
-    return "accessory";
+  if (/\b(pants|pant|pantalon|pantalones|legging|leggings|jogger|trouser|short|shorts|falda|skirt)\b/.test(text)) {
+    classes.add("bottom");
   }
 
+  if (/\b(hoodie|jacket|chaqueta|sudadera|coat|abrigo|windrunner|fleece)\b/.test(text)) {
+    classes.add("outerwear");
+  }
+
+  if (/\b(cap|gorra|hat|bag|bolso|mochila|backpack|accessory|accesorio|sock|socks|medias)\b/.test(text)) {
+    classes.add("accessory");
+  }
+
+  if (!classes.size && /\b(apparel|ropa|clothing|wear)\b/.test(text)) {
+    classes.add("garment");
+  }
+
+  return classes.size ? [...classes] : ["unknown"];
+}
+
+function inferImageVisualClass(feature: ImageFeature): ProductVisualClass {
+  const aspect = feature.aspect;
+  const fill = feature.cropFill;
+  const rowTop = feature.rowProfile.slice(0, 6).reduce((a, b) => a + b, 0);
+  const rowMid = feature.rowProfile.slice(7, 17).reduce((a, b) => a + b, 0);
+  const rowBottom = feature.rowProfile.slice(18).reduce((a, b) => a + b, 0);
+  const colLeft = feature.colProfile.slice(0, 7).reduce((a, b) => a + b, 0);
+  const colMid = feature.colProfile.slice(8, 16).reduce((a, b) => a + b, 0);
+  const colRight = feature.colProfile.slice(17).reduce((a, b) => a + b, 0);
+  const verticalBalance = Math.abs(rowTop - rowBottom);
+  const horizontalSpread = colLeft + colRight;
+  const centerMass = rowMid + colMid;
+
+  if (aspect >= 1.58 && fill <= 0.9 && horizontalSpread > centerMass * 0.55) return "shoe";
+  if (aspect <= 0.72 && fill >= 0.5) return "bottom";
+  if (aspect >= 0.72 && aspect <= 1.38 && fill >= 0.42 && verticalBalance <= 4.2) return "top";
+  if (aspect >= 0.62 && aspect <= 1.2 && fill >= 0.62 && feature.variance > 0.045) return "outerwear";
+  if (aspect < 0.55 || (fill < 0.38 && aspect < 1.45)) return "accessory";
+  if (aspect >= 0.55 && aspect <= 1.5) return "garment";
   return "unknown";
+}
+
+function areVisualClassesCompatible(sourceClass: ProductVisualClass, candidateClass: ProductVisualClass): boolean {
+  if (sourceClass === "unknown" || candidateClass === "unknown") return true;
+  if (sourceClass === candidateClass) return true;
+  if (sourceClass === "garment" && ["top", "bottom", "outerwear"].includes(candidateClass)) return true;
+  if (candidateClass === "garment" && ["top", "bottom", "outerwear"].includes(sourceClass)) return true;
+  return false;
+}
+
+function productMatchesSourceClass(product: SearchCatalogProduct, sourceClass: ProductVisualClass): boolean {
+  if (sourceClass === "unknown") return true;
+  const classes = getCatalogProductVisualClasses(product);
+  if (classes.includes("unknown")) return true;
+  return classes.some((candidateClass) => areVisualClassesCompatible(sourceClass, candidateClass));
 }
 
 function scoreVisualMatch(product: SearchCatalogProduct, source: ImageFeature, candidate: ImageFeature): number {
@@ -812,6 +877,7 @@ function scoreVisualMatch(product: SearchCatalogProduct, source: ImageFeature, c
   const luminanceHistogramDelta = histogramDistance(source.histogram, candidate.histogram);
   const rowShapeDistance = profileDistance(source.rowProfile, candidate.rowProfile);
   const colShapeDistance = profileDistance(source.colProfile, candidate.colProfile);
+  const shapeProfileDistance = rowShapeDistance * 0.58 + colShapeDistance * 0.42;
   const aspectRatioDistance = Math.abs(Math.log(Math.max(0.12, source.aspect) / Math.max(0.12, candidate.aspect)));
   const saturationDistance = Math.abs(source.saturation - candidate.saturation);
   const fillDistance = Math.abs(source.cropFill - candidate.cropFill);
@@ -820,36 +886,51 @@ function scoreVisualMatch(product: SearchCatalogProduct, source: ImageFeature, c
 
   let score =
     1000 -
-    colorDistance * 1.08 -
-    hashDistance * 5.6 -
-    centerHashDistance * 7.2 -
-    colorHistogramDelta * 260 -
-    centerHistogramDelta * 215 -
-    luminanceHistogramDelta * 130 -
-    rowShapeDistance * 155 -
-    colShapeDistance * 155 -
-    aspectRatioDistance * 190 -
-    saturationDistance * 115 -
-    fillDistance * 85 -
-    varianceDistance * 210 -
-    edgeDistance * 95;
+    colorDistance * 0.98 -
+    hashDistance * 6.2 -
+    centerHashDistance * 8.4 -
+    colorHistogramDelta * 300 -
+    centerHistogramDelta * 245 -
+    luminanceHistogramDelta * 120 -
+    shapeProfileDistance * 280 -
+    aspectRatioDistance * 235 -
+    saturationDistance * 96 -
+    fillDistance * 120 -
+    varianceDistance * 180 -
+    edgeDistance * 120;
 
   const sourceFamily = getVisualFamily(source);
   const candidateFamily = getVisualFamily(candidate);
   const productFamily = getCatalogProductFamily(product);
+  const sourceClass = inferImageVisualClass(source);
+  const candidateClass = inferImageVisualClass(candidate);
 
   if (sourceFamily !== "unknown" && candidateFamily !== "unknown" && sourceFamily !== candidateFamily) {
-    score -= 180;
+    score -= sourceFamily === "shoe" || candidateFamily === "shoe" ? 260 : 140;
   }
 
-  if (sourceFamily === "shoe" && productFamily === "garment") score -= 230;
-  if (sourceFamily === "garment" && productFamily === "shoe") score -= 230;
+  if (!areVisualClassesCompatible(sourceClass, candidateClass)) {
+    score -= sourceClass === "shoe" || candidateClass === "shoe" ? 320 : 190;
+  } else if (sourceClass !== "unknown" && candidateClass !== "unknown") {
+    score += sourceClass === candidateClass ? 58 : 22;
+  }
+
+  if (!productMatchesSourceClass(product, sourceClass)) {
+    score -= sourceClass === "shoe" ? 360 : 240;
+  }
+
+  if (sourceFamily === "shoe" && productFamily === "garment") score -= 300;
+  if (sourceFamily === "garment" && productFamily === "shoe") score -= 300;
 
   const sourceTokens = inferVisualTokens(source);
   const candidateTokens = inferVisualTokens(candidate);
   const sharedColor = sourceTokens.some((token) => candidateTokens.includes(token));
-  if (sourceTokens.length && candidateTokens.length && !sharedColor) score -= 70;
-  if (sharedColor) score += 22;
+  if (sourceTokens.length && candidateTokens.length && !sharedColor) score -= 95;
+  if (sharedColor) score += 38;
+
+  if (aspectRatioDistance > 0.48) score -= 125;
+  if (shapeProfileDistance > 0.34) score -= 115;
+  if (hashDistance > 27 && centerHashDistance > 23) score -= 90;
 
   return Math.max(0, Math.min(1000, score));
 }
@@ -1799,30 +1880,15 @@ export default function Header() {
         .map((product) => ({ product, images: getCatalogProductImages(product) }))
         .filter((entry) => entry.images.length > 0);
 
-      const quickRank = await mapWithConcurrency(catalogWithImages, 5, async (entry) => {
-        const primaryFeature = await getCachedImageFeature(entry.images[0]);
-        const score = primaryFeature ? scoreVisualMatch(entry.product, sourceFeature, primaryFeature) : 0;
-        return {
-          product: entry.product,
-          images: entry.images,
-          score,
-        };
-      });
+      const sourceVisualClass = inferImageVisualClass(sourceFeature);
 
-      if (lastImageReq.current !== reqId) return;
-
-      const deepCandidates = quickRank
-        .filter((entry) => entry.score > 0)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, Math.min(36, Math.max(16, Math.ceil(catalogWithImages.length * 0.28))));
-
-      const deepRank = await mapWithConcurrency(deepCandidates, 4, async (entry) => {
-        let bestScore = entry.score;
+      const quickRank = await mapWithConcurrency(catalogWithImages, 6, async (entry) => {
+        let bestScore = 0;
         let bestImageIndex = 0;
-        const imagesToAnalyze = entry.images.slice(0, 12);
+        const fastImages = entry.images.slice(0, 3);
 
-        for (let index = 0; index < imagesToAnalyze.length; index += 1) {
-          const feature = await getCachedImageFeature(imagesToAnalyze[index]);
+        for (let index = 0; index < fastImages.length; index += 1) {
+          const feature = await getCachedImageFeature(fastImages[index]);
           if (!feature) continue;
           const visualScore = scoreVisualMatch(entry.product, sourceFeature, feature);
           if (visualScore > bestScore) {
@@ -1831,28 +1897,70 @@ export default function Header() {
           }
         }
 
-        const primaryImageBonus = bestImageIndex === 0 ? 12 : 0;
+        if (!productMatchesSourceClass(entry.product, sourceVisualClass)) {
+          bestScore = Math.max(0, bestScore - 160);
+        }
+
         return {
           product: entry.product,
-          score: Math.min(1000, bestScore + primaryImageBonus),
+          images: entry.images,
+          score: bestScore,
+          bestImageIndex,
+        };
+      });
+
+      if (lastImageReq.current !== reqId) return;
+
+      const sameFamilyCandidates = quickRank.filter((entry) =>
+        productMatchesSourceClass(entry.product, sourceVisualClass) || entry.score >= 620
+      );
+
+      const deepCandidates = (sameFamilyCandidates.length >= 10 ? sameFamilyCandidates : quickRank)
+        .filter((entry) => entry.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, Math.min(28, Math.max(12, Math.ceil(catalogWithImages.length * 0.18))));
+
+      const deepRank = await mapWithConcurrency(deepCandidates, 5, async (entry) => {
+        let bestScore = entry.score;
+        let bestImageIndex = entry.bestImageIndex;
+        const orderedImages = [
+          ...entry.images.slice(0, 8),
+          ...entry.images.slice(8, 12),
+        ].filter((url, index, arr) => arr.indexOf(url) === index);
+
+        for (let index = 0; index < orderedImages.length; index += 1) {
+          const feature = await getCachedImageFeature(orderedImages[index]);
+          if (!feature) continue;
+          const visualScore = scoreVisualMatch(entry.product, sourceFeature, feature);
+          if (visualScore > bestScore) {
+            bestScore = visualScore;
+            bestImageIndex = index;
+          }
+        }
+
+        const primaryImageBonus = bestImageIndex === 0 ? 18 : 0;
+        const classBonus = productMatchesSourceClass(entry.product, sourceVisualClass) ? 34 : -120;
+        return {
+          product: entry.product,
+          score: Math.min(1000, Math.max(0, bestScore + primaryImageBonus + classBonus)),
         };
       });
 
       const strictMatches = deepRank
-        .filter((entry) => entry.score >= 360)
+        .filter((entry) => entry.score >= 430)
         .sort((a, b) => b.score - a.score);
 
       const fallbackMatches = deepRank
-        .filter((entry) => entry.score > 0)
+        .filter((entry) => entry.score > 0 && productMatchesSourceClass(entry.product, sourceVisualClass))
         .sort((a, b) => b.score - a.score);
 
-      const finalMatches = (strictMatches.length >= 4 ? strictMatches : fallbackMatches)
+      const finalMatches = (strictMatches.length >= 4 ? strictMatches : fallbackMatches.length ? fallbackMatches : deepRank.sort((a, b) => b.score - a.score))
         .slice(0, 12)
         .map((entry) => {
           const mapped = mapCatalogProductToSearchProduct(entry.product);
           const roundedScore = Math.round(entry.score);
           const matchLabel: SearchProduct["matchLabel"] =
-            roundedScore >= 780 ? "Exacto" : roundedScore >= 590 ? "Muy similar" : "Similar";
+            roundedScore >= 820 ? "Exacto" : roundedScore >= 640 ? "Muy similar" : "Similar";
           return {
             ...mapped,
             matchScore: roundedScore,
