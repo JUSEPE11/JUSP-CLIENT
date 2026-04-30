@@ -2718,35 +2718,88 @@ export default function Header() {
       }
 
       const threshold = getScoreThreshold(sourceVisualClass, deep);
-      const strictMatches = rankSource
-        .filter((entry) => entry.score >= threshold)
-        .sort((a, b) => b.score - a.score);
+      const rankedAll = [...rankSource].sort((a, b) => b.score - a.score);
 
-      const softMatches = rankSource
-        .filter((entry) => entry.score >= threshold - 90)
-        .sort((a, b) => b.score - a.score);
+      const exactThreshold = Math.max(660, threshold + 80);
+      const verySimilarThreshold = Math.max(470, threshold - 10);
+      const similarThreshold = Math.max(280, threshold - 150);
 
-      const honestFallback = rankSource
-        .filter((entry) => entry.score >= 260)
-        .sort((a, b) => b.score - a.score);
+      const exactMatches = rankedAll.filter((entry) => entry.score >= exactThreshold);
+      const verySimilarMatches = rankedAll.filter(
+        (entry) => entry.score >= verySimilarThreshold && entry.score < exactThreshold
+      );
+      const similarMatches = rankedAll.filter(
+        (entry) => entry.score >= similarThreshold && entry.score < verySimilarThreshold
+      );
 
-      let selected = strictMatches.length >= 4 ? strictMatches : softMatches.length >= 4 ? softMatches : honestFallback;
+      const softMatches = rankedAll.filter((entry) => entry.score >= threshold - 90 && entry.score < exactThreshold);
+      const honestFallback = rankedAll.filter((entry) => entry.score >= 260 && entry.score < exactThreshold);
 
-      if (semanticCandidates.length && selected.length < 8) {
-        const existingIds = new Set(selected.map(e => getStableProductKey(e.product)));
-        const boostEntries = quickIndex.filter(e => {
-          const key = getStableProductKey(e.product);
-          return semanticCandidates.some(p => getStableProductKey(p) === key) && !existingIds.has(key);
-        });
-        const boostRanked = rankIndexedProducts(boostEntries, sourceFeature, { deep: false, intent, ai: aiDescription })
-          .filter(e => e.score >= 180);
-        selected = [...selected, ...boostRanked].slice(0, 16);
+      const selectionTarget = deep ? 18 : 16;
+      const exactLimit = deep ? 4 : 3;
+      const selected: RankedVisualProduct[] = [];
+      const selectedKeys = new Set<string>();
+      const pushUnique = (items: RankedVisualProduct[], limit?: number) => {
+        let added = 0;
+        for (const item of items) {
+          const key = getStableProductKey(item.product);
+          if (selectedKeys.has(key)) continue;
+          selected.push(item);
+          selectedKeys.add(key);
+          added += 1;
+          if (typeof limit === "number" && added >= limit) break;
+          if (selected.length >= selectionTarget) break;
+        }
+      };
+
+      // Maximo 3 exactos en busqueda normal y 4 en busqueda profunda.
+      // El resto del grid se reserva para Muy similares / Similares.
+      pushUnique(exactMatches, Math.min(exactLimit, exactMatches.length));
+      pushUnique(verySimilarMatches, Math.max(8, selectionTarget - selected.length));
+      pushUnique(similarMatches, selectionTarget - selected.length);
+
+      if (selected.length < Math.min(10, selectionTarget)) {
+        pushUnique(softMatches, selectionTarget - selected.length);
       }
 
-      let finalMatches: SearchProduct[] = selected.slice(0, 16).map((entry) => {
+      if (selected.length < Math.min(12, selectionTarget)) {
+        pushUnique(honestFallback, selectionTarget - selected.length);
+      }
+
+      if (semanticCandidates.length && selected.length < selectionTarget) {
+        const boostEntries = quickIndex.filter((e) => {
+          const key = getStableProductKey(e.product);
+          return semanticCandidates.some((p) => getStableProductKey(p) === key) && !selectedKeys.has(key);
+        });
+        const boostRanked = rankIndexedProducts(boostEntries, sourceFeature, { deep: false, intent, ai: aiDescription }).filter(
+          (e) => e.score >= 180 && e.score < exactThreshold
+        );
+        pushUnique(boostRanked, selectionTarget - selected.length);
+      }
+
+      // Emergencia: si no hay suficientes similares, permite pocos exactos extra al final.
+      if (selected.length < Math.min(8, selectionTarget)) {
+        pushUnique(exactMatches.slice(exactLimit), Math.min(2, selectionTarget - selected.length));
+      }
+
+      const exactAllowedKeys = new Set(
+        selected
+          .filter((entry) => entry.score >= exactThreshold)
+          .slice(0, exactLimit)
+          .map((entry) => getStableProductKey(entry.product))
+      );
+
+      let finalMatches: SearchProduct[] = selected.slice(0, selectionTarget).map((entry) => {
         const mapped = mapCatalogProductToSearchProduct(entry.product);
         const roundedScore = Math.round(entry.score);
-        return { ...mapped, matchScore: roundedScore, matchLabel: getMatchLabel(roundedScore) };
+        const productKey = getStableProductKey(entry.product);
+        let matchLabel: SearchProduct["matchLabel"] = getMatchLabel(roundedScore);
+
+        if (!exactAllowedKeys.has(productKey) && matchLabel === "Exacto") {
+          matchLabel = "Muy similar";
+        }
+
+        return { ...mapped, matchScore: roundedScore, matchLabel };
       });
 
       if (!finalMatches.length) {
