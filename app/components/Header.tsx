@@ -277,15 +277,40 @@ function getCatalogProductImages(product: SearchCatalogProduct): string[] {
   walk(product);
   return values.slice(0, 12);
 }
-function loadImageElement(src: string): Promise<HTMLImageElement> {
+function loadImageElement(src: string, crossOrigin: "anonymous" | "none" = "anonymous"): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.decoding = "async";
-    img.crossOrigin = "anonymous";
+    if (crossOrigin === "anonymous") img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error("image_load_failed"));
     img.src = src;
   });
+}
+
+function getNextImageProxyUrl(src: string): string | null {
+  const clean = String(src || "").trim();
+  if (!clean || clean.startsWith("data:") || clean.startsWith("blob:")) return null;
+  if (clean.startsWith("/_next/image")) return null;
+  try {
+    const absolute = clean.startsWith("http://") || clean.startsWith("https://")
+      ? clean
+      : typeof window !== "undefined"
+      ? new URL(clean, window.location.origin).toString()
+      : clean;
+    return `/_next/image?url=${encodeURIComponent(absolute)}&w=128&q=60`;
+  } catch {
+    return null;
+  }
+}
+
+function getImageAnalysisSources(src: string): string[] {
+  const clean = String(src || "").trim();
+  const sources: string[] = [];
+  if (clean) sources.push(clean);
+  const proxied = getNextImageProxyUrl(clean);
+  if (proxied && !sources.includes(proxied)) sources.unshift(proxied);
+  return sources;
 }
 
 type ForegroundExtraction = {
@@ -1144,12 +1169,13 @@ function mapCatalogProductToSearchProduct(product: SearchCatalogProduct): Search
     .map((value) => String(value ?? "").trim())
     .filter(Boolean);
 
+  const allImages = getCatalogProductImages(product);
   const image =
     typeof product.image === "string" && product.image.trim()
       ? product.image.trim()
       : Array.isArray(product.images) && typeof product.images[0] === "string"
       ? product.images[0]
-      : undefined;
+      : allImages[0];
 
   const slug = String(product.slug || product.id || "").trim();
   const href = slug ? `/product/${slug}` : `/products?q=${encodeURIComponent(String(product.title || product.name || ""))}`;
@@ -1264,6 +1290,46 @@ function getMatchLabel(score: number): SearchProduct["matchLabel"] {
   if (score >= 835) return "Exacto";
   if (score >= 645) return "Muy similar";
   return "Similar";
+}
+
+function getVisualSearchFallbackResults(
+  catalog: SearchCatalogProduct[],
+  sourceFeature: ImageFeature,
+  limit = 12
+): SearchProduct[] {
+  const sourceClass = inferImageVisualClass(sourceFeature);
+  const sourceColors = inferVisualTokens(sourceFeature);
+
+  return catalog
+    .map((product) => {
+      const images = getCatalogProductImages(product);
+      const haystack = buildSearchHaystack(product);
+      const productClasses = getCatalogProductVisualClasses(product);
+      let score = images.length ? 120 : 0;
+
+      if (productMatchesSourceClass(product, sourceClass)) score += 420;
+      else if (sourceClass !== "unknown" && !productClasses.includes("unknown")) score -= 260;
+
+      for (const color of sourceColors) {
+        if (haystack.includes(color)) score += 55;
+      }
+
+      if (images.length >= 2) score += 35;
+      if (hasPositiveMoney(product.price)) score += 20;
+
+      return { product, score };
+    })
+    .filter((entry) => entry.score > 0 && getCatalogProductImages(entry.product).length > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((entry) => {
+      const mapped = mapCatalogProductToSearchProduct(entry.product);
+      return {
+        ...mapped,
+        matchScore: Math.max(330, Math.min(620, Math.round(entry.score))),
+        matchLabel: "Similar" as const,
+      };
+    });
 }
 
 function safeLoadRecents(): string[] {
@@ -2147,16 +2213,20 @@ export default function Header() {
       return stored;
     }
 
-    try {
-      const img = await loadImageElement(src);
-      const feature = computeImageFeatureFromImage(img, img.naturalWidth || img.width, img.naturalHeight || img.height);
-      imageFeatureCacheRef.current.set(src, feature);
-      writeStoredImageFeature(src, feature);
-      return feature;
-    } catch {
-      imageFeatureCacheRef.current.set(src, null);
-      return null;
+    for (const source of getImageAnalysisSources(src)) {
+      try {
+        const img = await loadImageElement(source, "anonymous");
+        const feature = computeImageFeatureFromImage(img, img.naturalWidth || img.width, img.naturalHeight || img.height);
+        if (feature) {
+          imageFeatureCacheRef.current.set(src, feature);
+          writeStoredImageFeature(src, feature);
+          return feature;
+        }
+      } catch {}
     }
+
+    imageFeatureCacheRef.current.set(src, null);
+    return null;
   }
 
   async function buildCatalogVisualIndex(catalog: SearchCatalogProduct[], deep: boolean): Promise<CatalogVisualIndexEntry[]> {
@@ -2280,6 +2350,14 @@ export default function Header() {
       const quickIndex = await buildCatalogVisualIndex(catalog, false);
       if (lastImageReq.current !== reqId) return;
 
+      if (!quickIndex.length) {
+        const fallbackMatches = getVisualSearchFallbackResults(catalog, sourceFeature, 12);
+        setProducts(fallbackMatches);
+        setImageSearchCanDeep(false);
+        if (!fallbackMatches.length) setImageSearchMode("error");
+        return;
+      }
+
       const quickRank = rankIndexedProducts(quickIndex, sourceFeature, { deep: false });
       const sameFamilyQuick = quickRank.filter((entry) => productMatchesSourceClass(entry.product, sourceVisualClass));
       const quickPool = (sameFamilyQuick.length >= 10 ? sameFamilyQuick : quickRank)
@@ -2315,7 +2393,7 @@ export default function Header() {
 
       const selected = strictMatches.length >= 4 ? strictMatches : softMatches.length >= 4 ? softMatches : honestFallback;
 
-      const finalMatches = selected.slice(0, 12).map((entry) => {
+      let finalMatches = selected.slice(0, 12).map((entry) => {
         const mapped = mapCatalogProductToSearchProduct(entry.product);
         const roundedScore = Math.round(entry.score);
         return {
@@ -2325,9 +2403,13 @@ export default function Header() {
         };
       });
 
+      if (!finalMatches.length) {
+        finalMatches = getVisualSearchFallbackResults(catalog, sourceFeature, 12);
+      }
+
       if (lastImageReq.current !== reqId) return;
       setProducts(finalMatches);
-      setImageSearchCanDeep(!deep && finalMatches.length > 0);
+      setImageSearchCanDeep(!deep && finalMatches.length > 0 && quickIndex.length > 0);
     } catch {
       if (lastImageReq.current !== reqId) return;
       setProducts([]);
