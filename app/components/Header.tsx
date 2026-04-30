@@ -2393,7 +2393,7 @@ export default function Header() {
 
       const selected = strictMatches.length >= 4 ? strictMatches : softMatches.length >= 4 ? softMatches : honestFallback;
 
-      let finalMatches = selected.slice(0, 12).map((entry) => {
+      let finalMatches: SearchProduct[] = selected.slice(0, 12).map((entry) => {
         const mapped = mapCatalogProductToSearchProduct(entry.product);
         const roundedScore = Math.round(entry.score);
         return {
