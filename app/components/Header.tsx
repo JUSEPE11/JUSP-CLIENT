@@ -59,6 +59,11 @@ type ImageFeature = {
   centerHistogram: number[];
   rowProfile: number[];
   colProfile: number[];
+  hsvHistogram: number[];
+  edgeHistogram: number[];
+  gridColors: number[];
+  dominantColors: number[][];
+  texture: number;
 };
 type VisualIntent = {
   brands: string[];
@@ -366,6 +371,26 @@ function extractForegroundBounds(
   };
 }
 
+function rgbToHsv(r: number, g: number, b: number): { h: number; s: number; v: number } {
+  const nr = r / 255;
+  const ng = g / 255;
+  const nb = b / 255;
+  const max = Math.max(nr, ng, nb);
+  const min = Math.min(nr, ng, nb);
+  const delta = max - min;
+  let h = 0;
+
+  if (delta !== 0) {
+    if (max === nr) h = ((ng - nb) / delta) % 6;
+    else if (max === ng) h = (nb - nr) / delta + 2;
+    else h = (nr - ng) / delta + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+
+  return { h, s: max === 0 ? 0 : delta / max, v: max };
+}
+
 function computeImageFeatureFromImage(image: CanvasImageSource, width: number, height: number): ImageFeature | null {
   if (typeof document === "undefined") return null;
 
@@ -392,8 +417,13 @@ function computeImageFeatureFromImage(image: CanvasImageSource, width: number, h
   let sumSaturation = 0;
   const histogram = new Array<number>(16).fill(0);
   const colorHistogram = new Array<number>(48).fill(0);
+  const hsvHistogram = new Array<number>(128).fill(0);
+  const edgeHistogram = new Array<number>(8).fill(0);
   const rowProfile = new Array<number>(canvas.height).fill(0);
   const colProfile = new Array<number>(canvas.width).fill(0);
+  const gridSums = new Array<number>(4 * 4 * 3).fill(0);
+  const gridCounts = new Array<number>(4 * 4).fill(0);
+  const dominantBuckets = new Map<string, { count: number; r: number; g: number; b: number }>();
 
   for (let i = 0; i < data.length; i += 4) {
     const alpha = data[i + 3];
@@ -415,12 +445,62 @@ function computeImageFeatureFromImage(image: CanvasImageSource, width: number, h
     colorHistogram[Math.max(0, Math.min(15, Math.floor(pr / 16)))] += 1;
     colorHistogram[16 + Math.max(0, Math.min(15, Math.floor(pg / 16)))] += 1;
     colorHistogram[32 + Math.max(0, Math.min(15, Math.floor(pb / 16)))] += 1;
+
+    const hsv = rgbToHsv(pr, pg, pb);
+    const hBucket = Math.max(0, Math.min(7, Math.floor(hsv.h / 45)));
+    const sBucket = Math.max(0, Math.min(3, Math.floor(hsv.s * 4)));
+    const vBucket = Math.max(0, Math.min(3, Math.floor(hsv.v * 4)));
+    hsvHistogram[hBucket * 16 + sBucket * 4 + vBucket] += 1;
+
+    const gridX = Math.max(0, Math.min(3, Math.floor((x / canvas.width) * 4)));
+    const gridY = Math.max(0, Math.min(3, Math.floor((y / canvas.height) * 4)));
+    const gridIndex = gridY * 4 + gridX;
+    gridSums[gridIndex * 3] += pr;
+    gridSums[gridIndex * 3 + 1] += pg;
+    gridSums[gridIndex * 3 + 2] += pb;
+    gridCounts[gridIndex] += 1;
+
+    const dominantKey = `${Math.floor(pr / 32)}-${Math.floor(pg / 32)}-${Math.floor(pb / 32)}`;
+    const dominant = dominantBuckets.get(dominantKey) || { count: 0, r: 0, g: 0, b: 0 };
+    dominant.count += 1;
+    dominant.r += pr;
+    dominant.g += pg;
+    dominant.b += pb;
+    dominantBuckets.set(dominantKey, dominant);
+
     rowProfile[y] += 1;
     colProfile[x] += 1;
     count += 1;
   }
 
   if (!count) return null;
+
+  let textureAccumulator = 0;
+  let textureCount = 0;
+  for (let y = 1; y < canvas.height - 1; y += 1) {
+    for (let x = 1; x < canvas.width - 1; x += 1) {
+      const centerIdx = (y * canvas.width + x) * 4;
+      if (data[centerIdx + 3] < 8) continue;
+      const leftIdx = (y * canvas.width + x - 1) * 4;
+      const rightIdx = (y * canvas.width + x + 1) * 4;
+      const topIdx = ((y - 1) * canvas.width + x) * 4;
+      const bottomIdx = ((y + 1) * canvas.width + x) * 4;
+      const leftLum = (data[leftIdx] + data[leftIdx + 1] + data[leftIdx + 2]) / 3;
+      const rightLum = (data[rightIdx] + data[rightIdx + 1] + data[rightIdx + 2]) / 3;
+      const topLum = (data[topIdx] + data[topIdx + 1] + data[topIdx + 2]) / 3;
+      const bottomLum = (data[bottomIdx] + data[bottomIdx + 1] + data[bottomIdx + 2]) / 3;
+      const dx = rightLum - leftLum;
+      const dy = bottomLum - topLum;
+      const magnitude = Math.sqrt(dx * dx + dy * dy);
+      if (magnitude < 8) continue;
+      let angle = Math.atan2(dy, dx);
+      if (angle < 0) angle += Math.PI * 2;
+      const edgeBucket = Math.max(0, Math.min(7, Math.floor((angle / (Math.PI * 2)) * 8)));
+      edgeHistogram[edgeBucket] += magnitude;
+      textureAccumulator += magnitude;
+      textureCount += 1;
+    }
+  }
 
   const r = sumR / count;
   const g = sumG / count;
@@ -515,6 +595,19 @@ function computeImageFeatureFromImage(image: CanvasImageSource, width: number, h
     }
   }
 
+  const gridColors = gridCounts.flatMap((value, index) => {
+    if (!value) return [r / 255, g / 255, b / 255];
+    return [gridSums[index * 3] / value / 255, gridSums[index * 3 + 1] / value / 255, gridSums[index * 3 + 2] / value / 255];
+  });
+
+  const dominantColors = [...dominantBuckets.values()]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
+    .map((item) => [item.r / item.count, item.g / item.count, item.b / item.count, item.count / count]);
+
+  const edgeTotal = edgeHistogram.reduce((sum, value) => sum + value, 0) || 1;
+  const texture = textureCount ? textureAccumulator / textureCount / 255 : 0;
+
   return {
     r,
     g,
@@ -533,6 +626,11 @@ function computeImageFeatureFromImage(image: CanvasImageSource, width: number, h
     centerHistogram: centerHistogram.map((value) => value / (centerCanvas.width * centerCanvas.height)),
     rowProfile: rowProfile.map((value) => value / canvas.width),
     colProfile: colProfile.map((value) => value / canvas.height),
+    hsvHistogram: hsvHistogram.map((value) => value / count),
+    edgeHistogram: edgeHistogram.map((value) => value / edgeTotal),
+    gridColors,
+    dominantColors,
+    texture,
   };
 }
 
@@ -665,6 +763,65 @@ function profileDistance(a: number[], b: number[]): number {
   return total / length;
 }
 
+function vectorDistance(a: number[], b: number[]): number {
+  const length = Math.min(a.length, b.length);
+  if (!length) return 1;
+  let total = 0;
+  for (let i = 0; i < length; i += 1) {
+    const diff = (a[i] ?? 0) - (b[i] ?? 0);
+    total += diff * diff;
+  }
+  return Math.sqrt(total / length);
+}
+
+function dominantColorDistance(a: number[][], b: number[][]): number {
+  if (!a.length || !b.length) return 1;
+  let total = 0;
+  let weight = 0;
+
+  for (const sourceColor of a) {
+    const sourceWeight = Number(sourceColor[3] ?? 0.2);
+    let best = Number.POSITIVE_INFINITY;
+    for (const candidateColor of b) {
+      const distance = Math.sqrt(
+        Math.pow((sourceColor[0] ?? 0) - (candidateColor[0] ?? 0), 2) +
+          Math.pow((sourceColor[1] ?? 0) - (candidateColor[1] ?? 0), 2) +
+          Math.pow((sourceColor[2] ?? 0) - (candidateColor[2] ?? 0), 2)
+      );
+      best = Math.min(best, distance);
+    }
+    total += best * sourceWeight;
+    weight += sourceWeight;
+  }
+
+  return weight ? total / weight / 255 : 1;
+}
+
+function imageScoreConfidence(score: number, analyzedImages: number): number {
+  const imageBonus = Math.min(1, analyzedImages / 4) * 24;
+  return Math.round(score + imageBonus);
+}
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  mapper: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      results[currentIndex] = await mapper(items[currentIndex], currentIndex);
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(limit, items.length || 1) }, () => worker()));
+  return results;
+}
+
 function scoreIntentMatch(product: SearchCatalogProduct, intent: VisualIntent): number {
   const haystack = buildSearchHaystack(product);
   const brand = normalizeSearchText(product.brand || "");
@@ -795,6 +952,11 @@ function scoreVisualMatch(product: SearchCatalogProduct, source: ImageFeature, c
     Math.abs(source.r - candidate.r) * 0.18 +
     Math.abs(source.g - candidate.g) * 0.18 +
     Math.abs(source.b - candidate.b) * 0.18;
+  const hsvDelta = histogramDistance(source.hsvHistogram, candidate.hsvHistogram) * 170;
+  const edgeHistogramDelta = histogramDistance(source.edgeHistogram, candidate.edgeHistogram) * 92;
+  const gridColorDelta = vectorDistance(source.gridColors, candidate.gridColors) * 190;
+  const dominantPaletteDelta = dominantColorDistance(source.dominantColors, candidate.dominantColors) * 130;
+  const textureDistance = Math.abs(source.texture - candidate.texture) * 96;
 
   let score =
     820 -
@@ -811,6 +973,11 @@ function scoreVisualMatch(product: SearchCatalogProduct, source: ImageFeature, c
     saturationDistance -
     warmnessDistance -
     dominantColorDelta -
+    hsvDelta -
+    edgeHistogramDelta -
+    gridColorDelta -
+    dominantPaletteDelta -
+    textureDistance -
     fillDistance -
     rowShapeDistance -
     colShapeDistance;
@@ -1765,45 +1932,71 @@ export default function Header() {
       }
       const intent = inferIntentFromImage(file.name, sourceFeature);
 
-      const ranked = await Promise.all(
-        catalog.map(async (product) => {
-          const images = getCatalogProductImages(product);
-          if (!images.length) return null;
+      const ranked = await mapWithConcurrency(catalog, 6, async (product) => {
+        const images = getCatalogProductImages(product);
+        const intentScore = scoreIntentMatch(product, intent);
+        const textScore = scoreTextAffinity(product, intent, sourceFeature);
 
-          let bestScore = Number.NEGATIVE_INFINITY;
-          let analyzedImages = 0;
-          for (const image of images) {
-            const feature = await getCachedImageFeature(image);
-            if (!feature) continue;
-            analyzedImages += 1;
-            bestScore = Math.max(
-              bestScore,
-              scoreVisualMatch(product, sourceFeature, feature) +
-                scoreIntentMatch(product, intent) +
-                scoreTextAffinity(product, intent, sourceFeature)
-            );
-          }
-
-          const fallbackScore = scoreIntentMatch(product, intent) + scoreTextAffinity(product, intent, sourceFeature) - 24;
-          const finalScore = Number.isFinite(bestScore) ? bestScore + Math.min(analyzedImages, 8) * 10 : fallbackScore;
-
+        if (!images.length) {
           return {
             product,
-            score: finalScore,
+            score: intentScore + textScore - 42,
+            analyzedImages: 0,
           };
-        })
-      );
+        }
 
+        let bestScore = Number.NEGATIVE_INFINITY;
+        let secondBestScore = Number.NEGATIVE_INFINITY;
+        let analyzedImages = 0;
+
+        for (const image of images) {
+          if (lastImageReq.current !== reqId) break;
+          const feature = await getCachedImageFeature(image);
+          if (!feature) continue;
+          analyzedImages += 1;
+
+          const imageScore = scoreVisualMatch(product, sourceFeature, feature);
+          if (imageScore > bestScore) {
+            secondBestScore = bestScore;
+            bestScore = imageScore;
+          } else if (imageScore > secondBestScore) {
+            secondBestScore = imageScore;
+          }
+        }
+
+        const multiImageConsistency = Number.isFinite(secondBestScore) ? Math.max(0, secondBestScore) * 0.08 : 0;
+        const fallbackScore = intentScore + textScore - 42;
+        const finalScore = Number.isFinite(bestScore)
+          ? imageScoreConfidence(bestScore + multiImageConsistency + intentScore + textScore, analyzedImages)
+          : fallbackScore;
+
+        return {
+          product,
+          score: finalScore,
+          analyzedImages,
+        };
+      });
+
+      const seenProducts = new Set<string>();
       const matches = ranked
-        .filter((entry): entry is { product: SearchCatalogProduct; score: number } => Boolean(entry && Number.isFinite(entry.score)))
+        .filter((entry): entry is { product: SearchCatalogProduct; score: number; analyzedImages: number } =>
+          Boolean(entry && Number.isFinite(entry.score))
+        )
         .sort((a, b) => b.score - a.score)
-        .slice(0, 20)
-        .filter((entry, index) => index < 8 || entry.score > 120)
+        .filter((entry) => {
+          const key = String(entry.product.id || entry.product.slug || entry.product.title || entry.product.name || "");
+          if (!key) return true;
+          if (seenProducts.has(key)) return false;
+          seenProducts.add(key);
+          return true;
+        })
+        .slice(0, 24)
+        .filter((entry, index) => index < 10 || entry.score > 145)
         .map((entry) => {
           const mapped = mapCatalogProductToSearchProduct(entry.product);
           const roundedScore = Math.round(entry.score);
           const matchLabel: SearchProduct["matchLabel"] =
-            roundedScore >= 620 ? "Exacto" : roundedScore >= 430 ? "Muy similar" : "Similar";
+            roundedScore >= 650 ? "Exacto" : roundedScore >= 455 ? "Muy similar" : "Similar";
           return {
             ...mapped,
             matchScore: roundedScore,
@@ -2294,9 +2487,9 @@ export default function Header() {
                         {imageSearchMode === "error"
                           ? "No se pudo leer esa imagen. Prueba otra foto mas clara."
                           : loading
-                          ? "Analizando silueta, colores, recorte, textura y productos similares..."
+                          ? "Analizando todas las imágenes del catálogo: silueta, color, textura, proporción y detalles..."
                           : products.length
-                          ? "Resultados ordenados por parecido visual, tipo de producto, color y marca."
+                          ? "Resultados ordenados por coincidencia visual real entre todas las fotos del catálogo."
                           : "No encontramos coincidencias fuertes, pero te mostramos las opciones mas cercanas del catalogo."}
                       </div>
                     ) : null}
