@@ -1,10 +1,16 @@
-// app/api/auth/me/route.ts
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { COOKIE_AT, COOKIE_PROFILE, verifyAccessToken } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+function noStoreJson(body: unknown, status = 200) {
+  return NextResponse.json(body, {
+    status,
+    headers: { "Cache-Control": "no-store" },
+  });
+}
 
 function safeDecode(v: string) {
   try {
@@ -14,7 +20,7 @@ function safeDecode(v: string) {
   }
 }
 
-function isObject(x: any) {
+function isObject(x: unknown) {
   return !!x && typeof x === "object" && !Array.isArray(x);
 }
 
@@ -24,38 +30,56 @@ export async function GET() {
     const at = store.get(COOKIE_AT)?.value;
 
     if (!at) {
-      return NextResponse.json({ ok: false, error: "No session" }, { status: 401, headers: { "Cache-Control": "no-store" } });
+      return noStoreJson({
+        ok: false,
+        user: null,
+        authenticated: false,
+        error: "No session",
+      });
     }
 
-    // ✅ Validar token y extraer sub/email si el verifier devuelve payload
     let decoded: any = null;
+
     try {
       decoded = await verifyAccessToken(at);
     } catch {
-      return NextResponse.json({ ok: false, error: "Invalid session" }, { status: 401, headers: { "Cache-Control": "no-store" } });
+      return noStoreJson({
+        ok: false,
+        user: null,
+        authenticated: false,
+        error: "Invalid session",
+      });
     }
 
     const rawProfile = store.get(COOKIE_PROFILE)?.value;
+
     if (!rawProfile) {
-      return NextResponse.json({ ok: false, error: "No profile" }, { status: 401, headers: { "Cache-Control": "no-store" } });
+      return noStoreJson({
+        ok: true,
+        authenticated: true,
+        user: {
+          id: decoded?.sub ? String(decoded.sub) : null,
+          email: decoded?.email ? String(decoded.email).toLowerCase() : null,
+          name: null,
+          profile: null,
+        },
+      });
     }
 
     let parsed: any = null;
+
     try {
       parsed = JSON.parse(safeDecode(rawProfile));
     } catch {
-      return NextResponse.json({ ok: false, error: "Invalid profile" }, { status: 400, headers: { "Cache-Control": "no-store" } });
+      parsed = null;
     }
 
-    // ✅ NORMALIZAR SI LA COOKIE VIENE "PLANA" (ej: {segment, interests,...})
-    // Tu UI necesita: user.profile
     const userId = decoded?.sub ? String(decoded.sub) : null;
     const email = decoded?.email ? String(decoded.email).toLowerCase() : null;
 
     let outUser: any;
 
     if (isObject(parsed) && ("id" in parsed || "email" in parsed || "profile" in parsed)) {
-      // Ya viene con shape wrapper
       outUser = {
         id: parsed.id ?? userId,
         email: parsed.email ?? email,
@@ -63,7 +87,6 @@ export async function GET() {
         profile: parsed.profile ?? null,
       };
     } else {
-      // Cookie plana => la guardamos dentro de profile
       outUser = {
         id: userId,
         email,
@@ -72,8 +95,19 @@ export async function GET() {
       };
     }
 
-    return NextResponse.json({ ok: true, user: outUser }, { status: 200, headers: { "Cache-Control": "no-store" } });
-  } catch {
-    return NextResponse.json({ ok: false, error: "Server error" }, { status: 500, headers: { "Cache-Control": "no-store" } });
+    return noStoreJson({
+      ok: true,
+      authenticated: true,
+      user: outUser,
+    });
+  } catch (error) {
+    console.error("[api/auth/me] error:", error);
+
+    return noStoreJson({
+      ok: false,
+      user: null,
+      authenticated: false,
+      error: "Server error",
+    });
   }
 }
