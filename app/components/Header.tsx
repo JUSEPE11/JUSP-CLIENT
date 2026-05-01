@@ -1556,7 +1556,7 @@ type SessionUser = {
 const RECENTS_KEY = "jusp_search_recents_v1";
 const IMAGE_FEATURE_CACHE_PREFIX = "jusp_visual_feature_v12_fast_free:";
 const IMAGE_FEATURE_CACHE_LIMIT = 260;
-const VISUAL_INDEX_VERSION = "v11-fast-free-similar";
+const VISUAL_INDEX_VERSION = "v12-fast-metadata-free";
 const VISUAL_QUICK_CANDIDATE_LIMIT = 64;
 const VISUAL_DEEP_CANDIDATE_LIMIT = 96;
 const VISUAL_IMAGE_LOAD_TIMEOUT_MS = 1200;
@@ -2776,173 +2776,108 @@ export default function Header() {
     setLoading(true);
 
     try {
-      // ── FASE 1: Todo en paralelo ───────────────────────────────────────────
-      // AI Vision lee logos, colores, tipo de prenda en la imagen real.
-      // Pixel features se computan en paralelo para usarse como desempate.
+      // FAST FREE MODE:
+      // No cargamos ni comparamos imágenes del catálogo en el navegador.
+      // Eso era la causa del bloqueo: muchas imágenes externas + canvas + CORS.
+      // Ahora analizamos SOLO la imagen subida y rankeamos el catálogo por metadata,
+      // categoría, color, título, marca y texto del Excel. Resultado rápido y estable.
       const [catalog, sourceFeature, remoteAI] = await Promise.all([
         loadCatalog(),
         computeImageFeatureFromFile(file),
-        analyzeImageWithAI(file, deep ? 5000 : 3500),
+        analyzeImageWithAI(file, deep ? 1200 : 850),
       ]);
+
       if (lastImageReq.current !== reqId) return;
-      if (!catalog.length) { setImageSearchMode("error"); return; }
 
-      const freeAI       = buildFreeVisualDescription(file.name, sourceFeature);
-      const hasRemoteAI  = !!remoteAI && remoteAI.confidence >= 0.35;
-      const ai           = hasRemoteAI ? remoteAI : freeAI;
-      const hasAI        = !!ai && ai.confidence >= 0.25;
-      const highConfAI   = !!remoteAI && remoteAI.confidence >= 0.6;
-      const pixelIntent  = sourceFeature ? inferIntentFromImage(file.name, sourceFeature) : { brands: [], categories: [], genders: [], colors: [], shapes: [] };
-      const intent       = mergeAIIntoIntent(pixelIntent, ai);
-      const sourceClass  = sourceFeature ? inferImageVisualClass(sourceFeature) : "unknown";
-
-      // ── FASE 2: Búsqueda AI semántica (ruta principal) ────────────────────
-      // scoreAIIntent aplica: +200 brand match, +180 category match, -200 wrong category.
-      // Esto es mucho más preciso que comparar histogramas de pixels.
-      let aiRanked: Array<{ product: SearchCatalogProduct; aiScore: number }> = [];
-      if (hasAI) {
-        aiRanked = buildAITextResults(catalog, ai!, deep ? 36 : 24);
+      if (!catalog.length) {
+        setProducts([]);
+        setImageSearchMode("error");
+        setImageSearchCanDeep(false);
+        return;
       }
 
-      // ── FASE 3: Búsqueda visual pixel (enriquecimiento) ───────────────────
-      // Siempre corremos el índice visual, pero su peso varía según confianza AI.
-      // Cuando AI es confiable, visual solo reordena dentro del conjunto AI.
-      // Cuando AI falla, visual es la única señal.
-      let visualRanked: RankedVisualProduct[] = [];
+      const freeAI = buildFreeVisualDescription(file.name, sourceFeature);
+      const ai = remoteAI && remoteAI.confidence >= 0.35 ? remoteAI : freeAI;
+      const pixelIntent = sourceFeature
+        ? inferIntentFromImage(file.name, sourceFeature)
+        : { brands: [], categories: [], genders: [], colors: [], shapes: [] };
+      const intent = mergeAIIntoIntent(pixelIntent, ai);
+      const sourceClass = sourceFeature ? inferImageVisualClass(sourceFeature) : "unknown";
+      const sourceColors = new Set<string>([
+        ...(sourceFeature ? inferVisualTokens(sourceFeature) : []),
+        ...intent.colors,
+        ...(ai?.colors ?? []),
+      ].map((value) => normalizeSearchText(value)).filter(Boolean));
 
-      if (sourceFeature) {
-        // Catálogo a indexar: si AI tiene resultados, solo indexamos ese subconjunto
-        // para el paso visual (más rápido y preciso).
-        // Only narrow the pixel search when a real remote AI result is available.
-        // In free mode, the semantic description is heuristic; narrowing too early
-        // can hide visually similar products. So free mode keeps the full catalog.
-        const semanticSeed = buildSemanticVisualCandidates(
-          catalog,
-          sourceFeature,
-          intent,
-          deep ? VISUAL_DEEP_CANDIDATE_LIMIT : VISUAL_QUICK_CANDIDATE_LIMIT
-        );
-        const seedKeys = new Set<string>([
-          ...semanticSeed.map((p) => getStableProductKey(p)),
-          ...aiRanked.slice(0, deep ? 48 : 28).map((e) => getStableProductKey(e.product)),
-        ]);
-        const visualCatalog = hasRemoteAI && aiRanked.length >= 6
-          ? catalog.filter((p) => seedKeys.has(getStableProductKey(p)))
-          : semanticSeed.length
-          ? semanticSeed
-          : catalog.slice(0, deep ? VISUAL_DEEP_CANDIDATE_LIMIT : VISUAL_QUICK_CANDIDATE_LIMIT);
+      const scored = catalog
+        .map((product) => {
+          const images = getCatalogProductImages(product);
+          if (!images.length) return { product, score: -999 };
 
-        const quickIndex = await buildCatalogVisualIndex(visualCatalog, false);
-        if (lastImageReq.current !== reqId) return;
+          const haystack = buildSearchHaystack(product);
+          const classes = getCatalogProductVisualClasses(product);
+          const classCompatible = sourceClass !== "unknown" && productMatchesSourceClass(product, sourceClass);
+          const classKnown = sourceClass !== "unknown" && !classes.includes("unknown");
 
-        if (quickIndex.length) {
-          let rankSource: RankedVisualProduct[];
+          let score = 120;
 
-          if (deep) {
-            const deepKeys = new Set([
-              ...visualCatalog.map((p) => getStableProductKey(p)),
-              ...aiRanked.slice(0, 48).map((e) => getStableProductKey(e.product)),
-            ]);
-            const deepCatalog = catalog.filter((p) => deepKeys.has(getStableProductKey(p))).slice(0, VISUAL_DEEP_CANDIDATE_LIMIT);
-            const deepIndex   = await buildCatalogVisualIndex(deepCatalog, true);
-            if (lastImageReq.current !== reqId) return;
-            rankSource = rankIndexedProducts(deepIndex, sourceFeature, { deep: true, intent, ai }).slice(0, 36);
-          } else {
-            rankSource = rankIndexedProducts(quickIndex, sourceFeature, { deep: false, intent, ai }).slice(0, 24);
+          if (classCompatible) score += 380;
+          else if (classKnown) score -= sourceClass === "shoe" || classes.includes("shoe") ? 330 : 220;
+          else score += 35;
+
+          const intentScore = scoreIntentMatch(product, intent);
+          score += Math.max(-120, Math.min(250, intentScore));
+
+          if (sourceFeature) {
+            const textAffinity = scoreTextAffinity(product, intent, sourceFeature);
+            score += Math.max(-90, Math.min(210, textAffinity));
           }
 
-          visualRanked = rankSource.filter((e) => e.score >= (sourceClass === "unknown" ? 260 : 220));
-        }
-      }
+          if (ai && ai.confidence >= 0.25) {
+            const aiScore = scoreAIIntent(product, ai);
+            score += Math.max(-140, Math.min(260, aiScore));
+          }
 
-      // ── FASE 4: Fusión inteligente AI + Visual ────────────────────────────
-      // Puntuación combinada: AI semántico es el señal principal,
-      // visual enriquece desempatando entre productos con mismo aiScore.
-      //
-      // combined = aiScore * aiWeight + visualScore * visualWeight
-      //   highConfAI  → aiWeight=0.80, visualWeight=0.20
-      //   lowConfAI   → aiWeight=0.55, visualWeight=0.45
-      //   noAI        → aiWeight=0.00, visualWeight=1.00
+          let colorHits = 0;
+          for (const color of sourceColors) {
+            const spanishColor = COLOR_ES[color] || color;
+            if (haystack.includes(color) || haystack.includes(normalizeSearchText(spanishColor))) {
+              colorHits += 1;
+            }
+          }
+          score += Math.min(4, colorHits) * 95;
 
-      const aiWeight     = highConfAI ? 0.80 : hasRemoteAI ? 0.55 : hasAI ? 0.26 : 0.0;
-      const visualWeight = 1 - aiWeight;
+          const title = normalizeSearchText(product.title || product.name || "");
+          const brand = normalizeSearchText(product.brand || product.marca || "");
+          const category = normalizeSearchText(product.category || product.kind || product.type || product.categoria || "");
 
-      // Index visual scores by product key for O(1) lookup
-      const visualScoreMap = new Map<string, number>();
-      for (const v of visualRanked) {
-        visualScoreMap.set(getStableProductKey(v.product), v.score);
-      }
+          for (const token of [...intent.categories, ...intent.brands, ...intent.genders]) {
+            const normalized = normalizeSearchText(token);
+            if (!normalized) continue;
+            if (title.includes(normalized)) score += 42;
+            if (brand.includes(normalized)) score += 70;
+            if (category.includes(normalized)) score += 58;
+          }
 
-      // Build unified candidate pool
-      const candidateMap = new Map<string, {
-        product: SearchCatalogProduct;
-        aiScore: number;
-        visualScore: number;
-        combined: number;
-      }>();
+          // Prefer productos con imagen principal clara y precio real, sin hacer canvas.
+          if (images[0]) score += 28;
+          if (images.length >= 2) score += 14;
+          if (hasPositiveMoney(product.price)) score += 18;
+          if (hasPositiveMoney(product.compareAt || product.compare_at)) score += 6;
 
-      // From AI results
-      for (const { product, aiScore } of aiRanked) {
-        const key         = getStableProductKey(product);
-        const visualScore = visualScoreMap.get(key) ?? 0;
-        const combined    = aiScore * aiWeight + visualScore * visualWeight;
-        candidateMap.set(key, { product, aiScore, visualScore, combined });
-      }
+          return { product, score };
+        })
+        .filter((entry) => entry.score > (sourceClass === "unknown" ? 150 : 190))
+        .sort((a, b) => b.score - a.score);
 
-      // From visual results (may add products AI missed)
-      for (const { product, score: visualScore } of visualRanked) {
-        const key = getStableProductKey(product);
-        if (candidateMap.has(key)) continue; // already in map
-        const aiScore  = hasAI ? scoreAIIntent(product, ai!) : 0;
-        const combined = aiScore * aiWeight + visualScore * visualWeight;
-        if (combined > 0) candidateMap.set(key, { product, aiScore, visualScore, combined });
-      }
+      const strictClass = sourceClass !== "unknown"
+        ? scored.filter((entry) => productMatchesSourceClass(entry.product, sourceClass))
+        : scored;
 
-      // Free semantic fallback: add catalog products that match class/category/color
-      // even when their images cannot be read because of CORS/provider restrictions.
-      if (sourceFeature) {
-        const semanticCandidates = buildSemanticVisualCandidates(catalog, sourceFeature, intent, deep ? 28 : 18);
-        for (const product of semanticCandidates) {
-          const key = getStableProductKey(product);
-          if (candidateMap.has(key)) continue;
-          const semanticScore = scoreIntentMatch(product, intent) + scoreTextAffinity(product, intent, sourceFeature);
-          const classBoost = productMatchesSourceClass(product, sourceClass) ? 70 : -160;
-          const safeScore = Math.max(70, Math.min(330, 150 + semanticScore + classBoost));
-          candidateMap.set(key, {
-            product,
-            aiScore: hasAI ? scoreAIIntent(product, ai!) : 0,
-            visualScore: 0,
-            combined: safeScore,
-          });
-        }
-      }
-
-      const sorted = [...candidateMap.values()].sort((a, b) => {
-        const byCombined = b.combined - a.combined;
-        if (Math.abs(byCombined) > 0.001) return byCombined;
-        const byVisual = b.visualScore - a.visualScore;
-        if (Math.abs(byVisual) > 0.001) return byVisual;
-        return b.aiScore - a.aiScore;
-      });
-
-      // ── FASE 5: Filtrado y etiquetado final ───────────────────────────────
-      // Si AI tiene alta confianza, forzamos que los productos con aiScore negativo
-      // (categoría incorrecta) no aparezcan aunque su score visual sea alto.
-      const baseFiltered = highConfAI
-        ? sorted.filter((e) => e.aiScore >= 0)   // descartar categoría equivocada
-        : sorted;
-
-      const strictClassFiltered = sourceClass !== "unknown"
-        ? baseFiltered.filter((e) => productMatchesSourceClass(e.product, sourceClass) || e.visualScore >= 520)
-        : baseFiltered;
-
-      const filtered = strictClassFiltered.length >= 4 ? strictClassFiltered : baseFiltered;
-
-      const selectionTarget = deep ? 16 : 12;
-      const finalMatches: SearchProduct[] = filtered.slice(0, selectionTarget).map((entry) => {
+      const usable = strictClass.length >= 4 ? strictClass : scored;
+      const finalMatches = usable.slice(0, deep ? 16 : 12).map((entry) => {
         const mapped = mapCatalogProductToSearchProduct(entry.product);
-        // Normalizar combined a rango 0-1000 para getMatchLabel
-        const normalizedScore = Math.round(Math.min(1000, Math.max(0, entry.combined * 2.2)));
+        const normalizedScore = Math.max(260, Math.min(920, Math.round(entry.score)));
         return {
           ...mapped,
           matchScore: normalizedScore,
@@ -2950,16 +2885,23 @@ export default function Header() {
         };
       });
 
-      // Fallback de emergencia
       const results = finalMatches.length
         ? finalMatches
         : sourceFeature
           ? getVisualSearchFallbackResults(catalog, sourceFeature, 12)
-          : [];
+          : catalog
+              .filter((product) => getCatalogProductImages(product).length > 0)
+              .slice(0, 12)
+              .map((product) => ({
+                ...mapCatalogProductToSearchProduct(product),
+                matchScore: 300,
+                matchLabel: "Similar" as const,
+              }));
 
       if (lastImageReq.current !== reqId) return;
       setProducts(results);
       setImageSearchCanDeep(!deep && results.length > 0);
+      setImageSearchIndexedCount(results.length);
     } catch {
       if (lastImageReq.current !== reqId) return;
       setProducts([]);
@@ -3441,9 +3383,9 @@ export default function Header() {
                         {imageSearchMode === "error"
                           ? "No se pudo leer esa imagen. Prueba otra foto mas clara."
                           : loading
-                          ? "Limpiando fondo, creando índice visual y comparando producto contra catálogo..."
+                          ? "Analizando imagen y buscando similitud en el catálogo..."
                           : products.length
-                          ? `Resultados por similitud visual real${imageSearchIndexedCount ? ` · ${imageSearchIndexedCount} imágenes analizadas/cacheadas` : ""}.`
+                          ? `Resultados por similitud rápida${imageSearchIndexedCount ? ` · ${imageSearchIndexedCount} coincidencias` : ""}.`
                           : "No encontramos coincidencias fuertes. Sube una imagen centrada, con el producto completo."}
                       </div>
                     ) : null}
