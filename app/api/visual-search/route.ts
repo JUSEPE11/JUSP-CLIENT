@@ -1,1 +1,4 @@
-export { POST, runtime, dynamic } from "../search/image/route";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export { POST } from "../search/image/route";
