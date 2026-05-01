@@ -408,6 +408,17 @@ function getImageAnalysisSources(src: string): string[] {
   return clean ? [clean] : [];
 }
 
+function isSameOriginImageSource(src: string): boolean {
+  if (typeof window === "undefined") return false;
+  const clean = String(src || "").trim();
+  if (!clean || clean.startsWith("data:") || clean.startsWith("blob:") || clean.startsWith("/")) return true;
+  try {
+    return new URL(clean, window.location.origin).origin === window.location.origin;
+  } catch {
+    return false;
+  }
+}
+
 type ForegroundExtraction = {
   x: number;
   y: number;
