@@ -41,7 +41,8 @@ function normalizeToken(value: unknown): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, " ")
-    .trim();
+    .trim()
+    .replace(/\s+/g, " ");
 }
 
 function cleanList(value: unknown, max = 12): string[] {
@@ -70,10 +71,10 @@ function normalizeAnalysis(value: unknown): VisualAIDescription {
 
   return {
     brands: cleanList(record.brands, 8),
-    categories: cleanList(record.categories, 10),
+    categories: cleanList(record.categories, 12),
     genders: cleanList(record.genders, 6),
-    colors: cleanList(record.colors, 10),
-    keywords: cleanList(record.keywords, 24),
+    colors: cleanList(record.colors, 12),
+    keywords: cleanList(record.keywords, 28),
     confidence,
   };
 }
@@ -91,7 +92,8 @@ function isAllowedImage(file: File): boolean {
 
 async function fileToDataUrl(file: File): Promise<string> {
   const bytes = Buffer.from(await file.arrayBuffer());
-  const mime = file.type || (getFileExtension(file) === "png" ? "image/png" : "image/jpeg");
+  const ext = getFileExtension(file);
+  const mime = file.type || (ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg");
   return `data:${mime};base64,${bytes.toString("base64")}`;
 }
 
@@ -111,9 +113,22 @@ function extractFirstJsonObject(text: string): unknown | null {
   }
 }
 
+function unique(values: string[], max = 16): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of values) {
+    const token = normalizeToken(raw);
+    if (!token || seen.has(token)) continue;
+    seen.add(token);
+    out.push(token);
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
 function fallbackAnalysisFromFileName(file: File): VisualAIDescription {
   const text = normalizeToken(file.name);
-  const brands = ["nike", "adidas", "jordan", "puma", "new balance", "reebok", "converse", "vans", "asics", "under armour"].filter((brand) =>
+  const brands = ["nike", "adidas", "jordan", "puma", "new balance", "reebok", "converse", "vans", "asics", "under armour", "fila", "crocs"].filter((brand) =>
     text.includes(brand.replace(/\s+/g, " "))
   );
 
@@ -138,18 +153,25 @@ function fallbackAnalysisFromFileName(file: File): VisualAIDescription {
   }
 
   const categories: string[] = [];
-  if (/\b(shoe|shoes|sneaker|sneakers|zapatilla|tenis|jordan|air|max|dunk|force)\b/.test(text)) categories.push("shoes", "sneakers");
-  if (/\b(shirt|camiseta|tshirt|t shirt|top|polo)\b/.test(text)) categories.push("top");
-  if (/\b(pants|pantalon|legging|jogger|short)\b/.test(text)) categories.push("bottom");
-  if (/\b(hoodie|jacket|chaqueta|buzo|sweater)\b/.test(text)) categories.push("outerwear");
+  if (/\b(shoe|shoes|sneaker|sneakers|zapatilla|zapatillas|tenis|jordan|air|max|dunk|force|runner|running)\b/.test(text)) categories.push("shoes", "sneakers");
+  if (/\b(shirt|camiseta|tshirt|t shirt|top|polo|blusa|tee)\b/.test(text)) categories.push("shirt", "top");
+  if (/\b(pants|pantalon|pantalones|legging|leggings|jogger|short|shorts)\b/.test(text)) categories.push("pants");
+  if (/\b(hoodie|jacket|chaqueta|buzo|sweater|sudadera)\b/.test(text)) categories.push("jacket", "hoodie");
+  if (/\b(cap|gorra|hat|bag|bolso|mochila|backpack)\b/.test(text)) categories.push("accessory");
+
+  const genders = unique([
+    /\b(women|woman|mujer|dama|female)\b/.test(text) ? "women" : "",
+    /\b(men|man|hombre|caballero|male)\b/.test(text) ? "men" : "",
+    /\b(kids|nino|ninos|infantil|boy|girl)\b/.test(text) ? "kids" : "",
+  ]);
 
   return {
     brands,
-    categories,
-    genders: [],
-    colors,
-    keywords: text ? text.split(/\s+/).slice(0, 16) : [],
-    confidence: brands.length || categories.length || colors.length ? 0.38 : 0.18,
+    categories: unique(categories),
+    genders,
+    colors: unique(colors),
+    keywords: text ? unique(text.split(/\s+/), 18) : [],
+    confidence: brands.length || categories.length || colors.length || genders.length ? 0.28 : 0.12,
   };
 }
 
@@ -165,7 +187,7 @@ async function analyzeWithVision(file: File): Promise<VisualAIDescription | null
     "Return ONLY valid JSON, no markdown.",
     "Use lowercase normalized English tokens.",
     "Do not invent a brand. If the logo/brand is not clearly visible, return brands: [].",
-    "Focus on: product type, category, gender/use, dominant colors, visible style keywords.",
+    "Focus on product type, category, gender/use, dominant colors and visible style keywords.",
     "Allowed broad categories examples: shoes, sneakers, slides, sandals, boots, top, shirt, tshirt, hoodie, jacket, pants, leggings, shorts, dress, bag, cap, accessory, underwear, baby, kids.",
     "JSON shape: {\"brands\":[],\"categories\":[],\"genders\":[],\"colors\":[],\"keywords\":[],\"confidence\":0.0}",
   ].join(" ");
@@ -224,10 +246,12 @@ export async function POST(req: NextRequest) {
     const ai = await analyzeWithVision(file);
     const fallback = fallbackAnalysisFromFileName(file);
     const analysis = ai && ai.confidence >= 0.25 ? ai : fallback;
+    const source = ai && ai.confidence >= 0.25 ? "openai" : "free-fallback";
 
     return json({
       ok: true,
-      source: ai && ai.confidence >= 0.25 ? "vision" : "fallback",
+      freeMode: source !== "openai",
+      source,
       analysis,
       ...analysis,
     });

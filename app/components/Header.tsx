@@ -959,6 +959,49 @@ function inferIntentFromImage(fileName: string, feature: ImageFeature): VisualIn
   };
 }
 
+
+function buildFreeVisualDescription(fileName: string, feature: ImageFeature | null): VisualAIDescription | null {
+  if (!feature) return null;
+
+  const intent = inferIntentFromImage(fileName, feature);
+  const visualClass = inferImageVisualClass(feature);
+  const categories = new Set<string>(intent.categories);
+  const keywords = new Set<string>([...intent.shapes, ...inferVisualTokens(feature)]);
+
+  if (visualClass === "shoe") {
+    categories.add("shoes");
+    categories.add("sneakers");
+    keywords.add("footwear");
+    keywords.add("sneaker");
+  } else if (visualClass === "top") {
+    categories.add("shirt");
+    categories.add("top");
+    keywords.add("upper garment");
+  } else if (visualClass === "bottom") {
+    categories.add("pants");
+    keywords.add("lower garment");
+  } else if (visualClass === "outerwear") {
+    categories.add("jacket");
+    categories.add("hoodie");
+    keywords.add("outerwear");
+  } else if (visualClass === "accessory") {
+    categories.add("accessory");
+    keywords.add("accessory");
+  }
+
+  const colors = [...new Set([...intent.colors, ...inferVisualTokens(feature)])].slice(0, 5);
+  const hasUsefulSignal = categories.size > 0 || colors.length > 0 || intent.brands.length > 0 || intent.genders.length > 0;
+
+  return {
+    brands: intent.brands,
+    categories: [...categories],
+    genders: intent.genders,
+    colors,
+    keywords: [...keywords].slice(0, 14),
+    confidence: hasUsefulSignal ? 0.46 : 0.28,
+  };
+}
+
 // Merge AI vision description into a VisualIntent, overriding pixel-only inferences
 // when AI confidence is high enough.
 function mergeAIIntoIntent(base: VisualIntent, ai: VisualAIDescription | null): VisualIntent {
@@ -1493,9 +1536,9 @@ type SessionUser = {
 };
 
 const RECENTS_KEY = "jusp_search_recents_v1";
-const IMAGE_FEATURE_CACHE_PREFIX = "jusp_visual_feature_v9:";
+const IMAGE_FEATURE_CACHE_PREFIX = "jusp_visual_feature_v10_free:";
 const IMAGE_FEATURE_CACHE_LIMIT = 420;
-const VISUAL_INDEX_VERSION = "v8-fast-all-products";
+const VISUAL_INDEX_VERSION = "v9-free-hybrid-ready";
 
 
 function getStableProductKey(product: SearchCatalogProduct): string {
@@ -2706,7 +2749,7 @@ export default function Header() {
       // ── FASE 1: Todo en paralelo ───────────────────────────────────────────
       // AI Vision lee logos, colores, tipo de prenda en la imagen real.
       // Pixel features se computan en paralelo para usarse como desempate.
-      const [catalog, sourceFeature, ai] = await Promise.all([
+      const [catalog, sourceFeature, remoteAI] = await Promise.all([
         loadCatalog(),
         computeImageFeatureFromFile(file),
         analyzeImageWithAI(file, deep ? 5000 : 3500),
@@ -2714,8 +2757,10 @@ export default function Header() {
       if (lastImageReq.current !== reqId) return;
       if (!catalog.length) { setImageSearchMode("error"); return; }
 
+      const freeAI       = buildFreeVisualDescription(file.name, sourceFeature);
+      const ai           = remoteAI && remoteAI.confidence >= 0.35 ? remoteAI : freeAI;
       const hasAI        = !!ai && ai.confidence >= 0.35;
-      const highConfAI   = !!ai && ai.confidence >= 0.6;
+      const highConfAI   = !!remoteAI && remoteAI.confidence >= 0.6;
       const pixelIntent  = sourceFeature ? inferIntentFromImage(file.name, sourceFeature) : { brands: [], categories: [], genders: [], colors: [], shapes: [] };
       const intent       = mergeAIIntoIntent(pixelIntent, ai);
       const sourceClass  = sourceFeature ? inferImageVisualClass(sourceFeature) : "unknown";
