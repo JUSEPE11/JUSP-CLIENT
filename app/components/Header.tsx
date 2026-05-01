@@ -2760,6 +2760,7 @@ export default function Header() {
       setImageSearchLabel("Archivo no compatible");
       setImageSearchMode("error");
       setImageSearchCanDeep(false);
+      setImageSearchIndexedCount(0);
       setProducts([]);
       return;
     }
@@ -2769,22 +2770,19 @@ export default function Header() {
     lastImageReq.current = reqId;
     lastImageFileRef.current = file;
     setQ("");
-    setImageSearchLabel(deep ? file.name + " · precisión alta" : file.name);
+    setImageSearchLabel(deep ? `${file.name} · precisión alta` : file.name);
     setImageSearchMode("image");
     setImageSearchCanDeep(false);
+    setImageSearchIndexedCount(0);
     setProducts([]);
     setLoading(true);
 
     try {
-      // FAST FREE MODE:
-      // No cargamos ni comparamos imágenes del catálogo en el navegador.
-      // Eso era la causa del bloqueo: muchas imágenes externas + canvas + CORS.
-      // Ahora analizamos SOLO la imagen subida y rankeamos el catálogo por metadata,
-      // categoría, color, título, marca y texto del Excel. Resultado rápido y estable.
+      const aiPromise = analyzeImageWithAI(file, deep ? 950 : 650).catch(() => null);
       const [catalog, sourceFeature, remoteAI] = await Promise.all([
         loadCatalog(),
         computeImageFeatureFromFile(file),
-        analyzeImageWithAI(file, deep ? 1200 : 850),
+        aiPromise,
       ]);
 
       if (lastImageReq.current !== reqId) return;
@@ -2793,6 +2791,7 @@ export default function Header() {
         setProducts([]);
         setImageSearchMode("error");
         setImageSearchCanDeep(false);
+        setImageSearchIndexedCount(0);
         return;
       }
 
@@ -2803,13 +2802,17 @@ export default function Header() {
         : { brands: [], categories: [], genders: [], colors: [], shapes: [] };
       const intent = mergeAIIntoIntent(pixelIntent, ai);
       const sourceClass = sourceFeature ? inferImageVisualClass(sourceFeature) : "unknown";
-      const sourceColors = new Set<string>([
-        ...(sourceFeature ? inferVisualTokens(sourceFeature) : []),
-        ...intent.colors,
-        ...(ai?.colors ?? []),
-      ].map((value) => normalizeSearchText(value)).filter(Boolean));
+      const sourceColors = new Set<string>(
+        [
+          ...(sourceFeature ? inferVisualTokens(sourceFeature) : []),
+          ...intent.colors,
+          ...(ai?.colors ?? []),
+        ]
+          .map((value) => normalizeSearchText(value))
+          .filter(Boolean)
+      );
 
-      const scored = catalog
+      const metadataScored = catalog
         .map((product) => {
           const images = getCatalogProductImages(product);
           if (!images.length) return { product, score: -999 };
@@ -2819,23 +2822,23 @@ export default function Header() {
           const classCompatible = sourceClass !== "unknown" && productMatchesSourceClass(product, sourceClass);
           const classKnown = sourceClass !== "unknown" && !classes.includes("unknown");
 
-          let score = 120;
+          let score = 110;
 
-          if (classCompatible) score += 380;
-          else if (classKnown) score -= sourceClass === "shoe" || classes.includes("shoe") ? 330 : 220;
-          else score += 35;
+          if (classCompatible) score += 350;
+          else if (classKnown) score -= sourceClass === "shoe" || classes.includes("shoe") ? 340 : 230;
+          else score += 25;
 
           const intentScore = scoreIntentMatch(product, intent);
-          score += Math.max(-120, Math.min(250, intentScore));
+          score += Math.max(-130, Math.min(250, intentScore));
 
           if (sourceFeature) {
             const textAffinity = scoreTextAffinity(product, intent, sourceFeature);
-            score += Math.max(-90, Math.min(210, textAffinity));
+            score += Math.max(-95, Math.min(210, textAffinity));
           }
 
           if (ai && ai.confidence >= 0.25) {
             const aiScore = scoreAIIntent(product, ai);
-            score += Math.max(-140, Math.min(260, aiScore));
+            score += Math.max(-160, Math.min(280, aiScore));
           }
 
           let colorHits = 0;
@@ -2845,7 +2848,7 @@ export default function Header() {
               colorHits += 1;
             }
           }
-          score += Math.min(4, colorHits) * 95;
+          score += Math.min(4, colorHits) * 88;
 
           const title = normalizeSearchText(product.title || product.name || "");
           const brand = normalizeSearchText(product.brand || product.marca || "");
@@ -2854,30 +2857,68 @@ export default function Header() {
           for (const token of [...intent.categories, ...intent.brands, ...intent.genders]) {
             const normalized = normalizeSearchText(token);
             if (!normalized) continue;
-            if (title.includes(normalized)) score += 42;
+            if (title.includes(normalized)) score += 38;
             if (brand.includes(normalized)) score += 70;
-            if (category.includes(normalized)) score += 58;
+            if (category.includes(normalized)) score += 55;
           }
 
-          // Prefer productos con imagen principal clara y precio real, sin hacer canvas.
-          if (images[0]) score += 28;
-          if (images.length >= 2) score += 14;
-          if (hasPositiveMoney(product.price)) score += 18;
-          if (hasPositiveMoney(product.compareAt || product.compare_at)) score += 6;
+          if (images[0]) score += 24;
+          if (images.length >= 2) score += 12;
+          if (hasPositiveMoney(product.price)) score += 16;
+          if (hasPositiveMoney(product.compareAt || product.compare_at)) score += 5;
 
           return { product, score };
         })
-        .filter((entry) => entry.score > (sourceClass === "unknown" ? 150 : 190))
+        .filter((entry) => entry.score > (sourceClass === "unknown" ? 145 : 185))
         .sort((a, b) => b.score - a.score);
 
       const strictClass = sourceClass !== "unknown"
-        ? scored.filter((entry) => productMatchesSourceClass(entry.product, sourceClass))
-        : scored;
+        ? metadataScored.filter((entry) => productMatchesSourceClass(entry.product, sourceClass))
+        : metadataScored;
 
-      const usable = strictClass.length >= 4 ? strictClass : scored;
-      const finalMatches = usable.slice(0, deep ? 16 : 12).map((entry) => {
+      const usableMetadata = strictClass.length >= 4 ? strictClass : metadataScored;
+      const candidateLimit = deep ? 52 : 34;
+      const visualCandidates = sourceFeature
+        ? buildSemanticVisualCandidates(
+            usableMetadata.slice(0, candidateLimit).map((entry) => entry.product),
+            sourceFeature,
+            intent,
+            candidateLimit
+          )
+        : [];
+
+      let visualMatches: SearchProduct[] = [];
+
+      if (sourceFeature && visualCandidates.length) {
+        const visualIndex = await buildCatalogVisualIndex(visualCandidates, deep);
+        if (lastImageReq.current !== reqId) return;
+
+        const rankedVisual = rankIndexedProducts(visualIndex, sourceFeature, {
+          deep,
+          intent,
+          ai,
+          limit: deep ? 18 : 14,
+        });
+
+        const minVisualScore = getScoreThreshold(sourceClass, deep) - (deep ? 55 : 35);
+        visualMatches = rankedVisual
+          .filter((entry, index) => entry.score >= minVisualScore || index < 4)
+          .slice(0, deep ? 16 : 12)
+          .map((entry) => {
+            const mapped = mapCatalogProductToSearchProduct(entry.product);
+            const normalizedScore = Math.max(300, Math.min(960, Math.round(entry.score)));
+            return {
+              ...mapped,
+              image: entry.images[entry.bestImageIndex] || mapped.image,
+              matchScore: normalizedScore,
+              matchLabel: getMatchLabel(normalizedScore),
+            };
+          });
+      }
+
+      const metadataMatches = usableMetadata.slice(0, deep ? 18 : 14).map((entry) => {
         const mapped = mapCatalogProductToSearchProduct(entry.product);
-        const normalizedScore = Math.max(260, Math.min(920, Math.round(entry.score)));
+        const normalizedScore = Math.max(260, Math.min(860, Math.round(entry.score)));
         return {
           ...mapped,
           matchScore: normalizedScore,
@@ -2885,8 +2926,18 @@ export default function Header() {
         };
       });
 
-      const results = finalMatches.length
-        ? finalMatches
+      const seen = new Set<string>();
+      const mergedResults: SearchProduct[] = [];
+      for (const result of [...visualMatches, ...metadataMatches]) {
+        const key = String(result.id || result.href || result.title).toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        mergedResults.push(result);
+        if (mergedResults.length >= (deep ? 16 : 12)) break;
+      }
+
+      const results = mergedResults.length
+        ? mergedResults
         : sourceFeature
           ? getVisualSearchFallbackResults(catalog, sourceFeature, 12)
           : catalog
@@ -2900,13 +2951,14 @@ export default function Header() {
 
       if (lastImageReq.current !== reqId) return;
       setProducts(results);
-      setImageSearchCanDeep(!deep && results.length > 0);
-      setImageSearchIndexedCount(results.length);
+      setImageSearchCanDeep(!deep && results.length > 0 && !!sourceFeature);
+      setImageSearchIndexedCount(visualMatches.length || results.length);
     } catch {
       if (lastImageReq.current !== reqId) return;
       setProducts([]);
       setImageSearchMode("error");
       setImageSearchCanDeep(false);
+      setImageSearchIndexedCount(0);
     } finally {
       if (lastImageReq.current === reqId) setLoading(false);
     }
