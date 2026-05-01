@@ -372,9 +372,27 @@ function loadImageElement(src: string, crossOrigin: "anonymous" | "none" = "anon
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.decoding = "async";
+    let settled = false;
+
+    const timer = window.setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      img.onload = null;
+      img.onerror = null;
+      img.src = "";
+      reject(new Error("image_load_timeout"));
+    }, VISUAL_IMAGE_LOAD_TIMEOUT_MS);
+
+    const finish = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      fn();
+    };
+
     if (crossOrigin === "anonymous") img.crossOrigin = "anonymous";
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error("image_load_failed"));
+    img.onload = () => finish(() => resolve(img));
+    img.onerror = () => finish(() => reject(new Error("image_load_failed")));
     img.src = src;
   });
 }
@@ -1334,11 +1352,11 @@ function getCatalogProductVisualClasses(product: SearchCatalogProduct): ProductV
 
   const classes = new Set<ProductVisualClass>();
 
-  if (/\b(shoe|shoes|sneaker|sneakers|zapatilla|zapatillas|tenis|dunk|jordan|air force|air max|trainer|running)\b/.test(text)) {
+  if (/\b(shoe|shoes|sneaker|sneakers|zapatilla|zapatillas|tenis|calzado|zapato|zapatos|dunk|jordan|air force|air max|trainer|running|runner|retro|low|mid|high)\b/.test(text)) {
     classes.add("shoe");
   }
 
-  if (/\b(bra|sports bra|sujetador|top|tank|shirt|camiseta|tee|t shirt|polo|playera|blusa|jersey)\b/.test(text)) {
+  if (/\b(bra|sports bra|sujetador|top|tank|shirt|camiseta|tee|t shirt|polo|playera|blusa|jersey|camisa)\b/.test(text)) {
     classes.add("top");
   }
 
@@ -1536,9 +1554,12 @@ type SessionUser = {
 };
 
 const RECENTS_KEY = "jusp_search_recents_v1";
-const IMAGE_FEATURE_CACHE_PREFIX = "jusp_visual_feature_v11_similar_free:";
-const IMAGE_FEATURE_CACHE_LIMIT = 420;
-const VISUAL_INDEX_VERSION = "v10-similar-free-hybrid";
+const IMAGE_FEATURE_CACHE_PREFIX = "jusp_visual_feature_v12_fast_free:";
+const IMAGE_FEATURE_CACHE_LIMIT = 260;
+const VISUAL_INDEX_VERSION = "v11-fast-free-similar";
+const VISUAL_QUICK_CANDIDATE_LIMIT = 64;
+const VISUAL_DEEP_CANDIDATE_LIMIT = 96;
+const VISUAL_IMAGE_LOAD_TIMEOUT_MS = 1200;
 
 
 function getStableProductKey(product: SearchCatalogProduct): string {
@@ -1673,7 +1694,7 @@ function buildSemanticVisualCandidates(
   catalog: SearchCatalogProduct[],
   sourceFeature: ImageFeature,
   intent: VisualIntent,
-  limit = 48
+  limit = VISUAL_QUICK_CANDIDATE_LIMIT
 ): SearchCatalogProduct[] {
   const sourceClass = inferImageVisualClass(sourceFeature);
   const sourceColors = new Set([...inferVisualTokens(sourceFeature), ...intent.colors]);
@@ -1684,20 +1705,29 @@ function buildSemanticVisualCandidates(
       if (!images.length) return { product, score: -999 };
 
       const haystack = buildSearchHaystack(product);
+      const classes = getCatalogProductVisualClasses(product);
+      const compatible = productMatchesSourceClass(product, sourceClass);
       let score = 0;
 
-      if (productMatchesSourceClass(product, sourceClass)) score += 260;
-      else score -= 70;
-
-      score += Math.max(-40, Math.min(120, scoreIntentMatch(product, intent)));
-      score += Math.max(-40, Math.min(110, scoreTextAffinity(product, intent, sourceFeature)));
-
-      for (const color of sourceColors) {
-        if (haystack.includes(normalizeSearchText(color))) score += 38;
+      if (sourceClass !== "unknown") {
+        score += compatible ? 360 : -420;
+      } else if (!classes.includes("unknown")) {
+        score += 60;
       }
 
-      score += Math.min(images.length, 6) * 10;
-      if (hasPositiveMoney(product.price)) score += 12;
+      score += Math.max(-80, Math.min(160, scoreIntentMatch(product, intent)));
+      score += Math.max(-80, Math.min(150, scoreTextAffinity(product, intent, sourceFeature)));
+
+      let colorHits = 0;
+      for (const color of sourceColors) {
+        const normalizedColor = normalizeSearchText(color);
+        const spanishColor = COLOR_ES[normalizedColor] || normalizedColor;
+        if (haystack.includes(normalizedColor) || haystack.includes(normalizeSearchText(spanishColor))) colorHits += 1;
+      }
+      score += Math.min(3, colorHits) * 52;
+
+      score += Math.min(images.length, 4) * 8;
+      if (hasPositiveMoney(product.price)) score += 10;
 
       return { product, score };
     })
@@ -2622,8 +2652,8 @@ export default function Header() {
       .map((product) => ({ product, images: getCatalogProductImages(product) }))
       .filter((entry) => entry.images.length > 0);
 
-    const imageLimit = deep ? 8 : 2;
-    const entries = await mapWithConcurrency(productsWithImages, deep ? 4 : 6, async (entry) => {
+    const imageLimit = deep ? 4 : 1;
+    const entries = await mapWithConcurrency(productsWithImages, deep ? 3 : 4, async (entry) => {
       const uniqueImages = entry.images.slice(0, imageLimit);
       const features: CatalogVisualIndexEntry["features"] = [];
 
@@ -2786,9 +2816,21 @@ export default function Header() {
         // Only narrow the pixel search when a real remote AI result is available.
         // In free mode, the semantic description is heuristic; narrowing too early
         // can hide visually similar products. So free mode keeps the full catalog.
+        const semanticSeed = buildSemanticVisualCandidates(
+          catalog,
+          sourceFeature,
+          intent,
+          deep ? VISUAL_DEEP_CANDIDATE_LIMIT : VISUAL_QUICK_CANDIDATE_LIMIT
+        );
+        const seedKeys = new Set<string>([
+          ...semanticSeed.map((p) => getStableProductKey(p)),
+          ...aiRanked.slice(0, deep ? 48 : 28).map((e) => getStableProductKey(e.product)),
+        ]);
         const visualCatalog = hasRemoteAI && aiRanked.length >= 6
-          ? catalog.filter((p) => aiRanked.some((e) => getStableProductKey(e.product) === getStableProductKey(p)))
-          : catalog;
+          ? catalog.filter((p) => seedKeys.has(getStableProductKey(p)))
+          : semanticSeed.length
+          ? semanticSeed
+          : catalog.slice(0, deep ? VISUAL_DEEP_CANDIDATE_LIMIT : VISUAL_QUICK_CANDIDATE_LIMIT);
 
         const quickIndex = await buildCatalogVisualIndex(visualCatalog, false);
         if (lastImageReq.current !== reqId) return;
@@ -2797,12 +2839,11 @@ export default function Header() {
           let rankSource: RankedVisualProduct[];
 
           if (deep) {
-            const seedKeys = new Set([
-              ...aiRanked.slice(0, 40).map((e) => getStableProductKey(e.product)),
-              ...buildSemanticVisualCandidates(catalog, sourceFeature, intent, 40)
-                .map((p) => getStableProductKey(p)),
+            const deepKeys = new Set([
+              ...visualCatalog.map((p) => getStableProductKey(p)),
+              ...aiRanked.slice(0, 48).map((e) => getStableProductKey(e.product)),
             ]);
-            const deepCatalog = catalog.filter((p) => seedKeys.has(getStableProductKey(p)));
+            const deepCatalog = catalog.filter((p) => deepKeys.has(getStableProductKey(p))).slice(0, VISUAL_DEEP_CANDIDATE_LIMIT);
             const deepIndex   = await buildCatalogVisualIndex(deepCatalog, true);
             if (lastImageReq.current !== reqId) return;
             rankSource = rankIndexedProducts(deepIndex, sourceFeature, { deep: true, intent, ai }).slice(0, 36);
@@ -2810,7 +2851,7 @@ export default function Header() {
             rankSource = rankIndexedProducts(quickIndex, sourceFeature, { deep: false, intent, ai }).slice(0, 24);
           }
 
-          visualRanked = rankSource.filter((e) => e.score >= 180);
+          visualRanked = rankSource.filter((e) => e.score >= (sourceClass === "unknown" ? 260 : 220));
         }
       }
 
@@ -2860,12 +2901,13 @@ export default function Header() {
       // Free semantic fallback: add catalog products that match class/category/color
       // even when their images cannot be read because of CORS/provider restrictions.
       if (sourceFeature) {
-        const semanticCandidates = buildSemanticVisualCandidates(catalog, sourceFeature, intent, deep ? 36 : 24);
+        const semanticCandidates = buildSemanticVisualCandidates(catalog, sourceFeature, intent, deep ? 28 : 18);
         for (const product of semanticCandidates) {
           const key = getStableProductKey(product);
           if (candidateMap.has(key)) continue;
           const semanticScore = scoreIntentMatch(product, intent) + scoreTextAffinity(product, intent, sourceFeature);
-          const safeScore = Math.max(90, Math.min(420, 210 + semanticScore));
+          const classBoost = productMatchesSourceClass(product, sourceClass) ? 70 : -160;
+          const safeScore = Math.max(70, Math.min(330, 150 + semanticScore + classBoost));
           candidateMap.set(key, {
             product,
             aiScore: hasAI ? scoreAIIntent(product, ai!) : 0,
@@ -2875,14 +2917,26 @@ export default function Header() {
         }
       }
 
-      const sorted = [...candidateMap.values()].sort((a, b) => b.combined - a.combined);
+      const sorted = [...candidateMap.values()].sort((a, b) => {
+        const byCombined = b.combined - a.combined;
+        if (Math.abs(byCombined) > 0.001) return byCombined;
+        const byVisual = b.visualScore - a.visualScore;
+        if (Math.abs(byVisual) > 0.001) return byVisual;
+        return b.aiScore - a.aiScore;
+      });
 
       // ── FASE 5: Filtrado y etiquetado final ───────────────────────────────
       // Si AI tiene alta confianza, forzamos que los productos con aiScore negativo
       // (categoría incorrecta) no aparezcan aunque su score visual sea alto.
-      const filtered = highConfAI
+      const baseFiltered = highConfAI
         ? sorted.filter((e) => e.aiScore >= 0)   // descartar categoría equivocada
         : sorted;
+
+      const strictClassFiltered = sourceClass !== "unknown"
+        ? baseFiltered.filter((e) => productMatchesSourceClass(e.product, sourceClass) || e.visualScore >= 520)
+        : baseFiltered;
+
+      const filtered = strictClassFiltered.length >= 4 ? strictClassFiltered : baseFiltered;
 
       const selectionTarget = deep ? 16 : 12;
       const finalMatches: SearchProduct[] = filtered.slice(0, selectionTarget).map((entry) => {
