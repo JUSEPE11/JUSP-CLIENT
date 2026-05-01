@@ -997,8 +997,8 @@ function buildFreeVisualDescription(fileName: string, feature: ImageFeature | nu
     categories: [...categories],
     genders: intent.genders,
     colors,
-    keywords: [...keywords].slice(0, 14),
-    confidence: hasUsefulSignal ? 0.46 : 0.28,
+    keywords: [...keywords].slice(0, 18),
+    confidence: hasUsefulSignal ? 0.38 : 0.24,
   };
 }
 
@@ -1536,9 +1536,9 @@ type SessionUser = {
 };
 
 const RECENTS_KEY = "jusp_search_recents_v1";
-const IMAGE_FEATURE_CACHE_PREFIX = "jusp_visual_feature_v10_free:";
+const IMAGE_FEATURE_CACHE_PREFIX = "jusp_visual_feature_v11_similar_free:";
 const IMAGE_FEATURE_CACHE_LIMIT = 420;
-const VISUAL_INDEX_VERSION = "v9-free-hybrid-ready";
+const VISUAL_INDEX_VERSION = "v10-similar-free-hybrid";
 
 
 function getStableProductKey(product: SearchCatalogProduct): string {
@@ -2758,8 +2758,9 @@ export default function Header() {
       if (!catalog.length) { setImageSearchMode("error"); return; }
 
       const freeAI       = buildFreeVisualDescription(file.name, sourceFeature);
-      const ai           = remoteAI && remoteAI.confidence >= 0.35 ? remoteAI : freeAI;
-      const hasAI        = !!ai && ai.confidence >= 0.35;
+      const hasRemoteAI  = !!remoteAI && remoteAI.confidence >= 0.35;
+      const ai           = hasRemoteAI ? remoteAI : freeAI;
+      const hasAI        = !!ai && ai.confidence >= 0.25;
       const highConfAI   = !!remoteAI && remoteAI.confidence >= 0.6;
       const pixelIntent  = sourceFeature ? inferIntentFromImage(file.name, sourceFeature) : { brands: [], categories: [], genders: [], colors: [], shapes: [] };
       const intent       = mergeAIIntoIntent(pixelIntent, ai);
@@ -2782,7 +2783,10 @@ export default function Header() {
       if (sourceFeature) {
         // Catálogo a indexar: si AI tiene resultados, solo indexamos ese subconjunto
         // para el paso visual (más rápido y preciso).
-        const visualCatalog = aiRanked.length >= 6
+        // Only narrow the pixel search when a real remote AI result is available.
+        // In free mode, the semantic description is heuristic; narrowing too early
+        // can hide visually similar products. So free mode keeps the full catalog.
+        const visualCatalog = hasRemoteAI && aiRanked.length >= 6
           ? catalog.filter((p) => aiRanked.some((e) => getStableProductKey(e.product) === getStableProductKey(p)))
           : catalog;
 
@@ -2819,7 +2823,7 @@ export default function Header() {
       //   lowConfAI   → aiWeight=0.55, visualWeight=0.45
       //   noAI        → aiWeight=0.00, visualWeight=1.00
 
-      const aiWeight     = highConfAI ? 0.80 : hasAI ? 0.55 : 0.0;
+      const aiWeight     = highConfAI ? 0.80 : hasRemoteAI ? 0.55 : hasAI ? 0.26 : 0.0;
       const visualWeight = 1 - aiWeight;
 
       // Index visual scores by product key for O(1) lookup
@@ -2851,6 +2855,24 @@ export default function Header() {
         const aiScore  = hasAI ? scoreAIIntent(product, ai!) : 0;
         const combined = aiScore * aiWeight + visualScore * visualWeight;
         if (combined > 0) candidateMap.set(key, { product, aiScore, visualScore, combined });
+      }
+
+      // Free semantic fallback: add catalog products that match class/category/color
+      // even when their images cannot be read because of CORS/provider restrictions.
+      if (sourceFeature) {
+        const semanticCandidates = buildSemanticVisualCandidates(catalog, sourceFeature, intent, deep ? 36 : 24);
+        for (const product of semanticCandidates) {
+          const key = getStableProductKey(product);
+          if (candidateMap.has(key)) continue;
+          const semanticScore = scoreIntentMatch(product, intent) + scoreTextAffinity(product, intent, sourceFeature);
+          const safeScore = Math.max(90, Math.min(420, 210 + semanticScore));
+          candidateMap.set(key, {
+            product,
+            aiScore: hasAI ? scoreAIIntent(product, ai!) : 0,
+            visualScore: 0,
+            combined: safeScore,
+          });
+        }
       }
 
       const sorted = [...candidateMap.values()].sort((a, b) => b.combined - a.combined);
