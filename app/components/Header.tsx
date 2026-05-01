@@ -1484,7 +1484,13 @@ type SessionUser = {
 const RECENTS_KEY = "jusp_search_recents_v1";
 const IMAGE_FEATURE_CACHE_PREFIX = "jusp_visual_feature_v8:";
 const IMAGE_FEATURE_CACHE_LIMIT = 420;
-const VISUAL_INDEX_VERSION = "v8-fast-all-products";
+const VISUAL_INDEX_VERSION = "v9-fast-intent-candidates";
+const VISUAL_SEARCH_QUICK_PRODUCT_LIMIT = 72;
+const VISUAL_SEARCH_DEEP_PRODUCT_LIMIT = 120;
+const VISUAL_SEARCH_QUICK_IMAGE_LIMIT = 1;
+const VISUAL_SEARCH_DEEP_IMAGE_LIMIT = 3;
+const VISUAL_SEARCH_QUICK_CONCURRENCY = 3;
+const VISUAL_SEARCH_DEEP_CONCURRENCY = 2;
 
 
 function getStableProductKey(product: SearchCatalogProduct): string {
@@ -1679,6 +1685,71 @@ function clamp(n: number, a: number, b: number) {
   return Math.max(a, Math.min(b, n));
 }
 
+
+function isSupportedImageSearchFile(file: File): boolean {
+  const type = String(file.type || "").toLowerCase();
+  const name = String(file.name || "").toLowerCase();
+  return type.startsWith("image/") || /\.(png|jpe?g|webp|gif|avif|heic|heif)$/i.test(name);
+}
+
+function yieldToBrowser(): Promise<void> {
+  return new Promise((resolve) => {
+    if (typeof window === "undefined") {
+      resolve();
+      return;
+    }
+
+    window.setTimeout(resolve, 0);
+  });
+}
+
+function buildIntentQuery(intent: VisualIntent, ai?: VisualAIDescription | null): string {
+  const parts = [
+    ...(ai?.brands ?? intent.brands),
+    ...(ai?.categories ?? intent.categories),
+    ...(ai?.genders ?? intent.genders),
+    ...(ai?.colors ?? intent.colors),
+    ...(ai?.keywords ?? []),
+  ]
+    .map((item) => normalizeSearchText(item))
+    .filter(Boolean);
+
+  return [...new Set(parts)].join(" ");
+}
+
+function rankIntentCandidates(
+  catalog: SearchCatalogProduct[],
+  sourceFeature: ImageFeature | null,
+  intent: VisualIntent,
+  ai: VisualAIDescription | null,
+  limit: number
+): SearchCatalogProduct[] {
+  const sourceClass = sourceFeature ? inferImageVisualClass(sourceFeature) : "unknown";
+  const query = buildIntentQuery(intent, ai);
+
+  return catalog
+    .map((product) => {
+      const images = getCatalogProductImages(product);
+      if (!images.length) return { product, score: -999 };
+
+      let score = 0;
+      if (ai && ai.confidence >= 0.25) score += scoreAIIntent(product, ai) * 1.25;
+      if (sourceFeature) {
+        score += scoreIntentMatch(product, intent);
+        score += scoreTextAffinity(product, intent, sourceFeature) * 0.85;
+        if (productMatchesSourceClass(product, sourceClass)) score += 90;
+        else if (sourceClass !== "unknown") score -= 80;
+      }
+      if (query) score += scoreCatalogProduct(product, query) * 0.22;
+      if (hasPositiveMoney(product.price)) score += 8;
+
+      return { product, score };
+    })
+    .filter((entry) => entry.score > -40)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((entry) => entry.product);
+}
 async function mapWithConcurrency<T, R>(
   items: T[],
   limit: number,
@@ -1691,6 +1762,7 @@ async function mapWithConcurrency<T, R>(
     while (nextIndex < items.length) {
       const currentIndex = nextIndex;
       nextIndex += 1;
+      if (currentIndex > 0 && currentIndex % 8 === 0) await yieldToBrowser();
       results[currentIndex] = await mapper(items[currentIndex], currentIndex);
     }
   }
@@ -2566,10 +2638,11 @@ export default function Header() {
 
     const productsWithImages = catalog
       .map((product) => ({ product, images: getCatalogProductImages(product) }))
-      .filter((entry) => entry.images.length > 0);
+      .filter((entry) => entry.images.length > 0)
+      .slice(0, deep ? VISUAL_SEARCH_DEEP_PRODUCT_LIMIT : VISUAL_SEARCH_QUICK_PRODUCT_LIMIT);
 
-    const imageLimit = deep ? 12 : 3;
-    const entries = await mapWithConcurrency(productsWithImages, deep ? 5 : 10, async (entry) => {
+    const imageLimit = deep ? VISUAL_SEARCH_DEEP_IMAGE_LIMIT : VISUAL_SEARCH_QUICK_IMAGE_LIMIT;
+    const entries = await mapWithConcurrency(productsWithImages, deep ? VISUAL_SEARCH_DEEP_CONCURRENCY : VISUAL_SEARCH_QUICK_CONCURRENCY, async (entry) => {
       const uniqueImages = entry.images.slice(0, imageLimit);
       const features: CatalogVisualIndexEntry["features"] = [];
 
@@ -2669,7 +2742,7 @@ export default function Header() {
   }
 
   async function runImageSearch(file: File, options: { deep?: boolean } = {}) {
-    if (!file.type.startsWith("image/")) {
+    if (!isSupportedImageSearchFile(file)) {
       setImageSearchLabel("Archivo no compatible");
       setImageSearchMode("error");
       setImageSearchCanDeep(false);
@@ -2694,7 +2767,7 @@ export default function Header() {
       // Pixel features se computan en paralelo para usarse como desempate.
       const [catalog, sourceFeature, ai] = await Promise.all([
         loadCatalog(),
-        computeImageFeatureFromFile(file),
+        computeImageFeatureFromFile(file).catch(() => null),
         analyzeImageWithAI(file, deep ? 5000 : 3500),
       ]);
       if (lastImageReq.current !== reqId) return;
@@ -2725,7 +2798,7 @@ export default function Header() {
         // para el paso visual (más rápido y preciso).
         const visualCatalog = aiRanked.length >= 6
           ? catalog.filter((p) => aiRanked.some((e) => getStableProductKey(e.product) === getStableProductKey(p)))
-          : catalog;
+          : rankIntentCandidates(catalog, sourceFeature, intent, ai, deep ? VISUAL_SEARCH_DEEP_PRODUCT_LIMIT : VISUAL_SEARCH_QUICK_PRODUCT_LIMIT);
 
         const quickIndex = await buildCatalogVisualIndex(visualCatalog, false);
         if (lastImageReq.current !== reqId) return;
@@ -2815,12 +2888,19 @@ export default function Header() {
         };
       });
 
-      // Fallback de emergencia
-      const results = finalMatches.length
-        ? finalMatches
-        : sourceFeature
-          ? getVisualSearchFallbackResults(catalog, sourceFeature, 12)
-          : [];
+      // Fallback de emergencia: prioriza intención semántica antes de volver a resultados visuales genéricos.
+      const intentFallback = rankIntentCandidates(catalog, sourceFeature, intent, ai, 12).map((product) => {
+        const mapped = mapCatalogProductToSearchProduct(product);
+        const aiScore = ai ? scoreAIIntent(product, ai) : 0;
+        return {
+          ...mapped,
+          matchScore: Math.max(360, Math.min(620, Math.round(aiScore * 2))),
+          matchLabel: "Similar" as const,
+        };
+      });
+
+      const visualFallback = sourceFeature ? getVisualSearchFallbackResults(catalog, sourceFeature, 12) : [];
+      const results = finalMatches.length ? finalMatches : intentFallback.length ? intentFallback : visualFallback;
 
       if (lastImageReq.current !== reqId) return;
       setProducts(results);
