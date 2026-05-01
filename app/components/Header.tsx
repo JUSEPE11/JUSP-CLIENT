@@ -397,40 +397,15 @@ function loadImageElement(src: string, crossOrigin: "anonymous" | "none" = "anon
   });
 }
 
-function getNextImageProxyUrl(src: string): string | null {
-  const clean = String(src || "").trim();
-  if (!clean || clean.startsWith("data:") || clean.startsWith("blob:")) return null;
-  if (clean.startsWith("/_next/image")) return null;
-  try {
-    const absolute = clean.startsWith("http://") || clean.startsWith("https://")
-      ? clean
-      : typeof window !== "undefined"
-      ? new URL(clean, window.location.origin).toString()
-      : clean;
-    return `/_next/image?url=${encodeURIComponent(absolute)}&w=128&q=60`;
-  } catch {
-    return null;
-  }
+function getNextImageProxyUrl(_src: string): string | null {
+  // CRITICAL: do not proxy visual-search analysis through Vercel.
+  // Using /_next/image here makes every image-search scan consume Vercel Fast Data Transfer.
+  return null;
 }
 
 function getImageAnalysisSources(src: string): string[] {
   const clean = String(src || "").trim();
-  const sources: string[] = [];
-  if (clean) sources.push(clean);
-  const proxied = getNextImageProxyUrl(clean);
-  if (proxied && !sources.includes(proxied)) sources.unshift(proxied);
-  return sources;
-}
-
-function isSameOriginImageSource(src: string): boolean {
-  if (typeof window === "undefined") return false;
-  const clean = String(src || "").trim();
-  if (!clean || clean.startsWith("data:") || clean.startsWith("blob:") || clean.startsWith("/")) return true;
-  try {
-    return new URL(clean, window.location.origin).origin === window.location.origin;
-  } catch {
-    return false;
-  }
+  return clean ? [clean] : [];
 }
 
 type ForegroundExtraction = {
@@ -1557,9 +1532,11 @@ const RECENTS_KEY = "jusp_search_recents_v1";
 const IMAGE_FEATURE_CACHE_PREFIX = "jusp_visual_feature_v12_fast_free:";
 const IMAGE_FEATURE_CACHE_LIMIT = 260;
 const VISUAL_INDEX_VERSION = "v12-fast-metadata-free";
-const VISUAL_QUICK_CANDIDATE_LIMIT = 64;
-const VISUAL_DEEP_CANDIDATE_LIMIT = 96;
-const VISUAL_IMAGE_LOAD_TIMEOUT_MS = 1200;
+const VISUAL_QUICK_CANDIDATE_LIMIT = 24;
+const VISUAL_DEEP_CANDIDATE_LIMIT = 36;
+const VISUAL_IMAGE_LOAD_TIMEOUT_MS = 800;
+const SEARCH_CATALOG_CACHE_KEY = "jusp_search_catalog_cache_v1";
+const SEARCH_CATALOG_CACHE_TTL_MS = 1000 * 60 * 10;
 
 
 function getStableProductKey(product: SearchCatalogProduct): string {
@@ -2548,14 +2525,35 @@ export default function Header() {
 
   async function loadCatalog(signal?: AbortSignal): Promise<SearchCatalogProduct[]> {
     if (catalogRef.current) return catalogRef.current;
-    const res = await fetch(`/api/products?__search=${Date.now()}`, {
-      cache: "no-store",
+
+    try {
+      const raw = window.sessionStorage.getItem(SEARCH_CATALOG_CACHE_KEY);
+      if (raw) {
+        const cached = JSON.parse(raw) as { savedAt?: number; items?: SearchCatalogProduct[] };
+        if (
+          typeof cached?.savedAt === "number" &&
+          Date.now() - cached.savedAt < SEARCH_CATALOG_CACHE_TTL_MS &&
+          Array.isArray(cached.items)
+        ) {
+          catalogRef.current = cached.items;
+          return cached.items;
+        }
+      }
+    } catch {}
+
+    const res = await fetch("/api/products", {
+      cache: "force-cache",
       signal,
     });
     if (!res.ok) throw new Error("catalog_fetch_failed");
     const json = await res.json();
     const items = Array.isArray(json) ? json : Array.isArray(json?.products) ? json.products : [];
     catalogRef.current = items;
+
+    try {
+      window.sessionStorage.setItem(SEARCH_CATALOG_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), items }));
+    } catch {}
+
     return items;
   }
 
@@ -2652,8 +2650,8 @@ export default function Header() {
       .map((product) => ({ product, images: getCatalogProductImages(product) }))
       .filter((entry) => entry.images.length > 0);
 
-    const imageLimit = deep ? 4 : 1;
-    const entries = await mapWithConcurrency(productsWithImages, deep ? 3 : 4, async (entry) => {
+    const imageLimit = deep ? 2 : 1;
+    const entries = await mapWithConcurrency(productsWithImages, deep ? 2 : 3, async (entry) => {
       const uniqueImages = entry.images.slice(0, imageLimit);
       const features: CatalogVisualIndexEntry["features"] = [];
 
@@ -2877,7 +2875,7 @@ export default function Header() {
         : metadataScored;
 
       const usableMetadata = strictClass.length >= 4 ? strictClass : metadataScored;
-      const candidateLimit = deep ? 52 : 34;
+      const candidateLimit = deep ? 30 : 20;
       const visualCandidates = sourceFeature
         ? buildSemanticVisualCandidates(
             usableMetadata.slice(0, candidateLimit).map((entry) => entry.product),
